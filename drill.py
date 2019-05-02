@@ -518,7 +518,7 @@ class Drill:
         self.window.title(self.TITLE)
         # imgicon = PhotoImage(file=os.path.join(os.getcwd(),'folder.gif'))
         # self.window.tk.call('wm', 'iconphoto', self.window._w, imgicon)
-        ICON_NAME = "drill.png"
+        ICON_NAME = "icon.png"
         if os.path.isfile(ICON_NAME):
             self.window.tk.call('wm', 'iconphoto', self.window._w, tk.PhotoImage(file=ICON_NAME))
 
