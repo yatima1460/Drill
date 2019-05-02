@@ -19,8 +19,8 @@ Search files without using indexing, but clever crawling:
 ```
 Linux
 Python 3
-sudo apt install python3-tk
-pip3 install -r requirements.txt
+sudo apt install python3-tk (you should already have it)
+python3 setup.py install --user
 ```
 
 ### Run
