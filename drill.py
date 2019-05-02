@@ -9,6 +9,7 @@
 # Credits:
 #   Federico Santamorena, Main Developer
 #
+#
 # FIXME: update list when new results found
 # FIXME: remove duplicates if symbolic links make a mess
 # FIXME: root folders of threads do not appear in search?
@@ -16,34 +17,35 @@
 # FIXME: it seems tkinter misses some double clicks when the mainloop takes too much time
 # FIXME: right clicking while hovering a row should select it and open the containing folder
 # 
-# TODO: cli-version?
-# TODO: tmp cache index file
+#
+# User
+#
+# TODO: AppImage/Snap/Flatpak
+# TODO: folders actual size
+# TODO: tmp cache index file to speedup boot time
 # TODO: metadata searching (mp3, etc...)
-# TODO: threadpool
 # TODO: ESC to close
-# TODO: add documentation and comments
-# TODO: remove the print statements and replace them with a log library?
 # TODO: alternate row colors
-# TODO: AppImage/Snap/Flatpak/apt
-# TODO: cat /proc/mounts for starting the threads
+# TODO: threaded search in index to remove hangs
 # TODO: drag and drop (is this even possible with tkinter?)
 # TODO: switch to GTK3?
-# TODO: memoization?
-# TODO: private fields with __
-# TODO: show version in UI
+# TODO: memoization
+# TODO: help in gui (maybe later when more search ways available)
+#
+# Developer
+#
+# TODO: publish to apt
+# TODO: remove the print statements and replace them with a log library?
+# TODO: cat /proc/mounts for starting the threads
+# TODO: cli-version?
+# TODO: threadpool?
+# TODO: code cleanup: private fields with __ etc
+# TODO: add documentation and comments
 # TODO: fix the messy imports
-# TODO: threaded search in index
-# TODO: lower priority rules (node_modules, hidden folders)
 # TODO: CASE_INSENSITIVE flag
 # TODO: WINDOW_CENTERED flag
-# TODO: folders actual size
-# TODO: open containing folder for files
-# TODO: if you want to add Python2 support pull request it
-# TODO: github link in gui
-# TODO: help in gui
 # TODO: dump NTFS partition file index?
 # TODO: dump ext4 partition file index?
-
 
 ################
 #####CONFIG#####
