@@ -390,7 +390,7 @@ class ResultsView(ttk.Treeview):
                 # clear the previous UI buffer that adds the results of
                 # the previous search to the UI
 
-                self.ui_buffer.clear()
+                self.ui_buffer.queue.clear()
                 print("ui_buffer cleared")
                 # fileinfo_filtered = []
 
