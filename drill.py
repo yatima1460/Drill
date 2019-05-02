@@ -337,7 +337,8 @@ class ResultsView(ttk.Treeview):
         partitions = psutil.disk_partitions()
         mountpoints = list(map(lambda x: x.mountpoint, partitions))
         mountpoints.remove("/")
-        mountpoints.append("/home")
+        if "/home" not in mountpoints:
+            mountpoints.append("/home")
         print("Mountpoints to scan: ", mountpoints)
         for mountpoint in mountpoints:
             print("Starting thread for: ", mountpoints)
