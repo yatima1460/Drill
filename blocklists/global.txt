@@ -27,3 +27,11 @@ go/src
 ^/sbin
 ^/proc
 /desktop.ini$
+^/vmlinuz
+^/initrd
+^/src
+^/run
+org.eclipse
+Program Files/Windows
+Program Files (x86)/Windows
+Program Files \(x86\)/Windows
