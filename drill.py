@@ -16,6 +16,8 @@
 # FIXME: it seems tkinter misses some double clicks when the mainloop takes too much time
 # FIXME: right clicking while hovering a row should select it and open the containing folder
 # 
+# TODO: tmp cache index file
+# TODO: metadata searching (mp3, etc...)
 # TODO: threadpool
 # TODO: ESC to close
 # TODO: add documentation and comments
