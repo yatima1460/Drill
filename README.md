@@ -27,7 +27,7 @@ pip3 install psutil
 
 ### Run
 ```bash
-python3 Drill.py
+python3 drill.py
 ```
 
 ## Guide
