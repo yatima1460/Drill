@@ -35,6 +35,7 @@
 #
 # Developer
 #
+# TODO: statistics to check which are the black hole folders (time crawling inside?)
 # TODO: publish to apt
 # TODO: remove the print statements and replace them with a log library?
 # TODO: cat /proc/mounts for starting the threads
