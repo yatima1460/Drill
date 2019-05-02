@@ -133,6 +133,7 @@ if sys.version_info >= (3, 0):
     import os
     import threading
     import time
+    import re
     from threading import Thread
 
     if os.supports_follow_symlinks:
@@ -249,8 +250,12 @@ class Crawler(Thread):
 
                             fi = FileInfo()
 
-                            if not direntry_ok(direntry):
-                                return
+                            
+                            txt = "The rain in Spain"
+                            for rule in self.excludes:
+                                x = re.search(rule, direntry.path)
+                                if x != None:
+                                    return
                             self.current_depth = direntry.path.count("/")
                             fi.hidden = direntry.name[0] == "."
                             fi.name = de_emojify(direntry.name)
@@ -303,7 +308,7 @@ class ResultsView(ttk.Treeview):
     list_dirty = False
     ui_buffer = Queue()
 
-    def __init__(self, master=None, **kw):
+    def __init__(self, master=None, blocklist=[], **kw):
         # style = ttk.Style()
         # style.element_create("Custom.Treeheading.border", "from", "default")
         # style.layout("Custom.Treeview.Heading", [
@@ -337,15 +342,17 @@ class ResultsView(ttk.Treeview):
 
         partitions = psutil.disk_partitions()
         mountpoints = list(map(lambda x: x.mountpoint, partitions))
-        mountpoints.remove("/")
-        if "/home" not in mountpoints:
-            mountpoints.append("/home")
+        
         print("Mountpoints to scan: ", mountpoints)
         for mountpoint in mountpoints:
-            print("Starting thread for: ", mountpoints)
-            exclusion_list = mountpoints[:]
-            exclusion_list.remove(mountpoint)
-            t = Crawler(mountpoint, self.index, excludes=exclusion_list)
+            print("Starting thread for: ", mountpoint)
+            crawler_exclusion_list = blocklist[:]
+            cp_mountpoints = mountpoints[:]
+            cp_mountpoints.remove(mountpoint)
+            cp_mountpoints = list(map(lambda x: "^"+x+"$",cp_mountpoints))
+            crawler_exclusion_list += cp_mountpoints
+            assert mountpoint not in crawler_exclusion_list, "crawler mountpoint can't be excluded"
+            t = Crawler(mountpoint, self.index, excludes=crawler_exclusion_list)
 
             t.start()
             self.threads.append(t)
@@ -502,6 +509,9 @@ class Drill:
         print("Drill %s - Federico Santamorena" % VERSION)
         print(self.GITHUB_URL)
 
+        with open("blocklists/global.txt",'r') as f:
+            self.blocklist = f.read().splitlines()
+
         self.process = psutil.Process(os.getpid())
         self.running = True
         self.create_window()
@@ -550,7 +560,7 @@ class Drill:
         container.pack(fill='both', expand=True)
 
         # create a treeview with dual scrollbars
-        self.multicolumn_tree = ResultsView()
+        self.multicolumn_tree = ResultsView(blocklist=self.blocklist)
 
         # self.multicolumn_tree.bind("<Button-3>", list_rightclick)
         vertical_scrollbar = ttk.Scrollbar(orient="vertical", command=self.multicolumn_tree.yview)
