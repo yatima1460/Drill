@@ -514,7 +514,6 @@ class Drill:
         print(self.GITHUB_URL)
         print("psutilcheck",psutilcheck)
         
-        global psutilcheck
         if psutilcheck:
             self.process = psutil.Process(os.getpid())
         self.running = True
@@ -622,7 +621,6 @@ class Drill:
 
     def mainloop(self):
         # update bottom labels
-        global psutilcheck
         if psutilcheck:
             ram_used = self.process.memory_info().rss
             self.memory_usage_label.configure(text="Memory used: "+str(ram_used//(2**20))+"MB")
