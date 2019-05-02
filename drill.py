@@ -30,6 +30,7 @@
 # TODO: drag and drop (is this even possible with tkinter?)
 # TODO: switch to GTK3?
 # TODO: memoization
+# TODO:  percentage of crawling
 # TODO: help in gui (maybe later when more search ways available)
 #
 # Developer
