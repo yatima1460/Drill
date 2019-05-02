@@ -76,36 +76,36 @@ MEMORY_CUTOFF = 1073741824  # 1GB of RAM
 
 def direntry_ok(direntry):
     # HACK: remove these branch predictions, this is very ugly and temporary
+    
+    # possibly add Windows.old to this list?
+    bad_matches = ["node_modules", "Windows", "$Recycle.Bin", "$RECYCLE.BIN"]
+    bad_fuzzies = ["WindowsApps", "site-packages", "android-ndk", "android-sdk",
+                   "npm-cache"]
+    bad_paths = ["ZeroNet-master/data", "go/scr/"]
+    
+    # catch empty dir
     if direntry.name is None:
         return False
+    
+    # ignore hidden dirs
     if direntry.name[0] == ".":
         return False
-    if direntry.name == "node_modules":
+    
+    # ignore exact matches
+    if direntry.name in bad_matches:
         return False
-    if direntry.name == "Windows":
-        return False
-    # Windows puts user files in there when resetting
-    # so maybe it's better to reenable Windows.old
-    # if direntry.name == "Windows.old":
-    #     return False
-    if "WindowsApps" in direntry.name:
-        return False
-    if direntry.name == "$Recycle.Bin":
-        return False
-    if direntry.name == "$RECYCLE.BIN":
-        return False
-    if "ZeroNet-master/data" in direntry.path:
-        return False
-    if "go/src/" in direntry.path:
-        return False
-    if "site-packages" in direntry.name:
-        return False
-    if "android-ndk" in direntry.name:
-        return False
-    if "android-sdk" in direntry.name:
-        return False
-    if "npm-cache" in direntry.name:
-        return False
+    
+    # ignore bad fuzzies
+    for bad_fuzzy in bad_fuzzies:
+        if bad_fuzzy in direntry.name:
+            return False
+        
+    # ignore bad paths
+    for bad_path in bad_paths:
+        if bad_path in direntry.path:
+            return False
+        
+    # ignore snap directory
     if "home" in direntry.path and "snap" == direntry.name:
         return False
     return True
