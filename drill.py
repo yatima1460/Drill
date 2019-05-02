@@ -51,7 +51,7 @@
 #####CONFIG#####
 ################
 
-VERSION = "v0.1.0b"
+VERSION = "v0.1.0c"
 
 # nice 16:9 ratio and is a good res for laptops with 1366x768 low res
 WINDOW_WIDTH = 800
