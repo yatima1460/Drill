@@ -4,7 +4,7 @@ from distutils.core import setup
 import setuptools
 
 setup(name='Drill',
-      version='0.1.0rc3',
+      version='0.1.1',
       description='Search files without using indexing, but clever crawling',
       author='Federico Santamorena',
       author_email='federico@santamorena.me',
