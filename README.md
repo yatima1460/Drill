@@ -20,10 +20,7 @@ Search files without using indexing, but clever crawling:
 Linux
 Python 3
 sudo apt install python3-tk
-
-optional:
-also if you install psutil you will see the memory usage in real time
-pip3 install psutil
+pip3 install -r requirements.txt
 ```
 
 ### Run
