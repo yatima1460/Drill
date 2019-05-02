@@ -1,6 +1,6 @@
 # Drill v0.1.0c
 
-![](drill.png)
+![](https://raw.githubusercontent.com/yatima1460/drill/assets/logo.png)
 
 ## TL;DR: What is this
 
@@ -11,7 +11,7 @@ Search files without using indexing, but clever crawling:
 - intended for desktop users, /home and /media scans, no obscure Linux files
 
 
-![](screenshot.png)
+![](https://raw.githubusercontent.com/yatima1460/drill/assets/screenshot.png)
 
 ## Fast guide
 
