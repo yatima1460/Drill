@@ -5,10 +5,10 @@
 ## TL;DR: What is this
 
 Search files without using indexing, but clever crawling:
-- 1 thread per disk
+- 1 thread per mount point
 - Use as much RAM as possible for caching stuff
-- Try to avoid "black hole folders" in which the crawler will never come out and never scan useful files (`node_modules`)
-- intended for desktop users, /home and /media scans, no obscure Linux files
+- Try to avoid "black hole folders" using a regex based blocklist in which the crawler will never come out and never scan useful files (`node_modules`)
+- **Intended for desktop users**, no obscure Linux files and system files scans
 
 
 ![](https://raw.githubusercontent.com/yatima1460/drill/assets/screenshot.png)
