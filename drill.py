@@ -81,7 +81,7 @@ def direntry_ok(direntry):
     bad_matches = ["node_modules", "Windows", "$Recycle.Bin", "$RECYCLE.BIN"]
     bad_fuzzies = ["WindowsApps", "site-packages", "android-ndk", "android-sdk",
                    "npm-cache"]
-    bad_paths = ["ZeroNet-master/data", "go/scr/"]
+    bad_paths = ["ZeroNet-master/data", "go/src"]
     
     # catch empty dir
     if direntry.name is None:
