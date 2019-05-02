@@ -127,12 +127,7 @@ if sys.version_info >= (3, 0):
     from queue import Queue
 
 
-    psutilcheck = None
-    try:
-        import psutil
-        psutilcheck = True
-    except ImportError:
-        psutilcheck = False
+    import psutil
     import datetime
     import os
     import threading
@@ -340,19 +335,21 @@ class ResultsView(ttk.Treeview):
         self.bind("<Return>", self.list_doubleleftclick  )
         #self.bind("<Spacebar>", self.list_doubleclick  )
         # t = Crawler("/etc",self.index)
-        # t.start()
-        # self.threads.append(t)
-        t = Crawler("/home",self.index)
-        t.start()
-        self.threads.append(t)
-        for f in os.listdir("/media"):
-            # print("Thread started for ")
-            p = os.path.join("/media", f)
-            print("Starting thread for: ", p)
-            t = Crawler(os.path.join("/media", p),self.index)
+
+   
+        partitions = psutil.disk_partitions()
+        mountpoints = list(map(lambda x: x.mountpoint,partitions))
+        mountpoints.remove("/")
+        print("Mountpoints to scan: ", mountpoints)
+        for mountpoint in mountpoints:
+            print("Starting thread for: ", mountpoints)
+            exclusion_list = mountpoints[:]
+            exclusion_list.remove(mountpoint)
+            t = Crawler(mountpoint,self.index,excludes=exclusion_list)
             
             t.start()
             self.threads.append(t)
+            
 
 
 
@@ -510,13 +507,9 @@ class Drill:
 
     def __init__(self, *args, **kwargs):
         print("Drill %s - Federico Santamorena" % VERSION)
-        
         print(self.GITHUB_URL)
-        print("psutilcheck",psutilcheck)
         
-        global psutilcheck
-        if psutilcheck:
-            self.process = psutil.Process(os.getpid())
+        self.process = psutil.Process(os.getpid())
         self.running = True
         self.create_window()
         
@@ -622,10 +615,8 @@ class Drill:
 
     def mainloop(self):
         # update bottom labels
-        global psutilcheck
-        if psutilcheck:
-            ram_used = self.process.memory_info().rss
-            self.memory_usage_label.configure(text="Memory used: "+str(ram_used//(2**20))+"MB")
+        ram_used = self.process.memory_info().rss
+        self.memory_usage_label.configure(text="Memory used: "+str(ram_used//(2**20))+"MB")
             
         self.uibuffer_label.configure(text="UI_Buffer: "+str(self.multicolumn_tree.ui_buffer.qsize()))
         self.active_threads.configure(text="Active Threads: "+str(len(list(filter(lambda x: x.isAlive(),self.multicolumn_tree.threads)))))
