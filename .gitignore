@@ -1,5 +1,7 @@
-Drill-x86_64.AppImage
+me.santamorena.drill
+*.AppImage
 .vscode
+.idea
 *.bin
 # Created by https://www.gitignore.io/api/python
 # Edit at https://www.gitignore.io/?templates=python

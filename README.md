@@ -1,43 +1,55 @@
-# Drill v0.1.0c
+# Drill v0.1.1
 
-![](drill.png)
+![](https://raw.githubusercontent.com/yatima1460/drill/assets/logo.png)
 
 ## TL;DR: What is this
 
 Search files without using indexing, but clever crawling:
-- 1 thread per disk
+- 1 thread per mount point
 - Use as much RAM as possible for caching stuff
-- Try to avoid "black hole folders" in which the crawler will never come out and never scan useful files (`node_modules`)
-- intended for desktop users, /home and /media scans, no obscure Linux files
+- Try to avoid "black hole folders" using a regex based blocklist in which the crawler will never come out and never scan useful files (`node_modules`,`Windows`,etc)
+- **Intended for desktop users**, no obscure Linux files and system files scans
 
 
-![](screenshot.png)
+![](https://raw.githubusercontent.com/yatima1460/drill/assets/screenshot.png)
 
-## Fast guide
+## How to run this
 
-### Requirements
-```
-Linux
-Python 3
-sudo apt install python3-tk
-pip3 install -r requirements.txt
-```
+**Use the provided AppImage, just double click it**
 
-### Run
-```
-python3 drill.py
+If your distro doesn't ask you to mark it executable or nothing happens try:
+- `chmod +x Drill.AppImage`
+- `./Drill.AppImage`
 
-or
-
-chmod +x drill.py
-./drill.py
-```
-
-## Guide
+## UI Guide
 ```
 Double click    = open
 Right click     = open containing folder
 Return/Enter    = open
+Middle Click    = messagebox with file info (TODO)
+```
+
+## Manual prerequisites using Python
+
+- Python 3 needed
+- `sudo apt install python3-tk` (you should already have it)
+- `python3 setup.py install --user`
+
+
+### Run manually with Python 3
+```
+python3 drill.py
+```
+or
+```
+chmod +x drill.py
+./drill.py
+```
+
+## Building AppImage
+
+```
+bash build_appimage.sh
 ```
 
 ## What is this
