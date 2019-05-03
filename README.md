@@ -13,7 +13,7 @@ Search files without using indexing, but clever crawling:
 
 ![](https://raw.githubusercontent.com/yatima1460/drill/assets/screenshot.png)
 
-## Fast guide
+## How to run this
 
 **Use the provided AppImage, just double click it**
 
@@ -21,15 +21,22 @@ If your distro doesn't ask you to mark it executable or nothing happens try:
 - `chmod +x Drill.AppImage`
 - `./Drill.AppImage`
 
+## UI Guide
+```
+Double click    = open
+Right click     = open containing folder
+Return/Enter    = open
+Middle Click    = messagebox with file info (TODO)
+```
 
-## Manual prerequisites
+## Manual prerequisites using Python
 
 - Python 3 needed
 - `sudo apt install python3-tk` (you should already have it)
 - `python3 setup.py install --user`
 
 
-### Run
+### Run manually with Python 3
 ```
 python3 drill.py
 ```
@@ -37,14 +44,6 @@ or
 ```
 chmod +x drill.py
 ./drill.py
-```
-
-## Guide
-```
-Double click    = open
-Right click     = open containing folder
-Return/Enter    = open
-Middle Click    = messagebox with file info (TODO)
 ```
 
 ## What is this
