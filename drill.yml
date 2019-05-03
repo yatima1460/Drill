@@ -1,0 +1,38 @@
+app: me.santamorena.drill
+ingredients:
+  dist: trusty
+  sources:
+    - deb http://deb.debian.org/debian stretch main
+  packages:
+    - tcl=8.6.0+9
+    - python3-minimal
+    - python3-tk
+    - python3-psutil
+# script:
+#   - wget -c https://github.com/yatima1460/drill/archive/master.zip
+#   - unzip -o master.zip
+  script:
+    - mkdir -p me.santamorena.drill.AppDir/usr
+    - cp ../drill.py me.santamorena.drill.AppDir/usr
+    - cp ../icon.png me.santamorena.drill.AppDir/usr
+    - cp -r ../blocklists me.santamorena.drill.AppDir/usr
+    - cp ../icon.png me.santamorena.drill.AppDir
+  script:
+    - cat > me.santamorena.drill.AppDir/usr/drill.sh <<\EOF
+    - #!/bin/bash
+    - python3 -O -OO -I -E drill.py
+    - EOF
+    - chmod +x me.santamorena.drill.AppDir/usr/drill.sh
+  script:
+    - cat > me.santamorena.drill.AppDir/me.santamorena.drill.desktop <<\EOF
+    - [Desktop Entry]
+    - Type=Application
+    - Name=Drill
+    - Comment=Search files without using indexing, but clever crawling
+    - Comment[it]=Trova files sul tuo PC senza indicizzare, ma cercando intelligentemente
+    - Icon=icon
+    - Exec=sh drill.sh
+    - Terminal=false
+    - Categories=Application;Utility;
+    - Keywords=Search;FileSearch;File Search;Find;
+    - EOF
