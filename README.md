@@ -17,7 +17,7 @@ Search files without using indexing, but clever crawling:
 
 **Use the provided AppImage, just double click it**
 
-If your distro doesn't ask you to mark it executable just run or nothing happens try:
+If your distro doesn't ask you to mark it executable or nothing happens try:
 - `chmod +x Drill.AppImage`
 - `./Drill.AppImage`
 
