@@ -1,4 +1,5 @@
-Drill-x86_64.AppImage
+me.santamorena.drill
+*.AppImage
 .vscode
 .idea
 *.bin

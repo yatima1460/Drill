@@ -46,6 +46,12 @@ chmod +x drill.py
 ./drill.py
 ```
 
+## Building AppImage
+
+```
+bash build_appimage.sh
+```
+
 ## What is this
 
 I was stressed on Linux because I couldn't find the files I needed, file searchers based on system indexing (updatedb) are prone to breaking and hard to configure for the average user, so did an all nighter and started this.
