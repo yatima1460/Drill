@@ -452,11 +452,25 @@ class ResultsView(ttk.Treeview):
 
     def list_doubleleftclick(self, event):
         item = self.selection()
-        import subprocess
         if item is not None:
+            import platform
             item = self.item(item, "values")
-            # TODO: messagebox if error from xdg-open
-            subprocess.Popen(['xdg-open', os.path.join(item[2], item[1])])
+            path = os.path.join(item[2], item[1])
+            osname = platform.system()
+            if osname == "Linux":
+                import gi
+                gi.require_version("Gtk", "3.0")
+                from gi.repository import Gtk, Gdk
+                screen = Gdk.get_default_root_window().get_screen()
+                success = Gtk.show_uri(screen,"file:///"+path, Gdk.CURRENT_TIME)
+                return
+            if osname == "Windows":
+                os.startfile(path)
+                return
+            if osname == "Darwin":
+                import subprocess
+                subprocess.call(['open', path])
+                return
 
     def list_leftclick(self, event):
         print("list_leftclick")
