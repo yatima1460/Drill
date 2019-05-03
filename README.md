@@ -7,7 +7,7 @@
 Search files without using indexing, but clever crawling:
 - 1 thread per mount point
 - Use as much RAM as possible for caching stuff
-- Try to avoid "black hole folders" using a regex based blocklist in which the crawler will never come out and never scan useful files (`node_modules`)
+- Try to avoid "black hole folders" using a regex based blocklist in which the crawler will never come out and never scan useful files (`node_modules`,`Windows`,etc)
 - **Intended for desktop users**, no obscure Linux files and system files scans
 
 
@@ -15,20 +15,26 @@ Search files without using indexing, but clever crawling:
 
 ## Fast guide
 
-### Requirements
-```
-Linux
-Python 3
-sudo apt install python3-tk (you should already have it)
-python3 setup.py install --user
-```
+**Use the provided AppImage, just double click it**
+
+If your distro doesn't ask you to mark it executable just run or nothing happens try:
+- `chmod +x Drill.AppImage`
+- `./Drill.AppImage`
+
+
+## Manual prerequisites
+
+- Python 3 needed
+- `sudo apt install python3-tk` (you should already have it)
+- `python3 setup.py install --user`
+
 
 ### Run
 ```
 python3 drill.py
-
+```
 or
-
+```
 chmod +x drill.py
 ./drill.py
 ```
@@ -38,6 +44,7 @@ chmod +x drill.py
 Double click    = open
 Right click     = open containing folder
 Return/Enter    = open
+Middle Click    = messagebox with file info (TODO)
 ```
 
 ## What is this
