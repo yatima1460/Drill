@@ -3,14 +3,15 @@
 	"authors": [
 		"Federico Santamorena"
 	],
-	"description": "A minimal D application.",
+	"description": "Search files without using indexing, but clever crawling.",
 	"copyright": "Copyright © 2019, Federico Santamorena",
-	"license": "GPLv2",
+	"license": "GPL-2.0",
+	"homepage": "https://github.com/yatima1460/drill",
 	
 	"targetType": "executable",
 	"targetName": "Drill.elf",
-	
-	"sourceFiles": ["source/Drill.d","source/FileInfo.d"],
+	"targetPath": "build",
+	"sourceFiles": ["source/Drill.d","source/FileInfo.d","source/Crawler.d"],
 	"dependencies": {
 		"gtk-d:gtkd": {"path": "vendor/GtkD" }
 	}
