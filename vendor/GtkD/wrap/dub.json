@@ -1,0 +1,16 @@
+{
+	"name": "girtod",
+	"description": "A binding generator for libraries supporting gobject-introspection.",
+	"homepage": "https://gtkd.org",
+	"license": "LGPL-3.0",
+	"targetType": "executable",
+	"mainSourceFile": "source/girtod.d",
+	"stringImportPaths": ["./"],
+	"preGenerateCommands-posix": [
+		"cd $PACKAGE_DIR && dub describe | sed -n -e 's/^[[:space:]]\\+\"version\": \"\\([0-9.+a-z]\\+\\)\",$$/\\1/p' | tr -d '\\n\\r' > VERSION"
+	],
+	"preGenerateCommands-windows": [
+		"cd $PACKAGE_DIR",
+		"powershell -Command \"dub describe | where { $_ -match \"\\\"version\\\":\"} | %{$$_ -replace '@MagickLibVersionText@','7.0.0'} | %{$$_ -replace '@QuantumDepth@','16'} | %{$$_ -replace '@HDRI@','false'} | Set-Content $PACKAGE_DIR/VERSION\""
+	]
+}
