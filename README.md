@@ -2,6 +2,8 @@
 
 ![](https://raw.githubusercontent.com/yatima1460/drill/assets/logo.png)
 
+![](https://raw.githubusercontent.com/yatima1460/drill/D/flowchart.svg)
+
 ## TL;DR: What is this
 
 Search files without using indexing, but clever crawling:
