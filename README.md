@@ -1,4 +1,4 @@
-# Drill v0.1.1
+# Drill 1.0.0rc1
 
 ![](https://raw.githubusercontent.com/yatima1460/drill/assets/logo.png)
 
@@ -31,19 +31,13 @@ Middle Click    = messagebox with file info (TODO)
 
 ## Manual prerequisites using Python
 
-- Python 3 needed
-- `sudo apt install python3-tk` (you should already have it)
-- `python3 setup.py install --user`
+- D
+- `sudo apt install dub`
 
 
-### Run manually with Python 3
+### Build and Run
 ```
-python3 drill.py
-```
-or
-```
-chmod +x drill.py
-./drill.py
+dub run
 ```
 
 ## Building AppImage
@@ -71,4 +65,42 @@ Second change is excluding some obvious folders while crawling like `Windows` an
 
 ## TODO
 
-There is a lot of stuff to do and to fix, all written in the `drill.py` file
+- FIXME: update list when new results found
+- FIXME: remove duplicates if symbolic links make a mess
+- FIXME: root folders of threads do not appear in search?
+- FIXME: sorting is messy
+- FIXME: it seems tkinter misses some double clicks when the mainloop takes too much time
+- FIXME: right clicking while hovering a row should select it and open the containing folder
+
+
+### Usability 
+
+- TODO: AppImage/Snap/Flatpak
+- TODO: folders actual size
+- TODO: tmp cache index file to speedup boot time
+- TODO: metadata searching (mp3, etc...)
+- TODO: ESC to close
+- TODO: alternate row colors
+- TODO: threaded search in index to remove hangs
+- TODO: drag and drop (is this even possible with tkinter?)
+- TODO: switch to GTK3?
+- TODO: memoization
+- TODO:  percentage of crawling
+- TODO: help in gui (maybe later when more search ways available)
+
+#### Developer
+
+- TODO: NVM could benefit when multiple threads are run for the same disk?
+- TODO: statistics to check which are the black hole folders (time crawling inside?)
+- TODO: publish to apt
+- TODO: remove the print statements and replace them with a log library?
+- TODO: cat /proc/mounts for starting the threads
+- TODO: cli-version?
+- TODO: threadpool?
+- TODO: code cleanup: private fields with __ etc
+- TODO: add documentation and comments
+- TODO: fix the messy imports
+- TODO: CASE_INSENSITIVE flag
+- TODO: WINDOW_CENTERED flag
+- TODO: dump NTFS partition file index?
+- TODO: dump ext4 partition file index?
