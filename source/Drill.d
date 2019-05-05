@@ -1,40 +1,3 @@
-/*
- * This file is part of gtkD.
- *
- * gtkD is free software; you can redistribute it and/or modify
- * it under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation; either version 3 of the License, or
- * (at your option) any later version.
- *
- * gtkD is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with gtkD; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110, USA
- */
-
-/*****************************************************************************
-
-    Authors: Frank Benoit <keinfarbton@googlemail.com>
-             muntyan #gtk+
-
-    This demo shows a table with key/value pairs. The values can be edited.
-    There are two types of values: strings and bools. Dependent of the type,
-    either a CellRendererText or CellRendererToggle is used to show and edit
-    the value.
-
-    This is done by connecting the visibility of a CellRenderer to a
-    ListStore column.
-
-    2018-03-29: ref to issiue #231
-    Added colors in first column GdkColor & RGBA.
-    This tests ListStore storing more complex attribute, than simple GType.
-    Jakub Zdroik <jakub.zdroik@gmail.com>
-
-*****************************************************************************/
 module Drill;
 
 import gtk.Main;
@@ -67,7 +30,6 @@ enum Column
     DATE_MODIFIED
 }
 
-
 class DrillWindow : Window
 {
 
@@ -84,19 +46,19 @@ class DrillWindow : Window
         store.setValue(it, Column.DATE_MODIFIED, fi.date_modified_str);
     }
 
-
     private void searchChanged(EditableIF ei)
     {
-        writeln("Wrote input:"~ei.getChars(0,-1));
-        this.search_string = ei.getChars(0,-1);
+        writeln("Wrote input:" ~ ei.getChars(0, -1));
+        this.search_string = ei.getChars(0, -1);
     }
 
+    public this()
+    {
+        super("Drill");
 
-	public this()
-	{
-		super("Drill");
-
-        store = new ListStore([GType.STRING, GType.STRING, GType.STRING, GType.STRING]);
+        store = new ListStore([
+                GType.STRING, GType.STRING, GType.STRING, GType.STRING
+                ]);
 
         auto window = new Window("Drill");
         window.setDefaultSize(800, 450);
@@ -146,66 +108,59 @@ class DrillWindow : Window
         column.packStart(cell_text, false);
         column.addAttribute(cell_text, "text", Column.DATE_MODIFIED);
 
-    // change value in store on toggle event
-    // cell_bool.addOnToggled(delegate void(string p, CellRendererToggle) {
-    //     auto path = new TreePath(p);
-    //     auto it = new TreeIter(store, path);
-    //     store.setValue(it, COLUMN_BOOL, it.getValueInt(COLUMN_BOOL) ? 0 : 1);
+        // change value in store on toggle event
+        // cell_bool.addOnToggled(delegate void(string p, CellRendererToggle) {
+        //     auto path = new TreePath(p);
+        //     auto it = new TreeIter(store, path);
+        //     store.setValue(it, COLUMN_BOOL, it.getValueInt(COLUMN_BOOL) ? 0 : 1);
 
-    //     auto val = store.getValue(it, COLUMN_TEXT_FONT_DESCRIPTION);
+        //     auto val = store.getValue(it, COLUMN_TEXT_FONT_DESCRIPTION);
 
-    //     import gobject.Type;
+        //     import gobject.Type;
 
-    //     writeln(Type.isA(PgFontDescription.getType(), GType.BOXED));
-    //     writeln(PgFontDescription.getType(), " ", val.gType);
+        //     writeln(Type.isA(PgFontDescription.getType(), GType.BOXED));
+        //     writeln(PgFontDescription.getType(), " ", val.gType);
 
-    //     auto font = val.get!PgFontDescription();
+        //     auto font = val.get!PgFontDescription();
 
-    //     writeln(font.getFamily());
-    // });
+        //     writeln(font.getFamily());
+        // });
 
-    // change the text in the store on end of edit
-    // cell_text.addOnEdited(delegate void(string p, string v, CellRendererText cell) {
-    //     auto path = new TreePath(p);
-    //     auto it = new TreeIter(store, path);
-    //     store.setValue(it, COLUMN_TEXT, v);
-    // });
+        // change the text in the store on end of edit
+        // cell_text.addOnEdited(delegate void(string p, string v, CellRendererText cell) {
+        //     auto path = new TreePath(p);
+        //     auto it = new TreeIter(store, path);
+        //     store.setValue(it, COLUMN_TEXT, v);
+        // });
 
-    v.packStart(search_input, false, false, 0);
-    v.packStart(tv, true, true, 0);
+        v.packStart(search_input, false, false, 0);
+        v.packStart(tv, true, true, 0);
 
-    tv.setModel(store);
-    window.showAll();
+        tv.setModel(store);
+        window.showAll();
 
-    // fill store with data
-    FileInfo fi = new FileInfo();
-    fi.type_str = "Folder";
-    fi.name = "OwO";
-    fi.path = "/";
-    fi.date_modified_str = "0";
+        // fill store with data
+        FileInfo fi = new FileInfo();
+        fi.type_str = "Folder";
+        fi.name = "OwO";
+        fi.path = "/";
+        fi.date_modified_str = "0";
 
-    appendRecord(fi);
+        appendRecord(fi);
 
-    window.addOnDelete(delegate bool(Event event, Widget widget) {
-        widget.destroy();
-        Main.quit();
-        return false;
-    });
+        window.addOnDelete(delegate bool(Event event, Widget widget) {
+            widget.destroy();
+            Main.quit();
+            return false;
+        });
 
-   
     }
 }
 
-
-
-
-
-
 void main(string[] args)
 {
-     Main.init(args);
+    Main.init(args);
     DrillWindow d = new DrillWindow();
-     Main.run();
+    Main.run();
     //d.show();
 }
-
