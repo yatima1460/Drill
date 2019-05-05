@@ -1,0 +1,17 @@
+{
+	"name": "drill",
+	"authors": [
+		"Federico Santamorena"
+	],
+	"description": "A minimal D application.",
+	"copyright": "Copyright © 2019, Federico Santamorena",
+	"license": "GPLv2",
+	
+	"targetType": "executable",
+	"targetName": "Drill.elf",
+	
+	"sourceFiles": ["source/Drill.d","source/FileInfo.d"],
+	"dependencies": {
+		"gtk-d:gtkd": {"path": "vendor/GtkD" }
+	}
+}
