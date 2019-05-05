@@ -1,0 +1,27 @@
+// {type:activity}
+// {direction:topDown}
+// {generate: true}
+(start)->(Start 1 thread per mount point)->(Draw GUI)
+(Search input)->(list_dirty = true)
+(Draw GUI)->(if list_dirty == true then Update list)->(list_dirty = false)->(Draw GUI)
+(Start 1 thread per mount point)->(Thread 1)
+(Thread 1)-><blacklistmount>mount is not in the blacklist->(add mount point to queue)
+<blacklistmount>mount is in the blacklist->(thread finishes cleanly)
+(while queue is not empty)->(for each directory in queue)
+(for each directory in queue)->(for each file in directory)->(check if in regex blacklist)->(if directory add to new queue)->(add to thread files found index)
+(for each filepath check if in regex blacklist)->(add to index)
+(for each folders in directories_to_scan queue)->(old queue = new queue)
+(Start 1 thread per mount point)->(Thread ..)
+
+(add mount point to queue)-><dirscanqueue>
+<dirscanqueue>if queue is not empty->(pop directory from queue)
+(pop directory from queue)->(foreach file in directory)
+(foreach file in directory)-><blacklistfile>is in the blacklist->(add to low priority files queue)->(foreach file in directory)
+<blacklistfile>is not in the blacklist->(add to thread files index)-><isdir>
+<isdir>is file->(foreach file in directory)
+<isdir>is directory->(add to queue)
+(add to queue)->(foreach file in directory)
+<dirscanqueue>if queue is empty->(scan low priority files)->(thread finishes cleanly)
+(Close window)->(set running=false)->|join|
+
+|join|->(end)
