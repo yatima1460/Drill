@@ -1,6 +1,3 @@
-
-
-
 module FileInfo;
 
 class FileInfo
@@ -31,12 +28,11 @@ class FileInfo
             // subprocess.Popen(['xdg-open', self.path])
         }
     }
-       
 
     void open_containing_folder()
     {
-//  import subprocess
-//         subprocess.Popen(['xdg-open', self.parent])
+        //  import subprocess
+        //         subprocess.Popen(['xdg-open', self.parent])
     }
-       
+
 }
