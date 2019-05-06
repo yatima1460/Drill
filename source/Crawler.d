@@ -47,8 +47,9 @@ private:
         log = new FileLogger("logs/"~replace(root,"/","_")~".log");
         writeln(this.toString()~" started");
         Array!DirEntry* queue = new Array!DirEntry();
-
-        queue.insertBack(DirEntry(this.root));
+        auto direntryroot = DirEntry(this.root);
+        queue.insertBack(direntryroot);
+          index.insertBack(direntryroot);
 
         this.running = true;
         while (queue.length != 0)

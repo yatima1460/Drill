@@ -57,6 +57,8 @@ import pango.PgFontDescription;
 import std.stdio;
 import std.algorithm;
 import std.algorithm.iteration;
+import core.thread;
+import std.concurrency;
 
 import Crawler : Crawler;
 
@@ -70,8 +72,7 @@ enum Column
     DATE_MODIFIED
 }
 
-import core.thread;
-import std.concurrency;
+
 
 extern (C) static nothrow int threadIdleProcess(void* data)
 {
@@ -94,10 +95,16 @@ extern (C) static nothrow int threadIdleProcess(void* data)
 
         import std.conv : to;
 
-        mainWindow.files_indexed_count.setText(
+                 mainWindow.files_indexed_count.setText(
                 "Files indexed: " ~ to!string(mainWindow.index.length));
         mainWindow.files_ignored_count.setText(
                 "Low priority files to scan later: " ~ to!string(ignored_total));
+        import std.array;
+        mainWindow.threads_active.setText(
+                "Threads active: " ~ to!string(array(mainWindow.threads[].filter!(x => x.running)).length));
+
+      
+
 
         if (mainWindow.list_dirty)
         {
@@ -125,11 +132,21 @@ extern (C) static nothrow int threadIdleProcess(void* data)
                     if (i == UI_LIST_MAX_SIZE)
                         break;
                 }
+                  mainWindow.files_shown.setText(
+                "Files shown: " ~ to!string(i)~"/"~to!string(UI_LIST_MAX_SIZE));
                 mainWindow.log.info("adding results to UI... DONE");
 
             }
+            else
+            {
+                   mainWindow.files_shown.setText(
+                "Files shown: 0/"~to!string(UI_LIST_MAX_SIZE));
+ 
+            }
 
             mainWindow.list_dirty = false;
+
+   
         }
         //         //  writeln("updating done");
         // 	}
@@ -148,48 +165,8 @@ extern (C) static nothrow int threadIdleProcess(void* data)
         return 0;
     }
     return 1;
-    // receiveTimeout(dur!("msecs")( 0 ), (int value) {
-    //TODO HERE
-
-    //        
-    // 	// }
-    // // );
-
-    //     return 1;
-
-    //Thread.sleep( dur!("msecs")( 5000 ) );
-    // If thread is not running, return false so GTK removes it
-    // and no longer calls it during idle processing.
-
-    //     if (!mainWindow.running) {
-    //         return 0;
-    //     }
-    //     return 1;
-
-    // } catch (Throwable t) {
-    //     return 0;
-    // }
-
 }
 
-// void countNumbers() {
-// 	writeln("Thread running ");
-// 	int count = 0;
-// 	// mainWindow.running = true;
-// 	bool stop = false;
-// 	while (!stop) {
-// 		count++;
-// 		writeln("Current count: ",count);
-// 		ownerTid.send(count);
-// 		Thread.getThis().sleep(dur!("msecs")( 1000 ));
-// 		receiveTimeout(dur!("msecs")( 0 ), (bool abort) {
-// 				stop = abort;
-// 			}
-// 			);
-// 	}
-// 	writeln("Shutting down thread");
-// 	// mainWindow.running = false;
-// }
 import std.process;
 
 class DrillWindow : ApplicationWindow
@@ -208,20 +185,13 @@ class DrillWindow : ApplicationWindow
     bool list_dirty;
     FileLogger log;
     Entry search_input;
+    Label threads_active;
+    Label files_shown;
 
     void open_file(string path)
     {
-        // if (de.isDir())
-        // {
-
-        //     // import subprocess
-        //     // subprocess.Popen(['xdg-open', self.path])
-        // }
-
         string[] args = ["xdg-open", path];
-        spawnProcess(args, std.stdio.stdin, std.stdio.stdout, std.stdio.stderr,
-                null, std.process.Config.none, null);
-        //executeShell("\""~path~"\"","xdg-open");
+        spawnProcess(args, std.stdio.stdin, std.stdio.stdout, std.stdio.stderr, null, std.process.Config.none, null);
     }
 
     void open_containing_folder()
@@ -245,25 +215,19 @@ class DrillWindow : ApplicationWindow
     private void doubleclick(TreePath tp, TreeViewColumn tvc, TreeView tv)
     {
         TreeIter ti = new TreeIter();
-
         this.liststore.getIter(ti, tp);
-
         string path = this.liststore.getValueString(ti, Column.PATH);
         string name = this.liststore.getValueString(ti, Column.NAME);
         import std.path : chainPath;
         import std.array : array;
-
         string chained = chainPath(path, name).array;
-        // auto de = DirEntry(chained);
-        // if (de.isDir())
         open_file(chained);
-        // writeln(tp.);
-
+        // TODO: open_file failed
     }
 
     private void searchChanged(EditableIF ei)
     {
-        writeln("Wrote input:" ~ ei.getChars(0, -1));
+        log.info("Wrote input:" ~ ei.getChars(0, -1));
         this.search_string = ei.getChars(0, -1);
         this.list_dirty = true;
     }
@@ -271,26 +235,23 @@ class DrillWindow : ApplicationWindow
     public this(Application application)
     {
         super(application);
-        // this.running = true;
-
         this.setTitle("Drill");
-
-        import std.array : replace;
-
+        setDefaultSize(800, 450);
+        setResizable(true);
+        setPosition(GtkWindowPosition.CENTER);
+    
         log = new FileLogger("logs/GTKThread.log");
 
         list_dirty = false;
-
         this.liststore = new ListStore([
                 GType.STRING, GType.STRING, GType.STRING, GType.STRING
                 ]);
 
-        setDefaultSize(800, 450);
-        setResizable(true);
-        setPosition(GtkWindowPosition.CENTER);
+        
         if (!setIconFromFile("assets/icon.png"))
         {
             //fallback to default GTK icon if it can't find its own
+            log.warning("Can't find program icon, will fallback to default GTK one!");
             setIconName("search");
         }
 
@@ -314,8 +275,13 @@ class DrillWindow : ApplicationWindow
 
         this.files_indexed_count = new Label("Files indexed: ?");
         this.files_ignored_count = new Label("Low priority files to scan later: ?");
+        this.threads_active = new Label("Threads active: ?");
+        import std.conv : to;
+        this.files_shown = new Label("Files shown: 0/"~to!string(UI_LIST_MAX_SIZE));
         h.packStart(files_indexed_count, false, false, 0);
         h.packStart(files_ignored_count, false, false, 0);
+        h.packStart(threads_active, false, false, 0);
+        h.packStart(files_shown, false, false, 0);
 
         // create first column with text renderer
         TreeViewColumn column = new TreeViewColumn();
@@ -370,49 +336,46 @@ class DrillWindow : ApplicationWindow
         this.treeview.setModel(this.liststore);
         showAll();
 
-        auto ls = executeShell("df -h --output=target");
+        auto ls = executeShell("lsblk --output MOUNTPOINT");
         if (ls.status != 0)
         {
-            writeln("Can't retrieve mount points, will scan `/`");
+            log.error("Can't retrieve mount points, will scan `/`");
 
+            // TODO: fallback to `/` if can't retrieve mount points
         }
         else
         {
-
-            gdk.Threads.threadsAddTimeout(100, &threadIdleProcess, cast(void*) this);
+            import std.array;
+            gdk.Threads.threadsAddTimeout(10, &threadIdleProcess, cast(void*) this);
             // this.childTid = spawn(&countNumbers);
 
             // childTid = spawn(&countNumbers);
 
-            Array!string mountpoints = Array!string();
-            foreach (ref mountpoint; ls.output.split("\n"))
-            {
-                if (canFind(mountpoint, "/"))
-                {
-                    mountpoints ~= mountpoint;
-                }
-            }
-            writeln("Mount points to scan:" ~ join(mountpoints[], " "));
+            Array!string mountpoints = array(ls.output.split("\n").filter!(x => canFind(x,"/")));
+            
+            log.info("Mount points to scan:" ~ join(mountpoints[], " "));
             this.threads = Array!Crawler();
 
             foreach (ref mountpoint; mountpoints)
             {
-                writeln("Starting thread for: ", mountpoint);
+                log.info("Starting thread for: ", mountpoint);
                 Array!string crawler_exclusion_list = Array!string(blocklist);
 
-                import std.array;
+                
 
                 // for safety measure add the mount points minus itself to the exclusion list
                 string[] cp_tmp = mountpoints[].filter!(x => x != mountpoint)
                     .map!(x => "^" ~ x ~ "$")
                     .array;
-                writeln(join(cp_tmp, " "));
+                log.info(join(cp_tmp, " "));
                 crawler_exclusion_list ~= cp_tmp;
                 // assert mountpoint not in crawler_exclusion_list, "crawler mountpoint can't be excluded";
 
                 import std.regex;
 
+                log.info("Compiling Regex...");
                 Regex!char[] regexes = crawler_exclusion_list[].map!(x => regex(x)).array;
+                log.info("Compiling Regex... DONE");
                 auto crawler = new Crawler(mountpoint, regexes);
                 crawler.start();
                 this.threads.insertBack(crawler);
@@ -420,29 +383,20 @@ class DrillWindow : ApplicationWindow
 
         }
 
-        // fill store with data
-        // FileInfo fi = new FileInfo();
-        // fi.type_str = "Folder";
-        // fi.name = "OwO";
-        // fi.path = "/";
-        // fi.date_modified_str = "0";
 
-        // appendRecord(DirEntry("/home/yatima1460/Downloads"));
-        // appendRecord(DirEntry("/home/yatima1460/Downloads/icon.svg"));
 
         addOnDelete(delegate bool(Event event, Widget widget) {
-            writeln("Close event");
-
-            
-
+            log.info("Window started to close");
             foreach (ref thread; threads)
             {
+                log.info(thread.toString()~".running set to false");
                 thread.running = false;
             }
             foreach (ref thread; threads)
             {
+                log.info("Waiting for thread "~thread.toString()~" to stop");
                 thread.join(false);
-                writeln("Thread " ~ thread.root ~ " stopped cleanly");
+                log.info(thread.toString() ~ " stopped cleanly");
             }
 
             return false;
