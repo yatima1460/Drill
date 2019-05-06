@@ -5,21 +5,26 @@ import core.thread : Thread;
 import std.stdio;
 import std.file;
 import std.file : DirEntry;
+import std.experimental.logger;
+import std.regex : Regex;
 
 class Crawler : Thread
 {
     string root;
     bool running;
-    Array!string exclusion_list;
+    Regex!char[] exclusion_list;
     Array!DirEntry* index;
     long ignored_count;
+    FileLogger log;
 
-    this(string root, Array!string exclusion_list)
+    this(string root, Regex!char[] exclusion_list)
     {
         super(&run);
         this.root = root;
         this.exclusion_list = exclusion_list;
         this.index = new Array!DirEntry();
+     
+   
 
     }
 
@@ -38,6 +43,8 @@ class Crawler : Thread
 private:
     void run()
     {
+           import std.array : replace;
+        log = new FileLogger("logs/"~replace(root,"/","_")~".log");
         writeln(this.toString()~" started");
         Array!DirEntry* queue = new Array!DirEntry();
 
@@ -51,54 +58,68 @@ private:
             foreach (parent; *queue)
             {
 
-                auto filelist = dirEntries(parent, SpanMode.shallow, false);
-
-                import std.array : join;
-
-                // writeln("Thread "~root~" files in root are: ");
-
-                fileloop: foreach (file; filelist)
+                fileloop: foreach (DirEntry direntry; dirEntries(parent, SpanMode.shallow, true))
                 {
                     if (!this.running)
                         return;
                     //writeln(file.size);
 
+
+                          if (direntry.isSymlink())
+                    {
+                         log.trace(direntry.name ~ " ignored because symlink");
+                         continue fileloop;
+                    }
+
                     import std.regex;
 
                     // writeln("Working on:" ~ file.name);
-                    foreach (regexrule; this.exclusion_list)
+                    foreach (ref regexrule; this.exclusion_list)
                     {
-                        auto r = regex(regexrule);
+                        
 
                         // matchAll() returns a range that can be iterated
                         // to get all subsequent matches.
-                        RegexMatch!string mo = std.regex.match(file.name, r);
+                        RegexMatch!string mo = std.regex.match(direntry.name, regexrule);
 
                         if (!mo.empty())
                         {
-                            // writeln(file.name ~ " ignored");
+                            
+
+                            log.trace(direntry.name ~ " low priority because of regex rules");
                             this.ignored_count++;
+                            
                             continue fileloop;
                         }
                         else
 
                         {
-                            // writeln(file.name ~ " added");
+                             
+                               
+                             //writeln(direntry.name ~ " added");
                         }
+                       
 
                     }
 
-                    if (file.isDir())
+               
+
+                    if (direntry.isDir())
                     {
-                        next_queue.insertBack(file);
+                        next_queue.insertBack(direntry);
+                         log.trace(direntry.name ~ " directory queued next");
                     }
 
-                    index.insertBack(file);
+                   
+
+                    index.insertBack(direntry);
+                     log.trace(direntry.name ~ " added to global index");
                 }
             }
 
             queue = next_queue;
         }
+        this.running = false;
         writeln("Thread for `" ~ root ~ "` finished its job");
 
     }
