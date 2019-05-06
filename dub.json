@@ -12,6 +12,7 @@
 	"targetName": "Drill.elf",
 	"targetPath": "build",
 	"sourceFiles": ["source/Drill.d","source/Crawler.d"],
+	"buildOptions": ["releaseMode","optimize"],
 	"dependencies": {
 		"gtk-d:gtkd": {"path": "vendor/GtkD" }
 	}
