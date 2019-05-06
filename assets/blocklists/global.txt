@@ -50,3 +50,8 @@ PerfLogs\/
 ProgramData
 System Volume Information
 CodeWorksforAndroid
+gradle
+SDL2
+__pycache__
+Manga StudioCommon/Material
+python-core
