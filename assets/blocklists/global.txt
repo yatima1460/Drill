@@ -14,6 +14,7 @@ android-ndk
 android-sdk
 npm-cache
 ZeroNet-master/data
+ZeroNet-win-dist/data
 go/src
 ^/snap
 ^/bin
@@ -39,3 +40,13 @@ org.eclipse
 Program Files/Windows
 Program Files (x86)/Windows
 Program Files \(x86\)/Windows
+NVPACK
+PenTabletDriver
+AppData
+\$WINDOWS\.~BT
+\$SysReset
+NVIDIA\/
+PerfLogs\/
+ProgramData
+System Volume Information
+CodeWorksforAndroid
