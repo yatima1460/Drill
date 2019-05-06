@@ -51,6 +51,7 @@ import gdk.Threads;
 import gtk.Label;
 import gtk.Scrollbar;
 import gtk.ScrolledWindow;
+import gdk.Pixbuf;
 
 import pango.PgFontDescription;
 
@@ -62,7 +63,9 @@ import std.concurrency;
 
 import Crawler : Crawler;
 
-string blocklist = import("assets/blocklists/global.txt");
+
+
+
 
 enum Column
 {
@@ -98,7 +101,7 @@ extern (C) static nothrow int threadIdleProcess(void* data)
                  mainWindow.files_indexed_count.setText(
                 "Files indexed: " ~ to!string(mainWindow.index.length));
         mainWindow.files_ignored_count.setText(
-                "Low priority files to scan later: " ~ to!string(ignored_total));
+                "Files blocked: " ~ to!string(ignored_total));
         import std.array;
         mainWindow.threads_active.setText(
                 "Threads active: " ~ to!string(array(mainWindow.threads[].filter!(x => x.running)).length));
@@ -255,7 +258,13 @@ class DrillWindow : ApplicationWindow
             setIconName("search");
         }
 
-        this.blocklist = readText("assets/blocklists/global.txt").split("\n");
+        import std.file : dirEntries, SpanMode;
+
+        foreach (string partial_blocklist; dirEntries(DirEntry("assets/blocklists"), SpanMode.shallow, true))
+        {
+            this.blocklist ~= readText(partial_blocklist).split("\n");
+        }
+        
 
         this.treeview = new TreeView();
         this.treeview.addOnRowActivated(&doubleclick);
@@ -267,6 +276,10 @@ class DrillWindow : ApplicationWindow
 
         search_input = new Entry();
 
+    
+        
+        search_input.setIconFromIconName(GtkEntryIconPosition.SECONDARY,"search");
+
         ScrolledWindow scroll = new ScrolledWindow();
 
         scroll.add(this.treeview);
@@ -274,7 +287,7 @@ class DrillWindow : ApplicationWindow
         search_input.addOnChanged(&searchChanged);
 
         this.files_indexed_count = new Label("Files indexed: ?");
-        this.files_ignored_count = new Label("Low priority files to scan later: ?");
+        this.files_ignored_count = new Label("Files blocked: ?");
         this.threads_active = new Label("Threads active: ?");
         import std.conv : to;
         this.files_shown = new Label("Files shown: 0/"~to!string(UI_LIST_MAX_SIZE));
