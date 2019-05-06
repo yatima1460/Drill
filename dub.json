@@ -10,9 +10,9 @@
 	
 	"targetType": "executable",
 	"targetName": "Drill.elf",
-	"targetPath": "build",
 	"sourceFiles": ["source/Drill.d","source/Crawler.d"],
 	"buildOptions": ["releaseMode","optimize"],
+	"dflags-dmd": ["-J=."],
 	"dependencies": {
 		"gtk-d:gtkd": {"path": "vendor/GtkD" }
 	}
