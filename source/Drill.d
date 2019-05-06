@@ -60,6 +60,8 @@ import std.algorithm.iteration;
 
 import Crawler : Crawler;
 
+string blocklist = import("assets/blocklists/global.txt");
+
 enum Column
 {
     TYPE,
@@ -454,6 +456,8 @@ import gio.Application : GioApplication = Application;
 
 int main(string[] args)
 {
+    // import core.memory;
+    // GC.disable();
     std.concurrency.thisTid;
     auto application = new Application("me.santamorena.drill", GApplicationFlags.FLAGS_NONE);
     application.addOnActivate(delegate void(GioApplication app) {

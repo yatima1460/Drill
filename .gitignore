@@ -1,4 +1,6 @@
 logs
+*.zip
+*.bin
 *.def
 *.log
 *.elf
