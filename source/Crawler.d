@@ -1,13 +1,10 @@
 module Crawler;
 
-
 import std.container : Array;
-import core.thread: Thread;
+import core.thread : Thread;
 import std.stdio;
- import std.file;
+import std.file;
 import std.file : DirEntry;
-
-
 
 class Crawler : Thread
 {
@@ -15,7 +12,7 @@ class Crawler : Thread
     bool running;
     Array!string exclusion_list;
     Array!DirEntry* index;
-
+    long ignored_count;
 
     this(string root, Array!string exclusion_list)
     {
@@ -23,69 +20,87 @@ class Crawler : Thread
         this.root = root;
         this.exclusion_list = exclusion_list;
         this.index = new Array!DirEntry();
-        
+
     }
 
-    Array!DirEntry* get_index()
+    Array!DirEntry* grab_index()
     {
         Array!DirEntry* i = this.index;
         this.index = new Array!DirEntry();
         return i;
     }
-     
+
+    override string toString()
+    {
+        return "Thread("~root~")";
+    }
 
 private:
     void run()
     {
-       writeln("Thread for `"~this.root~"` started");
-       Array!DirEntry* queue = new Array!DirEntry();
+        writeln(this.toString()~" started");
+        Array!DirEntry* queue = new Array!DirEntry();
 
-       queue.insertBack(DirEntry(this.root));
+        queue.insertBack(DirEntry(this.root));
 
         this.running = true;
-       while (queue.length != 0)
-       {
+        while (queue.length != 0)
+        {
             Array!DirEntry* next_queue = new Array!DirEntry();
-           
-            auto filelist =   dirEntries(this.root,SpanMode.shallow,false);
 
-            foreach(file; filelist)
+            foreach (parent; *queue)
             {
-                if (!this.running) return;
-                //writeln(file.size);
 
-                import std.regex;
+                auto filelist = dirEntries(parent, SpanMode.shallow, false);
 
+                import std.array : join;
 
-//    writeln(file.name);
-                foreach (regexrule; this.exclusion_list)
+                // writeln("Thread "~root~" files in root are: ");
+
+                fileloop: foreach (file; filelist)
                 {
-                    auto r = regex(regexrule);
-                   
-                    // matchAll() returns a range that can be iterated
-                    // to get all subsequent matches.
-                    RegexMatch!string mo = std.regex.match(file.name, r);
-            
+                    if (!this.running)
+                        return;
+                    //writeln(file.size);
+
+                    import std.regex;
+
+                    // writeln("Working on:" ~ file.name);
+                    foreach (regexrule; this.exclusion_list)
+                    {
+                        auto r = regex(regexrule);
+
+                        // matchAll() returns a range that can be iterated
+                        // to get all subsequent matches.
+                        RegexMatch!string mo = std.regex.match(file.name, r);
+
                         if (!mo.empty())
-                            continue;
-                    
+                        {
+                            // writeln(file.name ~ " ignored");
+                            this.ignored_count++;
+                            continue fileloop;
+                        }
+                        else
 
+                        {
+                            // writeln(file.name ~ " added");
+                        }
+
+                    }
+
+                    if (file.isDir())
+                    {
+                        next_queue.insertBack(file);
+                    }
+
+                    index.insertBack(file);
                 }
-              
-
-                if (file.isDir())
-                {
-                    next_queue.insertBack(file);
-                }
-
-                index.insertBack(file);
             }
 
             queue = next_queue;
-       }
-       writeln("Thread for `"~root~"` finished its job");
-  
+        }
+        writeln("Thread for `" ~ root ~ "` finished its job");
+
     }
 
-    
 }

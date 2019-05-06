@@ -19,7 +19,8 @@ import gdk.Color;
 import gtk.ApplicationWindow: ApplicationWindow;
 import gdk.Threads;
 import gtk.Label;
-
+import gtk.Scrollbar;
+import gtk.ScrolledWindow;
 
 import std.array : split, join;
 import std.process : executeShell;
@@ -42,7 +43,7 @@ import Crawler : Crawler;
 const string VERSION = "v0.1.1";
 const uint WINDOW_WIDTH = 800;
 const uint WINDOW_HEIGHT = 450;
-const uint UI_BUFFER_SIZE = 100;
+const uint UI_BUFFER_SIZE = -1;
 
 
 enum Column
@@ -78,9 +79,11 @@ extern(C) static nothrow int threadIdleProcess(void* data) {
         // {
         //     import std.conv : to;
 			
+                long ignored_total = 0;
                 foreach(thread; mainWindow.threads)
                 {
-                    Array!DirEntry* thread_index = thread.get_index();
+                    Array!DirEntry* thread_index = thread.grab_index();
+                    ignored_total += thread.ignored_count;
                     assert(thread_index != null);
                     mainWindow.index ~= *thread_index;
                 }
@@ -89,7 +92,8 @@ extern(C) static nothrow int threadIdleProcess(void* data) {
 
 
                   import std.conv:to;
-                mainWindow.files_indexed_count.setText(to!string(mainWindow.index.length));
+                mainWindow.files_indexed_count.setText("Files indexed: "~to!string(mainWindow.index.length));
+                mainWindow.files_ignored_count.setText("Files ignored: "~to!string(ignored_total));
 
 
                 if (mainWindow.list_dirty)
@@ -98,19 +102,23 @@ extern(C) static nothrow int threadIdleProcess(void* data) {
 
                     // writeln("list updated");
                     mainWindow.liststore.clear();
-                    mainWindow.appendRecord(DirEntry("/"));
-                
-
-                    static import std.path;
-                    auto results = mainWindow.index[].filter!(x => canFind(std.path.baseName(x.name),mainWindow.search_string));
-
-                    int i = 0;
-                    foreach (result; results)
+                    if (mainWindow.search_string != "")
                     {
-                        mainWindow.appendRecord(result);
-                        i++;
-                        if (i == UI_BUFFER_SIZE) break;
+                        
+                        
+
+                            static import std.path;
+                            auto results = mainWindow.index[].filter!(x => canFind(std.path.baseName(x.name),mainWindow.search_string));
+
+                            int i = 0;
+                            foreach (result; results)
+                            {
+                                mainWindow.appendRecord(result);
+                                i++;
+                                if (i == UI_BUFFER_SIZE) break;
+                            }
                     }
+                 
                     mainWindow.list_dirty = false;
                 }
         //         //  writeln("updating done");
@@ -192,9 +200,10 @@ class DrillWindow : ApplicationWindow
     bool running;
     private Tid childTid;
     Label files_indexed_count;
+    Label files_ignored_count;
     bool list_dirty;
 
-    void open_file(DirEntry de)
+    void open_file(string path)
     {
         // if (de.isDir())
         // {
@@ -202,6 +211,7 @@ class DrillWindow : ApplicationWindow
         //     // import subprocess
         //     // subprocess.Popen(['xdg-open', self.path])
         // }
+        executeShell("xdg-open "~path);
     }
 
     void open_containing_folder()
@@ -219,6 +229,21 @@ class DrillWindow : ApplicationWindow
         liststore.setValue(it, Column.NAME, std.path.baseName(fi.name));
         liststore.setValue(it, Column.PATH, std.path.dirName(fi.name));
         liststore.setValue(it, Column.DATE_MODIFIED, fi.timeLastModified().toString());
+    }
+
+     private void doubleclick(TreePath tp, TreeViewColumn tvc, TreeView tv)
+    {
+        TreeIter ti = new TreeIter();
+
+        this.liststore.getIter(ti,tp);
+
+        string path = this.liststore.getValueString(ti,Column.PATH);
+        string name = this.liststore.getValueString(ti,Column.NAME);
+        import std.path : chainPath;
+        import std.array : array;
+        open_file(chainPath(path,name).array);
+        // writeln(tp.);
+       
     }
 
     private void searchChanged(EditableIF ei)
@@ -256,27 +281,36 @@ class DrillWindow : ApplicationWindow
 
 
         this.treeview = new TreeView();
+        this.treeview.addOnRowActivated(&doubleclick);
 
         Box v = new Box(GtkOrientation.VERTICAL, 8);
         Box h = new Box(GtkOrientation.HORIZONTAL, 8);
+
+        
+
+
+
         add(v);
 
         Entry search_input = new Entry();
 
+        ScrolledWindow scroll = new ScrolledWindow();
 
-
+        scroll.add(this.treeview);
         
         search_input.addOnChanged(&searchChanged);
 
 
         this.files_indexed_count = new Label("Files indexed: ?");
+         this.files_ignored_count = new Label("Files ignored: ?");
         h.packStart(files_indexed_count, false, false, 0);
-
+ h.packStart(files_ignored_count, false, false, 0);
 
         // create first column with text renderer
         TreeViewColumn column = new TreeViewColumn();
         column.setTitle("Type");
         this.treeview.appendColumn(column);
+        column.setFixedWidth(50);
 
         CellRendererText cell_text = new CellRendererText();
         column.packStart(cell_text, false);
@@ -285,6 +319,7 @@ class DrillWindow : ApplicationWindow
         // create second column with two renderers
         column = new TreeViewColumn();
         column.setTitle("Name");
+        column.setFixedWidth(300);
         this.treeview.appendColumn(column);
         cell_text = new CellRendererText();
         column.packStart(cell_text, false);
@@ -292,6 +327,7 @@ class DrillWindow : ApplicationWindow
 
         column = new TreeViewColumn();
         column.setTitle("Path");
+        column.setFixedWidth(200);
         this.treeview.appendColumn(column);
         cell_text = new CellRendererText();
         column.packStart(cell_text, false);
@@ -299,6 +335,7 @@ class DrillWindow : ApplicationWindow
 
         column = new TreeViewColumn();
         column.setTitle("Date Modified");
+        column.setFixedWidth(250);
         this.treeview.appendColumn(column);
         cell_text = new CellRendererText();
         column.packStart(cell_text, false);
@@ -307,7 +344,7 @@ class DrillWindow : ApplicationWindow
      
 
         v.packStart(search_input, false, false, 0);
-        v.packStart(this.treeview, true, true, 0);
+        v.packStart(scroll, true, true, 0);
         v.packStart(h, false, false, 0);
 
         this.treeview.setModel(this.liststore);
