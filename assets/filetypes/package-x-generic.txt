@@ -1,0 +1,6 @@
+.zip
+.rar
+.gz
+.tar
+.deb
+.rpm

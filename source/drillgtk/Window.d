@@ -194,6 +194,8 @@ class DrillWindow : ApplicationWindow
     Label threads_active;
     Label files_shown;
 
+
+
     void open_file(string path)
     {
 
@@ -228,8 +230,23 @@ class DrillWindow : ApplicationWindow
      
        else
        {
-             liststore.setValue(it, Column.NAME_ICON, "text-x-generic");
+             liststore.setValue(it, Column.NAME_ICON, "text-x-preview");
+              auto ext = std.path.extension(fi.name);
+                if (ext != null)
+                {
+                    string* p = (ext in this.iconmap);
+                    if (p !is null)
+                    {
+                        liststore.setValue(it, Column.NAME_ICON, this.iconmap[ext]);
+                        log.info("Setting icon to "~this.iconmap[ext]);
+                        
+                    }
+                }
        }
+       
+      
+
+      
         liststore.setValue(it, Column.NAME, std.path.baseName(fi.name));
         liststore.setValue(it, Column.PATH, std.path.dirName(fi.name));
         liststore.setValue(it, Column.DATE_MODIFIED, fi.timeLastModified().toString());
@@ -255,8 +272,29 @@ class DrillWindow : ApplicationWindow
         this.list_dirty = true;
     }
 
+    string[string] iconmap;
+
     public this(Application application)
     {
+ import std.file : dirEntries, SpanMode;
+        auto filetypes_file = dirEntries(DirEntry("../../assets/filetypes"), SpanMode.shallow, true);
+
+        foreach (string partial_filetype; filetypes_file)
+        {
+            string[] extensions = readText(partial_filetype).split("\n");
+            foreach (ext; extensions)
+            {
+                static import std.path;
+              import std.path : stripExtension;
+                iconmap[ext] = std.path.baseName(stripExtension(partial_filetype));
+            }
+        }
+
+
+
+
+
+
         super(application);
         this.setTitle("Drill");
         setDefaultSize(800, 450);

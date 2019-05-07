@@ -128,7 +128,7 @@ log.trace(direntry.name ~ " ignored because symlink");
                     }
 
                    
-
+int[string] aa;
                     index.insertBack(direntry);
                     debug {
            log.trace(direntry.name ~ " added to global index");
