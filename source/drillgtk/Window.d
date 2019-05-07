@@ -237,7 +237,9 @@ class DrillWindow : ApplicationWindow
                     string* p = (ext in this.iconmap);
                     if (p !is null)
                     {
-                        liststore.setValue(it, Column.NAME_ICON, this.iconmap[ext]);
+                        auto icon_name = this.iconmap[ext];
+                        assert (icon_name != null);
+                        liststore.setValue(it, Column.NAME_ICON, icon_name);
                         log.info("Setting icon to "~this.iconmap[ext]);
                         
                     }
