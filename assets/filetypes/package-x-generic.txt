@@ -4,3 +4,5 @@
 .tar
 .deb
 .rpm
+.eopkg
+.apk
