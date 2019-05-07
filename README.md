@@ -24,27 +24,27 @@ If your distro doesn't ask you to mark it executable or nothing happens try:
 
 ## UI Guide
 ```
-Double click    = open
-Right click     = open containing folder
-Return/Enter    = open
-Middle Click    = messagebox with file info (TODO)
+Open                    = Double Click, Return/Enter
+Open containing folder  = Middle Click
+Open menu on file       = Right click
 ```
 
-## Manual prerequisites using Python
+## Manual prerequisites
 
 - D
-- `sudo apt install dub`
+    - `sudo apt install dub`
 
 
 ### Build and Run
+
+## Debug
 ```
-dub run
+dub run 
 ```
 
-## Building AppImage
-
+## Release (no logs and faster)
 ```
-bash build_appimage.sh
+dub run --build=release
 ```
 
 ## What is this
@@ -66,42 +66,31 @@ Second change is excluding some obvious folders while crawling like `Windows` an
 
 ## TODO
 
-- FIXME: update list when new results found
-- FIXME: remove duplicates if symbolic links make a mess
-- FIXME: root folders of threads do not appear in search?
-- FIXME: sorting is messy
-- FIXME: it seems tkinter misses some double clicks when the mainloop takes too much time
-- FIXME: right clicking while hovering a row should select it and open the containing folder
-
-
-### Usability 
-
-- TODO: AppImage/Snap/Flatpak
-- TODO: folders actual size
-- TODO: tmp cache index file to speedup boot time
-- TODO: metadata searching (mp3, etc...)
-- TODO: ESC to close
-- TODO: alternate row colors
-- TODO: threaded search in index to remove hangs
-- TODO: drag and drop (is this even possible with tkinter?)
-- TODO: switch to GTK3?
-- TODO: memoization
-- TODO:  percentage of crawling
-- TODO: help in gui (maybe later when more search ways available)
-
-#### Developer
-
-- TODO: NVM could benefit when multiple threads are run for the same disk?
-- TODO: statistics to check which are the black hole folders (time crawling inside?)
-- TODO: publish to apt
-- TODO: remove the print statements and replace them with a log library?
-- TODO: cat /proc/mounts for starting the threads
-- TODO: cli-version?
-- TODO: threadpool?
-- TODO: code cleanup: private fields with __ etc
-- TODO: add documentation and comments
-- TODO: fix the messy imports
-- TODO: CASE_INSENSITIVE flag
-- TODO: WINDOW_CENTERED flag
-- TODO: dump NTFS partition file index?
-- TODO: dump ext4 partition file index?
+- ~~Open file with double click~~
+- Open containing folder with middle click
+- Open menu on file with right click 
+- Update list when new results found
+- Sorting by column
+- Icons near the file name
+- Right clicking while hovering a row should select it and open the containing folder
+- .deb
+- .rpm
+- AppImage
+- Snap
+- Flatpak
+- Folders actual size
+- Metadata searching (mp3, etc...)
+- ESC to close
+- Alternate row colors
+- Spawn thread per thread index to search and remove UI hangs
+- Drag and drop
+- ~~GTK3~~
+- Memoization/Cache
+- Percentage of crawling
+- About dialog in GUI
+- ~~cat /proc/mounts for starting the threads~~
+- Split Drill in DrillGTK and DrillCore
+- Add documentation and comments
+- Fix messy imports
+- ~~Logging in debug mode~~
+- NVM could benefit when multiple threads are run for the same disk?
