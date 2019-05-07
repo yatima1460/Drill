@@ -10,10 +10,20 @@
 	
 	"targetType": "executable",
 	"targetName": "Drill.elf",
-	"sourceFiles": ["source/Drill.d","source/Crawler.d"],
-	"buildOptions": ["releaseMode","optimize"],
+	"sourceFiles": ["source/Window.d","source/SearchEntry.d","source/Main.d"],
+	
 	"dflags-dmd": ["-J=."],
 	"dependencies": {
 		"gtk-d:gtkd": {"path": "vendor/GtkD" }
-	}
+	},
+
+	"subPackages" : [
+        {
+            "name": "drillcore",
+            "targetType": "library",
+            "targetName": "drillcore",
+            "sourcePaths": ["source/drillcore"],
+            "importPaths": ["source/drillcore"]
+		}
+	]
 }

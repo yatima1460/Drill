@@ -1,4 +1,4 @@
-module Crawler;
+module DrillCore.Crawler;
 
 import std.container : Array;
 import core.thread : Thread;
@@ -15,7 +15,11 @@ class Crawler : Thread
     Regex!char[] exclusion_list;
     Array!DirEntry* index;
     long ignored_count;
-    FileLogger log;
+    debug
+    {
+       FileLogger log;
+    }
+    
 
     this(string root, Regex!char[] exclusion_list)
     {
@@ -43,8 +47,11 @@ class Crawler : Thread
 private:
     void run()
     {
-           import std.array : replace;
-        log = new FileLogger("logs/"~replace(root,"/","_")~".log");
+        import std.array : replace;
+        debug
+        {
+            log = new FileLogger("logs/"~replace(root,"/","_")~".log");
+        } 
         writeln(this.toString()~" started");
         Array!DirEntry* queue = new Array!DirEntry();
         auto direntryroot = DirEntry(this.root);
@@ -68,7 +75,11 @@ private:
 
                           if (direntry.isSymlink())
                     {
-                         log.trace(direntry.name ~ " ignored because symlink");
+                        debug 
+                        {
+log.trace(direntry.name ~ " ignored because symlink");
+                        }
+                         
                          continue fileloop;
                     }
 
@@ -86,8 +97,10 @@ private:
                         if (!mo.empty())
                         {
                             
-
+   debug 
+                        {
                             log.trace(direntry.name ~ " low priority because of regex rules");
+                        }
                             this.ignored_count++;
                             
                             continue fileloop;
@@ -108,13 +121,19 @@ private:
                     if (direntry.isDir())
                     {
                         next_queue.insertBack(direntry);
-                         log.trace(direntry.name ~ " directory queued next");
+                        debug {
+ log.trace(direntry.name ~ " directory queued next");
+                        }
+                        
                     }
 
                    
 
                     index.insertBack(direntry);
-                     log.trace(direntry.name ~ " added to global index");
+                    debug {
+           log.trace(direntry.name ~ " added to global index");
+                    }
+          
                 }
             }
 
