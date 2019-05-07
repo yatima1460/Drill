@@ -1,0 +1,23 @@
+{
+	"name": "drillgtk",
+	"authors": [
+		"Federico Santamorena"
+	],
+	"description": "Search files without using indexing, but clever crawling. GTK edition.",
+	"copyright": "Copyright © 2019, Federico Santamorena",
+	"license": "GPL-2.0",
+	"homepage": "https://github.com/yatima1460/drill",
+	
+
+
+	"targetType": "executable",
+	"targetName": "DrillGTK.elf",
+	"sourceFiles": ["Window.d","SearchEntry.d","Main.d"],
+	"importPaths": ["../"],
+
+
+	"dependencies": {
+		"drillcore": {"path": "../drillcore" },
+		"gtk-d:gtkd": {"path": "../../vendor/GtkD" }
+	}
+}

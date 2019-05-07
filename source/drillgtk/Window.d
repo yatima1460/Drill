@@ -1,4 +1,4 @@
-module Drill;
+module Drill.Window;
 
 ////////////////////////////////
 ////////// SETTINGS ////////////
@@ -41,6 +41,7 @@ import gtk.Entry;
 import gtk.Box;
 import gtk.TreeViewColumn;
 import gtk.CellRendererText;
+import gtk.CellRendererPixbuf;
 import gtk.CellRendererToggle;
 import gtk.ListStore;
 import gtk.EditableIF;
@@ -52,6 +53,7 @@ import gtk.Label;
 import gtk.Scrollbar;
 import gtk.ScrolledWindow;
 import gdk.Pixbuf;
+import glib.GException;
 
 import pango.PgFontDescription;
 
@@ -61,8 +63,8 @@ import std.algorithm.iteration;
 import core.thread;
 import std.concurrency;
 
-import Crawler : Crawler;
-
+import drillcore.Crawler : Crawler;
+import Drill.SearchEntry : SearchEntry;
 
 
 
@@ -70,6 +72,7 @@ import Crawler : Crawler;
 enum Column
 {
     TYPE,
+    NAME_ICON,
     NAME,
     PATH,
     DATE_MODIFIED
@@ -193,23 +196,40 @@ class DrillWindow : ApplicationWindow
 
     void open_file(string path)
     {
-        string[] args = ["xdg-open", path];
-        spawnProcess(args, std.stdio.stdin, std.stdio.stdout, std.stdio.stderr, null, std.process.Config.none, null);
-    }
 
-    void open_containing_folder()
-    {
-        //  import subprocess
-        //         subprocess.Popen(['xdg-open', self.parent])
+        version(Windows)
+        {
+            const string[] args = ["explorer", path];
+            spawnProcess(args, std.stdio.stdin, std.stdio.stdout, std.stdio.stderr, null, std.process.Config.none, null);
+        }
+        version(linux)
+        {
+            const string[] args = ["xdg-open", path];
+            spawnProcess(args, std.stdio.stdin, std.stdio.stdout, std.stdio.stderr, null, std.process.Config.none, null);
+        }
+        version(OSX)
+        {
+            const string[] args = ["open", path];
+            spawnProcess(args, std.stdio.stdin, std.stdio.stdout, std.stdio.stderr, null, std.process.Config.none, null);
+        }
+      
     }
 
     void appendRecord(DirEntry fi)
     {
-        auto it = liststore.createIter();
+        TreeIter it = liststore.createIter();
 
         liststore.setValue(it, Column.TYPE, fi.isDir() ? "Folder" : "File");
         static import std.path;
-
+        if (fi.isDir())
+        {
+  liststore.setValue(it, Column.NAME_ICON, "folder");
+        }
+     
+       else
+       {
+             liststore.setValue(it, Column.NAME_ICON, "text-x-generic");
+       }
         liststore.setValue(it, Column.NAME, std.path.baseName(fi.name));
         liststore.setValue(it, Column.PATH, std.path.dirName(fi.name));
         liststore.setValue(it, Column.DATE_MODIFIED, fi.timeLastModified().toString());
@@ -251,19 +271,34 @@ class DrillWindow : ApplicationWindow
                 ]);
 
         
-        if (!setIconFromFile("assets/icon.png"))
+        try
+        {
+            setIconFromFile("../../assets/icon.png");
+        }
+        catch (GException ge)
         {
             //fallback to default GTK icon if it can't find its own
             log.warning("Can't find program icon, will fallback to default GTK one!");
             setIconName("search");
         }
 
-        import std.file : dirEntries, SpanMode;
-
-        foreach (string partial_blocklist; dirEntries(DirEntry("assets/blocklists"), SpanMode.shallow, true))
+        
+        import std.file : FileException;
+        try
         {
-            this.blocklist ~= readText(partial_blocklist).split("\n");
+            import std.file : dirEntries, SpanMode;
+            auto blocklists_file = dirEntries(DirEntry("../../assets/blocklists"), SpanMode.shallow, true);
+
+                foreach (string partial_blocklist; blocklists_file)
+                {
+                    this.blocklist ~= readText(partial_blocklist).split("\n");
+                }
         }
+        catch (FileException fe)
+        {
+            this.blocklist = [];
+        }
+       
         
 
         this.treeview = new TreeView();
@@ -274,11 +309,11 @@ class DrillWindow : ApplicationWindow
 
         add(v);
 
-        search_input = new Entry();
+        search_input = new SearchEntry();
 
     
         
-        search_input.setIconFromIconName(GtkEntryIconPosition.SECONDARY,"search");
+        
 
         ScrolledWindow scroll = new ScrolledWindow();
 
@@ -304,8 +339,13 @@ class DrillWindow : ApplicationWindow
         column.setResizable(true);
         column.setSizing(GtkTreeViewColumnSizing.FIXED);
 
+       
+        // file_icon.setIconName("file");
+
         CellRendererText cell_text = new CellRendererText();
+       
         column.packStart(cell_text, false);
+       
         column.addAttribute(cell_text, "text", Column.TYPE);
 
         // create second column with two renderers
@@ -315,10 +355,18 @@ class DrillWindow : ApplicationWindow
         column.setResizable(true);
         column.setSizing(GtkTreeViewColumnSizing.FIXED);
 
+         CellRendererPixbuf file_icon = new CellRendererPixbuf();
+        file_icon.setProperty("icon-name","dialog-question");
+
+  
+        
+
         this.treeview.appendColumn(column);
         cell_text = new CellRendererText();
+          column.packStart(file_icon, false);
         column.packStart(cell_text, false);
         column.addAttribute(cell_text, "text", Column.NAME);
+        column.addAttribute(file_icon, "icon-name", Column.NAME_ICON);
 
         column = new TreeViewColumn();
         column.setTitle("Path");
@@ -349,7 +397,9 @@ class DrillWindow : ApplicationWindow
         this.treeview.setModel(this.liststore);
         showAll();
 
-        auto ls = executeShell("lsblk --output MOUNTPOINT");
+        //df catches network mounted drives like NFS
+        //so don't use lsblk here
+        auto ls = executeShell("df -h --output=target");
         if (ls.status != 0)
         {
             log.error("Can't retrieve mount points, will scan `/`");
@@ -420,15 +470,3 @@ class DrillWindow : ApplicationWindow
 
 import gtk.Application : Application;
 import gio.Application : GioApplication = Application;
-
-int main(string[] args)
-{
-    // import core.memory;
-    // GC.disable();
-    std.concurrency.thisTid;
-    auto application = new Application("me.santamorena.drill", GApplicationFlags.FLAGS_NONE);
-    application.addOnActivate(delegate void(GioApplication app) {
-        new DrillWindow(application);
-    });
-    return application.run(args);
-}

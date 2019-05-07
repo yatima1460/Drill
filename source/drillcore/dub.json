@@ -1,0 +1,14 @@
+{
+	"name": "drillcore",
+	"authors": [
+		"Federico Santamorena"
+	],
+	"description": "Search files without using indexing, but clever crawling. Agnostic GUI edition.",
+	"copyright": "Copyright © 2019, Federico Santamorena",
+	"license": "GPL-2.0",
+	"homepage": "https://github.com/yatima1460/drill",
+	
+	"targetType": "library",
+
+	"sourceFiles": ["Crawler.d"]
+}
