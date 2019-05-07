@@ -1,0 +1,6 @@
+.png
+.kra
+.psd
+.jpg
+.jpeg
+.gif
