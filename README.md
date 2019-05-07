@@ -67,11 +67,13 @@ Second change is excluding some obvious folders while crawling like `Windows` an
 ## TODO
 
 - ~~Open file with double click~~
+- Add to UI list when new results found
+- All comparisons need to be done in lower case strings
 - Open containing folder with middle click
 - Open menu on file with right click 
-- Update list when new results found
 - Sorting by column
-- Icons near the file name
+- ~~Icons near the file name~~
+- Commans in bottom numbers (files indexed...)
 - Right clicking while hovering a row should select it and open the containing folder
 - .deb
 - .rpm
