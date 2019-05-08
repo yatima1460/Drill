@@ -2,3 +2,5 @@
 .log
 .json
 .yaml
+.dsc
+.build

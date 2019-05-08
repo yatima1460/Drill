@@ -1,3 +1,4 @@
 .AppImage
 .exe
 .msi
+.elf
