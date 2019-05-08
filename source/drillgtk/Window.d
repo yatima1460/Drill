@@ -71,11 +71,12 @@ import Drill.SearchEntry : SearchEntry;
 
 enum Column
 {
-    TYPE,
+    // TYPE,
     NAME_ICON,
     NAME,
     PATH,
-    DATE_MODIFIED
+    SIZE,
+    DATE_MODIFIED,
 }
 
 
@@ -104,7 +105,7 @@ extern (C) static nothrow int threadIdleProcess(void* data)
                  mainWindow.files_indexed_count.setText(
                 "Files indexed: " ~ to!string(mainWindow.index.length));
         mainWindow.files_ignored_count.setText(
-                "Files blocked: " ~ to!string(ignored_total));
+                "Files ignored: " ~ to!string(ignored_total));
         import std.array;
         mainWindow.threads_active.setText(
                 "Threads active: " ~ to!string(array(mainWindow.threads[].filter!(x => x.running)).length));
@@ -220,16 +221,21 @@ class DrillWindow : ApplicationWindow
     void appendRecord(DirEntry fi)
     {
         TreeIter it = liststore.createIter();
-
-        liststore.setValue(it, Column.TYPE, fi.isDir() ? "Folder" : "File");
+        import std.conv : to;
+        
         static import std.path;
         if (fi.isDir())
         {
   liststore.setValue(it, Column.NAME_ICON, "folder");
+      liststore.setValue(it, Column.SIZE,"");
         }
      
        else
        {
+             import drillcore.Utils : humanSize;
+             liststore.setValue(it, Column.SIZE,humanSize(fi.size));
+
+
              liststore.setValue(it, Column.NAME_ICON, "text-x-preview");
               auto ext = std.path.extension(fi.name);
                 if (ext != null)
@@ -244,6 +250,8 @@ class DrillWindow : ApplicationWindow
                         
                     }
                 }
+
+
        }
        
       
@@ -251,7 +259,12 @@ class DrillWindow : ApplicationWindow
       
         liststore.setValue(it, Column.NAME, std.path.baseName(fi.name));
         liststore.setValue(it, Column.PATH, std.path.dirName(fi.name));
-        liststore.setValue(it, Column.DATE_MODIFIED, fi.timeLastModified().toString());
+        import drillcore.Utils : toDateString;
+        liststore.setValue(it, Column.DATE_MODIFIED, toDateString(fi.timeLastModified()));
+
+      
+
+      
     }
 
     private void doubleclick(TreePath tp, TreeViewColumn tvc, TreeView tv)
@@ -307,7 +320,7 @@ class DrillWindow : ApplicationWindow
 
         list_dirty = false;
         this.liststore = new ListStore([
-                GType.STRING, GType.STRING, GType.STRING, GType.STRING
+                GType.STRING, GType.STRING, GType.STRING, GType.STRING, GType.STRING
                 ]);
 
         
@@ -371,27 +384,16 @@ class DrillWindow : ApplicationWindow
         h.packStart(threads_active, false, false, 0);
         h.packStart(files_shown, false, false, 0);
 
-        // create first column with text renderer
-        TreeViewColumn column = new TreeViewColumn();
-        column.setTitle("Type");
-        this.treeview.appendColumn(column);
-        column.setFixedWidth(50);
-        column.setResizable(true);
-        column.setSizing(GtkTreeViewColumnSizing.FIXED);
+  
 
        
         // file_icon.setIconName("file");
 
-        CellRendererText cell_text = new CellRendererText();
-       
-        column.packStart(cell_text, false);
-       
-        column.addAttribute(cell_text, "text", Column.TYPE);
 
         // create second column with two renderers
-        column = new TreeViewColumn();
+        TreeViewColumn  column = new TreeViewColumn();
         column.setTitle("Name");
-        column.setFixedWidth(300);
+        column.setFixedWidth(400);
         column.setResizable(true);
         column.setSizing(GtkTreeViewColumnSizing.FIXED);
 
@@ -402,9 +404,9 @@ class DrillWindow : ApplicationWindow
         
 
         this.treeview.appendColumn(column);
-        cell_text = new CellRendererText();
+        CellRendererText cell_text = new CellRendererText();
           column.packStart(file_icon, false);
-        column.packStart(cell_text, false);
+        column.packStart(cell_text, true);
         column.addAttribute(cell_text, "text", Column.NAME);
         column.addAttribute(file_icon, "icon-name", Column.NAME_ICON);
 
@@ -419,9 +421,25 @@ class DrillWindow : ApplicationWindow
         column.packStart(cell_text, false);
         column.addAttribute(cell_text, "text", Column.PATH);
 
+
+
+              // create first column with text renderer
+        column = new TreeViewColumn();
+        column.setTitle("Size");
+        this.treeview.appendColumn(column);
+        column.setFixedWidth(50);
+        column.setResizable(true);
+        column.setSizing(GtkTreeViewColumnSizing.FIXED);
+
+
+        cell_text = new CellRendererText();
+        column.packStart(cell_text, false);
+        column.addAttribute(cell_text, "text", Column.SIZE);
+
+
         column = new TreeViewColumn();
         column.setTitle("Date Modified");
-        column.setFixedWidth(250);
+        column.setFixedWidth(200);
         column.setResizable(true);
         column.setSizing(GtkTreeViewColumnSizing.FIXED);
 
@@ -430,9 +448,13 @@ class DrillWindow : ApplicationWindow
         column.packStart(cell_text, false);
         column.addAttribute(cell_text, "text", Column.DATE_MODIFIED);
 
+
+
+
         v.packStart(search_input, false, false, 0);
         v.packStart(scroll, true, true, 0);
         v.packStart(h, false, false, 0);
+
 
         this.treeview.setModel(this.liststore);
         showAll();
