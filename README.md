@@ -32,6 +32,8 @@ Open containing folder  = Right click
 
 - D
     - `sudo apt install dub`
+- This repo (remember to clone the submodules too in /vendor)
+    - `git clone --recurse-submodules -j8 https://github.com/yatima1460/drill.git`
 
 
 ### Build and Run
