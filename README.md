@@ -24,9 +24,8 @@ If your distro doesn't ask you to mark it executable or nothing happens try:
 
 ## UI Guide
 ```
-Open                    = Double Click, Return/Enter
-Open containing folder  = Middle Click
-Open menu on file       = Right click
+Open                    = Left Double Click / Return / Enter / Space
+Open containing folder  = Right click
 ```
 
 ## Manual prerequisites
@@ -39,6 +38,7 @@ Open menu on file       = Right click
 
 ## Debug
 ```
+cd drillgtk
 dub run 
 ```
 
@@ -69,9 +69,9 @@ Second change is excluding some obvious folders while crawling like `Windows` an
 - ~~Open file with double click~~
 - Add to UI list when new results found
 - All comparisons need to be done in lower case strings
-- Open containing folder with middle click
-- Open menu on file with right click 
+- Open containing folder with right click 
 - Sorting by column
+- AM/PM time base
 - ~~Icons near the file name~~
 - Commans in bottom numbers (files indexed...)
 - Right clicking while hovering a row should select it and open the containing folder
