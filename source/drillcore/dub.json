@@ -10,5 +10,11 @@
 	
 	"targetType": "library",
 
-	"sourceFiles": ["Crawler.d"]
+	"sourceFiles": ["Crawler.d","Utils.d"],
+
+
+
+	"dependencies": {
+		"datefmt": {"path": "../../vendor/datefmt" }
+	}
 }
