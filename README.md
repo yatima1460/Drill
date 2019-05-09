@@ -1,11 +1,6 @@
 ![](https://raw.githubusercontent.com/yatima1460/Drill/assets/logo.png)
 
-# Binaries
-
-Coming soon
-
-
-## TL;DR: What is this
+# TL;DR: What is this
 
 Search files without indexing, but clever crawling:
 - 1 thread per mount point
@@ -16,7 +11,7 @@ Search files without indexing, but clever crawling:
 
 ![](https://raw.githubusercontent.com/yatima1460/Drill/assets/screenshot.png)
 
-## How to run this
+# How to run this
 
 **Use the provided AppImage, just double click it**
 
@@ -24,34 +19,35 @@ If your distro doesn't ask you to mark it executable or nothing happens try:
 - `chmod +x Drill.AppImage`
 - `./Drill.AppImage`
 
-## UI Guide
+# UI Guide
 ```
 Open                    = Left Double Click / Return / Enter / Space
 Open containing folder  = Right click
 ```
 
+
+# Build and Run
+
 ## Manual prerequisites
 
+- The repo, remember to clone the submodules too with:
+    - `git clone --recurse-submodules -j8 https://github.com/yatima1460/Drill.git`
 - D
     - `sudo apt install dub`
-- This repo (remember to clone the submodules too in /vendor)
-    - `git clone --recurse-submodules -j8 https://github.com/yatima1460/Drill.git`
 
-
-### Build and Run
-
-## Debug
+### Debug
 ```
 cd source/drillgtk
 dub run 
 ```
 
-## Release (no logs and faster)
+### Release (no logs and faster)
 ```
+cd source/drillgtk
 dub run --build=release
 ```
 
-## What is this
+# What is this
 
 I was stressed on Linux because I couldn't find the files I needed, file searchers based on system indexing (updatedb) are prone to breaking and hard to configure for the average user, so did an all nighter and started this.
 
@@ -68,7 +64,7 @@ Second change is excluding some obvious folders while crawling like `Windows` an
 
 * Use your goddamn RAM: The third change is caching everything, I don't care about your RAM, I will use even 8GB of your RAM if this provides me a faster way to find your files, unused RAM is wasted RAM, even truer the more time passes.
 
-## TODO
+# TODO
 Sorted by priority:
 
 - ~~Open file with double click~~
