@@ -1,6 +1,6 @@
 # Drill 1.0.0rc1
 
-![](https://raw.githubusercontent.com/yatima1460/drill/assets/logo.png)
+![](https://raw.githubusercontent.com/yatima1460/Drill/assets/logo.png)
 
 
 ## TL;DR: What is this
@@ -12,7 +12,7 @@ Search files without using indexing, but clever crawling:
 - **Intended for desktop users**, no obscure Linux files and system files scans
 
 
-![](https://raw.githubusercontent.com/yatima1460/drill/assets/screenshot.png)
+![](https://raw.githubusercontent.com/yatima1460/Drill/assets/screenshot.png)
 
 ## How to run this
 
@@ -33,7 +33,7 @@ Open containing folder  = Right click
 - D
     - `sudo apt install dub`
 - This repo (remember to clone the submodules too in /vendor)
-    - `git clone --recurse-submodules -j8 https://github.com/yatima1460/drill.git`
+    - `git clone --recurse-submodules -j8 https://github.com/yatima1460/Drill.git`
 
 
 ### Build and Run
