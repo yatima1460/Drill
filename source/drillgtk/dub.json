@@ -11,7 +11,7 @@
 
 
 	"targetType": "executable",
-	"targetName": "DrillGTK.elf",
+	"targetName": "Drill-DebianGTK.elf",
 	"sourceFiles": ["Window.d","SearchEntry.d","Main.d"],
 	"importPaths": ["../"],
 
