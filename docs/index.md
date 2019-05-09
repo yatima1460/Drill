@@ -2,122 +2,105 @@
 layout: default
 ---
 
-Text can be **bold**, _italic_, or ~~strikethrough~~.
+# Drill 1.0.0rc1
 
-[Link to another page](./another-page.html).
+![](https://raw.githubusercontent.com/yatima1460/Drill/assets/logo.png)
 
-There should be whitespace between paragraphs.
 
-There should be whitespace between paragraphs. We recommend including a README, or a file with information about your project.
+## TL;DR: What is this
 
-# Header 1
+Search files without using indexing, but clever crawling:
+- 1 thread per mount point
+- Use as much RAM as possible for caching stuff
+- Try to avoid "black hole folders" using a regex based blocklist in which the crawler will never come out and never scan useful files (`node_modules`,`Windows`,etc)
+- **Intended for desktop users**, no obscure Linux files and system files scans
 
-This is a normal paragraph following a header. GitHub is a code hosting platform for version control and collaboration. It lets you and others work together on projects from anywhere.
 
-## Header 2
+![](https://raw.githubusercontent.com/yatima1460/Drill/assets/screenshot.png)
 
-> This is a blockquote following a header.
->
-> When something is important enough, you do it even if the odds are not in your favor.
+## How to run this
 
-### Header 3
+**Use the provided AppImage, just double click it**
 
-```js
-// Javascript code with syntax highlighting.
-var fun = function lang(l) {
-  dateformat.i18n = require('./lang/' + l)
-  return true;
-}
+If your distro doesn't ask you to mark it executable or nothing happens try:
+- `chmod +x Drill.AppImage`
+- `./Drill.AppImage`
+
+## UI Guide
+```
+Open                    = Left Double Click / Return / Enter / Space
+Open containing folder  = Right click
 ```
 
-```ruby
-# Ruby code with syntax highlighting
-GitHubPages::Dependencies.gems.each do |gem, version|
-  s.add_dependency(gem, "= #{version}")
-end
+## Manual prerequisites
+
+- D
+    - `sudo apt install dub`
+- This repo (remember to clone the submodules too in /vendor)
+    - `git clone --recurse-submodules -j8 https://github.com/yatima1460/Drill.git`
+
+
+### Build and Run
+
+## Debug
+```
+cd source/drillgtk
+dub run 
 ```
 
-#### Header 4
-
-*   This is an unordered list following a header.
-*   This is an unordered list following a header.
-*   This is an unordered list following a header.
-
-##### Header 5
-
-1.  This is an ordered list following a header.
-2.  This is an ordered list following a header.
-3.  This is an ordered list following a header.
-
-###### Header 6
-
-| head1        | head two          | three |
-|:-------------|:------------------|:------|
-| ok           | good swedish fish | nice  |
-| out of stock | good and plenty   | nice  |
-| ok           | good `oreos`      | hmm   |
-| ok           | good `zoute` drop | yumm  |
-
-### There's a horizontal rule below this.
-
-* * *
-
-### Here is an unordered list:
-
-*   Item foo
-*   Item bar
-*   Item baz
-*   Item zip
-
-### And an ordered list:
-
-1.  Item one
-1.  Item two
-1.  Item three
-1.  Item four
-
-### And a nested list:
-
-- level 1 item
-  - level 2 item
-  - level 2 item
-    - level 3 item
-    - level 3 item
-- level 1 item
-  - level 2 item
-  - level 2 item
-  - level 2 item
-- level 1 item
-  - level 2 item
-  - level 2 item
-- level 1 item
-
-### Small image
-
-![Octocat](https://assets-cdn.github.com/images/icons/emoji/octocat.png)
-
-### Large image
-
-![Branching](https://guides.github.com/activities/hello-world/branching.png)
-
-
-### Definition lists can be used with HTML syntax.
-
-<dl>
-<dt>Name</dt>
-<dd>Godzilla</dd>
-<dt>Born</dt>
-<dd>1952</dd>
-<dt>Birthplace</dt>
-<dd>Japan</dd>
-<dt>Color</dt>
-<dd>Green</dd>
-</dl>
-
+## Release (no logs and faster)
 ```
-Long, single-line code blocks should not wrap. They should horizontally scroll if they are too long. This line should be long enough to demonstrate this.
+dub run --build=release
 ```
 
-```
-The final element.
-```
+## What is this
+
+I was stressed on Linux because I couldn't find the files I needed, file searchers based on system indexing (updatedb) are prone to breaking and hard to configure for the average user, so did an all nighter and started this.
+
+Drill is a modern file searcher for Linux that tries to fix the old problem of slow searching and indexing.
+Nowadays even some SSDs are used for storage and every PC has nearly a minimum of 8GB of RAM and quad-core;
+knowing this it's time to design a future-proof file searcher that doesn't care about weak systems and uses the full multithreaded power in a clever way to find your files in the fastest possible way.
+
+* Heuristics:
+The first change was the algorithm, a lot of file searchers use depth-first algorithms, this is a very stupid choice and everyone that implemented it is a moron, why? 
+You see, normal humans don't create nested folders too much and you will probably get lost inside "black hole folders" or artificial archives (created by software); a breadth-first algorithm that scans your hard disks by depth has a higher chance to find the files you need.
+Second change is excluding some obvious folders while crawling like `Windows` and `node_modules`, the average user doesn't care about .dlls and all the system files, and generally even devs too don't care, and if you need to find a system file you already know what you are doing and you should not use a UI tool.
+
+* Clever multithreading: The second change is clever multithreading, I've never seen a file searcher that starts a thread *per disk* and it's 2019. The limitation for file searchers is 99% of the time just the disk speed, not the CPU or RAM, then why everyone just scans the disks sequentially????
+
+* Use your goddamn RAM: The third change is caching everything, I don't care about your RAM, I will use even 8GB of your RAM if this provides me a faster way to find your files, unused RAM is wasted RAM, even truer the more time passes.
+
+## TODO
+Sorted by priority:
+
+- ~~Open file with double click~~
+- Add to UI list when new results found
+- All comparisons need to be done in lower case strings
+- AppImage
+- Open containing folder with right click 
+- Sorting by column
+- Alternate row colors
+- ESC to close
+- Error messagebox if opening file fails
+- ~~Icons near the file name~~
+- AM/PM time base
+- .deb
+- .rpm
+- Folders actual size
+- Commas in big numbers
+- Snap
+- Flatpak
+- Metadata searching (mp3, etc...)
+- Spawn thread per thread index to search and remove UI hangs
+- Drag and drop
+- ~~GTK3~~
+- Memoization/Cache
+- Percentage of crawling
+- About dialog in GUI
+- ~~cat /proc/mounts for starting the threads~~
+- Split Drill in DrillGTK and DrillCore
+- Add documentation and comments
+- Fix messy imports
+- ~~Logging in debug mode~~
+- NVM could benefit when multiple threads are run for the same disk?
+- No GC
