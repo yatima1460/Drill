@@ -40,7 +40,7 @@ Open containing folder  = Right click
 
 ## Debug
 ```
-cd drillgtk
+cd source/drillgtk
 dub run 
 ```
 
@@ -67,25 +67,26 @@ Second change is excluding some obvious folders while crawling like `Windows` an
 * Use your goddamn RAM: The third change is caching everything, I don't care about your RAM, I will use even 8GB of your RAM if this provides me a faster way to find your files, unused RAM is wasted RAM, even truer the more time passes.
 
 ## TODO
+Sorted by priority:
 
 - ~~Open file with double click~~
 - Add to UI list when new results found
 - All comparisons need to be done in lower case strings
+- AppImage
 - Open containing folder with right click 
 - Sorting by column
-- AM/PM time base
+- Alternate row colors
+- ESC to close
+- Error messagebox if opening file fails
 - ~~Icons near the file name~~
-- Commans in bottom numbers (files indexed...)
-- Right clicking while hovering a row should select it and open the containing folder
+- AM/PM time base
 - .deb
 - .rpm
-- AppImage
+- Folders actual size
+- Commas in big numbers
 - Snap
 - Flatpak
-- Folders actual size
 - Metadata searching (mp3, etc...)
-- ESC to close
-- Alternate row colors
 - Spawn thread per thread index to search and remove UI hangs
 - Drag and drop
 - ~~GTK3~~
