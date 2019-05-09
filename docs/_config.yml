@@ -1,1 +1,5 @@
 theme: jekyll-theme-cayman
+title: Drill
+description: Search files without using indexing, but clever crawling
+show_downloads: true
+google_analytics:
