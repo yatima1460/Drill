@@ -3,9 +3,14 @@
 ![](https://raw.githubusercontent.com/yatima1460/Drill/assets/logo.png)
 
 
+# Binaries
+
+Coming soon
+
+
 ## TL;DR: What is this
 
-Search files without using indexing, but clever crawling:
+Search files without indexing, but clever crawling:
 - 1 thread per mount point
 - Use as much RAM as possible for caching stuff
 - Try to avoid "black hole folders" using a regex based blocklist in which the crawler will never come out and never scan useful files (`node_modules`,`Windows`,etc)
