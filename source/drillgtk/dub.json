@@ -7,17 +7,22 @@
 	"copyright": "Copyright © 2019, Federico Santamorena",
 	"license": "GPL-2.0",
 	"homepage": "https://github.com/yatima1460/drill",
-	
-
-
 	"targetType": "executable",
-	"targetName": "Drill-DebianGTK.elf",
-	"sourceFiles": ["Window.d","SearchEntry.d","Main.d"],
-	"importPaths": ["../"],
-
-
+	"targetName": "Drill-GTK",
+	"sourceFiles": [
+		"Window.d",
+		"SearchEntry.d",
+		"Main.d"
+	],
+	"importPaths": [
+		"../"
+	],
 	"dependencies": {
-		"drillcore": {"path": "../drillcore" },
-		"gtk-d:gtkd": {"path": "../../vendor/GtkD" }
+		"drillcore": {
+			"path": "../drillcore"
+		},
+		"gtk-d:gtkd": {
+			"path": "../../vendor/GtkD"
+		}
 	}
 }

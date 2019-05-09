@@ -7,14 +7,15 @@
 	"copyright": "Copyright © 2019, Federico Santamorena",
 	"license": "GPL-2.0",
 	"homepage": "https://github.com/yatima1460/drill",
-	
 	"targetType": "library",
-
-	"sourceFiles": ["Crawler.d","Utils.d"],
-
-
-
+	"targetName": "Drill-Core",
+	"sourceFiles": [
+		"Crawler.d",
+		"Utils.d"
+	],
 	"dependencies": {
-		"datefmt": {"path": "../../vendor/datefmt" }
+		"datefmt": {
+			"path": "../../vendor/datefmt"
+		}
 	}
 }
