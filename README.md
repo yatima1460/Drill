@@ -1,7 +1,4 @@
-# Drill 1.0.0rc1
-
 ![](https://raw.githubusercontent.com/yatima1460/Drill/assets/logo.png)
-
 
 # Binaries
 
