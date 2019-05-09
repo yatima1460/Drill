@@ -99,3 +99,4 @@ Sorted by priority:
 - Fix messy imports
 - ~~Logging in debug mode~~
 - NVM could benefit when multiple threads are run for the same disk?
+- No GC
