@@ -5,7 +5,7 @@
 dub.selections.json
 
 # Executables
-*.elf
+Drill-GTK
 *.exe
 
 # Binaries
