@@ -1,17 +1,13 @@
 module Drill.SearchEntry;
 
-
-
 import gtk.Entry;
-
-
 
 class SearchEntry : Entry
 {
 
-    this ()
+    this()
     {
-        setIconFromIconName(GtkEntryIconPosition.SECONDARY,"search");
+        setIconFromIconName(GtkEntryIconPosition.SECONDARY, "search");
     }
 
 }

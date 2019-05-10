@@ -28,7 +28,10 @@ import std.file : DirEntry;
 import std.concurrency : Tid;
 import std.regex : Regex;
 
-import std.experimental.logger : FileLogger;
+debug
+{
+    import std.experimental.logger : FileLogger;
+}
 
 import gtk.Main;
 import gdk.Event;
@@ -66,9 +69,6 @@ import std.concurrency;
 import drillcore.Crawler : Crawler;
 import Drill.SearchEntry : SearchEntry;
 
-
-
-
 enum Column
 {
     // TYPE,
@@ -78,8 +78,6 @@ enum Column
     SIZE,
     DATE_MODIFIED,
 }
-
-
 
 extern (C) static nothrow int threadIdleProcess(void* data)
 {
@@ -102,16 +100,13 @@ extern (C) static nothrow int threadIdleProcess(void* data)
 
         import std.conv : to;
 
-                 mainWindow.files_indexed_count.setText(
+        mainWindow.files_indexed_count.setText(
                 "Files indexed: " ~ to!string(mainWindow.index.length));
-        mainWindow.files_ignored_count.setText(
-                "Files ignored: " ~ to!string(ignored_total));
+        mainWindow.files_ignored_count.setText("Files ignored: " ~ to!string(ignored_total));
         import std.array;
-        mainWindow.threads_active.setText(
-                "Threads active: " ~ to!string(array(mainWindow.threads[].filter!(x => x.running)).length));
 
-      
-
+        mainWindow.threads_active.setText("Threads active: " ~ to!string(
+                array(mainWindow.threads[].filter!(x => x.running)).length));
 
         if (mainWindow.list_dirty)
         {
@@ -123,15 +118,23 @@ extern (C) static nothrow int threadIdleProcess(void* data)
 
                 static import std.path;
 
-                mainWindow.log.info("search for `" ~ mainWindow.search_string ~ "`...");
+                debug
+                {
+                    mainWindow.log.info("search for `" ~ mainWindow.search_string ~ "`...");
+                }
                 import std.array;
 
                 auto results = array(mainWindow.index[].filter!(x => canFind(std.path.baseName(x.name),
                         mainWindow.search_string)));
-                mainWindow.log.info("search for `" ~ mainWindow.search_string ~ "`... DONE");
-
+                debug
+                {
+                    mainWindow.log.info("search for `" ~ mainWindow.search_string ~ "`... DONE");
+                }
                 int i = 0;
-                mainWindow.log.info("adding " ~ to!string(results.length) ~ " results to UI...");
+                debug
+                {
+                    mainWindow.log.info("adding " ~ to!string(results.length) ~ " results to UI...");
+                }
                 foreach (ref result; results)
                 {
                     mainWindow.appendRecord(result);
@@ -139,21 +142,23 @@ extern (C) static nothrow int threadIdleProcess(void* data)
                     if (i == UI_LIST_MAX_SIZE)
                         break;
                 }
-                  mainWindow.files_shown.setText(
-                "Files shown: " ~ to!string(i)~"/"~to!string(UI_LIST_MAX_SIZE));
-                mainWindow.log.info("adding results to UI... DONE");
+                mainWindow.files_shown.setText("Files shown: " ~ to!string(
+                        i) ~ "/" ~ to!string(UI_LIST_MAX_SIZE));
+
+                debug
+                {
+                    mainWindow.log.info("adding results to UI... DONE");
+                }
 
             }
             else
             {
-                   mainWindow.files_shown.setText(
-                "Files shown: 0/"~to!string(UI_LIST_MAX_SIZE));
- 
+                mainWindow.files_shown.setText("Files shown: 0/" ~ to!string(UI_LIST_MAX_SIZE));
+
             }
 
             mainWindow.list_dirty = false;
 
-   
         }
         //         //  writeln("updating done");
         // 	}
@@ -190,81 +195,83 @@ class DrillWindow : ApplicationWindow
     Label files_indexed_count;
     Label files_ignored_count;
     bool list_dirty;
-    FileLogger log;
+    debug
+    {
+        FileLogger log;
+    }
     Entry search_input;
     Label threads_active;
     Label files_shown;
 
-
-
     void open_file(string path)
     {
 
-        version(Windows)
+        version (Windows)
         {
             const string[] args = ["explorer", path];
-            spawnProcess(args, std.stdio.stdin, std.stdio.stdout, std.stdio.stderr, null, std.process.Config.none, null);
+            spawnProcess(args, std.stdio.stdin, std.stdio.stdout,
+                    std.stdio.stderr, null, std.process.Config.none, null);
         }
-        version(linux)
+        version (linux)
         {
             const string[] args = ["xdg-open", path];
-            spawnProcess(args, std.stdio.stdin, std.stdio.stdout, std.stdio.stderr, null, std.process.Config.none, null);
+            spawnProcess(args, std.stdio.stdin, std.stdio.stdout,
+                    std.stdio.stderr, null, std.process.Config.none, null);
         }
-        version(OSX)
+        version (OSX)
         {
             const string[] args = ["open", path];
-            spawnProcess(args, std.stdio.stdin, std.stdio.stdout, std.stdio.stderr, null, std.process.Config.none, null);
+            spawnProcess(args, std.stdio.stdin, std.stdio.stdout,
+                    std.stdio.stderr, null, std.process.Config.none, null);
         }
-      
+
     }
 
     void appendRecord(DirEntry fi)
     {
         TreeIter it = liststore.createIter();
         import std.conv : to;
-        
+
         static import std.path;
+
         if (fi.isDir())
         {
-  liststore.setValue(it, Column.NAME_ICON, "folder");
-      liststore.setValue(it, Column.SIZE,"");
+            liststore.setValue(it, Column.NAME_ICON, "folder");
+            liststore.setValue(it, Column.SIZE, "");
         }
-     
-       else
-       {
-             import drillcore.Utils : humanSize;
-             liststore.setValue(it, Column.SIZE,humanSize(fi.size));
 
+        else
+        {
+            import drillcore.Utils : humanSize;
 
-             liststore.setValue(it, Column.NAME_ICON, "text-x-preview");
-              auto ext = std.path.extension(fi.name);
-                if (ext != null)
+            liststore.setValue(it, Column.SIZE, humanSize(fi.size));
+
+            liststore.setValue(it, Column.NAME_ICON, "text-x-preview");
+            auto ext = std.path.extension(fi.name);
+            if (ext != null)
+            {
+                string* p = (ext in this.iconmap);
+                if (p !is null)
                 {
-                    string* p = (ext in this.iconmap);
-                    if (p !is null)
+                    auto icon_name = this.iconmap[ext];
+                    assert(icon_name != null);
+                    liststore.setValue(it, Column.NAME_ICON, icon_name);
+                    debug
                     {
-                        auto icon_name = this.iconmap[ext];
-                        assert (icon_name != null);
-                        liststore.setValue(it, Column.NAME_ICON, icon_name);
-                        log.info("Setting icon to "~this.iconmap[ext]);
-                        
+                        log.info("Setting icon to " ~ this.iconmap[ext]);
                     }
+
                 }
+            }
 
+        }
 
-       }
-       
-      
-
-      
         liststore.setValue(it, Column.NAME, std.path.baseName(fi.name));
         liststore.setValue(it, Column.PATH, std.path.dirName(fi.name));
         import drillcore.Utils : toDateString;
+
         liststore.setValue(it, Column.DATE_MODIFIED, toDateString(fi.timeLastModified()));
 
-      
-
-      
     }
 
     private void doubleclick(TreePath tp, TreeViewColumn tvc, TreeView tv)
@@ -275,6 +282,7 @@ class DrillWindow : ApplicationWindow
         string name = this.liststore.getValueString(ti, Column.NAME);
         import std.path : chainPath;
         import std.array : array;
+
         string chained = chainPath(path, name).array;
         open_file(chained);
         // TODO: open_file failed
@@ -282,7 +290,10 @@ class DrillWindow : ApplicationWindow
 
     private void searchChanged(EditableIF ei)
     {
-        log.info("Wrote input:" ~ ei.getChars(0, -1));
+        debug
+        {
+            log.info("Wrote input:" ~ ei.getChars(0, -1));
+        }
         this.search_string = ei.getChars(0, -1);
         this.list_dirty = true;
     }
@@ -291,7 +302,8 @@ class DrillWindow : ApplicationWindow
 
     public this(Application application)
     {
- import std.file : dirEntries, SpanMode;
+        import std.file : dirEntries, SpanMode;
+
         auto filetypes_file = dirEntries(DirEntry("../../assets/filetypes"), SpanMode.shallow, true);
 
         foreach (string partial_filetype; filetypes_file)
@@ -300,30 +312,29 @@ class DrillWindow : ApplicationWindow
             foreach (ext; extensions)
             {
                 static import std.path;
-              import std.path : stripExtension;
+                import std.path : stripExtension;
+
                 iconmap[ext] = std.path.baseName(stripExtension(partial_filetype));
             }
         }
-
-
-
-
-
 
         super(application);
         this.setTitle("Drill");
         setDefaultSize(800, 450);
         setResizable(true);
         setPosition(GtkWindowPosition.CENTER);
-    
-        log = new FileLogger("logs/GTKThread.log");
+
+        debug
+        {
+            log = new FileLogger("logs/GTKThread.log");
+        }
 
         list_dirty = false;
         this.liststore = new ListStore([
-                GType.STRING, GType.STRING, GType.STRING, GType.STRING, GType.STRING
+                GType.STRING, GType.STRING, GType.STRING, GType.STRING,
+                GType.STRING
                 ]);
 
-        
         try
         {
             setIconFromFile("../../assets/icon.png");
@@ -331,28 +342,31 @@ class DrillWindow : ApplicationWindow
         catch (GException ge)
         {
             //fallback to default GTK icon if it can't find its own
-            log.warning("Can't find program icon, will fallback to default GTK one!");
+            debug
+            {
+                log.warning("Can't find program icon, will fallback to default GTK one!");
+            }
             setIconName("search");
         }
 
-        
         import std.file : FileException;
+
         try
         {
             import std.file : dirEntries, SpanMode;
-            auto blocklists_file = dirEntries(DirEntry("../../assets/blocklists"), SpanMode.shallow, true);
 
-                foreach (string partial_blocklist; blocklists_file)
-                {
-                    this.blocklist ~= readText(partial_blocklist).split("\n");
-                }
+            auto blocklists_file = dirEntries(DirEntry("../../assets/blocklists"),
+                    SpanMode.shallow, true);
+
+            foreach (string partial_blocklist; blocklists_file)
+            {
+                this.blocklist ~= readText(partial_blocklist).split("\n");
+            }
         }
         catch (FileException fe)
         {
             this.blocklist = [];
         }
-       
-        
 
         this.treeview = new TreeView();
         this.treeview.addOnRowActivated(&doubleclick);
@@ -364,10 +378,6 @@ class DrillWindow : ApplicationWindow
 
         search_input = new SearchEntry();
 
-    
-        
-        
-
         ScrolledWindow scroll = new ScrolledWindow();
 
         scroll.add(this.treeview);
@@ -378,34 +388,28 @@ class DrillWindow : ApplicationWindow
         this.files_ignored_count = new Label("Files blocked: ?");
         this.threads_active = new Label("Threads active: ?");
         import std.conv : to;
-        this.files_shown = new Label("Files shown: 0/"~to!string(UI_LIST_MAX_SIZE));
+
+        this.files_shown = new Label("Files shown: 0/" ~ to!string(UI_LIST_MAX_SIZE));
         h.packStart(files_indexed_count, false, false, 0);
         h.packStart(files_ignored_count, false, false, 0);
         h.packStart(threads_active, false, false, 0);
         h.packStart(files_shown, false, false, 0);
 
-  
-
-       
         // file_icon.setIconName("file");
 
-
         // create second column with two renderers
-        TreeViewColumn  column = new TreeViewColumn();
+        TreeViewColumn column = new TreeViewColumn();
         column.setTitle("Name");
         column.setFixedWidth(400);
         column.setResizable(true);
         column.setSizing(GtkTreeViewColumnSizing.FIXED);
 
-         CellRendererPixbuf file_icon = new CellRendererPixbuf();
-        file_icon.setProperty("icon-name","dialog-question");
-
-  
-        
+        CellRendererPixbuf file_icon = new CellRendererPixbuf();
+        file_icon.setProperty("icon-name", "dialog-question");
 
         this.treeview.appendColumn(column);
         CellRendererText cell_text = new CellRendererText();
-          column.packStart(file_icon, false);
+        column.packStart(file_icon, false);
         column.packStart(cell_text, true);
         column.addAttribute(cell_text, "text", Column.NAME);
         column.addAttribute(file_icon, "icon-name", Column.NAME_ICON);
@@ -421,9 +425,7 @@ class DrillWindow : ApplicationWindow
         column.packStart(cell_text, false);
         column.addAttribute(cell_text, "text", Column.PATH);
 
-
-
-              // create first column with text renderer
+        // create first column with text renderer
         column = new TreeViewColumn();
         column.setTitle("Size");
         this.treeview.appendColumn(column);
@@ -431,11 +433,9 @@ class DrillWindow : ApplicationWindow
         column.setResizable(true);
         column.setSizing(GtkTreeViewColumnSizing.FIXED);
 
-
         cell_text = new CellRendererText();
         column.packStart(cell_text, false);
         column.addAttribute(cell_text, "text", Column.SIZE);
-
 
         column = new TreeViewColumn();
         column.setTitle("Date Modified");
@@ -448,13 +448,9 @@ class DrillWindow : ApplicationWindow
         column.packStart(cell_text, false);
         column.addAttribute(cell_text, "text", Column.DATE_MODIFIED);
 
-
-
-
         v.packStart(search_input, false, false, 0);
         v.packStart(scroll, true, true, 0);
         v.packStart(h, false, false, 0);
-
 
         this.treeview.setModel(this.liststore);
         showAll();
@@ -462,45 +458,64 @@ class DrillWindow : ApplicationWindow
         //df catches network mounted drives like NFS
         //so don't use lsblk here
         auto ls = executeShell("df -h --output=target");
+
         if (ls.status != 0)
         {
-            log.error("Can't retrieve mount points, will scan `/`");
+            debug
+            {
 
+                log.error("Can't retrieve mount points, will scan `/`");
+            }
             // TODO: fallback to `/` if can't retrieve mount points
         }
         else
         {
             import std.array;
+
             gdk.Threads.threadsAddTimeout(10, &threadIdleProcess, cast(void*) this);
             // this.childTid = spawn(&countNumbers);
 
             // childTid = spawn(&countNumbers);
 
-            Array!string mountpoints = array(ls.output.split("\n").filter!(x => canFind(x,"/")));
-            
-            log.info("Mount points to scan:" ~ join(mountpoints[], " "));
+            Array!string mountpoints = array(ls.output.split("\n").filter!(x => canFind(x, "/")));
+
+            debug
+            {
+
+                log.info("Mount points to scan:" ~ join(mountpoints[], " "));
+            }
             this.threads = Array!Crawler();
 
             foreach (ref mountpoint; mountpoints)
             {
-                log.info("Starting thread for: ", mountpoint);
+                debug
+                {
+                    log.info("Starting thread for: ", mountpoint);
+                }
                 Array!string crawler_exclusion_list = Array!string(blocklist);
-
-                
 
                 // for safety measure add the mount points minus itself to the exclusion list
                 string[] cp_tmp = mountpoints[].filter!(x => x != mountpoint)
                     .map!(x => "^" ~ x ~ "$")
                     .array;
-                log.info(join(cp_tmp, " "));
+                debug
+                {
+                    log.info(join(cp_tmp, " "));
+                }
                 crawler_exclusion_list ~= cp_tmp;
                 // assert mountpoint not in crawler_exclusion_list, "crawler mountpoint can't be excluded";
 
                 import std.regex;
 
-                log.info("Compiling Regex...");
+                debug
+                {
+                    log.info("Compiling Regex...");
+                }
                 Regex!char[] regexes = crawler_exclusion_list[].map!(x => regex(x)).array;
-                log.info("Compiling Regex... DONE");
+                debug
+                {
+                    log.info("Compiling Regex... DONE");
+                }
                 auto crawler = new Crawler(mountpoint, regexes);
                 crawler.start();
                 this.threads.insertBack(crawler);
@@ -508,20 +523,30 @@ class DrillWindow : ApplicationWindow
 
         }
 
-
-
         addOnDelete(delegate bool(Event event, Widget widget) {
-            log.info("Window started to close");
+            debug
+            {
+                log.info("Window started to close");
+            }
             foreach (ref thread; threads)
             {
-                log.info(thread.toString()~".running set to false");
+                debug
+                {
+                    log.info(thread.toString() ~ ".running set to false");
+                }
                 thread.running = false;
             }
             foreach (ref thread; threads)
             {
-                log.info("Waiting for thread "~thread.toString()~" to stop");
+                debug
+                {
+                    log.info("Waiting for thread " ~ thread.toString() ~ " to stop");
+                }
                 thread.join(false);
-                log.info(thread.toString() ~ " stopped cleanly");
+                debug
+                {
+                    log.info(thread.toString() ~ " stopped cleanly");
+                }
             }
 
             return false;
