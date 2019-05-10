@@ -1,4 +1,4 @@
-module DrillCore.Crawler;
+module drill.core.crawler;
 
 import std.container : Array;
 import core.thread : Thread;
@@ -31,6 +31,17 @@ class Crawler : Thread
         this.exclusion_list = exclusion_list;
         this.index = new Array!DirEntry();
 
+    }
+
+    void stopAsync()
+    {
+        this.running = false;
+    }
+
+    void stopSync()
+    {
+        this.running = false;
+        this.join();
     }
 
     Array!DirEntry* grab_index()
