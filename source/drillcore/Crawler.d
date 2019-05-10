@@ -5,7 +5,11 @@ import core.thread : Thread;
 import std.stdio;
 import std.file;
 import std.file : DirEntry;
-import std.experimental.logger;
+
+debug
+{
+    import std.experimental.logger;
+}
 import std.regex : Regex;
 
 class Crawler : Thread
@@ -17,9 +21,8 @@ class Crawler : Thread
     long ignored_count;
     debug
     {
-       FileLogger log;
+        FileLogger log;
     }
-    
 
     this(string root, Regex!char[] exclusion_list)
     {
@@ -27,8 +30,6 @@ class Crawler : Thread
         this.root = root;
         this.exclusion_list = exclusion_list;
         this.index = new Array!DirEntry();
-     
-   
 
     }
 
@@ -41,22 +42,23 @@ class Crawler : Thread
 
     override string toString()
     {
-        return "Thread("~root~")";
+        return "Thread(" ~ root ~ ")";
     }
 
 private:
     void run()
     {
         import std.array : replace;
+
         debug
         {
-            log = new FileLogger("logs/"~replace(root,"/","_")~".log");
-        } 
-        writeln(this.toString()~" started");
+            log = new FileLogger("logs/" ~ replace(root, "/", "_") ~ ".log");
+        }
+        writeln(this.toString() ~ " started");
         Array!DirEntry* queue = new Array!DirEntry();
         auto direntryroot = DirEntry(this.root);
         queue.insertBack(direntryroot);
-          index.insertBack(direntryroot);
+        index.insertBack(direntryroot);
 
         this.running = true;
         while (queue.length != 0)
@@ -72,15 +74,14 @@ private:
                         return;
                     //writeln(file.size);
 
-
-                          if (direntry.isSymlink())
+                    if (direntry.isSymlink())
                     {
-                        debug 
+                        debug
                         {
-log.trace(direntry.name ~ " ignored because symlink");
+                            log.trace(direntry.name ~ " ignored because symlink");
                         }
-                         
-                         continue fileloop;
+
+                        continue fileloop;
                     }
 
                     import std.regex;
@@ -88,7 +89,6 @@ log.trace(direntry.name ~ " ignored because symlink");
                     // writeln("Working on:" ~ file.name);
                     foreach (ref regexrule; this.exclusion_list)
                     {
-                        
 
                         // matchAll() returns a range that can be iterated
                         // to get all subsequent matches.
@@ -96,44 +96,41 @@ log.trace(direntry.name ~ " ignored because symlink");
 
                         if (!mo.empty())
                         {
-                            
-   debug 
-                        {
-                            log.trace(direntry.name ~ " low priority because of regex rules");
-                        }
+
+                            debug
+                            {
+                                log.trace(direntry.name ~ " low priority because of regex rules");
+                            }
                             this.ignored_count++;
-                            
+
                             continue fileloop;
                         }
                         else
 
                         {
-                             
-                               
-                             //writeln(direntry.name ~ " added");
+
+                            //writeln(direntry.name ~ " added");
                         }
-                       
 
                     }
-
-               
 
                     if (direntry.isDir())
                     {
                         next_queue.insertBack(direntry);
-                        debug {
- log.trace(direntry.name ~ " directory queued next");
+                        debug
+                        {
+                            log.trace(direntry.name ~ " directory queued next");
                         }
-                        
+
                     }
 
-                   
-int[string] aa;
+                    int[string] aa;
                     index.insertBack(direntry);
-                    debug {
-           log.trace(direntry.name ~ " added to global index");
+                    debug
+                    {
+                        log.trace(direntry.name ~ " added to global index");
                     }
-          
+
                 }
             }
 
