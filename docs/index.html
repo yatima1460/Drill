@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="{{ site.lang | default: "en-US" }}">
+<html lang="en-US">
 
 <head>
 
-  {% if site.google_analytics %}
+  <!-- {% if site.google_analytics %}
   <script async src="https://www.googletagmanager.com/gtag/js?id={{ site.google_analytics }}"></script>
   <script>
     window.dataLayer = window.dataLayer || [];
@@ -14,11 +14,11 @@
   {% endif %}
   <meta charset="UTF-8">
 
-  {% seo %}
+  {% seo %} -->
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#157878">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <link rel="stylesheet" href="{{ '/assets/css/style.css?v=' | append: site.github.build_revision | relative_url }}">
+  <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
@@ -38,25 +38,32 @@
 
 
 
-        <h1 class="project-name">{{ site.github.repository_name }}</h1>
+        <h1 class="project-name">Drill</h1>
       </div>
-      <h2 class="project-tagline">{{ site.github.project_tagline }}</h2>
+      <h2 class="project-tagline">Search files without indexing, but clever crawling</h2>
 
       <img src="https://raw.githubusercontent.com/yatima1460/Drill/assets/screenshot.png">
 
-      <a href="{{ site.github.repository_url }}" class="btn">GitHub</a>
-      <a href="{{ site.github.zip_url }}" class="btn">Source .zip</a>
-      <a href="{{ site.github.tar_url }}" class="btn">Source .tar.gz</a>
-      <div class="header">
-        <img
-          src="https://raw.githubusercontent.com/yatima1460/Drill/docs/assets/App-image-logo.svg?sanitize=true"
-          srcset="" alt="AppImage logo">
-        <h1 class="project-name">x64 AppImage</h1>
-      </div>
+      <a href="https://github.com/yatima1460/Drill/releases/latest/download/Drill-x64.AppImage" class="btn">
+        <div class="btnheader">
+          <img src="App-image-logo.svg?sanitize=true" srcset="" alt="AppImage logo">
+          AppImage x64
+        </div>
+      </a>
 
-      {% for asset in site.github.latest_release.assets %}
-      <a href="{{ asset.browser_download_url }}" class="btn" title="Download {{ asset.name }}">{{ asset.name }}</a>
-      {% endfor %}
+
+
+      <a href="http://github.com/yatima1460/Drill" class="btn">
+        <div class="btnheader">
+          <img src="Octocat.jpg?sanitize=true" srcset="" alt="GitHub logo">
+          GitHub
+        </div>
+      </a>
+
+      <a href="http://github.com/yatima1460/Drill/zipball/master/" class="btn">Source .zip</a>
+      <a href="http://github.com/yatima1460/Drill/tarball/master/" class="btn">Source .tar.gz</a>
+
+
 
     </p>
     <footer class="site-footer">
