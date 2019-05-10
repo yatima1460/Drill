@@ -203,29 +203,7 @@ class DrillWindow : ApplicationWindow
     Label threads_active;
     Label files_shown;
 
-    void open_file(string path)
-    {
-
-        version (Windows)
-        {
-            const string[] args = ["explorer", path];
-            spawnProcess(args, std.stdio.stdin, std.stdio.stdout,
-                    std.stdio.stderr, null, std.process.Config.none, null);
-        }
-        version (linux)
-        {
-            const string[] args = ["xdg-open", path];
-            spawnProcess(args, std.stdio.stdin, std.stdio.stdout,
-                    std.stdio.stderr, null, std.process.Config.none, null);
-        }
-        version (OSX)
-        {
-            const string[] args = ["open", path];
-            spawnProcess(args, std.stdio.stdin, std.stdio.stdout,
-                    std.stdio.stderr, null, std.process.Config.none, null);
-        }
-
-    }
+   
 
     void appendRecord(DirEntry fi)
     {
@@ -284,6 +262,8 @@ class DrillWindow : ApplicationWindow
         import std.array : array;
 
         string chained = chainPath(path, name).array;
+
+        import drill.core.api : openFile;
         open_file(chained);
         // TODO: open_file failed
     }

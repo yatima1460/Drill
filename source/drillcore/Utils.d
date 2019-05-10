@@ -1,4 +1,4 @@
-module DrillCore.Utils;
+module drill.core.utils;
 
 import std.math : log, floor, pow;
 import std.conv : to;
