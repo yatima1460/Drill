@@ -35,16 +35,20 @@ Open containing folder  = Right click
 - D
     - `sudo apt install dub`
 
+### Configurations available
+```
+x64-Cli
+x64-GTK
+```
+
 ### Debug
 ```
-cd source/drillgtk
-dub run 
+dub run -c CONFIGURATION_NAME
 ```
 
 ### Release (no logs and faster)
 ```
-cd source/drillgtk
-dub run --build=release
+dub run -c CONFIGURATION_NAME -b release
 ```
 
 # What is this
@@ -64,37 +68,88 @@ Second change is excluding some obvious folders while crawling like `Windows` an
 
 * Use your goddamn RAM: The third change is caching everything, I don't care about your RAM, I will use even 8GB of your RAM if this provides me a faster way to find your files, unused RAM is wasted RAM, even truer the more time passes.
 
-# TODO
-Sorted by priority:
+# Which one is a stable branch?
+Only commits tagged with versions' names can be compiled and are considered good, everything else is just dumped in `master`
 
-- ~~Open file with double click~~
-- Add to UI list when new results found
-- All comparisons need to be done in lower case strings
-- AppImage
-- Open containing folder with right click 
-- Sorting by column
-- Alternate row colors
-- ESC to close
-- Error messagebox if opening file fails
-- ~~Icons near the file name~~
-- AM/PM time base
-- .deb
-- .rpm
-- Folders actual size
-- Commas in big numbers
-- Snap
-- Flatpak
-- Metadata searching (mp3, etc...)
-- Spawn thread per thread index to search and remove UI hangs
-- Drag and drop
-- ~~GTK3~~
-- Memoization/Cache
-- Percentage of crawling
-- About dialog in GUI
-- ~~cat /proc/mounts for starting the threads~~
-- Split Drill in DrillGTK and DrillCore
-- Add documentation and comments
-- Fix messy imports
-- ~~Logging in debug mode~~
-- NVM could benefit when multiple threads are run for the same disk?
-- No GC
+# Contributing
+TODOs:
+
+- Core Backend
+    - Open file or path
+        - ~~Linux X11~~
+            - Select file if contained folder
+            - Error on file open
+        - Linux Wayland
+            - Select file if contained folder
+            - Error on file open
+        - Windows
+            - Select file if contained folder
+            - Error on file open
+        - MacOS
+            - Select file if contained folder
+            - Error on file open
+    - All comparisons need to be done in lower case strings
+    - Sorting by column system
+    - Commas in numbers strings
+        - Correct separator based on current system internationalization
+    - AM/PM time base
+        - Linux
+        - Windows
+        - MacOS
+    - Folders actual size
+    - Metadata searching and new tokens (mp3, etc...)
+    - Memoization/Cache
+    - Percentage of crawling
+    - About dialog in GUI
+    - Remove the synchronizations using a concurrency list
+    - ~~Split Drill in DrillGTK and DrillCore~~
+    - Add documentation and comments
+    - Fix messy imports
+    - ~~Logging in debug mode~~
+    - NVM could benefit when multiple threads are run for the same disk?
+    - No GC
+
+- Cli Frontend
+    - More arguments
+    - Better/bare printing
+
+- ncurses
+
+- GTK Frontend
+    - ~~Open file with double click~~
+    - ~~Add to UI list when new results found~~
+    - ~~AppImage~~
+    - Open containing folder with right click 
+    - Alternate row colors
+    - ESC to close
+    - Error messagebox if opening file fails
+    - ~~Icons near the file name~~
+    - .deb
+    - .rpm
+    - Snap
+    - Flatpak
+    - Drag and drop
+
+- Windows
+    - Open file with double click
+    - Add to UI list when new results found
+    - Portable .exe
+        - Installer
+    - Open containing folder with right click 
+    - Alternate row colors
+    - ESC to close
+    - Error messagebox if opening file fails
+    - Icons near the file name
+    - Drag and drop
+
+- MacOS
+    - Open file with double click
+    - Add to UI list when new results found
+    - Portable executable
+        - Installer
+    - Open containing folder with right click 
+    - Alternate row colors
+    - ESC to close
+    - Error messagebox if opening file fails
+    - Icons near the file name
+    - Drag and drop
