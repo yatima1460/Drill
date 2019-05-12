@@ -176,7 +176,7 @@ private:
 
                             // index.insertBack(direntry);
                             import std.algorithm : canFind;
-                              import std.path : baseName, dirName;
+                              import std.path : baseName, dirName, extension;
 
                             // TODO split by space and search every token
                             if (!canFind(baseName(direntry.name),search))
@@ -187,13 +187,14 @@ private:
                             f.fullPath = direntry.name;
                             f.fileName = baseName(direntry.name);
                             f.containingFolder = dirName(direntry.name);
+                            f.extension = extension(direntry.name);
                             import drill.core.utils : humanSize;
 
                             f.sizeString = humanSize(direntry.size);
                             import drill.core.utils : toDateString;
 
                             f.dateModifiedString = toDateString(direntry.timeLastModified());
-
+                            if (running)
                             resultCallback(f);
 
                             //logConsole(direntry.name ~ " added to global index");
