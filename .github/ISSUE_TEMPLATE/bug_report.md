@@ -11,9 +11,13 @@ assignees: ''
 Which version do you have?
 
 **Build Version**
-Appimage?
-Debug build? (include build config (x64-Cli, x64-GTK, etc))
-Release build? (same as above)
+- Appimage?
+  - include release version you downloaded.
+  - if it's not the latest version try again with the latest release
+- Debug build? 
+  - include build config (x64-Cli, x64-GTK, etc)
+- Release build? 
+  - same as above
 
 **Other notes about build** 
 Anything else we may need to know about how it was built or run. 
