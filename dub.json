@@ -24,7 +24,7 @@
 			"name": "x64-Cli",
 			"targetType": "executable",
 			"targetName": "Drill-x64-Cli",
-			"sourcePaths": ["drill/core"],
+	
 			"sourceFiles": [
 				"drill/core/FileInfo.d",
 				"drill/core/Core.d",
@@ -39,7 +39,7 @@
 			"name": "x64-GTK",
 			"targetType": "executable",
 			"targetName": "Drill-x64-GTK",
-			"sourcePaths": ["drill/core","drill/gtk"],
+		
 			"sourceFiles": [
 				"drill/core/FileInfo.d",
 				"drill/core/Core.d",
