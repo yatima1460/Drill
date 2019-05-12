@@ -45,6 +45,15 @@ struct FileInfo
     */
     string extension;
 
+
+
+    string fullPath;
+
+
+
+    string sizeString;
+
+
 }
 
 //     this(DirEntry de)
