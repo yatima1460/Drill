@@ -36,12 +36,12 @@ int main(string[] args)
     writeln(drill.getMountPoints());
 
     
-
+    import std.functional : toDelegate;
     
     if (args.length == 1)
-        drill.startCrawling(searchInput(),&resultsFound);
+        drill.startCrawling(searchInput(),toDelegate(&resultsFound));
     else if (args.length == 2)
-        drill.startCrawling(args[1],&resultsFound);
+        drill.startCrawling(args[1],toDelegate(&resultsFound));
     else
     {
         writeln("Wrong arguments count.");

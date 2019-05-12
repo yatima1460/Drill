@@ -21,6 +21,21 @@
     
 	"configurations": [
 		{
+			"name": "x64-Cli",
+			"targetType": "executable",
+			"targetName": "Drill-x64-Cli",
+			"sourcePaths": ["drill/core"],
+			"sourceFiles": [
+				"drill/core/FileInfo.d",
+				"drill/core/Core.d",
+				"drill/core/Crawler.d",
+				"drill/core/Utils.d",
+
+				"drill/cli/Cli.d"
+			]
+	
+		},
+		{
 			"name": "x64-GTK",
 			"targetType": "executable",
 			"targetName": "Drill-x64-GTK",
@@ -36,21 +51,7 @@
 				"drill/gtkui/Main.d"
 			]
 	
-		},
-		{
-			"name": "x64-Cli",
-			"targetType": "executable",
-			"targetName": "Drill-x64-Cli",
-			"sourcePaths": ["drill/core"],
-			"sourceFiles": [
-				"drill/core/FileInfo.d",
-				"drill/core/Core.d",
-				"drill/core/Crawler.d",
-				"drill/core/Utils.d",
-
-				"drill/cli/Cli.d"
-			]
-	
 		}
+	
 	]
 }
