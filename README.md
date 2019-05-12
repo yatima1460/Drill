@@ -1,19 +1,18 @@
-# Drill v0.1.1
+![](https://raw.githubusercontent.com/yatima1460/Drill/assets/logo.png)
 
-![](https://raw.githubusercontent.com/yatima1460/drill/assets/logo.png)
+# TL;DR: What is this
 
-## TL;DR: What is this
-
-Search files without using indexing, but clever crawling:
+Search files without indexing, but clever crawling:
 - 1 thread per mount point
 - Use as much RAM as possible for caching stuff
 - Try to avoid "black hole folders" using a regex based blocklist in which the crawler will never come out and never scan useful files (`node_modules`,`Windows`,etc)
 - **Intended for desktop users**, no obscure Linux files and system files scans
+- Really works only with SSDs/M.2 or fast RAID arrays
 
 
-![](https://raw.githubusercontent.com/yatima1460/drill/assets/screenshot.png)
+![](https://raw.githubusercontent.com/yatima1460/Drill/assets/screenshot.png)
 
-## How to run this
+# How to run this
 
 **Use the provided AppImage, just double click it**
 
@@ -21,38 +20,41 @@ If your distro doesn't ask you to mark it executable or nothing happens try:
 - `chmod +x Drill.AppImage`
 - `./Drill.AppImage`
 
-## UI Guide
-```
-Double click    = open
-Right click     = open containing folder
-Return/Enter    = open
-Middle Click    = messagebox with file info (TODO)
-```
+# UI Guide
 
-## Manual prerequisites using Python
-
-- Python 3 needed
-- `sudo apt install python3-tk` (you should already have it)
-- `python3 setup.py install --user`
+- Open                    = Left Double Click / Return / Enter / Space
+- ~~Open containing folder  = Right click~~
 
 
-### Run manually with Python 3
+
+# Build and Run
+
+## Manual prerequisites
+
+- The repo, remember to clone the submodules too with:
+    - `git clone --recurse-submodules -j8 https://github.com/yatima1460/Drill.git`
+- D
+    - `sudo apt install dub`
+
+### Configurations available (in dub.json)
+
+- x64-Cli
+- x64-GTK
+- ~~x64-Win~~
+- ~~x64-Mac~~
+- ~~x64-ncurses~~
+
+### Debug
 ```
-python3 drill.py
-```
-or
-```
-chmod +x drill.py
-./drill.py
+dub run -c CONFIGURATION_NAME
 ```
 
-## Building AppImage
-
+### Release (no logs and faster)
 ```
-bash build_appimage.sh
+dub run -c CONFIGURATION_NAME -b release
 ```
 
-## What is this
+# What is this
 
 I was stressed on Linux because I couldn't find the files I needed, file searchers based on system indexing (updatedb) are prone to breaking and hard to configure for the average user, so did an all nighter and started this.
 
@@ -69,6 +71,88 @@ Second change is excluding some obvious folders while crawling like `Windows` an
 
 * Use your goddamn RAM: The third change is caching everything, I don't care about your RAM, I will use even 8GB of your RAM if this provides me a faster way to find your files, unused RAM is wasted RAM, even truer the more time passes.
 
-## TODO
+# Which one is a stable branch?
+Only commits tagged with versions' names can be compiled and are considered good, everything else is just dumped in `master`
 
-There is a lot of stuff to do and to fix, all written in the `drill.py` file
+# Contributing
+TODOs:
+
+- Core Backend
+    - Open file or path
+        - ~~Linux X11~~
+            - Select file if contained folder
+            - Error on file open
+        - Linux Wayland
+            - Select file if contained folder
+            - Error on file open
+        - Windows
+            - Select file if contained folder
+            - Error on file open
+        - MacOS
+            - Select file if contained folder
+            - Error on file open
+    - All comparisons need to be done in lower case strings
+    - Sorting by column system
+    - Commas in numbers strings
+        - Correct separator based on current system internationalization
+    - AM/PM time base
+        - Linux
+        - Windows
+        - MacOS
+    - Folders actual size
+    - Metadata searching and new tokens (mp3, etc...)
+    - Memoization/Cache
+    - Percentage of crawling
+    - About dialog in GUI
+    - Remove the synchronizations using a concurrency list
+    - ~~Split Drill in DrillGTK and DrillCore~~
+    - Add documentation and comments
+    - Fix messy imports
+    - ~~Logging in debug mode~~
+    - NVM could benefit when multiple threads are run for the same disk?
+    - No GC
+
+- Cli Frontend
+    - More arguments
+    - Better/bare printing
+
+- ncurses
+
+- GTK Frontend
+    - ~~Open file with double click~~
+    - ~~Add to UI list when new results found~~
+    - ~~AppImage~~
+    - Open containing folder with right click 
+    - Alternate row colors
+    - ESC to close
+    - Error messagebox if opening file fails
+    - ~~Icons near the file name~~
+    - .deb
+    - .rpm
+    - Snap
+    - Flatpak
+    - Drag and drop
+
+- Windows
+    - Open file with double click
+    - Add to UI list when new results found
+    - Portable .exe
+        - Installer
+    - Open containing folder with right click 
+    - Alternate row colors
+    - ESC to close
+    - Error messagebox if opening file fails
+    - Icons near the file name
+    - Drag and drop
+
+- MacOS
+    - Open file with double click
+    - Add to UI list when new results found
+    - Portable executable
+        - Installer
+    - Open containing folder with right click 
+    - Alternate row colors
+    - ESC to close
+    - Error messagebox if opening file fails
+    - Icons near the file name
+    - Drag and drop
