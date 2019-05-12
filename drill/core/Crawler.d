@@ -22,7 +22,7 @@ private:
     Regex!char[] exclusion_list;
     Array!DirEntry* index;
     long ignored_count;
-    void function(immutable(FileInfo) result) resultCallback;
+    void delegate(immutable(FileInfo) result) resultCallback;
 
     immutable(string) search;
 
@@ -38,7 +38,7 @@ public:
     // invariant(exclusion_list.length > 0);
 
     this(string root, Regex!char[] exclusion_list,
-            void function(immutable(FileInfo) result) resultFound, immutable(string) search)
+            void delegate(immutable(FileInfo) result) resultFound, immutable(string) search)
     {
 
         //TODO: invariant root contains /
