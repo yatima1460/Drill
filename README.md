@@ -92,6 +92,7 @@ TODOs:
             - Select file if contained folder
             - Error on file open
     - All comparisons need to be done in lower case strings
+    - /home/username needs to have higher priority over / crawler when /home isn't mounted on a secondary mountpoint
     - Sorting by column system
     - Commas in numbers strings
         - Correct separator based on current system internationalization
@@ -100,6 +101,7 @@ TODOs:
         - Windows
         - MacOS
     - Folders actual size
+    - Icons image needs to be generic and in the backend
     - Metadata searching and new tokens (mp3, etc...)
     - Memoization/Cache
     - Percentage of crawling
