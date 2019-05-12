@@ -3,3 +3,4 @@
 .avi
 .m4v
 .webm
+.flv

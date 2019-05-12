@@ -191,23 +191,23 @@ private:
 
             liststore.setValue(it, Column.SIZE, fi.sizeString);
 
-            liststore.setValue(it, Column.NAME_ICON, "text-x-preview");
-            // auto ext = std.path.extension(fi.name);
-            // if (ext != null)
-            // {
-            //     string* p = (ext in this.iconmap);
-            //     if (p !is null)
-            //     {
-            //         auto icon_name = this.iconmap[ext];
-            //         assert(icon_name != null);
-            //         liststore.setValue(it, Column.NAME_ICON, icon_name);
-            //         debug
-            //         {
-            //             log.info("Setting icon to " ~ this.iconmap[ext]);
-            //         }
+            liststore.setValue(it, Column.NAME_ICON, "dialog-question");
+            auto ext = fi.extension;
+            if (ext != null)
+            {
+                string* p = (ext in this.iconmap);
+                if (p !is null)
+                {
+                    auto icon_name = this.iconmap[ext];
+                    assert(icon_name != null);
+                    liststore.setValue(it, Column.NAME_ICON, icon_name);
+                    debug
+                    {
+                        log.info("Setting icon to " ~ this.iconmap[ext]);
+                    }
 
-            //     }
-            // }
+                }
+            }
 
         }
 
@@ -251,6 +251,21 @@ private:
     private void searchChanged(EditableIF ei)
     {
 
+ drillapi.stopCrawlingAsync();
+             synchronized(this)
+            {
+                buffer.clear();
+            }
+            //
+        // this is realistically faster than liststore.clear();
+        // assigning a new list is O(1)
+        // instead clearing the list in GTK uses a foreach
+        this.liststore = new ListStore([
+            GType.STRING, GType.STRING, GType.STRING, GType.STRING,
+            GType.STRING
+            ]);
+        this.treeview.setModel(liststore);
+
         debug
         {
             log.info("Wrote input:" ~ ei.getChars(0, -1));
@@ -261,18 +276,7 @@ private:
             drillapi.startCrawling(search_string, &this.resultFound);
            
         }
-        else
-        {
-
-            drillapi.stopCrawlingAsync();
-             synchronized(this)
-            {
-                buffer.clear();
-            }
-            liststore.clear();
-
-        }
-
+      
     }
 
     private void loadGTKIconFiletypes()
@@ -334,6 +338,10 @@ private:
                 GType.STRING, GType.STRING, GType.STRING, GType.STRING,
                 GType.STRING
                 ]);
+
+
+
+       
 
         this.treeview = new TreeView();
         this.treeview.addOnRowActivated(&doubleclick);
