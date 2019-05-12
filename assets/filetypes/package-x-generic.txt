@@ -6,3 +6,4 @@
 .rpm
 .eopkg
 .apk
+.snap
