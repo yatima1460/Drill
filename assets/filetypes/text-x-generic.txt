@@ -4,3 +4,9 @@
 .yaml
 .dsc
 .build
+.conf
+.config
+.yml
+.hs
+.cabal
+.ini

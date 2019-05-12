@@ -54,6 +54,9 @@ struct FileInfo
     string sizeString;
 
 
+
+
+
 }
 
 //     this(DirEntry de)
