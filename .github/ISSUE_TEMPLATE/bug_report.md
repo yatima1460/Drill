@@ -10,8 +10,13 @@ assignees: ''
 **Linux distro**
 Which version do you have?
 
-**Runtime type**
-AppImage or running on system Python?
+**Build Version**
+Appimage?
+Debug build? (include build config (x64-Cli, x64-GTK, etc))
+Release build? (same as above)
+
+**Other notes about build** 
+Anything else we may need to know about how it was built or run. 
 
 **Describe the bug**
 A clear and concise description of what the bug is.
