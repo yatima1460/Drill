@@ -58,6 +58,10 @@ import gtk.ScrolledWindow;
 import gdk.Pixbuf;
 import glib.GException;
 
+import gtk.Menu;
+import gtk.MenuBar;
+import gtk.MenuItem;
+
 import pango.PgFontDescription;
 
 import std.stdio;
@@ -181,6 +185,11 @@ private:
         Label files_ignored_count;
         Label files_shown;
     }
+    else
+    {
+        Label github_notice;
+    }
+    
 
     bool running;
     private Tid childTid;
@@ -335,6 +344,16 @@ private:
             this.setTitle("Drill (DEBUG VERSION)");
         }
 
+
+        // MenuBar mb = new MenuBar();
+        // Menu menu1 = new Menu();
+        // MenuItem file = new MenuItem("_File");
+        // file.setSubmenu(menu1);
+   
+        // mb.append(file);
+
+        
+
         this.setDefaultSize(800, 450);
         this.setResizable(true);
         this.setPosition(GtkWindowPosition.CENTER);
@@ -375,6 +394,11 @@ private:
             h.packStart(files_ignored_count, false, false, 0);
             h.packStart(threads_active, false, false, 0);
             h.packStart(files_shown, false, false, 0);
+        }
+        else
+        {
+            this.github_notice = new Label("Drill is maintained by Federico Santamorena");
+            h.packStart(github_notice, false, true, 0);
         }
 
         // file_icon.setIconName("file");
@@ -430,6 +454,7 @@ private:
         column.packStart(cell_text, false);
         column.addAttribute(cell_text, "text", Column.DATE_MODIFIED);
 
+        // v.packStart(mb, false, false, 0);
         v.packStart(search_input, false, false, 0);
         v.packStart(scroll, true, true, 0);
         v.packStart(h, false, false, 0);
