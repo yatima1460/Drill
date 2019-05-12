@@ -66,8 +66,12 @@ import std.algorithm.iteration;
 import core.thread;
 import std.concurrency;
 
-import drillcore.Crawler : Crawler;
+import drill.core.crawler : Crawler;
 import Drill.SearchEntry : SearchEntry;
+
+import gtk.Application : Application;
+import gio.Application : GioApplication = Application;
+
 
 enum Column
 {
@@ -79,131 +83,133 @@ enum Column
     DATE_MODIFIED,
 }
 
-extern (C) static nothrow int threadIdleProcess(void* data)
-{
-    try
-    {
-        assert(data != null);
-        DrillWindow mainWindow = cast(DrillWindow) data;
-        long ignored_total = 0;
-        foreach (ref thread; mainWindow.threads)
-        {
-            if (thread.isRunning() && thread.running == true)
-            {
-                Array!DirEntry* thread_index = thread.grab_index();
-                ignored_total += thread.ignored_count;
-                assert(thread_index != null);
-                mainWindow.index ~= *thread_index;
-            }
+// extern (C) static nothrow int threadIdleProcess(void* data)
+// {
+//     try
+//     {
+//         assert(data != null);
+//         DrillWindow mainWindow = cast(DrillWindow) data;
+//         long ignored_total = 0;
+//         foreach (ref thread; mainWindow.threads)
+//         {
+//             if (thread.isRunning() && thread.running == true)
+//             {
+//                 Array!DirEntry* thread_index = thread.grab_index();
+//                 ignored_total += thread.ignored_count;
+//                 assert(thread_index != null);
+//                 mainWindow.index ~= *thread_index;
+//             }
 
-        }
+//         }
 
-        import std.conv : to;
+//         import std.conv : to;
 
-        mainWindow.files_indexed_count.setText(
-                "Files indexed: " ~ to!string(mainWindow.index.length));
-        mainWindow.files_ignored_count.setText("Files ignored: " ~ to!string(ignored_total));
-        import std.array;
+//         mainWindow.files_indexed_count.setText(
+//                 "Files indexed: " ~ to!string(mainWindow.index.length));
+//         mainWindow.files_ignored_count.setText("Files ignored: " ~ to!string(ignored_total));
+//         import std.array;
 
-        mainWindow.threads_active.setText("Threads active: " ~ to!string(
-                array(mainWindow.threads[].filter!(x => x.running)).length));
+//         mainWindow.threads_active.setText("Threads active: " ~ to!string(
+//                 array(mainWindow.threads[].filter!(x => x.running)).length));
 
-        if (mainWindow.list_dirty)
-        {
+//         if (mainWindow.list_dirty)
+//         {
 
-            // writeln("list updated");
-            mainWindow.liststore.clear();
-            if (mainWindow.search_string != "")
-            {
+//             // writeln("list updated");
+//             mainWindow.liststore.clear();
+//             if (mainWindow.search_string != "")
+//             {
 
-                static import std.path;
+//                 static import std.path;
 
-                debug
-                {
-                    mainWindow.log.info("search for `" ~ mainWindow.search_string ~ "`...");
-                }
-                import std.array;
+//                 debug
+//                 {
+//                     mainWindow.log.info("search for `" ~ mainWindow.search_string ~ "`...");
+//                 }
+//                 import std.array;
 
-                auto results = array(mainWindow.index[].filter!(x => canFind(std.path.baseName(x.name),
-                        mainWindow.search_string)));
-                debug
-                {
-                    mainWindow.log.info("search for `" ~ mainWindow.search_string ~ "`... DONE");
-                }
-                int i = 0;
-                debug
-                {
-                    mainWindow.log.info("adding " ~ to!string(results.length) ~ " results to UI...");
-                }
-                foreach (ref result; results)
-                {
-                    mainWindow.appendRecord(result);
-                    i++;
-                    if (i == UI_LIST_MAX_SIZE)
-                        break;
-                }
-                mainWindow.files_shown.setText("Files shown: " ~ to!string(
-                        i) ~ "/" ~ to!string(UI_LIST_MAX_SIZE));
+//                 auto results = array(mainWindow.index[].filter!(x => canFind(std.path.baseName(x.name),
+//                         mainWindow.search_string)));
+//                 debug
+//                 {
+//                     mainWindow.log.info("search for `" ~ mainWindow.search_string ~ "`... DONE");
+//                 }
+//                 int i = 0;
+//                 debug
+//                 {
+//                     mainWindow.log.info("adding " ~ to!string(results.length) ~ " results to UI...");
+//                 }
+//                 foreach (ref result; results)
+//                 {
+//                     mainWindow.appendRecord(result);
+//                     i++;
+//                     if (i == UI_LIST_MAX_SIZE)
+//                         break;
+//                 }
+//                 mainWindow.files_shown.setText("Files shown: " ~ to!string(
+//                         i) ~ "/" ~ to!string(UI_LIST_MAX_SIZE));
 
-                debug
-                {
-                    mainWindow.log.info("adding results to UI... DONE");
-                }
+//                 debug
+//                 {
+//                     mainWindow.log.info("adding results to UI... DONE");
+//                 }
 
-            }
-            else
-            {
-                mainWindow.files_shown.setText("Files shown: 0/" ~ to!string(UI_LIST_MAX_SIZE));
+//             }
+//             else
+//             {
+//                 mainWindow.files_shown.setText("Files shown: 0/" ~ to!string(UI_LIST_MAX_SIZE));
 
-            }
+//             }
 
-            mainWindow.list_dirty = false;
+//             mainWindow.list_dirty = false;
 
-        }
-        //         //  writeln("updating done");
-        // 	}
-        // );
-        // If thread is not running, return false so GTK removes it
-        // and no longer calls it during idle processing.
+//         }
+//         //         //  writeln("updating done");
+//         // 	}
+//         // );
+//         // If thread is not running, return false so GTK removes it
+//         // and no longer calls it during idle processing.
 
-        gdk.Threads.threadsAddTimeout(100, &threadIdleProcess, data);
-        if (!mainWindow.running)
-        {
-            return 0;
-        }
-    }
-    catch (Throwable t)
-    {
-        return 0;
-    }
-    return 1;
-}
+//         gdk.Threads.threadsAddTimeout(100, &threadIdleProcess, data);
+//         if (!mainWindow.running)
+//         {
+//             return 0;
+//         }
+//     }
+//     catch (Throwable t)
+//     {
+//         return 0;
+//     }
+//     return 1;
+// }
 
 import std.process;
+
+import drill.core.api : DrillAPI;
 
 class DrillWindow : ApplicationWindow
 {
 
+private:
+    DrillAPI drill;
+
+    string[string] iconmap;
     ListStore liststore;
-    string search_string;
+
+    Entry search_input;
     TreeView treeview;
-    Array!Crawler threads;
-    string[] blocklist;
-    Array!DirEntry index;
-    bool running;
-    private Tid childTid;
+    Label threads_active;
     Label files_indexed_count;
     Label files_ignored_count;
-    bool list_dirty;
+    Label files_shown;
+
+    bool running;
+    private Tid childTid;
+
     debug
     {
         FileLogger log;
     }
-    Entry search_input;
-    Label threads_active;
-    Label files_shown;
-
-   
 
     void appendRecord(DirEntry fi)
     {
@@ -220,7 +226,7 @@ class DrillWindow : ApplicationWindow
 
         else
         {
-            import drillcore.Utils : humanSize;
+            import drill.core.utils : humanSize;
 
             liststore.setValue(it, Column.SIZE, humanSize(fi.size));
 
@@ -246,7 +252,7 @@ class DrillWindow : ApplicationWindow
 
         liststore.setValue(it, Column.NAME, std.path.baseName(fi.name));
         liststore.setValue(it, Column.PATH, std.path.dirName(fi.name));
-        import drillcore.Utils : toDateString;
+        import drill.core.utils : toDateString;
 
         liststore.setValue(it, Column.DATE_MODIFIED, toDateString(fi.timeLastModified()));
 
@@ -263,24 +269,31 @@ class DrillWindow : ApplicationWindow
 
         string chained = chainPath(path, name).array;
 
-        import drill.core.api : openFile;
-        open_file(chained);
+        import drill.core.utils : openFile;
+
+        openFile(chained);
         // TODO: open_file failed
+    }
+
+    import drill.core.fileinfo : FileInfo;
+
+    private void resultFound(immutable(FileInfo) result)
+    {
+
     }
 
     private void searchChanged(EditableIF ei)
     {
+        
         debug
         {
             log.info("Wrote input:" ~ ei.getChars(0, -1));
         }
-        this.search_string = ei.getChars(0, -1);
-        this.list_dirty = true;
+        immutable(string) search_string = ei.getChars(0, -1);
+        this.drill.startCrawling(search_string, &this.resultFound);
     }
 
-    string[string] iconmap;
-
-    public this(Application application)
+    private void loadGTKIconFiletypes()
     {
         import std.file : dirEntries, SpanMode;
 
@@ -297,27 +310,13 @@ class DrillWindow : ApplicationWindow
                 iconmap[ext] = std.path.baseName(stripExtension(partial_filetype));
             }
         }
+    }
 
-        super(application);
-        this.setTitle("Drill");
-        setDefaultSize(800, 450);
-        setResizable(true);
-        setPosition(GtkWindowPosition.CENTER);
-
-        debug
-        {
-            log = new FileLogger("logs/GTKThread.log");
-        }
-
-        list_dirty = false;
-        this.liststore = new ListStore([
-                GType.STRING, GType.STRING, GType.STRING, GType.STRING,
-                GType.STRING
-                ]);
-
+    public void loadGTKIcon()
+    {
         try
         {
-            setIconFromFile("../../assets/icon.png");
+            this.setIconFromFile("assets/icon.png");
         }
         catch (GException ge)
         {
@@ -326,27 +325,33 @@ class DrillWindow : ApplicationWindow
             {
                 log.warning("Can't find program icon, will fallback to default GTK one!");
             }
-            setIconName("search");
+            this.setIconName("search");
         }
 
-        import std.file : FileException;
+    }
 
-        try
+    public this(Application application)
+    {
+        this.drill = new DrillAPI();
+
+        super(application);
+        this.setTitle("Drill");
+        setDefaultSize(800, 450);
+        setResizable(true);
+        setPosition(GtkWindowPosition.CENTER);
+
+        loadGTKIconFiletypes();
+        loadGTKIcon();
+
+        debug
         {
-            import std.file : dirEntries, SpanMode;
-
-            auto blocklists_file = dirEntries(DirEntry("../../assets/blocklists"),
-                    SpanMode.shallow, true);
-
-            foreach (string partial_blocklist; blocklists_file)
-            {
-                this.blocklist ~= readText(partial_blocklist).split("\n");
-            }
+            log = new FileLogger("logs/GTKThread.log");
         }
-        catch (FileException fe)
-        {
-            this.blocklist = [];
-        }
+
+        this.liststore = new ListStore([
+                GType.STRING, GType.STRING, GType.STRING, GType.STRING,
+                GType.STRING
+                ]);
 
         this.treeview = new TreeView();
         this.treeview.addOnRowActivated(&doubleclick);
@@ -435,29 +440,12 @@ class DrillWindow : ApplicationWindow
         this.treeview.setModel(this.liststore);
         showAll();
 
-        //df catches network mounted drives like NFS
-        //so don't use lsblk here
-        auto ls = executeShell("df -h --output=target");
 
-        if (ls.status != 0)
-        {
-            debug
-            {
 
-                log.error("Can't retrieve mount points, will scan `/`");
-            }
-            // TODO: fallback to `/` if can't retrieve mount points
-        }
-        else
-        {
-            import std.array;
+        
+        //gdk.Threads.threadsAddTimeout(10, &threadIdleProcess, cast(void*) this);
 
-            gdk.Threads.threadsAddTimeout(10, &threadIdleProcess, cast(void*) this);
-            // this.childTid = spawn(&countNumbers);
 
-            // childTid = spawn(&countNumbers);
-
-            Array!string mountpoints = array(ls.output.split("\n").filter!(x => canFind(x, "/")));
 
             debug
             {
@@ -499,11 +487,12 @@ class DrillWindow : ApplicationWindow
                 auto crawler = new Crawler(mountpoint, regexes);
                 crawler.start();
                 this.threads.insertBack(crawler);
-            }
-
         }
 
-        addOnDelete(delegate bool(Event event, Widget widget) {
+        
+
+        addOnDelete(delegate bool(Event event, Widget widget) 
+        {
             debug
             {
                 log.info("Window started to close");
@@ -535,5 +524,3 @@ class DrillWindow : ApplicationWindow
     }
 }
 
-import gtk.Application : Application;
-import gio.Application : GioApplication = Application;
