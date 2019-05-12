@@ -35,10 +35,15 @@ Open containing folder  = Right click
 - D
     - `sudo apt install dub`
 
-### Configurations available
-```
-x64-Cli
-x64-GTK
+### Configurations available (in dub.json)
+
+- x64-Cli
+- x64-GTK
+- ~~x64-Win~~
+- ~~x64-Mac~~
+- ~~x64-ncurses~~
+
+
 ```
 
 ### Debug
