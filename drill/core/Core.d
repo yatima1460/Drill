@@ -11,14 +11,12 @@ import std.process : executeShell;
 import std.array : split;
 import std.algorithm : canFind, filter;
 
-
 class DrillAPI
 {
 
 private:
     Array!Crawler threads;
     immutable(string[]) blocklist;
-    
 
 public:
 
@@ -29,34 +27,26 @@ public:
 
         // we use a boolean flag as a proxy to keep the blocklist immutable
         // otherwise we would have two initializations
-      
+
         string[] temp_blocklist = [];
         try
         {
-          
 
-
-            auto blocklists_file = dirEntries(DirEntry("assets/blocklists"),
-                    SpanMode.shallow, true);
-
-           
+            auto blocklists_file = dirEntries(DirEntry("assets/blocklists"), SpanMode.shallow, true);
 
             foreach (string partial_blocklist; blocklists_file)
             {
                 temp_blocklist ~= readText(partial_blocklist).split("\n");
             }
-            
-          
-           
+
         }
         catch (FileException fe)
         {
             // TODO: notify this happened
         }
 
-     
-            this.blocklist = temp_blocklist.idup;
-       
+        this.blocklist = temp_blocklist.idup;
+
     }
 
     /**
@@ -69,12 +59,12 @@ public:
         search = the search string, case insensitive, every word (split by space) will be searched in the file name
         resultFound = the delegate that will be called when a crawler will find a new result
     */
-    void startCrawling(immutable(string) search, void function(immutable(FileInfo) result) resultFound)
+    void startCrawling(immutable(string) search, void delegate(immutable(FileInfo) result) resultFound)
     {
         this.stopCrawlingAsync();
-        
 
         import std.algorithm : map;
+
         immutable string[] mountpoints = this.getMountPoints();
 
         foreach (string mountpoint; mountpoints)
@@ -107,7 +97,7 @@ public:
             // {
             //     log.info("Compiling Regex... DONE");
             // }
-            auto crawler = new Crawler(mountpoint, regexes, resultFound,search);
+            auto crawler = new Crawler(mountpoint, regexes, resultFound, search);
             crawler.start();
             this.threads.insertBack(crawler);
         }
@@ -125,6 +115,12 @@ public:
             crawler.stopAsync();
         }
         this.threads.clear(); // TODO: if nothing has a reference to a thread does the thread get GC-ed?
+    }
+
+    void stopCrawlingSync()
+    {
+        stopCrawlingAsync();
+        waitForCrawlers();
     }
 
     void waitForCrawlers()
@@ -165,9 +161,8 @@ public:
     Returns: number of crawlers active
     */
     ulong getActiveCrawlersCount()
-    { 
+    {
         return array(this.threads[].filter!(x => x.isCrawling())).length;
     }
 
-   
 }
