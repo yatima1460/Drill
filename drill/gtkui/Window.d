@@ -68,6 +68,7 @@ import std.concurrency;
 
 import drill.core.crawler : Crawler;
 import Drill.SearchEntry : SearchEntry;
+import drill.core.utils : logConsole;
 
 import gtk.Application : Application;
 import gio.Application : GioApplication = Application;
@@ -83,6 +84,8 @@ enum Column
 }
 
 extern (C) static nothrow int threadIdleProcess(void* data)
+in(data != null, "data can't be null in GTK task")
+out(r; r == 0 || r == 1, "GTK task should return 0 or 1")
 {
     try
     {
@@ -101,20 +104,24 @@ extern (C) static nothrow int threadIdleProcess(void* data)
 
         //         }
 
-        //         import std.conv : to;
-
-        //         mainWindow.files_indexed_count.setText(
-        //                 "Files indexed: " ~ to!string(mainWindow.index.length));
-        //         mainWindow.files_ignored_count.setText("Files ignored: " ~ to!string(ignored_total));
-        //         import std.array;
-
-        //         mainWindow.threads_active.setText("Threads active: " ~ to!string(
-        //                 array(mainWindow.threads[].filter!(x => x.running)).length));
+        //        
 
         import drill.core.fileinfo : FileInfo;
 
+        debug
+        {
+            import std.conv : to;
+
+            mainWindow.threads_active.setText("Crawlers active: " ~ to!string(
+                    mainWindow.drillapi.getActiveCrawlersCount()));
+
+        }
         if (mainWindow.list_dirty)
         {
+
+            // mainWindow.files_ignored_count.setText("Files ignored: " ~ to!string(ignored_total));
+            import std.array;
+
             synchronized (mainWindow)
             {
                 foreach (FileInfo fi; mainWindow.buffer)
@@ -122,6 +129,13 @@ extern (C) static nothrow int threadIdleProcess(void* data)
                     mainWindow.appendRecord(fi);
                 }
                 mainWindow.buffer.clear();
+            }
+
+            debug
+            {
+                assert(mainWindow.treeview !is null);
+                mainWindow.files_indexed_count.setText("Files found: " ~ to!string(
+                        mainWindow.liststore.iterNChildren(null)));
             }
             mainWindow.list_dirty = false;
         }
@@ -159,18 +173,17 @@ private:
 
     Entry search_input;
     TreeView treeview;
-    Label threads_active;
-    Label files_indexed_count;
-    Label files_ignored_count;
-    Label files_shown;
-
-    bool running;
-    private Tid childTid;
 
     debug
     {
-        FileLogger log;
+        Label threads_active;
+        Label files_indexed_count;
+        Label files_ignored_count;
+        Label files_shown;
     }
+
+    bool running;
+    private Tid childTid;
 
     void appendRecord(immutable(FileInfo) fi)
     {
@@ -201,10 +214,8 @@ private:
                     auto icon_name = this.iconmap[ext];
                     assert(icon_name != null);
                     liststore.setValue(it, Column.NAME_ICON, icon_name);
-                    debug
-                    {
-                        log.info("Setting icon to " ~ this.iconmap[ext]);
-                    }
+
+                    logConsole("Setting icon to " ~ this.iconmap[ext]);
 
                 }
             }
@@ -251,32 +262,30 @@ private:
     private void searchChanged(EditableIF ei)
     {
 
- drillapi.stopCrawlingAsync();
-             synchronized(this)
-            {
-                buffer.clear();
-            }
-            //
+        drillapi.stopCrawlingAsync();
+        synchronized (this)
+        {
+            buffer.clear();
+        }
+        //
         // this is realistically faster than liststore.clear();
         // assigning a new list is O(1)
         // instead clearing the list in GTK uses a foreach
         this.liststore = new ListStore([
-            GType.STRING, GType.STRING, GType.STRING, GType.STRING,
-            GType.STRING
-            ]);
+                GType.STRING, GType.STRING, GType.STRING, GType.STRING,
+                GType.STRING
+                ]);
         this.treeview.setModel(liststore);
 
-        debug
-        {
-            log.info("Wrote input:" ~ ei.getChars(0, -1));
-        }
+        logConsole("Wrote input:" ~ ei.getChars(0, -1));
+
         immutable(string) search_string = ei.getChars(0, -1);
         if (search_string.length != 0)
         {
             drillapi.startCrawling(search_string, &this.resultFound);
-           
+
         }
-      
+
     }
 
     private void loadGTKIconFiletypes()
@@ -307,10 +316,9 @@ private:
         catch (GException ge)
         {
             //fallback to default GTK icon if it can't find its own
-            debug
-            {
-                log.warning("Can't find program icon, will fallback to default GTK one!");
-            }
+
+            logConsole("Can't find program icon, will fallback to default GTK one!");
+
             this.setIconName("search");
         }
 
@@ -322,26 +330,22 @@ private:
 
         super(application);
         this.setTitle("Drill");
-        setDefaultSize(800, 450);
-        setResizable(true);
-        setPosition(GtkWindowPosition.CENTER);
-
-        loadGTKIconFiletypes();
-        loadGTKIcon();
-
         debug
         {
-            log = new FileLogger("logs/GTKThread.log");
+            this.setTitle("Drill (DEBUG VERSION)");
         }
+
+        this.setDefaultSize(800, 450);
+        this.setResizable(true);
+        this.setPosition(GtkWindowPosition.CENTER);
+
+        this.loadGTKIconFiletypes();
+        this.loadGTKIcon();
 
         this.liststore = new ListStore([
                 GType.STRING, GType.STRING, GType.STRING, GType.STRING,
                 GType.STRING
                 ]);
-
-
-
-       
 
         this.treeview = new TreeView();
         this.treeview.addOnRowActivated(&doubleclick);
@@ -359,16 +363,19 @@ private:
 
         search_input.addOnChanged(&searchChanged);
 
-        this.files_indexed_count = new Label("Files indexed: ?");
-        this.files_ignored_count = new Label("Files blocked: ?");
-        this.threads_active = new Label("Threads active: ?");
-        import std.conv : to;
+        debug
+        {
+            this.files_indexed_count = new Label("Files indexed: ?");
+            this.files_ignored_count = new Label("Files blocked: ?");
+            this.threads_active = new Label("Crawlers active: ?");
+            import std.conv : to;
 
-        this.files_shown = new Label("Files shown: 0/" ~ to!string(UI_LIST_MAX_SIZE));
-        h.packStart(files_indexed_count, false, false, 0);
-        h.packStart(files_ignored_count, false, false, 0);
-        h.packStart(threads_active, false, false, 0);
-        h.packStart(files_shown, false, false, 0);
+            this.files_shown = new Label("Files shown: 0/" ~ to!string(UI_LIST_MAX_SIZE));
+            h.packStart(files_indexed_count, false, false, 0);
+            h.packStart(files_ignored_count, false, false, 0);
+            h.packStart(threads_active, false, false, 0);
+            h.packStart(files_shown, false, false, 0);
+        }
 
         // file_icon.setIconName("file");
 
@@ -433,13 +440,8 @@ private:
         gdk.Threads.threadsAddTimeout(10, &threadIdleProcess, cast(void*) this);
 
         addOnDelete(delegate bool(Event event, Widget widget) {
-            debug
-            {
-                log.info("Window started to close");
-            }
-
+            logConsole("Window started to close");
             drillapi.stopCrawlingSync();
-
             return false;
         });
 
