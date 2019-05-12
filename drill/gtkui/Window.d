@@ -72,7 +72,6 @@ import Drill.SearchEntry : SearchEntry;
 import gtk.Application : Application;
 import gio.Application : GioApplication = Application;
 
-
 enum Column
 {
     // TYPE,
@@ -83,105 +82,61 @@ enum Column
     DATE_MODIFIED,
 }
 
-// extern (C) static nothrow int threadIdleProcess(void* data)
-// {
-//     try
-//     {
-//         assert(data != null);
-//         DrillWindow mainWindow = cast(DrillWindow) data;
-//         long ignored_total = 0;
-//         foreach (ref thread; mainWindow.threads)
-//         {
-//             if (thread.isRunning() && thread.running == true)
-//             {
-//                 Array!DirEntry* thread_index = thread.grab_index();
-//                 ignored_total += thread.ignored_count;
-//                 assert(thread_index != null);
-//                 mainWindow.index ~= *thread_index;
-//             }
+extern (C) static nothrow int threadIdleProcess(void* data)
+{
+    try
+    {
+        assert(data != null);
+        DrillWindow mainWindow = cast(DrillWindow) data;
+        //         long ignored_total = 0;
+        //         foreach (ref thread; mainWindow.threads)
+        //         {
+        //             if (thread.isRunning() && thread.running == true)
+        //             {
+        //                 Array!DirEntry* thread_index = thread.grab_index();
+        //                 ignored_total += thread.ignored_count;
+        //                 assert(thread_index != null);
+        //                 mainWindow.index ~= *thread_index;
+        //             }
 
-//         }
+        //         }
 
-//         import std.conv : to;
+        //         import std.conv : to;
 
-//         mainWindow.files_indexed_count.setText(
-//                 "Files indexed: " ~ to!string(mainWindow.index.length));
-//         mainWindow.files_ignored_count.setText("Files ignored: " ~ to!string(ignored_total));
-//         import std.array;
+        //         mainWindow.files_indexed_count.setText(
+        //                 "Files indexed: " ~ to!string(mainWindow.index.length));
+        //         mainWindow.files_ignored_count.setText("Files ignored: " ~ to!string(ignored_total));
+        //         import std.array;
 
-//         mainWindow.threads_active.setText("Threads active: " ~ to!string(
-//                 array(mainWindow.threads[].filter!(x => x.running)).length));
+        //         mainWindow.threads_active.setText("Threads active: " ~ to!string(
+        //                 array(mainWindow.threads[].filter!(x => x.running)).length));
 
-//         if (mainWindow.list_dirty)
-//         {
+        import drill.core.fileinfo : FileInfo;
 
-//             // writeln("list updated");
-//             mainWindow.liststore.clear();
-//             if (mainWindow.search_string != "")
-//             {
-
-//                 static import std.path;
-
-//                 debug
-//                 {
-//                     mainWindow.log.info("search for `" ~ mainWindow.search_string ~ "`...");
-//                 }
-//                 import std.array;
-
-//                 auto results = array(mainWindow.index[].filter!(x => canFind(std.path.baseName(x.name),
-//                         mainWindow.search_string)));
-//                 debug
-//                 {
-//                     mainWindow.log.info("search for `" ~ mainWindow.search_string ~ "`... DONE");
-//                 }
-//                 int i = 0;
-//                 debug
-//                 {
-//                     mainWindow.log.info("adding " ~ to!string(results.length) ~ " results to UI...");
-//                 }
-//                 foreach (ref result; results)
-//                 {
-//                     mainWindow.appendRecord(result);
-//                     i++;
-//                     if (i == UI_LIST_MAX_SIZE)
-//                         break;
-//                 }
-//                 mainWindow.files_shown.setText("Files shown: " ~ to!string(
-//                         i) ~ "/" ~ to!string(UI_LIST_MAX_SIZE));
-
-//                 debug
-//                 {
-//                     mainWindow.log.info("adding results to UI... DONE");
-//                 }
-
-//             }
-//             else
-//             {
-//                 mainWindow.files_shown.setText("Files shown: 0/" ~ to!string(UI_LIST_MAX_SIZE));
-
-//             }
-
-//             mainWindow.list_dirty = false;
-
-//         }
-//         //         //  writeln("updating done");
-//         // 	}
-//         // );
-//         // If thread is not running, return false so GTK removes it
-//         // and no longer calls it during idle processing.
-
-//         gdk.Threads.threadsAddTimeout(100, &threadIdleProcess, data);
-//         if (!mainWindow.running)
-//         {
-//             return 0;
-//         }
-//     }
-//     catch (Throwable t)
-//     {
-//         return 0;
-//     }
-//     return 1;
-// }
+        if (mainWindow.list_dirty)
+        {
+            synchronized (mainWindow)
+            {
+                foreach (FileInfo fi; mainWindow.buffer)
+                {
+                    mainWindow.appendRecord(fi);
+                }
+                mainWindow.buffer.clear();
+            }
+            mainWindow.list_dirty = false;
+        }
+        gdk.Threads.threadsAddTimeout(100, &threadIdleProcess, data);
+        if (!mainWindow.running)
+        {
+            return 0;
+        }
+    }
+    catch (Throwable t)
+    {
+        return 0;
+    }
+    return 1;
+}
 
 import std.process;
 
@@ -190,8 +145,14 @@ import drill.core.api : DrillAPI;
 class DrillWindow : ApplicationWindow
 {
 
+    /**
+    Flag set to true when a crawler from the DrillAPI
+    finds a new result, so GTK can add it to the GUi by using the GTK main thread
+    */
+    bool list_dirty;
+
 private:
-    DrillAPI drill;
+    DrillAPI drillapi;
 
     string[string] iconmap;
     ListStore liststore;
@@ -211,14 +172,14 @@ private:
         FileLogger log;
     }
 
-    void appendRecord(DirEntry fi)
+    void appendRecord(immutable(FileInfo) fi)
     {
         TreeIter it = liststore.createIter();
         import std.conv : to;
 
         static import std.path;
 
-        if (fi.isDir())
+        if (fi.isDirectory)
         {
             liststore.setValue(it, Column.NAME_ICON, "folder");
             liststore.setValue(it, Column.SIZE, "");
@@ -228,34 +189,31 @@ private:
         {
             import drill.core.utils : humanSize;
 
-            liststore.setValue(it, Column.SIZE, humanSize(fi.size));
+            liststore.setValue(it, Column.SIZE, fi.sizeString);
 
             liststore.setValue(it, Column.NAME_ICON, "text-x-preview");
-            auto ext = std.path.extension(fi.name);
-            if (ext != null)
-            {
-                string* p = (ext in this.iconmap);
-                if (p !is null)
-                {
-                    auto icon_name = this.iconmap[ext];
-                    assert(icon_name != null);
-                    liststore.setValue(it, Column.NAME_ICON, icon_name);
-                    debug
-                    {
-                        log.info("Setting icon to " ~ this.iconmap[ext]);
-                    }
+            // auto ext = std.path.extension(fi.name);
+            // if (ext != null)
+            // {
+            //     string* p = (ext in this.iconmap);
+            //     if (p !is null)
+            //     {
+            //         auto icon_name = this.iconmap[ext];
+            //         assert(icon_name != null);
+            //         liststore.setValue(it, Column.NAME_ICON, icon_name);
+            //         debug
+            //         {
+            //             log.info("Setting icon to " ~ this.iconmap[ext]);
+            //         }
 
-                }
-            }
+            //     }
+            // }
 
         }
 
-        liststore.setValue(it, Column.NAME, std.path.baseName(fi.name));
-        liststore.setValue(it, Column.PATH, std.path.dirName(fi.name));
-        import drill.core.utils : toDateString;
-
-        liststore.setValue(it, Column.DATE_MODIFIED, toDateString(fi.timeLastModified()));
-
+        liststore.setValue(it, Column.NAME, fi.fileName);
+        liststore.setValue(it, Column.PATH, fi.containingFolder);
+        liststore.setValue(it, Column.DATE_MODIFIED, fi.dateModifiedString);
     }
 
     private void doubleclick(TreePath tp, TreeViewColumn tvc, TreeView tv)
@@ -277,27 +235,51 @@ private:
 
     import drill.core.fileinfo : FileInfo;
 
+    Array!FileInfo buffer;
+
     private void resultFound(immutable(FileInfo) result)
     {
+        list_dirty = true;
+
+        synchronized (this)
+        {
+            buffer.insertBack(result);
+        }
 
     }
 
     private void searchChanged(EditableIF ei)
     {
-        
+
         debug
         {
             log.info("Wrote input:" ~ ei.getChars(0, -1));
         }
         immutable(string) search_string = ei.getChars(0, -1);
-        this.drill.startCrawling(search_string, &this.resultFound);
+        if (search_string.length != 0)
+        {
+            drillapi.startCrawling(search_string, &this.resultFound);
+           
+        }
+        else
+        {
+
+            drillapi.stopCrawlingAsync();
+             synchronized(this)
+            {
+                buffer.clear();
+            }
+            liststore.clear();
+
+        }
+
     }
 
     private void loadGTKIconFiletypes()
     {
         import std.file : dirEntries, SpanMode;
 
-        auto filetypes_file = dirEntries(DirEntry("../../assets/filetypes"), SpanMode.shallow, true);
+        auto filetypes_file = dirEntries(DirEntry("assets/filetypes"), SpanMode.shallow, true);
 
         foreach (string partial_filetype; filetypes_file)
         {
@@ -332,7 +314,7 @@ private:
 
     public this(Application application)
     {
-        this.drill = new DrillAPI();
+        drillapi = new DrillAPI();
 
         super(application);
         this.setTitle("Drill");
@@ -440,87 +422,18 @@ private:
         this.treeview.setModel(this.liststore);
         showAll();
 
+        gdk.Threads.threadsAddTimeout(10, &threadIdleProcess, cast(void*) this);
 
-
-        
-        //gdk.Threads.threadsAddTimeout(10, &threadIdleProcess, cast(void*) this);
-
-
-
-            debug
-            {
-
-                log.info("Mount points to scan:" ~ join(mountpoints[], " "));
-            }
-            this.threads = Array!Crawler();
-
-            foreach (ref mountpoint; mountpoints)
-            {
-                debug
-                {
-                    log.info("Starting thread for: ", mountpoint);
-                }
-                Array!string crawler_exclusion_list = Array!string(blocklist);
-
-                // for safety measure add the mount points minus itself to the exclusion list
-                string[] cp_tmp = mountpoints[].filter!(x => x != mountpoint)
-                    .map!(x => "^" ~ x ~ "$")
-                    .array;
-                debug
-                {
-                    log.info(join(cp_tmp, " "));
-                }
-                crawler_exclusion_list ~= cp_tmp;
-                // assert mountpoint not in crawler_exclusion_list, "crawler mountpoint can't be excluded";
-
-                import std.regex;
-
-                debug
-                {
-                    log.info("Compiling Regex...");
-                }
-                Regex!char[] regexes = crawler_exclusion_list[].map!(x => regex(x)).array;
-                debug
-                {
-                    log.info("Compiling Regex... DONE");
-                }
-                auto crawler = new Crawler(mountpoint, regexes);
-                crawler.start();
-                this.threads.insertBack(crawler);
-        }
-
-        
-
-        addOnDelete(delegate bool(Event event, Widget widget) 
-        {
+        addOnDelete(delegate bool(Event event, Widget widget) {
             debug
             {
                 log.info("Window started to close");
             }
-            foreach (ref thread; threads)
-            {
-                debug
-                {
-                    log.info(thread.toString() ~ ".running set to false");
-                }
-                thread.running = false;
-            }
-            foreach (ref thread; threads)
-            {
-                debug
-                {
-                    log.info("Waiting for thread " ~ thread.toString() ~ " to stop");
-                }
-                thread.join(false);
-                debug
-                {
-                    log.info(thread.toString() ~ " stopped cleanly");
-                }
-            }
+
+            drillapi.stopCrawlingSync();
 
             return false;
         });
 
     }
 }
-
