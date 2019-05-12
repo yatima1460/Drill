@@ -6,3 +6,4 @@
 .gif
 .svg
 .tga
+.sai
