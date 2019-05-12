@@ -6,6 +6,7 @@ dub.selections.json
 
 # Executables
 Drill-GTK
+Drill-x64-Cli
 *.exe
 
 # Binaries
