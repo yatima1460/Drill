@@ -123,7 +123,7 @@ private:
                             if (direntry.isSymlink())
                             {
 
-                                logConsole(direntry.name ~ " ignored because symlink");
+                                logConsole("[SYMLINK IGNORED]\t"~direntry.name);
 
                                 continue fileloop;
                             }
@@ -141,8 +141,7 @@ private:
                                 if (!mo.empty())
                                 {
 
-                                    logConsole(
-                                            direntry.name ~ " low priority because of regex rules");
+                                    logConsole("[REGEX BLOCKED]\t"~direntry.name);
 
                                     this.ignored_count++;
 
@@ -163,7 +162,7 @@ private:
                             {
                                 next_queue.insertBack(direntry);
 
-                                logConsole(direntry.name ~ " directory queued next");
+                                logConsole("[DIRECTORY QUEUED]\t"~direntry.name);
                                 f.isDirectory = true;
                             }
                             else
@@ -197,6 +196,7 @@ private:
                             if (running)
                             resultCallback(f);
 
+                             logConsole("[FILE FOUND]\t"~direntry.name);
                             //logConsole(direntry.name ~ " added to global index");
 
                         }
