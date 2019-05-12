@@ -21,10 +21,10 @@ If your distro doesn't ask you to mark it executable or nothing happens try:
 - `./Drill.AppImage`
 
 # UI Guide
-```
-Open                    = Left Double Click / Return / Enter / Space
-Open containing folder  = Right click
-```
+
+- Open                    = Left Double Click / Return / Enter / Space
+- ~~Open containing folder  = Right click~~
+
 
 
 # Build and Run
@@ -43,9 +43,6 @@ Open containing folder  = Right click
 - ~~x64-Win~~
 - ~~x64-Mac~~
 - ~~x64-ncurses~~
-
-
-```
 
 ### Debug
 ```
