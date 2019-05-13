@@ -1,12 +1,12 @@
 # Drill
 *.log
+DRILL_VERSION
 
 # D
 dub.selections.json
 
 # Executables
-Drill-x64-GTK
-Drill-x64-Cli
+Drill-*
 *.exe
 
 # Binaries
