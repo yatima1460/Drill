@@ -8,8 +8,9 @@ import std.container : Array;
 import std.array : array;
 
 import std.process : executeShell;
+import std.string : indexOf;
 import std.array : split;
-import std.algorithm : canFind, filter;
+import std.algorithm : canFind, filter, map;
 
 class DrillAPI
 {
@@ -154,6 +155,24 @@ public:
                 return ["/"];
             }
             immutable auto result = array(ls.output.split("\n").filter!(x => canFind(x, "/"))).idup;
+            return result;
+        }
+
+        version (OSX)
+        {
+            immutable auto ls = executeShell("df -h");
+            if (ls.status != 0)
+            {
+                // TODO: messagebox can't retrieve mountpoints will just scan /
+                return ["/"];
+            }
+            immutable auto startColumn = indexOf(ls.output.split("\n")[0], 'M');
+            immutable auto result = array(
+                ls.output.split("\n")
+                .filter!(x => x.length > startColumn)
+                .map!(x => x[startColumn .. $])
+                .filter!(x => canFind(x, "/"))
+            ).idup;
             return result;
         }
     }
