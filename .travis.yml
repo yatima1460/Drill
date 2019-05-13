@@ -5,9 +5,10 @@ d:
 
 script:
 - dub build -c CLI --build=release --parallel --force
-- cd tools/appimage && sh cli.sh
+- cd tools/appimage && sh cli.sh && cd ../../
 - dub build -c GTK --build=release --parallel --force
-- cd tools/appimage && sh gtk.sh
+- cd tools/appimage && sh gtk.sh && cd ../../
+- cd tools && sh create_zip.sh && cd ../
 
 addons:
   apt:
@@ -29,6 +30,8 @@ deploy:
   file: 
     - tools/appimage/Drill-GTK.AppImage
     - tools/appimage/Drill-CLI.AppImage
+    - tools/Drill-GTK-Debian-Executable.zip
+    - tools/Drill-CLI-Debian-Executable.zip
   on:
     repo: yatima1460/Drill
     tags: true
