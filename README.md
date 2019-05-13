@@ -80,15 +80,19 @@ TODOs:
 - Core Backend
     - Open file or path
         - ~~Linux X11~~
+            - ~~Open File~~
             - Select file if contained folder
             - Error on file open
         - Linux Wayland
+            - Open File
             - Select file if contained folder
             - Error on file open
         - Windows
+            - Open File
             - Select file if contained folder
             - Error on file open
         - MacOS
+            - ~~Open File~~
             - Select file if contained folder
             - Error on file open
     - All comparisons need to be done in lower case strings
@@ -102,6 +106,8 @@ TODOs:
         - MacOS
     - Folders actual size
     - Icons image needs to be generic and in the backend
+    - 1 Threadpool per mount point
+        - 1 Threadpool PER DISK if possible
     - Metadata searching and new tokens (mp3, etc...)
     - Memoization/Cache
     - Percentage of crawling
