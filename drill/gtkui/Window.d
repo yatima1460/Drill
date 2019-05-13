@@ -71,7 +71,6 @@ import core.thread;
 import std.concurrency;
 
 import drill.core.crawler : Crawler;
-import Drill.SearchEntry : SearchEntry;
 import drill.core.utils : logConsole;
 
 import gtk.Application : Application;
@@ -108,7 +107,11 @@ out(r; r == 0 || r == 1, "GTK task should return 0 or 1")
 
         //         }
 
+       const ulong crawlers_count = mainWindow.drillapi.getActiveCrawlersCount();
         //        
+    const icon_to_use = ["object-select","emblem-synchronizing"];
+    mainWindow.search_input.setIconFromIconName(GtkEntryIconPosition.PRIMARY, icon_to_use[crawlers_count!=0]);
+      
 
         import drill.core.fileinfo : FileInfo;
 
@@ -116,8 +119,7 @@ out(r; r == 0 || r == 1, "GTK task should return 0 or 1")
         {
             import std.conv : to;
 
-            mainWindow.threads_active.setText("Crawlers active: " ~ to!string(
-                    mainWindow.drillapi.getActiveCrawlersCount()));
+            mainWindow.threads_active.setText("Crawlers active: " ~ to!string(crawlers_count));
 
         }
         if (mainWindow.list_dirty)
@@ -374,7 +376,8 @@ private:
 
         add(v);
 
-        search_input = new SearchEntry();
+        search_input = new Entry();
+        search_input.setIconFromIconName(GtkEntryIconPosition.SECONDARY, null);
 
         ScrolledWindow scroll = new ScrolledWindow();
 
