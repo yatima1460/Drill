@@ -6,6 +6,8 @@ echo Downloaded pkg2appimage script
 echo Building AppImage...
 bash pkg2appimage drill_gtk.yml
 rm pkg2appimage
-mv out/*.AppImage ./Drill-x64.AppImage
+cd out
+chmod +x *.AppImage
+mv *.AppImage ../Drill-$(head -n 1 ../../../DRILL_VERSION)-GTK.AppImage
+cd ..
 rmdir out
-chmod +x Drill-x64.AppImage
