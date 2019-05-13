@@ -1,4 +1,4 @@
-![](https://raw.githubusercontent.com/yatima1460/Drill/assets/logo.png)
+![](https://repository-images.githubusercontent.com/184500340/186b3200-75cb-11e9-9f5b-6dd249573076)
 
 # TL;DR: What is this
 
@@ -10,7 +10,7 @@ Search files without indexing, but clever crawling:
 - Really works only with SSDs/M.2 or fast RAID arrays
 
 
-![](https://raw.githubusercontent.com/yatima1460/Drill/assets/screenshot.png)
+![](https://raw.githubusercontent.com/yatima1460/Drill/gh-pages/screenshot.png)
 
 # How to run this
 
