@@ -3,7 +3,7 @@
 	"authors": [
 		"Federico Santamorena"
 	],
-	"version": "1.0.0",
+	"version": "1.0.1",
 	"description": "Search files without indexing, but clever crawling.",
 	"copyright": "Copyright © 2019, Federico Santamorena",
 	"license": "GPL-2.0",
