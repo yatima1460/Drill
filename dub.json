@@ -50,7 +50,6 @@
 				"drill/core/Crawler.d",
 				"drill/core/Utils.d",
 				"drill/gtkui/Window.d",
-				"drill/gtkui/SearchEntry.d",
 				"drill/gtkui/Main.d"
 			],
 			"dependencies": {
