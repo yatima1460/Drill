@@ -17,6 +17,15 @@ void resultsFound(immutable(FileInfo) result)
 }
 
 
+void resultsFoundBare(immutable(FileInfo) result)
+{
+    synchronized 
+    {
+        writeln(result.fullPath);
+    }
+}
+
+
 immutable(string) searchInput()
 {
     printf("Search for: ");
@@ -31,17 +40,20 @@ immutable(string) searchInput()
 int main(string[] args)
 {
     DrillAPI drill = new DrillAPI();
-    writeln("Drill CLI - https://github.com/yatima1460/drill");
-    printf("Mount points: ");
-    writeln(drill.getMountPoints());
 
-    
     import std.functional : toDelegate;
     
     if (args.length == 1)
+    {
+        writeln("Drill CLI - https://github.com/yatima1460/drill");
+        writeln(drill.getVersion());
+        printf("Mount points: ");
+        writeln(drill.getMountPoints());
         drill.startCrawling(searchInput(),toDelegate(&resultsFound));
+    }
+       
     else if (args.length == 2)
-        drill.startCrawling(args[1],toDelegate(&resultsFound));
+        drill.startCrawling(args[1],toDelegate(&resultsFoundBare));
     else
     {
         writeln("Wrong arguments count.");
