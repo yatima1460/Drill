@@ -17,6 +17,7 @@ class DrillAPI
 private:
     Array!Crawler threads;
     immutable(string[]) blocklist;
+    immutable(string) drill_version;
 
 public:
 
@@ -29,6 +30,7 @@ public:
         // otherwise we would have two initializations
 
         string[] temp_blocklist = [];
+        string version_temp = "?";
         try
         {
 
@@ -38,6 +40,8 @@ public:
             {
                 temp_blocklist ~= readText(partial_blocklist).split("\n");
             }
+            import std.array : join, replace;
+            version_temp = replace(join(readText("DRILL_VERSION").split("\n"),"-")," ","-");
 
         }
         catch (FileException fe)
@@ -46,6 +50,7 @@ public:
         }
 
         this.blocklist = temp_blocklist.idup;
+        this.drill_version = version_temp;
 
     }
 
@@ -163,6 +168,12 @@ public:
     ulong getActiveCrawlersCount()
     {
         return array(this.threads[].filter!(x => x.isCrawling())).length;
+    }
+
+
+    immutable(string) getVersion()
+    {
+        return this.drill_version;
     }
 
 }
