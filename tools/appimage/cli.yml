@@ -1,0 +1,24 @@
+app: me.santamorena.drill
+ingredients:
+  dist: trusty
+  sources:
+    - deb http://deb.debian.org/debian stretch main
+  packages:
+    - libgcc1
+
+# create the necessary dirs
+  script:
+    - mkdir -p me.santamorena.drill.AppDir/usr
+
+# copy the assets
+  script:
+    - cd ../../../
+    - cp Drill-CLI tools/appimage/me.santamorena.drill/me.santamorena.drill.AppDir/usr/Drill
+    - cp DRILL_VERSION tools/appimage/me.santamorena.drill/me.santamorena.drill.AppDir/usr/
+    - chmod +x tools/appimage/me.santamorena.drill/me.santamorena.drill.AppDir/usr/Drill
+    - cp -r assets tools/appimage/me.santamorena.drill/me.santamorena.drill.AppDir/usr/
+    - cd tools/appimage
+    - cp drill.sh me.santamorena.drill/me.santamorena.drill.AppDir/usr/
+    - chmod +x me.santamorena.drill/me.santamorena.drill.AppDir/usr/drill.sh
+    - cp me.santamorena.drill.desktop me.santamorena.drill/me.santamorena.drill.AppDir
+    - cp ../../assets/icon.svg me.santamorena.drill/me.santamorena.drill.AppDir
