@@ -4,3 +4,9 @@ d:
   - dmd
   - gdc
   - ldc
+
+script:
+- dub build -c CLI
+- dub build -c CLI --build=release
+- dub build -c GTK 
+- dub build -c GTK --build=release

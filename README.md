@@ -1,4 +1,8 @@
+# Drill
+
 ![](https://repository-images.githubusercontent.com/184500340/186b3200-75cb-11e9-9f5b-6dd249573076)
+
+[![Build Status](https://travis-ci.org/yatima1460/Drill.svg?branch=master)](https://travis-ci.org/yatima1460/Drill)
 
 # TL;DR: What is this
 
