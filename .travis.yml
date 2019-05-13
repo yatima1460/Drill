@@ -1,7 +1,5 @@
 os:
   - linux
-  - osx
-  - windows
 
 language: D
 d:
