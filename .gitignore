@@ -6,6 +6,7 @@ DRILL_VERSION
 dub.selections.json
 
 # Executables
+DrillExecutable
 Drill-*
 *.exe
 
