@@ -3,6 +3,12 @@
 ![](https://repository-images.githubusercontent.com/184500340/186b3200-75cb-11e9-9f5b-6dd249573076)
 
 [![Build Status](https://travis-ci.org/yatima1460/Drill.svg?branch=master)](https://travis-ci.org/yatima1460/Drill)
+[![GitHub issues](https://img.shields.io/github/issues/yatima1460/Drill.svg)](https://github.com/yatima1460/Drill/issues)
+[![GitHub forks](https://img.shields.io/github/forks/yatima1460/Drill.svg)](https://github.com/yatima1460/Drill/network)
+[![GitHub stars](https://img.shields.io/github/stars/yatima1460/Drill.svg)](https://github.com/yatima1460/Drill/stargazers)
+[![GitHub license](https://img.shields.io/github/license/yatima1460/Drill.svg)](https://github.com/yatima1460/Drill/blob/master/LICENSE)
+
+[![Twitter](https://img.shields.io/twitter/url/https/github.com/yatima1460/Drill.svg?style=social)](https://twitter.com/intent/tweet?text=Wow:&url=https%3A%2F%2Fgithub.com%2Fyatima1460%2FDrill)
 
 # TL;DR: What is this
 
