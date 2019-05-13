@@ -7,47 +7,43 @@
 	"copyright": "Copyright © 2019, Federico Santamorena",
 	"license": "GPL-2.0",
 	"homepage": "https://github.com/yatima1460/Drill",
-    
+	"preGenerateCommands-posix": [
+		"git describe --tags > assets/DRILL_VERSION"
+	],
+	"preGenerateCommands-windows": [],
+	"targetName":"DrillExecutable",
+	"targetType": "executable",
 	"configurations": [
 		{
-			"name": "x64-Cli",
-			"targetType": "executable",
-			"targetName": "Drill-x64-Cli",
-	
+			"name": "Cli",
+			
+			
 			"sourceFiles": [
 				"drill/core/FileInfo.d",
 				"drill/core/Core.d",
 				"drill/core/Crawler.d",
 				"drill/core/Utils.d",
-
 				"drill/cli/Cli.d"
 			],
-
-
 			"dependencies": {
 				"datefmt": {
 					"path": "vendor/datefmt"
 				}
 			}
-	
 		},
 		{
-			"name": "x64-GTK",
-			"targetType": "executable",
-			"targetName": "Drill-x64-GTK",
-		
+			"name": "GTK",
+
+			
 			"sourceFiles": [
 				"drill/core/FileInfo.d",
 				"drill/core/Core.d",
 				"drill/core/Crawler.d",
 				"drill/core/Utils.d",
-
 				"drill/gtkui/Window.d",
 				"drill/gtkui/SearchEntry.d",
 				"drill/gtkui/Main.d"
 			],
-
-
 			"dependencies": {
 				"gtk-d:gtkd": {
 					"path": "vendor/GtkD"
@@ -56,8 +52,10 @@
 					"path": "vendor/datefmt"
 				}
 			}
-	
 		}
-	
+	],
+	"postBuildCommands-posix": [
+		"mv DrillExecutable Drill-$$DUB_CONFIG-$$DUB_ARCH-$$DUB_BUILD_TYPE"
 	]
+	
 }
