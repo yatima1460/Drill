@@ -2,22 +2,35 @@ language: D
 d:
 - dmd
 - ldc
+
 script:
-- dub build -c CLI
-- dub build -c CLI --build=release
-- dub build -c GTK
-- dub build -c GTK --build=release
-- cd tools/appimage && sh build_appimage_gtk.sh
+- dub build -c CLI --build=release --parallel --force
+- cd tools/appimage && sh cli.sh
+- dub build -c GTK --build=release --parallel --force
+- cd tools/appimage && sh gtk.sh
 
 addons:
   apt:
     packages:
       - desktop-file-utils
 
+before_deploy:
+  - git config --local user.name "Federico Santamorena"
+  - git config --local user.email "federico@santamorena.me"
+  - export TRAVIS_TAG=${TRAVIS_TAG:-$(date +'%Y%m%d%H%M%S')-$(git log --format=%h -1)}
+  - git tag $TRAVIS_TAG
+
 deploy:
   provider: releases
+  draft: false
+  skip_cleanup: true
   api_key:
     secure: gqTCooU9BmpLNQmh2cpid5qgiA7CIrK2kdN0u89XiRG6ghaandK1BJENs1lrWITfOqyLsaOxCQ8tKS5YcHMUfmInudOhtMccoQ6h8ZAGTKKEmRWccp9qtpj8yXNAF+OynIIPMyIBakogYMwQUKqnYGz5IFnNroFRqIbQLvVRttPzjruWxm60fwwfZoQF9qWyina2QagyW7qnOyyQTaLXUqjpOZh9gpNzRzcSjOSKlDA5BLUJdVnsc16m9hNzNmiPM0yoWm73zcjOndS0G4Z3izEib76gCg6iyc4Atlyoru68evr3uHI0V/Sd61mv/pNhG3IYLn18pH1qU8COuSLEno9duYwjdLuD56J52mRw9f9vYFgElZBOx83CfoRO2B8OVEFJwTAs87vyuBlvKhGbUjqUaP7aTe+f8sfGPY+Mk8LEavPe7c2FosXI2y6EpIFA5hT4PuApQ2ObEIUcJrBQLT5PGocYDmSivY+4PQSjb98rbjUdPjz8iJdT4mIxFk0qeKp/ro3jZpZzG4e7GAeGwD5aaiIkK5Xkl+b+M2MJxQqlIddzCOlB4lBZdC0KtOyUX+BolQuVcnQ9n9boR7xLL/z0ro8t6Uh6UKeKE4wrOx8qeWF6P5ErQCH3wkH3iBKhmLQTfMVAThklM1uWgxkvW4/K1KCClvPZ4ukCACy5WQw=
-  file: Drill.AppImage
+  file: 
+    - tools/appimage/Drill-GTK.AppImage
+    - tools/appimage/Drill-CLI.AppImage
   on:
     repo: yatima1460/Drill
+    tags: true
+    
+
