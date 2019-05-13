@@ -20,13 +20,11 @@
 		"echo -n $$D_FRONTEND_VER >> DRILL_VERSION"
 	],
 	"preGenerateCommands-windows": [],
-	"targetName":"DrillExecutable",
+	"targetName": "DrillExecutable",
 	"targetType": "executable",
 	"configurations": [
 		{
-			"name": "Cli",
-			
-			
+			"name": "CLI",
 			"sourceFiles": [
 				"drill/core/FileInfo.d",
 				"drill/core/Core.d",
@@ -42,8 +40,6 @@
 		},
 		{
 			"name": "GTK",
-
-			
 			"sourceFiles": [
 				"drill/core/FileInfo.d",
 				"drill/core/Core.d",
@@ -62,5 +58,4 @@
 			}
 		}
 	]
-	
 }
