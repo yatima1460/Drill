@@ -10,19 +10,19 @@ ingredients:
 
 # create the necessary dirs
   script:
-    - mkdir -p me.santamorena.drill.AppDir/usr/drill/gtk
+    - mkdir -p me.santamorena.drill.AppDir/usr
 
 # build the project and copy the executable
   script:
-    - cd ../../../source/drillgtk
-    - dub build --build=release
-    - cp Drill-GTK ../../tools/appimage/me.santamorena.drill/me.santamorena.drill.AppDir/usr/drill/gtk
-    - chmod +x ../../tools/appimage/me.santamorena.drill/me.santamorena.drill.AppDir/usr/drill/gtk/Drill-GTK
+    - cd ../../../
+    - dub build -c GTK --build=release
+    - cp Drill-GTK tools/appimage/me.santamorena.drill/me.santamorena.drill.AppDir/usr/
+    - cp DRILL_VERSION tools/appimage/me.santamorena.drill/me.santamorena.drill.AppDir/usr/
+    - chmod +x tools/appimage/me.santamorena.drill/me.santamorena.drill.AppDir/usr/Drill-GTK
 
 
 # copy the assets
   script:
-    - cd ../../
     - cp -r assets tools/appimage/me.santamorena.drill/me.santamorena.drill.AppDir/usr/
     - cd tools/appimage
     - cp drill.sh me.santamorena.drill/me.santamorena.drill.AppDir/usr/
