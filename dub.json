@@ -7,17 +7,6 @@
 	"copyright": "Copyright © 2019, Federico Santamorena",
 	"license": "GPL-2.0",
 	"homepage": "https://github.com/yatima1460/Drill",
-	
-
-	"dependencies": {
-		"gtk-d:gtkd": {
-			"path": "vendor/GtkD"
-		},
-		"datefmt": {
-			"path": "vendor/datefmt"
-		}
-	},
-	
     
 	"configurations": [
 		{
@@ -32,7 +21,14 @@
 				"drill/core/Utils.d",
 
 				"drill/cli/Cli.d"
-			]
+			],
+
+
+			"dependencies": {
+				"datefmt": {
+					"path": "vendor/datefmt"
+				}
+			}
 	
 		},
 		{
@@ -49,7 +45,17 @@
 				"drill/gtkui/Window.d",
 				"drill/gtkui/SearchEntry.d",
 				"drill/gtkui/Main.d"
-			]
+			],
+
+
+			"dependencies": {
+				"gtk-d:gtkd": {
+					"path": "vendor/GtkD"
+				},
+				"datefmt": {
+					"path": "vendor/datefmt"
+				}
+			}
 	
 		}
 	
