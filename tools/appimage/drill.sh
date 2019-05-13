@@ -1,2 +1,2 @@
 #!/bin/bash
-./Drill-GTK
+./Drill
