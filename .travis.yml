@@ -9,7 +9,10 @@ script:
 - dub build -c GTK --build=release
 - cd tools/appimage && sh build_appimage_gtk.sh
 
-
+addons:
+  apt:
+    packages:
+      - desktop-file-utils
 
 deploy:
   provider: releases
