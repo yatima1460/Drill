@@ -1,7 +1,7 @@
 language: D
 d:
 - dmd
-- ldc
+# - ldc
 
 script:
 - dub build -c CLI --build=release --parallel --force
@@ -34,6 +34,6 @@ deploy:
     - tools/Drill-CLI-Debian-Executable.zip
   on:
     repo: yatima1460/Drill
-    tags: true
+    tags: false
     
 
