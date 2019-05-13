@@ -354,7 +354,7 @@ private:
 
         
 
-        this.setDefaultSize(800, 450);
+        this.setDefaultSize(960, 540);
         this.setResizable(true);
         this.setPosition(GtkWindowPosition.CENTER);
 
@@ -398,9 +398,10 @@ private:
         else
         {
             this.github_notice = new Label("");
+            this.github_notice.setSelectable(true);
             this.github_notice.setJustify(GtkJustification.CENTER);
             this.github_notice.setHalign(GtkAlign.CENTER);
-            this.github_notice.setMarkup("<a href=\"https://github.com/yatima1460/drill\">Drill</a> is maintained by <a href=\"https://www.santamorena.me\">Federico Santamorena</a>");
+            this.github_notice.setMarkup("<a href=\"https://github.com/yatima1460/drill\">Drill</a> is maintained by <a href=\"https://www.santamorena.me\">Federico Santamorena</a>"~" "~drillapi.getVersion());
             
             h.packStart(github_notice, true, true, 0);
         }
