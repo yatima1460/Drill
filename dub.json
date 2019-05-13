@@ -20,6 +20,7 @@
 		"echo -n $$D_FRONTEND_VER >> DRILL_VERSION"
 	],
 	"preGenerateCommands-windows": [],
+	"importPaths": ["."],
 	
 	"targetType": "executable",
 	"configurations": [
