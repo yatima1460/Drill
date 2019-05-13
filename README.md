@@ -38,8 +38,8 @@ If your distro doesn't ask you to mark it executable or nothing happens try:
 
 ### Configurations available (in dub.json)
 
-- x64-Cli
-- x64-GTK
+- CLI
+- GTK
 - ~~x64-Win~~
 - ~~x64-Mac~~
 - ~~x64-ncurses~~
