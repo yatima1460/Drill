@@ -397,8 +397,12 @@ private:
         }
         else
         {
-            this.github_notice = new Label("Drill is maintained by Federico Santamorena");
-            h.packStart(github_notice, false, true, 0);
+            this.github_notice = new Label("");
+            this.github_notice.setJustify(GtkJustification.CENTER);
+            this.github_notice.setHalign(GtkAlign.CENTER);
+            this.github_notice.setMarkup("<a href=\"https://github.com/yatima1460/drill\">Drill</a> is maintained by <a href=\"https://www.santamorena.me\">Federico Santamorena</a>");
+            
+            h.packStart(github_notice, true, true, 0);
         }
 
         // file_icon.setIconName("file");
@@ -457,7 +461,7 @@ private:
         // v.packStart(mb, false, false, 0);
         v.packStart(search_input, false, false, 0);
         v.packStart(scroll, true, true, 0);
-        v.packStart(h, false, false, 0);
+        v.packStart(h, false, true, 0);
 
         this.treeview.setModel(this.liststore);
         showAll();
