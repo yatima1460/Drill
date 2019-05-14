@@ -38,13 +38,22 @@ public:
             {
                 temp_blocklist ~= readText(partial_blocklist).split("\n");
             }
+            
+        }
+        catch (FileException fe)
+        {
+            // TODO: notify this happened
+        }
+
+        try
+        {
             import std.array : join, replace;
             version_temp = replace(join(readText("DRILL_VERSION").split("\n"),"-")," ","-");
 
         }
         catch (FileException fe)
         {
-            // TODO: notify this happened
+            version_temp = "LOCAL BUILT VERSION";
         }
 
         this.blocklist = temp_blocklist.idup;
@@ -176,7 +185,14 @@ public:
         version (Windows)
         {
             //TODO fix this
-            return ["C:\\"];
+            immutable auto ls = executeShell("wmic logicaldisk get caption");
+            if (ls.status != 0)
+            {
+                // TODO: messagebox can't retrieve mountpoints will just scan /
+                  return ["C:\\"];
+            }
+            immutable auto result = array(ls.output.split("\n").filter!(x => canFind(x, ":"))).idup;
+            return result;      
         }
     }
 
