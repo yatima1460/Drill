@@ -11,27 +11,27 @@ language: bash
 
 
 script:
-- if ["$TRAVIS_OS_NAME" == "windows"]; then
+- >
+  if ["$TRAVIS_OS_NAME" == "windows"]; then
     echo OS is Windows!
-    wget http://downloads.dlang.org/releases/2.x/2.086.0/dmd.2.086.0.windows.7z;
-    7z x dmd.2.086.0.windows.7z;
-    dmd2/windows/bin/dub build -c CLI --build=release --parallel --force;
-    dmd2/windows/bin/dub build -c GTK --build=release --parallel --force;
+    dub build -c CLI --build=release --parallel --force
+    dub build -c GTK --build=release --parallel --force
   fi
-- if ["$TRAVIS_OS_NAME" == "linux"]; then
+- >
+  if ["$TRAVIS_OS_NAME" == "linux"]; then
     echo OS is Linux!
-    dub build -c CLI --build=release --parallel --force;
+    dub build -c CLI --build=release --parallel --force
     echo CLI Linux build done
-    ls;
-    cd tools/appimage && sh cli.sh && cd ../../;
+    ls
+    cd tools/appimage && sh cli.sh && cd ../../
     echo CLI Linux AppImage done
-    ls;
-    dub build -c GTK --build=release --parallel --force;
+    ls
+    dub build -c GTK --build=release --parallel --force
     echo GTK Linux build done
-    ls;
-    cd tools/appimage && sh gtk.sh && cd ../../;
+    ls
+    cd tools/appimage && sh gtk.sh && cd ../../
     echo GTK Linux AppImage done
-    ls;
+    ls
     git config --local user.name "Federico Santamorena"
     git config --local user.email "federico@santamorena.me"
     export TRAVIS_TAG=${TRAVIS_TAG:-$(date +'%Y%m%d%H%M%S')-$(git log --format=%h -1)}
@@ -46,6 +46,9 @@ addons:
     packages:
       - desktop-file-utils
       - git
+      - dub
+  choco:
+    packages:
       - dub
 
 #before_deploy:
