@@ -1,7 +1,7 @@
 os:
   - linux
   - windows
-  - osx
+  # - osx
 
 language: bash
 
@@ -11,7 +11,6 @@ script:
   - if [ "$TRAVIS_OS_NAME" == "windows" ]; then choco install zip; fi
   - if [ "$TRAVIS_OS_NAME" == "windows" ]; then zip --version; fi
   - if [ "$TRAVIS_OS_NAME" == "windows" ]; then choco install 7zip; fi
-  - if [ "$TRAVIS_OS_NAME" == "windows" ]; then 7z --version; fi
   - if [ "$TRAVIS_OS_NAME" == "windows" ]; then 7z x dmd.2.086.0.windows.7z; fi
   - if [ "$TRAVIS_OS_NAME" == "windows" ]; then ls; fi
   - if [ "$TRAVIS_OS_NAME" == "windows" ]; then dmd2/windows/bin/dub build -c CLI --build=release --parallel --force; fi
@@ -38,10 +37,10 @@ script:
 
 before_deploy:
   if ! [[ $TRAVIS_TAG ]]; then
-      git config --local user.name "Federico Santamorena" &&
-      git config --local user.email "federico@santamorena.me" &&
-      export TRAVIS_TAG=${TRAVIS_TAG:-$(date +'%Y%m%d%H%M%S')-$(git log --format=%h -1)} &&
-      git tag $TRAVIS_TAG;
+    git config --local user.name "Federico Santamorena" &&
+    git config --local user.email "federico@santamorena.me" &&
+    export TRAVIS_TAG=${TRAVIS_TAG:-$(date +'%Y%m%d%H%M%S')-$(git log --format=%h -1)} &&
+    git tag $TRAVIS_TAG;
   fi
 
 deploy:
