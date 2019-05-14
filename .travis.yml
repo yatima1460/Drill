@@ -7,7 +7,7 @@ language: bash
 
 script:
   # Windows
-  - if [ "$TRAVIS_OS_NAME" == "windows" ]; then wget http://downloads.dlang.org/releases/2019/dmd.2.086.0.windows.7z; fi
+  - if [ "$TRAVIS_OS_NAME" == "windows" ]; then wget http://downloads.dlang.org/nightlies/dmd-master/dmd.master.windows.7z; fi
   - if [ "$TRAVIS_OS_NAME" == "windows" ]; then choco install zip; fi
   - if [ "$TRAVIS_OS_NAME" == "windows" ]; then zip --version; fi
   - if [ "$TRAVIS_OS_NAME" == "windows" ]; then choco install 7zip; fi
