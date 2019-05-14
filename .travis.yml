@@ -40,6 +40,7 @@ script:
 #   tag $TRAVIS_TAG; fi
 deploy:
   provider: releases
+  skip_cleanup: true
   api_key:
     secure: $GITHUB_TOKEN
   file: 
@@ -49,6 +50,7 @@ deploy:
     - tools/Drill-CLI-Debian-Executable.zip
     - Drill-CLI-Windows.zip
     - Drill-GTK-Windows.zip
+    
   on:
     repo: yatima1460/Drill
 
