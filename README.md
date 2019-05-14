@@ -13,11 +13,11 @@
 # TL;DR: What is this
 
 Search files without indexing, but clever crawling:
-- 1 thread per mount point
+- At least 1 thread per mount point
 - Use as much RAM as possible for caching stuff
 - Try to avoid "black hole folders" using a regex based blocklist in which the crawler will never come out and never scan useful files (`node_modules`,`Windows`,etc)
 - **Intended for desktop users**, no obscure Linux files and system files scans
-- Really works only with SSDs/M.2 or fast RAID arrays
+- Betting on the future: really works only with SSDs/M.2 or fast RAID arrays
 
 
 ![](https://raw.githubusercontent.com/yatima1460/Drill/gh-pages/screenshot.png)
@@ -50,9 +50,9 @@ If your distro doesn't ask you to mark it executable or nothing happens try:
 
 - CLI
 - GTK
-- ~~x64-Win~~
-- ~~x64-Mac~~
-- ~~x64-ncurses~~
+- ~~Win~~
+- ~~MacOS~~
+- ~~ncurses~~
 
 ### Debug
 ```
@@ -81,9 +81,6 @@ Second change is excluding some obvious folders while crawling like `Windows` an
 
 * Use your goddamn RAM: The third change is caching everything, I don't care about your RAM, I will use even 8GB of your RAM if this provides me a faster way to find your files, unused RAM is wasted RAM, even truer the more time passes.
 
-# Which one is a stable branch?
-Only commits tagged with versions' names can be compiled and are considered good, everything else is just dumped in `master`
-
 # Contributing
 TODOs:
 
@@ -107,7 +104,7 @@ TODOs:
             - Error on file open
     - All comparisons need to be done in lower case strings
     - /home/username needs to have higher priority over / crawler when /home isn't mounted on a secondary mountpoint
-    - Sorting by column system
+    - Sorting by column
     - Commas in numbers strings
         - Correct separator based on current system internationalization
     - AM/PM time base
@@ -132,7 +129,7 @@ TODOs:
 
 - Cli Frontend
     - More arguments
-    - Better/bare printing
+    - ~~Better/bare printing~~
 
 - ncurses
 
