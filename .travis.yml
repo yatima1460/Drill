@@ -8,6 +8,7 @@ script:
   # Windows
   - if [ "$TRAVIS_OS_NAME" == "windows" ]; then choco install zip; fi
   - if [ "$TRAVIS_OS_NAME" == "windows" ]; then choco install dub; fi
+  - if [ "$TRAVIS_OS_NAME" == "windows" ]; then refreshenv; fi
   - if [ "$TRAVIS_OS_NAME" == "windows" ]; then dub build -c CLI --build=release --parallel --force; fi
   - if [ "$TRAVIS_OS_NAME" == "windows" ]; then zip -r Drill-CLI-Windows.zip ../../assets ../../Drill-CLI.exe ../../DRILL_VERSION; fi
   - if [ "$TRAVIS_OS_NAME" == "windows" ]; then dub build -c GTK --build=release --parallel --force; fi
@@ -15,6 +16,7 @@ script:
 
   # Linux
   - if [ "$TRAVIS_OS_NAME" == "linux" ]; then curl -fsS https://dlang.org/install.sh | bash -s dmd; fi
+  - if [ "$TRAVIS_OS_NAME" == "linux" ]; then source ~/dlang/dmd-2.086.0/activate; fi
   - if [ "$TRAVIS_OS_NAME" == "linux" ]; then dub build -c CLI --build=release --parallel --force; fi
   - if [ "$TRAVIS_OS_NAME" == "linux" ]; then zip -r Drill-CLI-Debian-Executable.zip ../../assets ../../Drill-CLI ../../DRILL_VERSION; fi
   - if [ "$TRAVIS_OS_NAME" == "linux" ]; then cd tools/appimage && sh cli.sh && cd ../../; fi
