@@ -172,6 +172,12 @@ public:
             ).idup;
             return result;
         }
+
+        version (Windows)
+        {
+            //TODO fix this
+            return ["C:\\"];
+        }
     }
 
     /**
