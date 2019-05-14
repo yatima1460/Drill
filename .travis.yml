@@ -2,9 +2,8 @@ os:
   - linux
   - windows
 
-language: c
-c:
- - gcc
+language: bash
+
 # d:
 # - dmd
 # - ldc
