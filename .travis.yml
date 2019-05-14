@@ -3,6 +3,8 @@ os:
   - windows
 
 language: c
+c:
+ - gcc
 # d:
 # - dmd
 # - ldc
