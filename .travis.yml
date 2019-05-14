@@ -1,6 +1,7 @@
 os:
   - linux
   - windows
+  - osx
 
 language: bash
 
@@ -15,6 +16,7 @@ script:
   - if [ "$TRAVIS_OS_NAME" == "windows" ]; then zip -r Drill-GTK-Windows.zip assets Drill-GTK.exe DRILL_VERSION; fi
 
   # Linux
+  - if [ "$TRAVIS_OS_NAME" == "linux" ]; then sudo apt install desktop-file-utils; fi
   - if [ "$TRAVIS_OS_NAME" == "linux" ]; then curl -fsS https://dlang.org/install.sh | bash -s dmd; fi
   - if [ "$TRAVIS_OS_NAME" == "linux" ]; then source ~/dlang/dmd-2.086.0/activate; fi
   - if [ "$TRAVIS_OS_NAME" == "linux" ]; then dub build -c CLI --build=release --parallel --force; fi
@@ -28,17 +30,14 @@ script:
   - if [ "$TRAVIS_OS_NAME" == "linux" ]; then export TRAVIS_TAG=${TRAVIS_TAG:-$(date +'%Y%m%d%H%M%S')-$(git log --format=%h -1)}; fi
   - if [ "$TRAVIS_OS_NAME" == "linux" ]; then git tag $TRAVIS_TAG; fi
 
-addons:
-  apt:
-    packages:
-      - desktop-file-utils
 
 before_deploy:
-  - git config --local user.name "Federico Santamorena"
-  - git config --local user.email "federico@santamorena.me"
-  - export TRAVIS_TAG=${TRAVIS_TAG:-$(date +'%Y%m%d%H%M%S')-$(git log --format=%h -1)}
-  - git tag $TRAVIS_TAG
-
+  if ! [[ $TRAVIS_TAG ]]; then
+      git config --local user.name "Federico Santamorena" &&
+      git config --local user.email "federico@santamorena.me" &&
+      export TRAVIS_TAG=${TRAVIS_TAG:-$(date +'%Y%m%d%H%M%S')-$(git log --format=%h -1)} &&
+      git tag $TRAVIS_TAG;
+  fi
 
 deploy:
   provider: releases
