@@ -11,7 +11,7 @@ script:
   - if [ "$TRAVIS_OS_NAME" == "windows" ]; then choco install zip; fi
   - if [ "$TRAVIS_OS_NAME" == "windows" ]; then zip --version; fi
   - if [ "$TRAVIS_OS_NAME" == "windows" ]; then choco install 7zip; fi
-  - if [ "$TRAVIS_OS_NAME" == "windows" ]; then 7z x dmd.2.086.0.windows.7z; fi
+  - if [ "$TRAVIS_OS_NAME" == "windows" ]; then 7z x dmd.master.windows.7z; fi
   - if [ "$TRAVIS_OS_NAME" == "windows" ]; then ls; fi
   - if [ "$TRAVIS_OS_NAME" == "windows" ]; then dmd2/windows/bin/dub build -c CLI --build=release --parallel --force; fi
   - if [ "$TRAVIS_OS_NAME" == "windows" ]; then zip -r Drill-CLI-Windows.zip assets Drill-CLI.exe DRILL_VERSION; fi
