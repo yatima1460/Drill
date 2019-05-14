@@ -22,13 +22,10 @@ private:
 
 public:
 
-    this()
+    this() 
     {
         this.threads = Array!Crawler();
         import std.file : dirEntries, SpanMode, DirEntry, readText, FileException;
-
-        // we use a boolean flag as a proxy to keep the blocklist immutable
-        // otherwise we would have two initializations
 
         string[] temp_blocklist = [];
         string version_temp = "?";
@@ -114,7 +111,7 @@ public:
     This action is non-blocking.
     If no crawling is currently underway this will do nothing.
     */
-    void stopCrawlingAsync()
+    void stopCrawlingAsync() 
     {
         foreach (Crawler crawler; this.threads)
         {
@@ -129,7 +126,7 @@ public:
         waitForCrawlers();
     }
 
-    void waitForCrawlers()
+    void waitForCrawlers() 
     {
         foreach (Crawler crawler; this.threads)
         {
@@ -142,7 +139,7 @@ public:
 
     Returns: immutable array of full paths
     */
-    immutable(string[]) getMountPoints()
+    immutable(string[]) getMountPoints() @safe
     {
         version (linux)
         {
@@ -184,13 +181,16 @@ public:
 
     Returns: number of crawlers active
     */
-    ulong getActiveCrawlersCount()
+    const immutable(ulong) getActiveCrawlersCount() 
     {
         return array(this.threads[].filter!(x => x.isCrawling())).length;
     }
 
 
-    immutable(string) getVersion()
+    /**
+    Returns the version of Drill
+    */
+    pure const immutable(string) getVersion()  @safe @nogc
     {
         return this.drill_version;
     }
