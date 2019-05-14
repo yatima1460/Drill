@@ -1,29 +1,46 @@
 os:
   - linux
+  - windows
 
-language: D
-d:
-- dmd
+# language: d
+# d:
+# - dmd
 # - ldc
 # - gdc
 
+
 script:
-- dub build -c CLI --build=release --parallel --force
-- cd tools/appimage && sh cli.sh && cd ../../
-- dub build -c GTK --build=release --parallel --force
-- cd tools/appimage && sh gtk.sh && cd ../../
-- cd tools && sh create_zip.sh && cd ../
+- (
+  if ["$TRAVIS_OS_NAME" == "windows"] then
+    wget http://downloads.dlang.org/releases/2.x/2.086.0/dmd.2.086.0.windows.7z
+    7z x dmd.2.086.0.windows.7z
+    dmd2/windows/bin/dub build -c CLI --build=release --parallel --force
+    dmd2/windows/bin/dub build -c GTK --build=release --parallel --force
+  fi
+)
+- (
+  if ["$TRAVIS_OS_NAME" == "linux"] then
+    dub build -c CLI --build=release --parallel --force
+    cd tools/appimage && sh cli.sh && cd ../../
+    dub build -c GTK --build=release --parallel --force
+    cd tools/appimage && sh gtk.sh && cd ../../
+  fi
+)
+
 
 addons:
   apt:
     packages:
       - desktop-file-utils
+      - git
+      - dub
 
 before_deploy:
   - git config --local user.name "Federico Santamorena"
   - git config --local user.email "federico@santamorena.me"
   - export TRAVIS_TAG=${TRAVIS_TAG:-$(date +'%Y%m%d%H%M%S')-$(git log --format=%h -1)}
   - git tag $TRAVIS_TAG
+  - cd tools/travis && sh create_zip.sh && cd ../../
 
 deploy:
   provider: releases
@@ -36,6 +53,8 @@ deploy:
     - tools/appimage/Drill-CLI.AppImage
     - tools/Drill-GTK-Debian-Executable.zip
     - tools/Drill-CLI-Debian-Executable.zip
+    - Drill-CLI-Windows.zip
+    - Drill-GTK-Windows.zip
   on:
     repo: yatima1460/Drill
     tags: false
