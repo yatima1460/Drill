@@ -1,6 +1,6 @@
 os:
 - linux
-#- windows
+- windows
 language: bash
 
 before_script:
