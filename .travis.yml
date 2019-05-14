@@ -4,7 +4,8 @@ os:
 language: D
 d:
 - dmd
-# - ldc
+- ldc
+- gdc
 
 script:
 - dub build -c CLI --build=release --parallel --force
