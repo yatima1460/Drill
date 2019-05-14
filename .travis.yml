@@ -2,7 +2,7 @@ os:
   - linux
   - windows
 
-# language: d
+language: generic
 # d:
 # - dmd
 # - ldc
