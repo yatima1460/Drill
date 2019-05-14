@@ -14,7 +14,7 @@ script:
   - if [ "$TRAVIS_OS_NAME" == "windows" ]; then zip -r Drill-GTK-Windows.zip ../../assets ../../Drill-GTK.exe ../../DRILL_VERSION; fi
 
   # Linux
-  - if [ "$TRAVIS_OS_NAME" == "linux" ]; curl -fsS https://dlang.org/install.sh | bash -s dmd; fi
+  - if [ "$TRAVIS_OS_NAME" == "linux" ]; then curl -fsS https://dlang.org/install.sh | bash -s dmd; fi
   - if [ "$TRAVIS_OS_NAME" == "linux" ]; then dub build -c CLI --build=release --parallel --force; fi
   - if [ "$TRAVIS_OS_NAME" == "linux" ]; then zip -r Drill-CLI-Debian-Executable.zip ../../assets ../../Drill-CLI ../../DRILL_VERSION; fi
   - if [ "$TRAVIS_OS_NAME" == "linux" ]; then cd tools/appimage && sh cli.sh && cd ../../; fi
