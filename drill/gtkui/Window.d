@@ -196,7 +196,7 @@ private:
     bool running;
     private Tid childTid;
 
-    void appendRecord(immutable(FileInfo) fi)
+    void appendRecord(immutable(FileInfo) fi) 
     {
         TreeIter it = liststore.createIter();
         import std.conv : to;
@@ -259,7 +259,7 @@ private:
 
     Array!FileInfo buffer;
 
-    private void resultFound(immutable(FileInfo) result)
+    private void resultFound(immutable(FileInfo) result) @nogc
     {
         list_dirty = true;
 
@@ -270,7 +270,7 @@ private:
 
     }
 
-    private void searchChanged(EditableIF ei)
+    private void searchChanged(EditableIF ei) 
     {
 
         drillapi.stopCrawlingAsync();
@@ -299,7 +299,7 @@ private:
 
     }
 
-    private void loadGTKIconFiletypes()
+    private void loadGTKIconFiletypes() 
     {
         import std.file : dirEntries, SpanMode;
 
@@ -318,7 +318,7 @@ private:
         }
     }
 
-    public void loadGTKIcon()
+    public void loadGTKIcon()  
     {
         try
         {

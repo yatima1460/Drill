@@ -20,8 +20,12 @@ private:
     string root;
     bool running;
     Regex!char[] exclusion_list;
-    Array!DirEntry* index;
-    long ignored_count;
+    // Array!DirEntry* index;
+    debug
+    {
+        long ignored_count;
+    }
+
     void delegate(immutable(FileInfo) result) resultCallback;
 
     immutable(string) search;
@@ -50,36 +54,36 @@ public:
         //     if (this.exclusion_list.length == 0)
         //         logConsole(this ~ " has an empty exclusion list!");
         // }
-        this.index = new Array!DirEntry();
+        //this.index = new Array!DirEntry();
         this.search = search;
 
         resultCallback = resultFound;
     }
 
-    void stopAsync()
+    pure void stopAsync()  @safe @nogc
     {
         this.running = false;
     }
 
-    void stopSync()
+    void stopSync() 
     {
         this.running = false;
         this.join();
     }
 
-    Array!DirEntry* grab_index()
-    {
-        Array!DirEntry* i = this.index;
-        this.index = new Array!DirEntry();
-        return i;
-    }
+    // Array!DirEntry* grab_index()
+    // {
+    //     Array!DirEntry* i = this.index;
+    //     this.index = new Array!DirEntry();
+    //     return i;
+    // }
 
-    override string toString()
+    pure const override string toString() @safe 
     {
         return "Thread(" ~ root ~ ")";
     }
 
-    bool isCrawling()
+    pure const bool isCrawling() @safe @nogc
     {
         return this.running;
     }
@@ -100,7 +104,7 @@ private:
             DirEntry direntryroot = DirEntry(this.root);
 
             queue.insertBack(direntryroot);
-            index.insertBack(direntryroot);
+            //index.insertBack(direntryroot);
 
             this.running = true;
             while (queue.length != 0)
@@ -123,7 +127,7 @@ private:
                             if (direntry.isSymlink())
                             {
 
-                                logConsole("[SYMLINK IGNORED]\t"~direntry.name);
+                                logConsole("[SYMLINK IGNORED]\t" ~ direntry.name);
 
                                 continue fileloop;
                             }
@@ -141,16 +145,17 @@ private:
                                 if (!mo.empty())
                                 {
 
-                                    logConsole("[REGEX BLOCKED]\t"~direntry.name);
+                                    logConsole("[REGEX BLOCKED]\t" ~ direntry.name);
 
-                                    this.ignored_count++;
-
+                                    debug
+                                    {
+                                        this.ignored_count++;
+                                    }
                                     continue fileloop;
                                 }
                                 else
 
                                 {
-
 
                                     //logConsole(direntry.name ~ " added");
                                 }
@@ -162,7 +167,7 @@ private:
                             {
                                 next_queue.insertBack(direntry);
 
-                                logConsole("[DIRECTORY QUEUED]\t"~direntry.name);
+                                logConsole("[DIRECTORY QUEUED]\t" ~ direntry.name);
                                 f.isDirectory = true;
                             }
                             else
@@ -172,16 +177,13 @@ private:
 
                             // int[string] aa;
 
-
                             // index.insertBack(direntry);
                             import std.algorithm : canFind;
-                              import std.path : baseName, dirName, extension;
+                            import std.path : baseName, dirName, extension;
 
                             // TODO split by space and search every token
-                            if (!canFind(baseName(direntry.name),search))
+                            if (!canFind(baseName(direntry.name), search))
                                 continue;
-
-                          
 
                             f.fullPath = direntry.name;
                             f.fileName = baseName(direntry.name);
@@ -194,9 +196,9 @@ private:
 
                             f.dateModifiedString = toDateString(direntry.timeLastModified());
                             if (running)
-                            resultCallback(f);
+                                resultCallback(f);
 
-                             logConsole("[FILE FOUND]\t"~direntry.name);
+                            logConsole("[FILE FOUND]\t" ~ direntry.name);
                             //logConsole(direntry.name ~ " added to global index");
 
                         }
