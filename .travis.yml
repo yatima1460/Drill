@@ -11,22 +11,20 @@ language: bash
 
 
 script:
-- (
+- >
   if ["$TRAVIS_OS_NAME" == "windows"] then
-    wget http://downloads.dlang.org/releases/2.x/2.086.0/dmd.2.086.0.windows.7z
-    7z x dmd.2.086.0.windows.7z
-    dmd2/windows/bin/dub build -c CLI --build=release --parallel --force
-    dmd2/windows/bin/dub build -c GTK --build=release --parallel --force
+    wget http://downloads.dlang.org/releases/2.x/2.086.0/dmd.2.086.0.windows.7z;
+    7z x dmd.2.086.0.windows.7z;
+    dmd2/windows/bin/dub build -c CLI --build=release --parallel --force;
+    dmd2/windows/bin/dub build -c GTK --build=release --parallel --force;
   fi
-)
-- (
-  if ["$TRAVIS_OS_NAME" == "linux"] then
-    dub build -c CLI --build=release --parallel --force
-    cd tools/appimage && sh cli.sh && cd ../../
-    dub build -c GTK --build=release --parallel --force
-    cd tools/appimage && sh gtk.sh && cd ../../
+- >
+  if ["$TRAVIS_OS_NAME" == "linux"]; then
+    dub build -c CLI --build=release --parallel --force;
+    cd tools/appimage && sh cli.sh && cd ../../;
+    dub build -c GTK --build=release --parallel --force;
+    cd tools/appimage && sh gtk.sh && cd ../../;
   fi
-)
 
 
 addons:
