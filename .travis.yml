@@ -2,7 +2,7 @@ os:
   - linux
   - windows
 
-language: minimal
+language: c
 # d:
 # - dmd
 # - ldc
