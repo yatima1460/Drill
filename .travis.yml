@@ -1,14 +1,15 @@
 os:
 - linux
-- windows
+#- windows
 language: bash
+
 before_script:
+- export TRAVIS_TAG="1.$TRAVIS_BUILD_NUMBER"
+- echo -n $TRAVIS_TAG > DRILL_VERSION
 - git config --local user.name "Federico Santamorena"
 - git config --local user.email "federico@santamorena.me"
-- export TRAVIS_TAG=${TRAVIS_TAG:-$(date +'%Y%m%d%H%M%S')-$(git log --format=%h -1)}
-- git tag $TRAVIS_TAG
-- echo -n $TRAVIS_TAG > DRILL_VERSION
-- cat DRILL_VERSION
+- git tag "$TRAVIS_TAG" "$TRAVIS_COMMIT";
+
 script:
 
 #windows
@@ -41,13 +42,14 @@ script:
 deploy:
   provider: releases
   skip_cleanup: true
+  draft: true
   api_key:
     secure: $GITHUB_TOKEN
   file: 
     - tools/appimage/Drill-GTK.AppImage
     - tools/appimage/Drill-CLI.AppImage
-    - tools/Drill-GTK-Debian-Executable.zip
-    - tools/Drill-CLI-Debian-Executable.zip
+    - Drill-GTK-Debian-Executable.zip
+    - Drill-CLI-Debian-Executable.zip
     - Drill-CLI-Windows.zip
     - Drill-GTK-Windows.zip
     
