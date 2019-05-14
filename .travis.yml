@@ -8,14 +8,14 @@ before_script:
 - echo -n $TRAVIS_TAG > DRILL_VERSION
 - git config --local user.name "Federico Santamorena"
 - git config --local user.email "federico@santamorena.me"
-- git tag "$TRAVIS_TAG" "$TRAVIS_COMMIT";
+- git tag "$TRAVIS_TAG" "$TRAVIS_COMMIT"
 
 script:
 
 #windows
 - if [ "$TRAVIS_OS_NAME" == "windows" ]; then wget http://downloads.dlang.org/nightlies/dmd-master/dmd.master.windows.7z; fi
 # - if [ "$TRAVIS_OS_NAME" == "windows" ]; then choco install zip; fi
-- if [ "$TRAVIS_OS_NAME" == "windows" ]; then choco install 7zip; fi
+# - if [ "$TRAVIS_OS_NAME" == "windows" ]; then choco install 7zip; fi
 - if [ "$TRAVIS_OS_NAME" == "windows" ]; then 7z x dmd.master.windows.7z; fi
 - if [ "$TRAVIS_OS_NAME" == "windows" ]; then git clone https://github.com/yatima1460/GTK-for-Windows-Runtime-Environment-Installer.git; fi
 - if [ "$TRAVIS_OS_NAME" == "windows" ]; then dmd2/windows/bin/dub build -c CLI --build=release --parallel --force; fi
