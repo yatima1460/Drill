@@ -15,7 +15,6 @@ script:
 #windows
 - if [ "$TRAVIS_OS_NAME" == "windows" ]; then wget http://downloads.dlang.org/nightlies/dmd-master/dmd.master.windows.7z; fi
 - if [ "$TRAVIS_OS_NAME" == "windows" ]; then choco install zip; fi
-- if [ "$TRAVIS_OS_NAME" == "windows" ]; then zip --version; fi
 - if [ "$TRAVIS_OS_NAME" == "windows" ]; then choco install 7zip; fi
 - if [ "$TRAVIS_OS_NAME" == "windows" ]; then 7z x dmd.master.windows.7z; fi
 - if [ "$TRAVIS_OS_NAME" == "windows" ]; then git clone https://github.com/yatima1460/GTK-for-Windows-Runtime-Environment-Installer.git; fi
@@ -43,6 +42,8 @@ deploy:
   provider: releases
   skip_cleanup: true
   draft: true
+  tag_name: $TRAVIS_TAG
+  target_commitish: $TRAVIS_COMMIT
   api_key:
     secure: $GITHUB_TOKEN
   file: 
