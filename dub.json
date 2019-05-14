@@ -8,17 +8,7 @@
 	"copyright": "Copyright © 2019, Federico Santamorena",
 	"license": "GPL-2.0",
 	"homepage": "https://github.com/yatima1460/Drill",
-	"preGenerateCommands-posix": [
-		"echo $$DUB_PACKAGE_VERSION > DRILL_VERSION",
-		"git rev-parse HEAD >> DRILL_VERSION",
-		"echo $$DUB_CONFIG >> DRILL_VERSION",
-		"echo $$DUB_ARCH >> DRILL_VERSION",
-		"echo $$DUB_BUILD_TYPE >> DRILL_VERSION",
-		"echo $$DUB_PLATFORM >> DRILL_VERSION",
-		"echo $$DUB_BUILD_MODE >> DRILL_VERSION",
-		"echo $$DC_BASE >> DRILL_VERSION",
-		"echo -n $$D_FRONTEND_VER >> DRILL_VERSION"
-	],
+	
 	"preGenerateCommands-windows": [],
 	
 	"targetType": "executable",

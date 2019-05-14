@@ -5,6 +5,14 @@ os:
 
 language: bash
 
+before_script:
+ - git config --local user.name "Federico Santamorena"
+ - git config --local user.email "federico@santamorena.me"
+ - export TRAVIS_TAG=${TRAVIS_TAG:-$(date +'%Y%m%d%H%M%S')-$(git log --format=%h -1)}
+ - git tag $TRAVIS_TAG
+ - echo -n $TRAVIS_TAG > DRILL_VERSION
+ - cat DRILL_VERSION
+
 script:
   # Windows
   - if [ "$TRAVIS_OS_NAME" == "windows" ]; then wget http://downloads.dlang.org/nightlies/dmd-master/dmd.master.windows.7z; fi
@@ -12,11 +20,11 @@ script:
   - if [ "$TRAVIS_OS_NAME" == "windows" ]; then zip --version; fi
   - if [ "$TRAVIS_OS_NAME" == "windows" ]; then choco install 7zip; fi
   - if [ "$TRAVIS_OS_NAME" == "windows" ]; then 7z x dmd.master.windows.7z; fi
-  - if [ "$TRAVIS_OS_NAME" == "windows" ]; then ls; fi
+  - if [ "$TRAVIS_OS_NAME" == "windows" ]; then git clone https://github.com/yatima1460/GTK-for-Windows-Runtime-Environment-Installer.git; fi
   - if [ "$TRAVIS_OS_NAME" == "windows" ]; then dmd2/windows/bin/dub build -c CLI --build=release --parallel --force; fi
-  - if [ "$TRAVIS_OS_NAME" == "windows" ]; then zip -r Drill-CLI-Windows.zip assets Drill-CLI.exe DRILL_VERSION; fi
+  - if [ "$TRAVIS_OS_NAME" == "windows" ]; then zip -r Drill-CLI-Windows.zip assets Drill-CLI.exe DRILL_VERSION GTK-for-Windows-Runtime-Environment-Installer/gtk-nsis-pack/bin/; fi
   - if [ "$TRAVIS_OS_NAME" == "windows" ]; then dmd2/windows/bin/dub build -c GTK --build=release --parallel --force; fi
-  - if [ "$TRAVIS_OS_NAME" == "windows" ]; then zip -r Drill-GTK-Windows.zip assets Drill-GTK.exe DRILL_VERSION; fi
+  - if [ "$TRAVIS_OS_NAME" == "windows" ]; then zip -r Drill-GTK-Windows.zip assets Drill-GTK.exe DRILL_VERSION GTK-for-Windows-Runtime-Environment-Installer/gtk-nsis-pack/bin/; fi
 
   # Linux
   - if [ "$TRAVIS_OS_NAME" == "linux" ]; then sudo apt update; fi
@@ -29,10 +37,6 @@ script:
   - if [ "$TRAVIS_OS_NAME" == "linux" ]; then dub build -c GTK --build=release --parallel --force; fi
   - if [ "$TRAVIS_OS_NAME" == "linux" ]; then zip -r Drill-GTK-Debian-Executable.zip assets Drill-GTK DRILL_VERSION; fi
   - if [ "$TRAVIS_OS_NAME" == "linux" ]; then cd tools/appimage && sh gtk.sh && cd ../../; fi
-  - if [ "$TRAVIS_OS_NAME" == "linux" ]; then git config --local user.name "Federico Santamorena"; fi
-  - if [ "$TRAVIS_OS_NAME" == "linux" ]; then git config --local user.email "federico@santamorena.me"; fi
-  - if [ "$TRAVIS_OS_NAME" == "linux" ]; then export TRAVIS_TAG=${TRAVIS_TAG:-$(date +'%Y%m%d%H%M%S')-$(git log --format=%h -1)}; fi
-  - if [ "$TRAVIS_OS_NAME" == "linux" ]; then git tag $TRAVIS_TAG; fi
 
 
 before_deploy:
@@ -62,7 +66,6 @@ deploy:
     branches:
       only:
         - master
-    
 
 notifications:
   email:
