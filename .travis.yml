@@ -12,7 +12,7 @@ language: bash
 
 script:
 - >
-  if ["$TRAVIS_OS_NAME" == "windows"] then
+  if ["$TRAVIS_OS_NAME" == "windows"]; then
     wget http://downloads.dlang.org/releases/2.x/2.086.0/dmd.2.086.0.windows.7z;
     7z x dmd.2.086.0.windows.7z;
     dmd2/windows/bin/dub build -c CLI --build=release --parallel --force;
