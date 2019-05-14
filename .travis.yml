@@ -1,58 +1,47 @@
 os:
-  - linux
-  - windows
-  # - osx
-
+- linux
+- windows
 language: bash
-
 before_script:
- - git config --local user.name "Federico Santamorena"
- - git config --local user.email "federico@santamorena.me"
- - export TRAVIS_TAG=${TRAVIS_TAG:-$(date +'%Y%m%d%H%M%S')-$(git log --format=%h -1)}
- - git tag $TRAVIS_TAG
- - echo -n $TRAVIS_TAG > DRILL_VERSION
- - cat DRILL_VERSION
-
+- git config --local user.name "Federico Santamorena"
+- git config --local user.email "federico@santamorena.me"
+- export TRAVIS_TAG=${TRAVIS_TAG:-$(date +'%Y%m%d%H%M%S')-$(git log --format=%h -1)}
+- git tag $TRAVIS_TAG
+- echo -n $TRAVIS_TAG > DRILL_VERSION
+- cat DRILL_VERSION
 script:
-  # Windows
-  - if [ "$TRAVIS_OS_NAME" == "windows" ]; then wget http://downloads.dlang.org/nightlies/dmd-master/dmd.master.windows.7z; fi
-  - if [ "$TRAVIS_OS_NAME" == "windows" ]; then choco install zip; fi
-  - if [ "$TRAVIS_OS_NAME" == "windows" ]; then zip --version; fi
-  - if [ "$TRAVIS_OS_NAME" == "windows" ]; then choco install 7zip; fi
-  - if [ "$TRAVIS_OS_NAME" == "windows" ]; then 7z x dmd.master.windows.7z; fi
-  - if [ "$TRAVIS_OS_NAME" == "windows" ]; then git clone https://github.com/yatima1460/GTK-for-Windows-Runtime-Environment-Installer.git; fi
-  - if [ "$TRAVIS_OS_NAME" == "windows" ]; then dmd2/windows/bin/dub build -c CLI --build=release --parallel --force; fi
-  - if [ "$TRAVIS_OS_NAME" == "windows" ]; then zip -r Drill-CLI-Windows.zip assets Drill-CLI.exe DRILL_VERSION GTK-for-Windows-Runtime-Environment-Installer/gtk-nsis-pack/bin/; fi
-  - if [ "$TRAVIS_OS_NAME" == "windows" ]; then dmd2/windows/bin/dub build -c GTK --build=release --parallel --force; fi
-  - if [ "$TRAVIS_OS_NAME" == "windows" ]; then zip -r Drill-GTK-Windows.zip assets Drill-GTK.exe DRILL_VERSION GTK-for-Windows-Runtime-Environment-Installer/gtk-nsis-pack/bin/; fi
 
-  # Linux
-  - if [ "$TRAVIS_OS_NAME" == "linux" ]; then sudo apt update; fi
-  - if [ "$TRAVIS_OS_NAME" == "linux" ]; then sudo apt install desktop-file-utils; fi
-  - if [ "$TRAVIS_OS_NAME" == "linux" ]; then curl -fsS https://dlang.org/install.sh | bash -s dmd; fi
-  - if [ "$TRAVIS_OS_NAME" == "linux" ]; then source ~/dlang/dmd-2.086.0/activate; fi
-  - if [ "$TRAVIS_OS_NAME" == "linux" ]; then dub build -c CLI --build=release --parallel --force; fi
-  - if [ "$TRAVIS_OS_NAME" == "linux" ]; then zip -r Drill-CLI-Debian-Executable.zip assets Drill-CLI DRILL_VERSION; fi
-  - if [ "$TRAVIS_OS_NAME" == "linux" ]; then cd tools/appimage && sh cli.sh && cd ../../; fi
-  - if [ "$TRAVIS_OS_NAME" == "linux" ]; then dub build -c GTK --build=release --parallel --force; fi
-  - if [ "$TRAVIS_OS_NAME" == "linux" ]; then zip -r Drill-GTK-Debian-Executable.zip assets Drill-GTK DRILL_VERSION; fi
-  - if [ "$TRAVIS_OS_NAME" == "linux" ]; then cd tools/appimage && sh gtk.sh && cd ../../; fi
+#windows
+- if [ "$TRAVIS_OS_NAME" == "windows" ]; then wget http://downloads.dlang.org/nightlies/dmd-master/dmd.master.windows.7z; fi
+- if [ "$TRAVIS_OS_NAME" == "windows" ]; then choco install zip; fi
+- if [ "$TRAVIS_OS_NAME" == "windows" ]; then zip --version; fi
+- if [ "$TRAVIS_OS_NAME" == "windows" ]; then choco install 7zip; fi
+- if [ "$TRAVIS_OS_NAME" == "windows" ]; then 7z x dmd.master.windows.7z; fi
+- if [ "$TRAVIS_OS_NAME" == "windows" ]; then git clone https://github.com/yatima1460/GTK-for-Windows-Runtime-Environment-Installer.git; fi
+- if [ "$TRAVIS_OS_NAME" == "windows" ]; then dmd2/windows/bin/dub build -c CLI --build=release --parallel --force; fi
+- if [ "$TRAVIS_OS_NAME" == "windows" ]; then zip -r Drill-CLI-Windows.zip assets Drill-CLI.exe DRILL_VERSION GTK-for-Windows-Runtime-Environment-Installer/gtk-nsis-pack/bin/; fi
+- if [ "$TRAVIS_OS_NAME" == "windows" ]; then dmd2/windows/bin/dub build -c GTK --build=release --parallel --force; fi
+- if [ "$TRAVIS_OS_NAME" == "windows" ]; then zip -r Drill-GTK-Windows.zip assets Drill-GTK.exe DRILL_VERSION GTK-for-Windows-Runtime-Environment-Installer/gtk-nsis-pack/bin/; fi
 
-
-before_deploy:
-  if ! [[ $TRAVIS_TAG ]]; then
-    git config --local user.name "Federico Santamorena" &&
-    git config --local user.email "federico@santamorena.me" &&
-    export TRAVIS_TAG=${TRAVIS_TAG:-$(date +'%Y%m%d%H%M%S')-$(git log --format=%h -1)} &&
-    git tag $TRAVIS_TAG;
-  fi
-
+#linux
+- if [ "$TRAVIS_OS_NAME" == "linux" ]; then sudo apt update; fi
+- if [ "$TRAVIS_OS_NAME" == "linux" ]; then sudo apt install desktop-file-utils; fi
+- if [ "$TRAVIS_OS_NAME" == "linux" ]; then curl -fsS https://dlang.org/install.sh | bash -s dmd; fi
+- if [ "$TRAVIS_OS_NAME" == "linux" ]; then source ~/dlang/dmd-2.086.0/activate; fi
+- if [ "$TRAVIS_OS_NAME" == "linux" ]; then dub build -c CLI --build=release --parallel --force; fi
+- if [ "$TRAVIS_OS_NAME" == "linux" ]; then zip -r Drill-CLI-Debian-Executable.zip assets Drill-CLI DRILL_VERSION; fi
+- if [ "$TRAVIS_OS_NAME" == "linux" ]; then cd tools/appimage && sh cli.sh && cd ../../; fi
+- if [ "$TRAVIS_OS_NAME" == "linux" ]; then dub build -c GTK --build=release --parallel --force; fi
+- if [ "$TRAVIS_OS_NAME" == "linux" ]; then zip -r Drill-GTK-Debian-Executable.zip assets Drill-GTK DRILL_VERSION; fi
+- if [ "$TRAVIS_OS_NAME" == "linux" ]; then cd tools/appimage && sh gtk.sh && cd ../../; fi
+# before_deploy: if ! [[ $TRAVIS_TAG ]]; then git config --local user.name "Federico
+#   Santamorena" && git config --local user.email "federico@santamorena.me" && export
+#   TRAVIS_TAG=${TRAVIS_TAG:-$(date +'%Y%m%d%H%M%S')-$(git log --format=%h -1)} && git
+#   tag $TRAVIS_TAG; fi
 deploy:
   provider: releases
-  draft: true
-  skip_cleanup: true
   api_key:
-    secure: gqTCooU9BmpLNQmh2cpid5qgiA7CIrK2kdN0u89XiRG6ghaandK1BJENs1lrWITfOqyLsaOxCQ8tKS5YcHMUfmInudOhtMccoQ6h8ZAGTKKEmRWccp9qtpj8yXNAF+OynIIPMyIBakogYMwQUKqnYGz5IFnNroFRqIbQLvVRttPzjruWxm60fwwfZoQF9qWyina2QagyW7qnOyyQTaLXUqjpOZh9gpNzRzcSjOSKlDA5BLUJdVnsc16m9hNzNmiPM0yoWm73zcjOndS0G4Z3izEib76gCg6iyc4Atlyoru68evr3uHI0V/Sd61mv/pNhG3IYLn18pH1qU8COuSLEno9duYwjdLuD56J52mRw9f9vYFgElZBOx83CfoRO2B8OVEFJwTAs87vyuBlvKhGbUjqUaP7aTe+f8sfGPY+Mk8LEavPe7c2FosXI2y6EpIFA5hT4PuApQ2ObEIUcJrBQLT5PGocYDmSivY+4PQSjb98rbjUdPjz8iJdT4mIxFk0qeKp/ro3jZpZzG4e7GAeGwD5aaiIkK5Xkl+b+M2MJxQqlIddzCOlB4lBZdC0KtOyUX+BolQuVcnQ9n9boR7xLL/z0ro8t6Uh6UKeKE4wrOx8qeWF6P5ErQCH3wkH3iBKhmLQTfMVAThklM1uWgxkvW4/K1KCClvPZ4ukCACy5WQw=
+    secure: $GITHUB_TOKEN
   file: 
     - tools/appimage/Drill-GTK.AppImage
     - tools/appimage/Drill-CLI.AppImage
@@ -62,10 +51,6 @@ deploy:
     - Drill-GTK-Windows.zip
   on:
     repo: yatima1460/Drill
-    tags: false
-    branches:
-      only:
-        - master
 
 notifications:
   email:
