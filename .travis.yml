@@ -14,8 +14,6 @@ script:
 
 #windows
 - if [ "$TRAVIS_OS_NAME" == "windows" ]; then wget http://downloads.dlang.org/nightlies/dmd-master/dmd.master.windows.7z; fi
-# - if [ "$TRAVIS_OS_NAME" == "windows" ]; then choco install zip; fi
-# - if [ "$TRAVIS_OS_NAME" == "windows" ]; then choco install 7zip; fi
 - if [ "$TRAVIS_OS_NAME" == "windows" ]; then 7z x dmd.master.windows.7z; fi
 - if [ "$TRAVIS_OS_NAME" == "windows" ]; then git clone https://github.com/yatima1460/GTK-for-Windows-Runtime-Environment-Installer.git; fi
 - if [ "$TRAVIS_OS_NAME" == "windows" ]; then dmd2/windows/bin/dub build -c CLI --build=release --parallel --force; fi
@@ -23,6 +21,8 @@ script:
 - if [ "$TRAVIS_OS_NAME" == "windows" ]; then dmd2/windows/bin/dub build -c GTK --build=release --parallel --force; fi
 - if [ "$TRAVIS_OS_NAME" == "windows" ]; then mv GTK-for-Windows-Runtime-Environment-Installer/gtk-nsis-pack/bin/*.dll .; fi
 - if [ "$TRAVIS_OS_NAME" == "windows" ]; then 7z a -tzip -r Drill-GTK-Windows.zip assets/ Drill-GTK.exe DRILL_VERSION *.dll; fi
+- if [ "$TRAVIS_OS_NAME" == "windows" ]; then test -f Drill-GTK-Windows.zip; fi
+- if [ "$TRAVIS_OS_NAME" == "windows" ]; then test -f Drill-CLI-Windows.zip; fi
 
 #linux
 - if [ "$TRAVIS_OS_NAME" == "linux" ]; then sudo apt update; fi
@@ -35,10 +35,11 @@ script:
 - if [ "$TRAVIS_OS_NAME" == "linux" ]; then dub build -c GTK --build=release --parallel --force; fi
 - if [ "$TRAVIS_OS_NAME" == "linux" ]; then zip -r Drill-GTK-Debian-Executable.zip assets Drill-GTK DRILL_VERSION; fi
 - if [ "$TRAVIS_OS_NAME" == "linux" ]; then cd tools/appimage && sh gtk.sh && cd ../../; fi
-# before_deploy: if ! [[ $TRAVIS_TAG ]]; then git config --local user.name "Federico
-#   Santamorena" && git config --local user.email "federico@santamorena.me" && export
-#   TRAVIS_TAG=${TRAVIS_TAG:-$(date +'%Y%m%d%H%M%S')-$(git log --format=%h -1)} && git
-#   tag $TRAVIS_TAG; fi
+- if [ "$TRAVIS_OS_NAME" == "linux" ]; then test -f Drill-GTK-Debian-Executable.zip; fi
+- if [ "$TRAVIS_OS_NAME" == "linux" ]; then test -f Drill-CLI-Debian-Executable.zip; fi
+- if [ "$TRAVIS_OS_NAME" == "linux" ]; then test -f Drill-GTK.AppImage; fi
+- if [ "$TRAVIS_OS_NAME" == "linux" ]; then test -f Drill-CLI.AppImage; fi
+
 deploy:
   provider: releases
   skip_cleanup: true
