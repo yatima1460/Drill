@@ -52,8 +52,8 @@ deploy:
   file: 
     - tools/appimage/Drill-GTK.AppImage
     - tools/appimage/Drill-CLI.AppImage
-    - Drill-GTK-Debian-Executable.zip
-    - Drill-CLI-Debian-Executable.zip
+    - Drill-GTK-Linux-Executable.zip
+    - Drill-CLI-Linux-Executable.zip
     - Drill-CLI-Windows.zip
     - Drill-GTK-Windows.zip
     
