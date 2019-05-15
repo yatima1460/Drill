@@ -26,7 +26,7 @@ script:
 
 #linux
 - if [ "$TRAVIS_OS_NAME" == "linux" ]; then sudo apt update; fi
-- if [ "$TRAVIS_OS_NAME" == "linux" ]; then sudo apt install desktop-file-utils; fi
+- if [ "$TRAVIS_OS_NAME" == "linux" ]; then sudo apt install desktop-file-utils p7zip-full; fi
 - if [ "$TRAVIS_OS_NAME" == "linux" ]; then curl -fsS https://dlang.org/install.sh | bash -s dmd; fi
 - if [ "$TRAVIS_OS_NAME" == "linux" ]; then source ~/dlang/dmd-2.086.0/activate; fi
 - if [ "$TRAVIS_OS_NAME" == "linux" ]; then dub build -c CLI --build=release --parallel --force; fi
