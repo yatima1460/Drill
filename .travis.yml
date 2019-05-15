@@ -1,6 +1,8 @@
 os:
 - linux
 - windows
+- osx
+
 language: bash
 
 before_script:
@@ -10,35 +12,63 @@ before_script:
 - git config --local user.email "federico@santamorena.me"
 - git tag "$TRAVIS_TAG" "$TRAVIS_COMMIT"
 
+addons:
+  #linux
+  apt:
+    packages:
+      - desktop-file-utils
+      - p7zip-full
+  #osx
+  homebrew:
+    update: true
+    packages:
+      - dmd
+      - gtk+3
+      - dub
+
+
 script:
 
-#windows
-- if [ "$TRAVIS_OS_NAME" == "windows" ]; then wget http://downloads.dlang.org/nightlies/dmd-master/dmd.master.windows.7z; fi
-- if [ "$TRAVIS_OS_NAME" == "windows" ]; then 7z x dmd.master.windows.7z; fi
-- if [ "$TRAVIS_OS_NAME" == "windows" ]; then git clone https://github.com/yatima1460/GTK-for-Windows-Runtime-Environment-Installer.git; fi
-- if [ "$TRAVIS_OS_NAME" == "windows" ]; then dmd2/windows/bin/dub build -c CLI --build=release --parallel --force; fi
-- if [ "$TRAVIS_OS_NAME" == "windows" ]; then 7z a -tzip -r Drill-CLI-Windows.zip assets/ Drill-CLI.exe; fi
-- if [ "$TRAVIS_OS_NAME" == "windows" ]; then dmd2/windows/bin/dub build -c GTK --build=release --parallel --force; fi
-- if [ "$TRAVIS_OS_NAME" == "windows" ]; then mv GTK-for-Windows-Runtime-Environment-Installer/gtk-nsis-pack/bin/*.dll .; fi
-- if [ "$TRAVIS_OS_NAME" == "windows" ]; then 7z a -tzip -r Drill-GTK-Windows.zip assets/ Drill-GTK.exe DRILL_VERSION *.dll; fi
-- if [ "$TRAVIS_OS_NAME" == "windows" ]; then test -f Drill-GTK-Windows.zip; fi
-- if [ "$TRAVIS_OS_NAME" == "windows" ]; then test -f Drill-CLI-Windows.zip; fi
+  #windows
+  - >
+    if [ "$TRAVIS_OS_NAME" == "windows" ]; then wget http://downloads.dlang.org/nightlies/dmd-master/dmd.master.windows.7z;
+      7z x dmd.master.windows.7z;
+      git clone https://github.com/yatima1460/GTK-for-Windows-Runtime-Environment-Installer.git;
+      dmd2/windows/bin/dub build -c CLI --build=release --parallel --force;
+      7z a -tzip -r Drill-CLI-Windows.zip assets/ Drill-CLI.exe;
+      dmd2/windows/bin/dub build -c GTK --build=release --parallel --force;
+      mv GTK-for-Windows-Runtime-Environment-Installer/gtk-nsis-pack/bin/*.dll .;
+      7z a -tzip -r Drill-GTK-Windows.zip assets/ Drill-GTK.exe DRILL_VERSION *.dll;
+      test -f Drill-GTK-Windows.zip;
+      test -f Drill-CLI-Windows.zip;
+    fi
 
-#linux
-- if [ "$TRAVIS_OS_NAME" == "linux" ]; then sudo apt update; fi
-- if [ "$TRAVIS_OS_NAME" == "linux" ]; then sudo apt install desktop-file-utils p7zip-full; fi
-- if [ "$TRAVIS_OS_NAME" == "linux" ]; then curl -fsS https://dlang.org/install.sh | bash -s dmd; fi
-- if [ "$TRAVIS_OS_NAME" == "linux" ]; then source ~/dlang/dmd-2.086.0/activate; fi
-- if [ "$TRAVIS_OS_NAME" == "linux" ]; then dub build -c CLI --build=release --parallel --force; fi
-- if [ "$TRAVIS_OS_NAME" == "linux" ]; then 7z a -tzip -r Drill-CLI-Linux.zip assets Drill-CLI DRILL_VERSION; fi
-- if [ "$TRAVIS_OS_NAME" == "linux" ]; then cd tools/appimage && sh cli.sh && cd ../../; fi
-- if [ "$TRAVIS_OS_NAME" == "linux" ]; then dub build -c GTK --build=release --parallel --force; fi
-- if [ "$TRAVIS_OS_NAME" == "linux" ]; then 7z a -tzip -r Drill-GTK-Linux.zip assets Drill-GTK DRILL_VERSION; fi
-- if [ "$TRAVIS_OS_NAME" == "linux" ]; then cd tools/appimage && sh gtk.sh && cd ../../; fi
-- if [ "$TRAVIS_OS_NAME" == "linux" ]; then test -f Drill-GTK-Linux.zip; fi
-- if [ "$TRAVIS_OS_NAME" == "linux" ]; then test -f Drill-CLI-Linux.zip; fi
-- if [ "$TRAVIS_OS_NAME" == "linux" ]; then test -f tools/appimage/Drill-GTK.AppImage; fi
-- if [ "$TRAVIS_OS_NAME" == "linux" ]; then test -f tools/appimage/Drill-CLI.AppImage; fi
+  #linux
+  - >
+    if [ "$TRAVIS_OS_NAME" == "linux" ]; then 
+      curl -fsS https://dlang.org/install.sh | bash -s dmd;
+      source ~/dlang/dmd-2.086.0/activate;
+      dub build -c CLI --build=release --parallel --force;
+      7z a -tzip -r Drill-CLI-Linux.zip assets Drill-CLI DRILL_VERSION;
+      cd tools/appimage && sh cli.sh && cd ../../;
+      dub build -c GTK --build=release --parallel --force;
+      7z a -tzip -r Drill-GTK-Linux.zip assets Drill-GTK DRILL_VERSION;
+      cd tools/appimage && sh gtk.sh && cd ../../;
+      test -f Drill-GTK-Linux.zip;
+      test -f Drill-CLI-Linux.zip;
+      test -f tools/appimage/Drill-GTK.AppImage;
+      test -f tools/appimage/Drill-CLI.AppImage;
+    fi
+
+  #osx 
+  - >
+    if [ "$TRAVIS_OS_NAME" = "osx" ]; then
+      dub build -c CLI --build=release --parallel --force;
+      ls;
+      dub build -c GTK --build=release --parallel --force;
+      ls;
+    fi
+
 
 deploy:
   provider: releases
