@@ -25,13 +25,15 @@ addons:
       - dmd
       - gtk+3
       - dub
+      - p7zip
 
 
 script:
 
   #windows
   - >
-    if [ "$TRAVIS_OS_NAME" == "windows" ]; then wget http://downloads.dlang.org/nightlies/dmd-master/dmd.master.windows.7z;
+    if [ "$TRAVIS_OS_NAME" == "windows" ]; 
+      then wget http://downloads.dlang.org/nightlies/dmd-master/dmd.master.windows.7z;
       7z x dmd.master.windows.7z;
       git clone https://github.com/yatima1460/GTK-for-Windows-Runtime-Environment-Installer.git;
       dmd2/windows/bin/dub build -c CLI --build=release --parallel --force;
@@ -64,9 +66,11 @@ script:
   - >
     if [ "$TRAVIS_OS_NAME" = "osx" ]; then
       dub build -c CLI --build=release --parallel --force;
-      ls;
+      7z a -tzip -r Drill-CLI-OSX.zip assets Drill-CLI DRILL_VERSION;
       dub build -c GTK --build=release --parallel --force;
-      ls;
+      7z a -tzip -r Drill-GTK-OSX.zip assets Drill-GTK DRILL_VERSION;
+      test -f Drill-GTK-OSX.zip;
+      test -f Drill-CLI-OSX.zip;
     fi
 
 
@@ -86,6 +90,8 @@ deploy:
     - Drill-CLI-Linux.zip
     - Drill-CLI-Windows.zip
     - Drill-GTK-Windows.zip
+    - Drill-GTK-OSX.zip
+    - Drill-CLI-OSX.zip
     
   on:
     repo: yatima1460/Drill
