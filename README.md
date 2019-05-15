@@ -40,12 +40,15 @@ If your distro doesn't ask you to mark it executable or nothing happens try:
 
 # Build and Run
 
+**Some dependencies don't build with GDC!!!**
+**Use DMD or LDC!!!**
+
 ## Manual prerequisites
 
 - The repo, remember to clone the submodules too with:
     - `git clone --recurse-submodules -j8 https://github.com/yatima1460/Drill.git`
 - D
-    - `sudo apt install dub`
+    - `curl -fsS https://dlang.org/install.sh | bash -s dmd`
 
 ### Configurations available (in dub.json)
 
