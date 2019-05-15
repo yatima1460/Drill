@@ -299,11 +299,17 @@ private:
 
     }
 
-    private void loadGTKIconFiletypes() 
+    private void loadGTKIconFiletypes(immutable(string) exe_path) 
     {
         import std.file : dirEntries, SpanMode;
+        import std.path : buildNormalizedPath, absolutePath;
+        import std.path : buildPath;
 
-        auto filetypes_file = dirEntries(DirEntry("assets/filetypes"), SpanMode.shallow, true);
+       
+
+        
+        
+        auto filetypes_file = dirEntries(DirEntry( buildPath(exe_path,"assets/filetypes")), SpanMode.shallow, true);
 
         foreach (string partial_filetype; filetypes_file)
         {
@@ -318,11 +324,12 @@ private:
         }
     }
 
-    public void loadGTKIcon()  
+    public void loadGTKIcon(immutable(string) exe_path)  
     {
+        import std.path : buildPath;
         try
         {
-            this.setIconFromFile("assets/icon.png");
+            this.setIconFromFile(buildPath(exe_path,"assets/icon.png"));
         }
         catch (GException ge)
         {
@@ -335,9 +342,11 @@ private:
 
     }
 
-    public this(Application application)
+    public this(immutable(string) exe, Application application)
     {
-        drillapi = new DrillAPI();
+        import std.path: dirName, buildNormalizedPath;
+        immutable(string) exe_path = dirName(buildNormalizedPath(exe));
+        drillapi = new DrillAPI(exe_path);
 
         super(application);
         this.setTitle("Drill");
@@ -360,8 +369,8 @@ private:
         this.setResizable(true);
         this.setPosition(GtkWindowPosition.CENTER);
 
-        this.loadGTKIconFiletypes();
-        this.loadGTKIcon();
+        this.loadGTKIconFiletypes(exe_path);
+        this.loadGTKIcon(exe_path);
 
         this.liststore = new ListStore([
                 GType.STRING, GType.STRING, GType.STRING, GType.STRING,
