@@ -111,12 +111,37 @@ private:
             {
                 Array!DirEntry* next_queue = new Array!DirEntry();
 
-                foreach (parent; *queue)
+                import std.algorithm : sort;
+                import std.array : array;
+                import std.path : baseName;
+
+                auto q = array(queue);
+
+                bool  myComp(DirEntry de1,DirEntry de2) 
+                {
+                    auto d1 = baseName(de1.name);
+                    auto d2 = baseName(de2.name);
+
+                    //HACK: these need to use the prioritylists folder
+                    if (d1 == "Downloads" || d1 == "Documents" || d1 == "Pictures" || d1 == "home" || d1 == "Music" || d1 == "Videos" || d1 == "Users")
+                    {
+                        return true;
+                    }
+
+                    //do not swap
+                    return false;
+                }
+                
+              
+
+                foreach (parent;  sort!(myComp)(q))
                 {
 
                     try
                     {
                         DirIterator entries = dirEntries(parent, SpanMode.shallow, true);
+
+
 
                         fileloop: foreach (DirEntry direntry; entries)
                         {
