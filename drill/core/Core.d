@@ -22,17 +22,21 @@ private:
 
 public:
 
-    this() 
+    this(immutable(string) exe_path) 
     {
+
+
+
         this.threads = Array!Crawler();
         import std.file : dirEntries, SpanMode, DirEntry, readText, FileException;
+        import std.path : buildPath;
 
         string[] temp_blocklist = [];
         string version_temp = "?";
         try
         {
 
-            auto blocklists_file = dirEntries(DirEntry("assets/blocklists"), SpanMode.shallow, true);
+            auto blocklists_file = dirEntries(DirEntry( buildPath(exe_path,"assets/blocklists")), SpanMode.shallow, true);
 
             foreach (string partial_blocklist; blocklists_file)
             {
