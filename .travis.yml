@@ -30,13 +30,13 @@ script:
 - if [ "$TRAVIS_OS_NAME" == "linux" ]; then curl -fsS https://dlang.org/install.sh | bash -s dmd; fi
 - if [ "$TRAVIS_OS_NAME" == "linux" ]; then source ~/dlang/dmd-2.086.0/activate; fi
 - if [ "$TRAVIS_OS_NAME" == "linux" ]; then dub build -c CLI --build=release --parallel --force; fi
-- if [ "$TRAVIS_OS_NAME" == "linux" ]; then zip -r Drill-CLI-Debian-Executable.zip assets Drill-CLI DRILL_VERSION; fi
+- if [ "$TRAVIS_OS_NAME" == "linux" ]; then zip -r Drill-CLI-Linux-Executable.zip assets Drill-CLI DRILL_VERSION; fi
 - if [ "$TRAVIS_OS_NAME" == "linux" ]; then cd tools/appimage && sh cli.sh && cd ../../; fi
 - if [ "$TRAVIS_OS_NAME" == "linux" ]; then dub build -c GTK --build=release --parallel --force; fi
-- if [ "$TRAVIS_OS_NAME" == "linux" ]; then zip -r Drill-GTK-Debian-Executable.zip assets Drill-GTK DRILL_VERSION; fi
+- if [ "$TRAVIS_OS_NAME" == "linux" ]; then zip -r Drill-GTK-Linux-Executable.zip assets Drill-GTK DRILL_VERSION; fi
 - if [ "$TRAVIS_OS_NAME" == "linux" ]; then cd tools/appimage && sh gtk.sh && cd ../../; fi
-- if [ "$TRAVIS_OS_NAME" == "linux" ]; then test -f Drill-GTK-Debian-Executable.zip; fi
-- if [ "$TRAVIS_OS_NAME" == "linux" ]; then test -f Drill-CLI-Debian-Executable.zip; fi
+- if [ "$TRAVIS_OS_NAME" == "linux" ]; then test -f Drill-GTK-Linux-Executable.zip; fi
+- if [ "$TRAVIS_OS_NAME" == "linux" ]; then test -f Drill-CLI-Linux-Executable.zip; fi
 - if [ "$TRAVIS_OS_NAME" == "linux" ]; then test -f tools/appimage/Drill-GTK.AppImage; fi
 - if [ "$TRAVIS_OS_NAME" == "linux" ]; then test -f tools/appimage/Drill-CLI.AppImage; fi
 
