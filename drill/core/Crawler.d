@@ -60,12 +60,12 @@ public:
         resultCallback = resultFound;
     }
 
-    pure void stopAsync()  @safe @nogc
+    pure void stopAsync() @safe @nogc
     {
         this.running = false;
     }
 
-    void stopSync() 
+    void stopSync()
     {
         this.running = false;
         this.join();
@@ -78,7 +78,7 @@ public:
     //     return i;
     // }
 
-    pure const override string toString() @safe 
+    pure const override string toString() @safe
     {
         return "Thread(" ~ root ~ ")";
     }
@@ -117,13 +117,15 @@ private:
 
                 auto q = array(queue);
 
-                bool  myComp(DirEntry de1,DirEntry de2) 
+                bool myComp(DirEntry de1, DirEntry de2)
                 {
                     auto d1 = baseName(de1.name);
                     auto d2 = baseName(de2.name);
 
                     //HACK: these need to use the prioritylists folder
-                    if (d1 == "Downloads" || d1 == "Documents" || d1 == "Pictures" || d1 == "home" || d1 == "Music" || d1 == "Videos" || d1 == "Users")
+                    if (d1 == "Downloads" || d1 == "Documents" || d1 == "Pictures" || d1 == "home"
+                            || d1 == "Music" || d1 == "Videos" || d1 == "Users"
+                            || d1 == "Google Drive")
                     {
                         return true;
                     }
@@ -131,17 +133,13 @@ private:
                     //do not swap
                     return false;
                 }
-                
-              
 
-                foreach (parent;  sort!(myComp)(q))
+                foreach (parent; sort!(myComp)(q))
                 {
 
                     try
                     {
                         DirIterator entries = dirEntries(parent, SpanMode.shallow, true);
-
-
 
                         fileloop: foreach (DirEntry direntry; entries)
                         {
@@ -207,11 +205,30 @@ private:
                             import std.path : baseName, dirName, extension;
 
                             // TODO split by space and search every token
-                            if (!canFind(baseName(direntry.name), search))
-                                continue;
+                            import std.uni : toLower;
+                            import std.string : split, strip;
+
+                            const string fileNameLower = toLower(baseName(direntry.name));
+
+                            //FIXME: filter and remove empty strings (if the user writes "a   b")
+                            const string[] searchTokens = toLower(strip(search)).split(" ");
+                            //writeln(searchTokens, fileNameLower);
+
+                            foreach (token; searchTokens)
+                            {
+                                if (!canFind(fileNameLower, token))
+                                {
+                                    //writeln("skipping...");
+                                    continue fileloop;
+                                }
+                           
+
+                            }
 
                             f.fullPath = direntry.name;
                             f.fileName = baseName(direntry.name);
+
+                            f.fileNameLower = toLower(f.fileName);
                             f.containingFolder = dirName(direntry.name);
                             f.extension = extension(direntry.name);
                             import drill.core.utils : humanSize;

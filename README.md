@@ -17,7 +17,8 @@ Search files without indexing, but clever crawling:
 - Use as much RAM as possible for caching stuff
 - Try to avoid "black hole folders" using a regex based blocklist in which the crawler will never come out and never scan useful files (`node_modules`,`Windows`,etc)
 - **Intended for desktop users**, no obscure Linux files and system files scans
-- Betting on the future: really works only with SSDs/M.2 or fast RAID arrays
+- Use priority lists to first scan important folders.
+- Betting on the future: slowly being optimized for SSDs/M.2 or fast RAID arrays
 
 
 ![](https://raw.githubusercontent.com/yatima1460/Drill/gh-pages/screenshot.png)
@@ -102,7 +103,9 @@ TODOs:
             - ~~Open File~~
             - Select file if contained folder
             - Error on file open
-    - All comparisons need to be done in lower case strings
+    - ~~All comparisons need to be done in lower case strings~~
+    - ~~Priority lists specified in assets/prioritylists~~
+    - ~~Multi-token search (searching "a b" will find all files with "a" and "b" in the name)~~
     - /home/username needs to have higher priority over / crawler when /home isn't mounted on a secondary mountpoint
     - Sorting by column
     - Commas in numbers strings
