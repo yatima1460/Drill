@@ -42,7 +42,7 @@ deploy:
   provider: releases
   skip_cleanup: true
   draft: false
-  prerelease: true
+  prerelease: false
   tag_name: $TRAVIS_TAG
   target_commitish: $TRAVIS_COMMIT
   api_key:
