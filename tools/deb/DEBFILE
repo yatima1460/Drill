@@ -1,0 +1,36 @@
+maintainer="Federico Santamorena <federico@santamorena.me>"
+pkgname=drill
+pkgver=1.0
+pkgrel=1
+distribution="buster"
+urgency="medium"
+pkgdesc="Short description\nHere should be a longer description text.\nIt can have multiple lines."
+section="misc"
+priority="optional"
+arch=('all')
+url="https://templateurl.org/"
+depends=('depend1' 'depend2' 'depend3')
+builddepends=('build1' 'build2' 'build3')
+recommends=('recommend1' 'recommend2' 'recommend3')
+suggests=('suggest1' 'suggest2' 'suggest3')
+provides=('provide1' 'provide2' 'provide3')
+breaks=('break1' 'break2' 'break3')
+conflicts=('conflict1' 'conflict2' 'conflict3')
+replaces=('replace1' 'replace2' 'replace3')
+source=("https://templateurl.org/template.tar.gz")
+
+prepare() {
+	echo "prepare function"
+}
+
+build() {
+	echo "build function"
+}
+
+check() {
+	echo "check function"
+}
+
+package() {
+	echo "package function"
+}
