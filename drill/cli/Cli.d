@@ -39,7 +39,9 @@ immutable(string) searchInput()
 
 int main(string[] args)
 {
-    DrillAPI drill = new DrillAPI();
+    import std.path : dirName, buildNormalizedPath;
+    immutable(string) exe_path = dirName(buildNormalizedPath(args[0]));
+    DrillAPI drill = new DrillAPI(exe_path);
 
     import std.functional : toDelegate;
     
