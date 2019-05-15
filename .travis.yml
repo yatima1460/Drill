@@ -37,8 +37,8 @@ script:
 - if [ "$TRAVIS_OS_NAME" == "linux" ]; then cd tools/appimage && sh gtk.sh && cd ../../; fi
 - if [ "$TRAVIS_OS_NAME" == "linux" ]; then test -f Drill-GTK-Debian-Executable.zip; fi
 - if [ "$TRAVIS_OS_NAME" == "linux" ]; then test -f Drill-CLI-Debian-Executable.zip; fi
-- if [ "$TRAVIS_OS_NAME" == "linux" ]; then test -f Drill-GTK.AppImage; fi
-- if [ "$TRAVIS_OS_NAME" == "linux" ]; then test -f Drill-CLI.AppImage; fi
+- if [ "$TRAVIS_OS_NAME" == "linux" ]; then test -f tools/appimage/Drill-GTK.AppImage; fi
+- if [ "$TRAVIS_OS_NAME" == "linux" ]; then test -f tools/appimage/Drill-CLI.AppImage; fi
 
 deploy:
   provider: releases
