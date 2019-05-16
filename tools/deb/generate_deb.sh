@@ -30,9 +30,9 @@ cp control DEBFILE/DEBIAN
 
 if [ -f ../../DRILL_VERSION ]; then
     cp ../../DRILL_VERSION DEBFILE/opt/drill/
-    echo Version: $(<../../DRILL_VERSION) >> DEBFILE/DEBIAN/control
+    echo Version: $(cat ../../DRILL_VERSION) >> DEBFILE/DEBIAN/control
     cat DEBFILE/DEBIAN/control
-    echo Building .deb for version $(<../../DRILL_VERSION)
+    echo Building .deb for version $(cat ../../DRILL_VERSION)
 else
     echo No Drill version found!
     echo Version: 0.0.0 >> DEBFILE/DEBIAN/control
