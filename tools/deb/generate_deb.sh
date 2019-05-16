@@ -21,7 +21,8 @@ chmod +x DEBFILE/usr/bin/drill
 mkdir -p DEBFILE/opt/drill/
 cp ../../Drill-GTK DEBFILE/opt/drill/Drill-GTK
 cp -r ../../assets DEBFILE/opt/drill/
-chmod -R 700 DEBFILE/opt/drill
+#chmod -R 700 DEBFILE/opt/drill
+chmod +x DEBFILE/opt/drill/Drill-GTK
 
 
 #add deb metadata
