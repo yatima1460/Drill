@@ -35,17 +35,18 @@ script:
       curl -fsS https://dlang.org/install.sh | bash -s dmd;
       source ~/dlang/dmd-2.086.0/activate;
       dub build -c CLI --build=release --parallel --force;
-      7z a -tzip -r Drill-CLI-Linux.zip assets Drill-CLI DRILL_VERSION;
-      cd tools/appimage && sh cli.sh && cd ../../;
+      
+      #7z a -tzip -r Drill-CLI-Linux.zip assets Drill-CLI DRILL_VERSION;
+      #cd tools/appimage && sh cli.sh && cd ../../;
       dub build -c GTK --build=release --parallel --force;
       7z a -tzip -r Drill-GTK-Linux.zip assets Drill-GTK DRILL_VERSION;
-      cd tools/appimage && sh gtk.sh && cd ../../;
       cd tools/deb && sh generate_deb.sh && cd ../../;
+      cd tools/appimage && sh gtk.sh && cd ../../;
       test -f Drill-GTK.deb;
       test -f Drill-GTK-Linux.zip;
-      test -f Drill-CLI-Linux.zip;
+      #test -f Drill-CLI-Linux.zip;
       test -f tools/appimage/Drill-GTK.AppImage;
-      test -f tools/appimage/Drill-CLI.AppImage;
+      #test -f tools/appimage/Drill-CLI.AppImage;
     fi
 
   #windows
@@ -88,13 +89,13 @@ deploy:
     secure: $GITHUB_TOKEN
   file: 
     - tools/appimage/Drill-GTK.AppImage
-    - tools/appimage/Drill-CLI.AppImage
+    #- tools/appimage/Drill-CLI.AppImage
     - Drill-GTK-Linux.zip
-    - Drill-CLI-Linux.zip
-    - Drill-CLI-Windows.zip
-    - Drill-GTK-Windows.zip
-    - Drill-GTK-OSX.zip
-    - Drill-CLI-OSX.zip
+    #- Drill-CLI-Linux.zip
+    #- Drill-CLI-Windows.zip
+    #- Drill-GTK-Windows.zip
+    #- Drill-GTK-OSX.zip
+    #- Drill-CLI-OSX.zip
     - tools/deb/Drill-GTK.deb
     
   on:
