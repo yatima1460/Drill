@@ -1,10 +1,8 @@
 Package: drill
-Version: 0.1.1
 Architecture: all
+Essential: no
+Priority: optional
+Depends: libgtk-3-0 (>= 3.22.0),libgcc1
 Maintainer: Federico Santamorena<federico@santamorena.me>
-Installed-Size: 2
-Depends: python3-tk, python3-psutil
-Section: extras
-Priority: standard
-Homepage: https://github.com/yatima1460/drill
 Description: Search files without using indexing, but clever crawling
+Homepage: https://github.com/yatima1460/Drill
