@@ -1,7 +1,7 @@
 os:
 - linux
-- windows
-- osx
+#- windows
+#- osx
 
 language: bash
 
@@ -29,22 +29,6 @@ addons:
 
 
 script:
-
-  #windows
-  - >
-    if [ "$TRAVIS_OS_NAME" == "windows" ]; 
-      then wget http://downloads.dlang.org/nightlies/dmd-master/dmd.master.windows.7z;
-      7z x dmd.master.windows.7z;
-      git clone https://github.com/yatima1460/GTK-for-Windows-Runtime-Environment-Installer.git;
-      dmd2/windows/bin/dub build -c CLI --build=release --parallel --force;
-      7z a -tzip -r Drill-CLI-Windows.zip assets/ Drill-CLI.exe;
-      dmd2/windows/bin/dub build -c GTK --build=release --parallel --force;
-      mv GTK-for-Windows-Runtime-Environment-Installer/gtk-nsis-pack/bin/*.dll .;
-      7z a -tzip -r Drill-GTK-Windows.zip assets/ Drill-GTK.exe DRILL_VERSION *.dll;
-      test -f Drill-GTK-Windows.zip;
-      test -f Drill-CLI-Windows.zip;
-    fi
-
   #linux
   - >
     if [ "$TRAVIS_OS_NAME" == "linux" ]; then 
@@ -64,16 +48,33 @@ script:
       test -f tools/appimage/Drill-CLI.AppImage;
     fi
 
+  #windows
+  # - >
+  #   if [ "$TRAVIS_OS_NAME" == "windows" ]; 
+  #     then wget http://downloads.dlang.org/nightlies/dmd-master/dmd.master.windows.7z;
+  #     7z x dmd.master.windows.7z;
+  #     git clone https://github.com/yatima1460/GTK-for-Windows-Runtime-Environment-Installer.git;
+  #     dmd2/windows/bin/dub build -c CLI --build=release --parallel --force;
+  #     7z a -tzip -r Drill-CLI-Windows.zip assets/ Drill-CLI.exe;
+  #     dmd2/windows/bin/dub build -c GTK --build=release --parallel --force;
+  #     mv GTK-for-Windows-Runtime-Environment-Installer/gtk-nsis-pack/bin/*.dll .;
+  #     7z a -tzip -r Drill-GTK-Windows.zip assets/ Drill-GTK.exe DRILL_VERSION *.dll;
+  #     test -f Drill-GTK-Windows.zip;
+  #     test -f Drill-CLI-Windows.zip;
+  #   fi
+
+
+
   #osx 
-  - >
-    if [ "$TRAVIS_OS_NAME" = "osx" ]; then
-      dub build -c CLI --build=release --parallel --force;
-      7z a -tzip -r Drill-CLI-OSX.zip assets Drill-CLI DRILL_VERSION;
-      dub build -c GTK --build=release --parallel --force;
-      7z a -tzip -r Drill-GTK-OSX.zip assets Drill-GTK DRILL_VERSION;
-      test -f Drill-GTK-OSX.zip;
-      test -f Drill-CLI-OSX.zip;
-    fi
+  # - >
+  #   if [ "$TRAVIS_OS_NAME" = "osx" ]; then
+  #     dub build -c CLI --build=release --parallel --force;
+  #     7z a -tzip -r Drill-CLI-OSX.zip assets Drill-CLI DRILL_VERSION;
+  #     dub build -c GTK --build=release --parallel --force;
+  #     7z a -tzip -r Drill-GTK-OSX.zip assets Drill-GTK DRILL_VERSION;
+  #     test -f Drill-GTK-OSX.zip;
+  #     test -f Drill-CLI-OSX.zip;
+  #   fi
 
 
 deploy:
