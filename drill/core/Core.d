@@ -52,7 +52,7 @@ public:
         try
         {
             import std.array : join, replace;
-            version_temp = replace(join(readText("DRILL_VERSION").split("\n"),"-")," ","-");
+            version_temp = replace(join(readText(buildPath(exe_path,"DRILL_VERSION")).split("\n"),"-")," ","-");
 
         }
         catch (FileException fe)
