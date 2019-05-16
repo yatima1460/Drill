@@ -1,12 +1,13 @@
 # Drill
 *.log
+DRILL_VERSION
 
 # D
 dub.selections.json
 
 # Executables
-Drill-x64-GTK
-Drill-x64-Cli
+DrillExecutable
+Drill-*
 *.exe
 
 # Binaries
@@ -21,4 +22,6 @@ Drill-x64-Cli
 me.santamorena.drill
 pkg2appimage*
 
+#.deb
+DEBFILE
 

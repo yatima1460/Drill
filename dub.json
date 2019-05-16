@@ -8,50 +8,45 @@
 	"license": "GPL-2.0",
 	"homepage": "https://github.com/yatima1460/Drill",
 	
-
-	"dependencies": {
-		"gtk-d:gtkd": {
-			"path": "vendor/GtkD"
-		},
-		"datefmt": {
-			"path": "vendor/datefmt"
-		}
-	},
+	"preGenerateCommands-windows": [],
 	
-    
+	"targetType": "executable",
 	"configurations": [
 		{
-			"name": "x64-Cli",
-			"targetType": "executable",
-			"targetName": "Drill-x64-Cli",
-			"sourcePaths": ["drill/core"],
+			"name": "CLI",
+			"targetName": "Drill-CLI",
 			"sourceFiles": [
 				"drill/core/FileInfo.d",
 				"drill/core/Core.d",
 				"drill/core/Crawler.d",
 				"drill/core/Utils.d",
-
 				"drill/cli/Cli.d"
-			]
-	
+			],
+			"dependencies": {
+				"datefmt": {
+					"path": "vendor/datefmt"
+				}
+			}
 		},
 		{
-			"name": "x64-GTK",
-			"targetType": "executable",
-			"targetName": "Drill-x64-GTK",
-			"sourcePaths": ["drill/core","drill/gtk"],
+			"name": "GTK",
+			"targetName": "Drill-GTK",
 			"sourceFiles": [
 				"drill/core/FileInfo.d",
 				"drill/core/Core.d",
 				"drill/core/Crawler.d",
 				"drill/core/Utils.d",
-
 				"drill/gtkui/Window.d",
-				"drill/gtkui/SearchEntry.d",
 				"drill/gtkui/Main.d"
-			]
-	
+			],
+			"dependencies": {
+				"gtk-d:gtkd": {
+					"path": "vendor/GtkD"
+				},
+				"datefmt": {
+					"path": "vendor/datefmt"
+				}
+			}
 		}
-	
 	]
 }

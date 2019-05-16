@@ -1,6 +1,7 @@
 [Desktop Entry]
-Type=Application
+Version=1.0
 Name=Drill
+Type=Application
 Comment=Search files without using indexing, but clever crawling
 Comment[it]=Trova files sul tuo PC senza indicizzare, ma cercando intelligentemente
 Icon=icon.svg

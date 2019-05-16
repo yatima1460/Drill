@@ -1,0 +1,103 @@
+os:
+- linux
+#- windows
+#- osx
+
+language: bash
+
+before_script:
+- export TRAVIS_TAG="1.$TRAVIS_BUILD_NUMBER"
+- echo -n $TRAVIS_TAG > DRILL_VERSION
+- git config --local user.name "Federico Santamorena"
+- git config --local user.email "federico@santamorena.me"
+- git tag "$TRAVIS_TAG" "$TRAVIS_COMMIT"
+
+addons:
+  #linux
+  apt:
+    packages:
+      - desktop-file-utils
+      - p7zip-full
+  #osx
+  homebrew:
+    update: true
+    packages:
+      - dmd
+      - gtk+3
+      - dub
+      - p7zip
+
+
+script:
+  #linux
+  - >
+    if [ "$TRAVIS_OS_NAME" == "linux" ]; then 
+      curl -fsS https://dlang.org/install.sh | bash -s dmd;
+      source ~/dlang/dmd-2.086.0/activate;
+      dub build -c CLI --build=release --parallel --force
+      7z a -tzip -r Drill-CLI-AppDir.zip assets Drill-CLI DRILL_VERSION &
+      dub build -c GTK --build=release --parallel --force &
+      wait
+      7z a -tzip -r Drill-GTK-AppDir.zip assets Drill-GTK DRILL_VERSION &
+      cd tools/deb && sh generate_deb.sh && cd ../../ &
+      cd tools/appimage && sh gtk.sh && cd ../../ &
+      wait
+    fi
+
+  #windows
+  # - >
+  #   if [ "$TRAVIS_OS_NAME" == "windows" ]; 
+  #     then wget http://downloads.dlang.org/nightlies/dmd-master/dmd.master.windows.7z;
+  #     7z x dmd.master.windows.7z;
+  #     git clone https://github.com/yatima1460/GTK-for-Windows-Runtime-Environment-Installer.git;
+  #     dmd2/windows/bin/dub build -c CLI --build=release --parallel --force;
+  #     7z a -tzip -r Drill-CLI-Windows.zip assets/ Drill-CLI.exe;
+  #     dmd2/windows/bin/dub build -c GTK --build=release --parallel --force;
+  #     mv GTK-for-Windows-Runtime-Environment-Installer/gtk-nsis-pack/bin/*.dll .;
+  #     7z a -tzip -r Drill-GTK-Windows.zip assets/ Drill-GTK.exe DRILL_VERSION *.dll;
+  #     test -f Drill-GTK-Windows.zip;
+  #     test -f Drill-CLI-Windows.zip;
+  #   fi
+
+
+
+  #osx 
+  # - >
+  #   if [ "$TRAVIS_OS_NAME" = "osx" ]; then
+  #     dub build -c CLI --build=release --parallel --force;
+  #     7z a -tzip -r Drill-CLI-OSX.zip assets Drill-CLI DRILL_VERSION;
+  #     dub build -c GTK --build=release --parallel --force;
+  #     7z a -tzip -r Drill-GTK-OSX.zip assets Drill-GTK DRILL_VERSION;
+  #     test -f Drill-GTK-OSX.zip;
+  #     test -f Drill-CLI-OSX.zip;
+  #   fi
+
+
+deploy:
+  provider: releases
+  skip_cleanup: true
+  draft: false
+  prerelease: false
+  tag_name: $TRAVIS_TAG
+  target_commitish: $TRAVIS_COMMIT
+  api_key:
+    secure: $GITHUB_TOKEN
+  file: 
+    - tools/appimage/Drill-GTK.AppImage
+    - tools/deb/Drill-GTK.deb
+    - Drill-GTK-AppDir.zip
+    - Drill-CLI-AppDir.zip
+    #- tools/appimage/Drill-CLI.AppImage
+    #- Drill-CLI-Windows.zip
+    #- Drill-GTK-Windows.zip
+    #- Drill-GTK-OSX.zip
+    #- Drill-CLI-OSX.zip
+    
+    
+  on:
+    repo: yatima1460/Drill
+
+notifications:
+  email:
+    on_success: never
+    on_failure: always

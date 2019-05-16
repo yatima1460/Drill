@@ -8,8 +8,9 @@ import std.container : Array;
 import std.array : array;
 
 import std.process : executeShell;
+import std.string : indexOf;
 import std.array : split;
-import std.algorithm : canFind, filter;
+import std.algorithm : canFind, filter, map;
 
 class DrillAPI
 {
@@ -17,35 +18,50 @@ class DrillAPI
 private:
     Array!Crawler threads;
     immutable(string[]) blocklist;
+    immutable(string) drill_version;
 
 public:
 
-    this()
+    this(immutable(string) exe_path) 
     {
+
+
+
         this.threads = Array!Crawler();
         import std.file : dirEntries, SpanMode, DirEntry, readText, FileException;
-
-        // we use a boolean flag as a proxy to keep the blocklist immutable
-        // otherwise we would have two initializations
+        import std.path : buildPath;
 
         string[] temp_blocklist = [];
+        string version_temp = "?";
         try
         {
 
-            auto blocklists_file = dirEntries(DirEntry("assets/blocklists"), SpanMode.shallow, true);
+            auto blocklists_file = dirEntries(DirEntry( buildPath(exe_path,"assets/blocklists")), SpanMode.shallow, true);
 
             foreach (string partial_blocklist; blocklists_file)
             {
                 temp_blocklist ~= readText(partial_blocklist).split("\n");
             }
-
+            
         }
         catch (FileException fe)
         {
             // TODO: notify this happened
         }
 
+        try
+        {
+            import std.array : join, replace;
+            version_temp = replace(join(readText(buildPath(exe_path,"DRILL_VERSION")).split("\n"),"-")," ","-");
+
+        }
+        catch (FileException fe)
+        {
+            version_temp = "LOCAL BUILT VERSION";
+        }
+
         this.blocklist = temp_blocklist.idup;
+        this.drill_version = version_temp;
 
     }
 
@@ -108,7 +124,7 @@ public:
     This action is non-blocking.
     If no crawling is currently underway this will do nothing.
     */
-    void stopCrawlingAsync()
+    void stopCrawlingAsync() 
     {
         foreach (Crawler crawler; this.threads)
         {
@@ -123,7 +139,7 @@ public:
         waitForCrawlers();
     }
 
-    void waitForCrawlers()
+    void waitForCrawlers() 
     {
         foreach (Crawler crawler; this.threads)
         {
@@ -136,7 +152,7 @@ public:
 
     Returns: immutable array of full paths
     */
-    immutable(string[]) getMountPoints()
+    immutable(string[]) getMountPoints() @safe
     {
         version (linux)
         {
@@ -151,6 +167,37 @@ public:
             immutable auto result = array(ls.output.split("\n").filter!(x => canFind(x, "/"))).idup;
             return result;
         }
+
+        version (OSX)
+        {
+            immutable auto ls = executeShell("df -h");
+            if (ls.status != 0)
+            {
+                // TODO: messagebox can't retrieve mountpoints will just scan /
+                return ["/"];
+            }
+            immutable auto startColumn = indexOf(ls.output.split("\n")[0], 'M');
+            immutable auto result = array(
+                ls.output.split("\n")
+                .filter!(x => x.length > startColumn)
+                .map!(x => x[startColumn .. $])
+                .filter!(x => canFind(x, "/"))
+            ).idup;
+            return result;
+        }
+
+        version (Windows)
+        {
+            //TODO fix this
+            immutable auto ls = executeShell("wmic logicaldisk get caption");
+            if (ls.status != 0)
+            {
+                // TODO: messagebox can't retrieve mountpoints will just scan /
+                  return ["C:\\"];
+            }
+            immutable auto result = array(ls.output.split("\n").filter!(x => canFind(x, ":"))).idup;
+            return result;      
+        }
     }
 
     /**
@@ -160,9 +207,18 @@ public:
 
     Returns: number of crawlers active
     */
-    ulong getActiveCrawlersCount()
+    const immutable(ulong) getActiveCrawlersCount() 
     {
         return array(this.threads[].filter!(x => x.isCrawling())).length;
+    }
+
+
+    /**
+    Returns the version of Drill
+    */
+    pure const immutable(string) getVersion()  @safe @nogc
+    {
+        return this.drill_version;
     }
 
 }

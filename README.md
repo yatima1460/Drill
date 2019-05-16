@@ -1,16 +1,27 @@
-![](https://raw.githubusercontent.com/yatima1460/Drill/assets/logo.png)
+# Drill
+
+![](https://repository-images.githubusercontent.com/184500340/186b3200-75cb-11e9-9f5b-6dd249573076)
+
+[![Build Status](https://travis-ci.org/yatima1460/Drill.svg?branch=master)](https://travis-ci.org/yatima1460/Drill)
+[![GitHub issues](https://img.shields.io/github/issues/yatima1460/Drill.svg)](https://github.com/yatima1460/Drill/issues)
+[![GitHub forks](https://img.shields.io/github/forks/yatima1460/Drill.svg)](https://github.com/yatima1460/Drill/network)
+[![GitHub stars](https://img.shields.io/github/stars/yatima1460/Drill.svg)](https://github.com/yatima1460/Drill/stargazers)
+[![GitHub license](https://img.shields.io/github/license/yatima1460/Drill.svg)](https://github.com/yatima1460/Drill/blob/master/LICENSE)
+
+[![Twitter](https://img.shields.io/twitter/url/https/github.com/yatima1460/Drill.svg?style=social)](https://twitter.com/intent/tweet?text=Wow:&url=https%3A%2F%2Fgithub.com%2Fyatima1460%2FDrill)
 
 # TL;DR: What is this
 
 Search files without indexing, but clever crawling:
-- 1 thread per mount point
+- At least 1 thread per mount point
 - Use as much RAM as possible for caching stuff
 - Try to avoid "black hole folders" using a regex based blocklist in which the crawler will never come out and never scan useful files (`node_modules`,`Windows`,etc)
 - **Intended for desktop users**, no obscure Linux files and system files scans
-- Really works only with SSDs/M.2 or fast RAID arrays
+- Use priority lists to first scan important folders.
+- Betting on the future: slowly being optimized for SSDs/M.2 or fast RAID arrays
 
 
-![](https://raw.githubusercontent.com/yatima1460/Drill/assets/screenshot.png)
+![](https://raw.githubusercontent.com/yatima1460/Drill/gh-pages/screenshot.png)
 
 # How to run this
 
@@ -29,20 +40,23 @@ If your distro doesn't ask you to mark it executable or nothing happens try:
 
 # Build and Run
 
+**Some dependencies don't build with GDC!!!**
+**Use DMD or LDC!!!**
+
 ## Manual prerequisites
 
 - The repo, remember to clone the submodules too with:
     - `git clone --recurse-submodules -j8 https://github.com/yatima1460/Drill.git`
 - D
-    - `sudo apt install dub`
+    - `curl -fsS https://dlang.org/install.sh | bash -s dmd`
 
 ### Configurations available (in dub.json)
 
-- x64-Cli
-- x64-GTK
-- ~~x64-Win~~
-- ~~x64-Mac~~
-- ~~x64-ncurses~~
+- CLI
+- GTK
+- ~~Win~~
+- ~~MacOS~~
+- ~~ncurses~~
 
 ### Debug
 ```
@@ -71,28 +85,32 @@ Second change is excluding some obvious folders while crawling like `Windows` an
 
 * Use your goddamn RAM: The third change is caching everything, I don't care about your RAM, I will use even 8GB of your RAM if this provides me a faster way to find your files, unused RAM is wasted RAM, even truer the more time passes.
 
-# Which one is a stable branch?
-Only commits tagged with versions' names can be compiled and are considered good, everything else is just dumped in `master`
-
 # Contributing
 TODOs:
 
 - Core Backend
     - Open file or path
         - ~~Linux X11~~
+            - ~~Open File~~
             - Select file if contained folder
             - Error on file open
         - Linux Wayland
+            - Open File
             - Select file if contained folder
             - Error on file open
         - Windows
+            - Open File
             - Select file if contained folder
             - Error on file open
         - MacOS
+            - ~~Open File~~
             - Select file if contained folder
             - Error on file open
-    - All comparisons need to be done in lower case strings
-    - Sorting by column system
+    - ~~All comparisons need to be done in lower case strings~~
+    - ~~Priority lists specified in assets/prioritylists~~
+    - ~~Multi-token search (searching "a b" will find all files with "a" and "b" in the name)~~
+    - /home/username needs to have higher priority over / crawler when /home isn't mounted on a secondary mountpoint
+    - Sorting by column
     - Commas in numbers strings
         - Correct separator based on current system internationalization
     - AM/PM time base
@@ -100,6 +118,9 @@ TODOs:
         - Windows
         - MacOS
     - Folders actual size
+    - Icons image needs to be generic and in the backend
+    - 1 Threadpool per mount point
+        - 1 Threadpool PER DISK if possible
     - Metadata searching and new tokens (mp3, etc...)
     - Memoization/Cache
     - Percentage of crawling
@@ -114,7 +135,7 @@ TODOs:
 
 - Cli Frontend
     - More arguments
-    - Better/bare printing
+    - ~~Better/bare printing~~
 
 - ncurses
 
