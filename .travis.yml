@@ -34,19 +34,14 @@ script:
     if [ "$TRAVIS_OS_NAME" == "linux" ]; then 
       curl -fsS https://dlang.org/install.sh | bash -s dmd;
       source ~/dlang/dmd-2.086.0/activate;
-      dub build -c CLI --build=release --parallel --force;
-      
-      #7z a -tzip -r Drill-CLI-Linux.zip assets Drill-CLI DRILL_VERSION;
-      #cd tools/appimage && sh cli.sh && cd ../../;
-      dub build -c GTK --build=release --parallel --force;
-      7z a -tzip -r Drill-GTK-Linux.zip assets Drill-GTK DRILL_VERSION;
-      cd tools/deb && sh generate_deb.sh && cd ../../;
-      cd tools/appimage && sh gtk.sh && cd ../../;
-      test -f Drill-GTK.deb;
-      test -f Drill-GTK-Linux.zip;
-      #test -f Drill-CLI-Linux.zip;
-      test -f tools/appimage/Drill-GTK.AppImage;
-      #test -f tools/appimage/Drill-CLI.AppImage;
+      dub build -c CLI --build=release --parallel --force &
+      dub build -c GTK --build=release --parallel --force &
+      wait
+      7z a -tzip -r Drill-CLI-AppDir.zip assets Drill-CLI DRILL_VERSION &
+      7z a -tzip -r Drill-GTK-AppDir.zip assets Drill-GTK DRILL_VERSION &
+      cd tools/deb && sh generate_deb.sh && cd ../../ &
+      cd tools/appimage && sh gtk.sh && cd ../../ &
+      wait
     fi
 
   #windows
