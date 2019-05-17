@@ -29,7 +29,7 @@ script:
   #linux
   - >
     if [ "$TRAVIS_OS_NAME" == "linux" ]; then 
-    #don't use apt dmd because it uses GDC, we need DMD or LDC (GDC is broken with gtkd)
+      #don't use apt dmd because it uses GDC, we need DMD or LDC (GDC is broken with gtkd)
       curl -fsS https://dlang.org/install.sh | bash -s dmd;
       source ~/dlang/dmd-2.086.0/activate;
       dub build -c CLI --build=release --parallel --force
