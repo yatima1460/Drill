@@ -83,7 +83,7 @@ before_deploy:
 before_deploy:
  - git config --local user.name "Federico Santamorena"
  - git config --local user.email "federico@santamorena.me"
- - git tag "$TRAVIS_TAG" "$TRAVIS_COMMIT"
+ #- git tag "$TRAVIS_TAG" "$TRAVIS_COMMIT"
 
 deploy:
   provider: releases
