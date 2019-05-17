@@ -22,27 +22,27 @@ addons:
 
 jobs:
   include:
-    if: os = linux
+    - if: os = linux
     - stage: Create DRILL_VERSION
-      - script: export TRAVIS_TAG="1.$TRAVIS_BUILD_NUMBER"
+      script: export TRAVIS_TAG="1.$TRAVIS_BUILD_NUMBER"
     - stage: Write DRILL_VERSION
-      - script: echo -n $TRAVIS_TAG > DRILL_VERSION
+      script: echo -n $TRAVIS_TAG > DRILL_VERSION
     - stage: Download DMD and install it
-      - script: curl -fsS https://dlang.org/install.sh | bash -s dmd
+      script: curl -fsS https://dlang.org/install.sh | bash -s dmd
     - stage: Enable DMD
-      - script: source ~/dlang/dmd-2.086.0/activate
+      script: source ~/dlang/dmd-2.086.0/activate
     - stage: Build CLI version
-      - script: dub build -c CLI -b release --parallel --force --arch=x86_64
+      script: dub build -c CLI -b release --parallel --force --arch=x86_64
     - stage: Zip CLI version
-      - script: 7z a -tzip Drill-CLI-AppDir.zip assets Drill-CLI DRILL_VERSION
+      script: 7z a -tzip Drill-CLI-AppDir.zip assets Drill-CLI DRILL_VERSION
     - stage: Build GTK version
-      - script: dub build -c GTK -b release --parallel --force --arch=x86_64
+      script: dub build -c GTK -b release --parallel --force --arch=x86_64
     - stage: Zip GTK version
-      - script: 7z a -tzip Drill-GTK-AppDir.zip assets Drill-GTK DRILL_VERSION
+      script: 7z a -tzip Drill-GTK-AppDir.zip assets Drill-GTK DRILL_VERSION
     - stage: Generate .deb file
-      - script: cd tools/deb && sh generate_deb.sh && cd ../../
+      script: cd tools/deb && sh generate_deb.sh && cd ../../
     - stage: Generate .AppImage file
-      - script: cd tools/appimage && sh gtk.sh && cd ../../
+      script: cd tools/appimage && sh gtk.sh && cd ../../
     - stage: Deploying to GitHub
       script: echo "Deploying to GitHub releases ..."
       deploy:
@@ -69,27 +69,27 @@ jobs:
 
 jobs:
   include:
-    if: os = windows
+    - if: os = windows
     - stage: Create DRILL_VERSION
-      - script: export TRAVIS_TAG="1.$TRAVIS_BUILD_NUMBER"
+      script: export TRAVIS_TAG="1.$TRAVIS_BUILD_NUMBER"
     - stage: Write DRILL_VERSION
-      - script: echo -n $TRAVIS_TAG > DRILL_VERSION
+      script: echo -n $TRAVIS_TAG > DRILL_VERSION
     - stage: Download DMD
-      - script: wget http://downloads.dlang.org/nightlies/dmd-master/dmd.master.windows.7z
+      script: wget http://downloads.dlang.org/nightlies/dmd-master/dmd.master.windows.7z
     - stage: Extract DMD
-      - script: 7z x dmd.master.windows.7z
+      script: 7z x dmd.master.windows.7z
     - stage: Download GTK3 32-bit dlls
-      - script: git clone https://github.com/yatima1460/GTK3-Windows-32bit
+      script: git clone https://github.com/yatima1460/GTK3-Windows-32bit
     - stage: Build CLI version
-      - script: dmd2/windows/bin/dub build -c CLI -b release --parallel --force --arch=x86
+      script: dmd2/windows/bin/dub build -c CLI -b release --parallel --force --arch=x86
     - stage: Zip CLI version
-      - script: 7z a -tzip Drill-CLI-Windows-x86.zip assets Drill-CLI.exe
+      script: 7z a -tzip Drill-CLI-Windows-x86.zip assets Drill-CLI.exe
     - stage: Build GTK version
-      - script: dmd2/windows/bin/dub build -c GTK -b release --parallel --force --arch=x86
+      script: dmd2/windows/bin/dub build -c GTK -b release --parallel --force --arch=x86
     - stage: Add GTK dlls to GTK version
-      - script: mv GTK3-Windows-32bit/*.dll .
+      script: mv GTK3-Windows-32bit/*.dll .
     - stage: Zip GTK version
-      - script: 7z a -tzip Drill-GTK-Windows-x86.zip assets Drill-GTK.exe DRILL_VERSION *.dll
+      script: 7z a -tzip Drill-GTK-Windows-x86.zip assets Drill-GTK.exe DRILL_VERSION *.dll
     - stage: Deploying to GitHub
       script: echo "Deploying to GitHub releases ..."
       deploy:
