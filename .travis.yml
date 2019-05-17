@@ -90,7 +90,8 @@ deploy:
   skip_cleanup: true
   draft: false
   prerelease: false
-  tag_name: $TRAVIS_TAG
+  name: $TRAVIS_TAG
+  body: Automated Travis build
   target_commitish: $TRAVIS_COMMIT
   api_key:
     secure: $GITHUB_TOKEN
@@ -108,7 +109,6 @@ deploy:
     
   on:
     repo: yatima1460/Drill
-    tags: true
 
 notifications:
   email:
