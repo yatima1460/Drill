@@ -15,6 +15,7 @@ Drill-*
 
 # Libraries
 *.a
+*.lib
 
 
 #AppImage
