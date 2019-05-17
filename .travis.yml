@@ -6,11 +6,8 @@ os:
 language: bash
 
 before_install:
-- export TRAVIS_TAG="1.$TRAVIS_BUILD_NUMBER"
-- echo -n $TRAVIS_TAG > DRILL_VERSION
-- git config --local user.name "Federico Santamorena"
-- git config --local user.email "federico@santamorena.me"
-- git tag "$TRAVIS_TAG" "$TRAVIS_COMMIT"
+ - export TRAVIS_TAG="1.$TRAVIS_BUILD_NUMBER"
+ - echo -n $TRAVIS_TAG > DRILL_VERSION
 
 addons:
   #linux
@@ -72,6 +69,11 @@ script:
   #     test -f Drill-CLI-OSX.zip;
   #   fi
 
+
+before_deploy:
+ - git config --local user.name "Federico Santamorena"
+ - git config --local user.email "federico@santamorena.me"
+ - git tag "$TRAVIS_TAG" "$TRAVIS_COMMIT"
 
 deploy:
   provider: releases
