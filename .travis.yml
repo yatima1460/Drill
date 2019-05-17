@@ -5,7 +5,7 @@ os:
 
 language: bash
 
-before_script:
+before_install:
 - export TRAVIS_TAG="1.$TRAVIS_BUILD_NUMBER"
 - echo -n $TRAVIS_TAG > DRILL_VERSION
 - git config --local user.name "Federico Santamorena"
