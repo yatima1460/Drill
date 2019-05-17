@@ -32,6 +32,7 @@ script:
   #linux
   - >
     if [ "$TRAVIS_OS_NAME" == "linux" ]; then 
+    #don't use apt dmd because it uses GDC, we need DMD or LDC (GDC is broken with gtkd)
       curl -fsS https://dlang.org/install.sh | bash -s dmd;
       source ~/dlang/dmd-2.086.0/activate;
       dub build -c CLI --build=release --parallel --force
@@ -39,6 +40,9 @@ script:
       dub build -c GTK --build=release --parallel --force &
       wait
       7z a -tzip Drill-GTK-AppDir.zip assets Drill-GTK DRILL_VERSION &
+      #cd tools/rpm && sh generate_rpm.sh && cd ../../ &
+      #cd tools/flatpak && sh generate_flatpak.sh && cd ../../ &
+      #cd tools/snap && sh generate_snap.sh && cd ../../ &
       cd tools/deb && sh generate_deb.sh && cd ../../ &
       cd tools/appimage && sh gtk.sh && cd ../../ &
       wait
@@ -72,6 +76,12 @@ script:
   #     test -f Drill-CLI-OSX.zip;
   #   fi
 
+  
+before_deploy:
+  - test -f tools/appimage/Drill-GTK.AppImage
+  - test -f tools/deb/Drill-GTK.deb
+  - test -f Drill-GTK-AppDir.zip
+  - test -f Drill-CLI-AppDir.zip
 
 deploy:
   provider: releases
