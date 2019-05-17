@@ -5,12 +5,9 @@ os:
 
 language: bash
 
-before_script:
-- export TRAVIS_TAG="1.$TRAVIS_BUILD_NUMBER"
-- echo -n $TRAVIS_TAG > DRILL_VERSION
-- git config --local user.name "Federico Santamorena"
-- git config --local user.email "federico@santamorena.me"
-- git tag "$TRAVIS_TAG" "$TRAVIS_COMMIT"
+before_install:
+ - export TRAVIS_TAG="1.$TRAVIS_BUILD_NUMBER"
+ - echo -n $TRAVIS_TAG > DRILL_VERSION
 
 addons:
   #linux
@@ -83,6 +80,11 @@ before_deploy:
   - test -f Drill-GTK-AppDir.zip
   - test -f Drill-CLI-AppDir.zip
 
+before_deploy:
+ - git config --local user.name "Federico Santamorena"
+ - git config --local user.email "federico@santamorena.me"
+ - git tag "$TRAVIS_TAG" "$TRAVIS_COMMIT"
+
 deploy:
   provider: releases
   skip_cleanup: true
@@ -106,6 +108,7 @@ deploy:
     
   on:
     repo: yatima1460/Drill
+    tags: true
 
 notifications:
   email:
