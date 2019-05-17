@@ -35,10 +35,10 @@ script:
       curl -fsS https://dlang.org/install.sh | bash -s dmd;
       source ~/dlang/dmd-2.086.0/activate;
       dub build -c CLI --build=release --parallel --force
-      7z a -tzip -r Drill-CLI-AppDir.zip assets Drill-CLI DRILL_VERSION &
+      7z a -tzip Drill-CLI-AppDir.zip assets Drill-CLI DRILL_VERSION &
       dub build -c GTK --build=release --parallel --force &
       wait
-      7z a -tzip -r Drill-GTK-AppDir.zip assets Drill-GTK DRILL_VERSION &
+      7z a -tzip Drill-GTK-AppDir.zip assets Drill-GTK DRILL_VERSION &
       cd tools/deb && sh generate_deb.sh && cd ../../ &
       cd tools/appimage && sh gtk.sh && cd ../../ &
       wait
