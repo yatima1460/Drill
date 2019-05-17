@@ -148,7 +148,7 @@ TODOs:
     - ESC to close
     - Error messagebox if opening file fails
     - ~~Icons near the file name~~
-    - .deb
+    - ~~.deb~~
     - .rpm
     - Snap
     - Flatpak
