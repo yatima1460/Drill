@@ -98,6 +98,7 @@ deploy:
     
   on:
     repo: yatima1460/Drill
+    tags: true
 
 notifications:
   email:
