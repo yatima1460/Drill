@@ -5,6 +5,10 @@ os:
 
 language: bash
 
+before_install:
+ - export TRAVIS_TAG="1.$TRAVIS_BUILD_NUMBER"
+ - echo -n $TRAVIS_TAG > DRILL_VERSION
+
 addons:
   #linux
   apt:
@@ -20,100 +24,43 @@ addons:
       - dub
       - p7zip
 
-jobs:
-  include:
-    - if: os = linux
-    - stage: Create DRILL_VERSION
-      script: export TRAVIS_TAG="1.$TRAVIS_BUILD_NUMBER"
-    - stage: Write DRILL_VERSION
-      script: echo -n $TRAVIS_TAG > DRILL_VERSION
-    - stage: Download DMD and install it
-      script: curl -fsS https://dlang.org/install.sh | bash -s dmd
-    - stage: Enable DMD
-      script: source ~/dlang/dmd-2.086.0/activate
-    - stage: Build CLI version
-      script: dub build -c CLI -b release --parallel --force --arch=x86_64
-    - stage: Zip CLI version
-      script: 7z a -tzip Drill-CLI-AppDir.zip assets Drill-CLI DRILL_VERSION
-    - stage: Build GTK version
-      script: dub build -c GTK -b release --parallel --force --arch=x86_64
-    - stage: Zip GTK version
-      script: 7z a -tzip Drill-GTK-AppDir.zip assets Drill-GTK DRILL_VERSION
-    - stage: Generate .deb file
-      script: cd tools/deb && sh generate_deb.sh && cd ../../
-    - stage: Generate .AppImage file
-      script: cd tools/appimage && sh gtk.sh && cd ../../
-    - stage: Deploying to GitHub
-      script: echo "Deploying to GitHub releases ..."
-      deploy:
-        provider: releases
-        skip_cleanup: true
-        draft: false
-        prerelease: false
-        name: $TRAVIS_TAG
-        body: Automated Travis build
-        target_commitish: $TRAVIS_COMMIT
-        api_key:
-          secure: $GITHUB_TOKEN
-        file: 
-          - tools/appimage/Drill-GTK.AppImage
-          - tools/deb/Drill-GTK.deb
-          - Drill-GTK-AppDir.zip
-          - Drill-CLI-AppDir.zip
-        on:
-          repo: yatima1460/Drill
-        notifications:
-          email:
-            on_success: never
-            on_failure: always
 
-jobs:
-  include:
-    - if: os = windows
-    - stage: Create DRILL_VERSION
-      script: export TRAVIS_TAG="1.$TRAVIS_BUILD_NUMBER"
-    - stage: Write DRILL_VERSION
-      script: echo -n $TRAVIS_TAG > DRILL_VERSION
-    - stage: Download DMD
-      script: wget http://downloads.dlang.org/nightlies/dmd-master/dmd.master.windows.7z
-    - stage: Extract DMD
-      script: 7z x dmd.master.windows.7z
-    - stage: Download GTK3 32-bit dlls
-      script: git clone https://github.com/yatima1460/GTK3-Windows-32bit
-    - stage: Build CLI version
-      script: dmd2/windows/bin/dub build -c CLI -b release --parallel --force --arch=x86
-    - stage: Zip CLI version
-      script: 7z a -tzip Drill-CLI-Windows-x86.zip assets Drill-CLI.exe
-    - stage: Build GTK version
-      script: dmd2/windows/bin/dub build -c GTK -b release --parallel --force --arch=x86
-    - stage: Add GTK dlls to GTK version
-      script: mv GTK3-Windows-32bit/*.dll .
-    - stage: Zip GTK version
-      script: 7z a -tzip Drill-GTK-Windows-x86.zip assets Drill-GTK.exe DRILL_VERSION *.dll
-    - stage: Deploying to GitHub
-      script: echo "Deploying to GitHub releases ..."
-      deploy:
-        provider: releases
-        skip_cleanup: true
-        draft: false
-        prerelease: false
-        name: $TRAVIS_TAG
-        body: Automated Travis build
-        target_commitish: $TRAVIS_COMMIT
-        api_key:
-          secure: $GITHUB_TOKEN
-        file: 
-          - Drill-CLI-Windows-x86.zip
-          - Drill-GTK-Windows-x86.zip
-        on:
-          repo: yatima1460/Drill
-        notifications:
-          email:
-            on_success: never
-            on_failure: always
+script:
+  #linux
+  - >
+    if [ "$TRAVIS_OS_NAME" == "linux" ]; then 
+      #don't use apt dmd because it uses GDC, we need DMD or LDC (GDC is broken with gtkd)
+      curl -fsS https://dlang.org/install.sh | bash -s dmd;
+      source ~/dlang/dmd-2.086.0/activate;
+      dub build -c CLI -b release --parallel --force --arch=x86_64
+      7z a -tzip Drill-CLI-AppDir.zip assets Drill-CLI DRILL_VERSION &
+      dub build -c GTK -b release --parallel --force --arch=x86_64 &
+      wait
+      7z a -tzip Drill-GTK-AppDir.zip assets Drill-GTK DRILL_VERSION &
+      #cd tools/rpm && sh generate_rpm.sh && cd ../../ &
+      #cd tools/flatpak && sh generate_flatpak.sh && cd ../../ &
+      #cd tools/snap && sh generate_snap.sh && cd ../../ &
+      cd tools/deb && sh generate_deb.sh && cd ../../ &
+      cd tools/appimage && sh gtk.sh && cd ../../ &
+      wait
+    fi
+
+  #windows
+  - >
+    if [ "$TRAVIS_OS_NAME" == "windows" ]; 
+      then wget http://downloads.dlang.org/nightlies/dmd-master/dmd.master.windows.7z;
+      7z x dmd.master.windows.7z;
+      git clone https://github.com/yatima1460/GTK3-Windows-32bit;
+      dmd2/windows/bin/dub build -c CLI -b release --parallel --force --arch=x86;
+      7z a -tzip Drill-CLI-Windows-x86.zip assets Drill-CLI.exe;
+      dmd2/windows/bin/dub build -c GTK -b release --parallel --force --arch=x86;
+      mv GTK3-Windows-32bit/*.dll .;
+      7z a -tzip Drill-GTK-Windows-x86.zip assets Drill-GTK.exe DRILL_VERSION *.dll;
+    fi
 
 
 
+  #osx 
   # - >
   #   if [ "$TRAVIS_OS_NAME" = "osx" ]; then
   #     dub build -c CLI -b release --parallel --force --arch=x86_64;
@@ -123,37 +70,38 @@ jobs:
   #     test -f Drill-GTK-OSX.zip;
   #     test -f Drill-CLI-OSX.zip;
   #   fi
+
+  
+before_deploy:
+  - test -f tools/appimage/Drill-GTK.AppImage
+  - test -f tools/deb/Drill-GTK.deb
+  - test -f Drill-GTK-AppDir.zip
+  - test -f Drill-CLI-AppDir.zip
+  - test -f Drill-CLI-Windows-x86.zip
+  - test -f Drill-GTK-Windows-x86.zip
+
 before_deploy:
  - git config --local user.name "Federico Santamorena"
  - git config --local user.email "federico@santamorena.me"
-  
-# before_deploy:
-#   - test -f tools/appimage/Drill-GTK.AppImage
-#   - test -f tools/deb/Drill-GTK.deb
-#   - test -f Drill-GTK-AppDir.zip
-#   - test -f Drill-CLI-AppDir.zip
-#   - test -f Drill-CLI-Windows-x86.zip
-#   - test -f Drill-GTK-Windows-x86.zip
-
-
  #- git tag "$TRAVIS_TAG" "$TRAVIS_COMMIT"
 
-# deploy:
-#   provider: releases
-#   skip_cleanup: true
-#   draft: false
-#   prerelease: false
-#   name: $TRAVIS_TAG
-#   body: Automated Travis build
-#   target_commitish: $TRAVIS_COMMIT
-#   api_key:
-#     secure: $GITHUB_TOKEN
-#   file: 
-#     - tools/appimage/Drill-GTK.AppImage
-#     - tools/deb/Drill-GTK.deb
-#     - Drill-GTK-AppDir.zip
-#     - Drill-CLI-AppDir.zip
-    
+deploy:
+  provider: releases
+  skip_cleanup: true
+  draft: false
+  prerelease: false
+  name: $TRAVIS_TAG
+  body: Automated Travis build
+  target_commitish: $TRAVIS_COMMIT
+  api_key:
+    secure: $GITHUB_TOKEN
+  file: 
+    - tools/appimage/Drill-GTK.AppImage
+    - tools/deb/Drill-GTK.deb
+    - Drill-GTK-AppDir.zip
+    - Drill-CLI-AppDir.zip
+    - Drill-CLI-Windows-x86.zip
+    - Drill-GTK-Windows-x86.zip
     
     #- tools/appimage/Drill-CLI.AppImage
     #- Drill-CLI-Windows.zip
@@ -162,10 +110,10 @@ before_deploy:
     #- Drill-CLI-OSX.zip
     
     
-#   on:
-#     repo: yatima1460/Drill
+  on:
+    repo: yatima1460/Drill
 
-# notifications:
-#   email:
-#     on_success: never
-#     on_failure: always
+notifications:
+  email:
+    on_success: never
+    on_failure: always
