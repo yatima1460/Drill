@@ -193,7 +193,7 @@ public:
             if (ls.status != 0)
             {
                 // TODO: messagebox can't retrieve mountpoints will just scan /
-                  return ["C:\\"];
+                  return ["C:"];
             }
             import std.algorithm : map;
             immutable auto result = array(map!(x => x[0 .. 2])(ls.output.split("\n").filter!(x => canFind(x, ":")))).idup;
