@@ -1,4 +1,4 @@
-Package: drill
+Package: drill-search
 Architecture: amd64
 Essential: no
 Priority: optional
