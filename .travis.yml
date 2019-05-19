@@ -89,7 +89,7 @@ deploy:
   provider: releases
   skip_cleanup: true
   draft: false
-  prerelease: false
+  prerelease: true
   name: $TRAVIS_TAG
   body: Automated Travis build
   target_commitish: $TRAVIS_COMMIT
