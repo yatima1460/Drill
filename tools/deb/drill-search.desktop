@@ -2,9 +2,9 @@
 Name=Drill
 Type=Application
 Comment=Search files without using indexing, but clever crawling
-Icon=/usr/share/icons/drill/drill.png
-Exec=/usr/bin/drill
-TryExec=/usr/bin/drill
+Icon=/usr/share/icons/drill-search/drill.png
+Exec=/usr/bin/drill-search
+TryExec=/usr/bin/drill-search
 Terminal=false
 Categories=Utility;GTK;System;X-Other;
-Keywords=Search;FileSearch;File Search;Find;
+Keywords=Search;FileSearch;File Search;Find;Search;

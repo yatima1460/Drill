@@ -413,7 +413,7 @@ private:
             this.github_notice.setSelectable(true);
             this.github_notice.setJustify(GtkJustification.CENTER);
             this.github_notice.setHalign(GtkAlign.CENTER);
-            this.github_notice.setMarkup("<a href=\"https://github.com/yatima1460/drill\">Drill</a> is maintained by <a href=\"https://www.santamorena.me\">Federico Santamorena</a>"~" "~drillapi.getVersion());
+            this.github_notice.setMarkup("<a href=\"https://github.com/yatima1460/drill\">Drill</a> is maintained by <a href=\"https://www.linkedin.com/in/yatima1460/\">Federico Santamorena</a>"~" "~drillapi.getVersion());
             
             h.packStart(github_notice, true, true, 0);
         }
