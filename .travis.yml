@@ -29,20 +29,33 @@ script:
   #linux
   - >
     if [ "$TRAVIS_OS_NAME" == "linux" ]; then 
-      #don't use apt dmd because it uses GDC, we need DMD or LDC (GDC is broken with gtkd)
+    
+      # download and install D
+      # don't use apt dmd because it uses GDC, we need DMD or LDC (GDC is broken with gtkd)
       curl -fsS https://dlang.org/install.sh | bash -s dmd;
       source ~/dlang/dmd-2.086.0/activate;
-      dub build -c CLI -b release --parallel --force --arch=x86_64
-      7z a -tzip Drill-CLI-AppDir.zip assets Drill-CLI DRILL_VERSION &
-      dub build -c GTK -b release --parallel --force --arch=x86_64 &
-      wait
-      7z a -tzip Drill-GTK-AppDir.zip assets Drill-GTK DRILL_VERSION &
-      #cd tools/rpm && sh generate_rpm.sh && cd ../../ &
-      #cd tools/flatpak && sh generate_flatpak.sh && cd ../../ &
-      #cd tools/snap && sh generate_snap.sh && cd ../../ &
-      cd tools/deb && sh generate_deb.sh && cd ../../ &
-      cd tools/appimage && sh gtk.sh && cd ../../ &
-      wait
+
+      # build and package CLI
+      cd source/cli
+      dub build -b release --parallel --arch=x86_64
+      cd ../../
+      7z a -tzip Drill-CLI-$TRAVIS_OS-$TRAVIS_TAG.zip assets drill-cli.elf DRILL_VERSION
+
+      # build and package GTK UI frontend
+      cd source/gtkui
+      dub build -b release --parallel --arch=x86_64
+      cd ../../
+      7z a -tzip Drill-GTK-$TRAVIS_OS-$TRAVIS_TAG.zip assets drill-gtk.elf DRILL_VERSION
+
+      # build .deb file
+      cd tools/deb
+      sh generate_deb.sh
+      cd ../../
+
+      # build AppImage
+      cd tools/appimage
+      sh gtk.sh
+      cd ../../
     fi
 
   #windows

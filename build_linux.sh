@@ -112,7 +112,7 @@ appimage() {
     else
         error "AppImage build failed"
     fi
-    cd -
+    cd ../../
     mv tools/appimage/out/*.AppImage build/Drill-$1-$DRILL_VERSION.AppImage
     chmod +x build/Drill-$1-$DRILL_VERSION.AppImage
     rmdir tools/appimage/out
