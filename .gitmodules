@@ -1,6 +1,6 @@
-[submodule "vendor/GtkD"]
-	path = vendor/GtkD
+[submodule "source/gtkui/GtkD"]
+	path = source/gtkui/GtkD
 	url = https://github.com/yatima1460/GtkD
-[submodule "vendor/datefmt"]
-	path = vendor/datefmt
+[submodule "source/core/datefmt"]
+	path = source/core/datefmt
 	url = https://github.com/yatima1460/datefmt
