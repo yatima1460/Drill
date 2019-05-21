@@ -1,4 +1,4 @@
-app: me.santamorena.drill
+app: drill
 ingredients:
   dist: trusty
   sources:
@@ -6,6 +6,9 @@ ingredients:
   packages:
     - libgcc1
     - libgtk3.0
+  # debs:
+  #   - /home/area42/kdenlive.deb
+  #   - /home/area42/kdenlive/*
 
 
 # create the necessary dirs
@@ -14,13 +17,12 @@ ingredients:
 
 # copy the assets
   script:
-    - cd ../../../
-    - cp Drill-GTK tools/appimage/me.santamorena.drill/me.santamorena.drill.AppDir/usr/Drill
-    - cp DRILL_VERSION tools/appimage/me.santamorena.drill/me.santamorena.drill.AppDir/usr/
-    - chmod +x tools/appimage/me.santamorena.drill/me.santamorena.drill.AppDir/usr/Drill
-    - cp -r assets tools/appimage/me.santamorena.drill/me.santamorena.drill.AppDir/usr/
-    - cd tools/appimage
-    - cp drill.sh me.santamorena.drill/me.santamorena.drill.AppDir/usr/
-    - chmod +x me.santamorena.drill/me.santamorena.drill.AppDir/usr/drill.sh
-    - cp me.santamorena.drill.desktop me.santamorena.drill/me.santamorena.drill.AppDir
-    - cp ../../assets/icon.svg me.santamorena.drill/me.santamorena.drill.AppDir
+    - cp      ../../drill-gtk.elf   me.santamorena.drill/me.santamorena.drill.AppDir/usr/drill-gtk.elf
+    - chmod   +x                    me.santamorena.drill/me.santamorena.drill.AppDir/usr/drill-gtk.elf
+    - cp      DRILL_VERSION         me.santamorena.drill/me.santamorena.drill.AppDir/usr/
+    - cp      -r assets             me.santamorena.drill/me.santamorena.drill.AppDir/usr/
+    - echo    #!/bin/bash >         me.santamorena.drill/me.santamorena.drill.AppDir/usr/drill-search.sh
+    - echo    ./drill-gtk >         me.santamorena.drill/me.santamorena.drill.AppDir/usr/drill-search.sh
+    - chmod   +x                    me.santamorena.drill/me.santamorena.drill.AppDir/usr/drill.sh
+    - cp      drill.desktop         me.santamorena.drill/me.santamorena.drill.AppDir
+    - cp ../../assets/icon.svg      me.santamorena.drill/me.santamorena.drill.AppDir
