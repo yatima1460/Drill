@@ -119,7 +119,11 @@ fi
 
 
 package() {
-    7z a -tzip Drill-$1-linux-$DRILL_VERSION-x86_64.zip assets drill-$1 DRILL_VERSION  $OUTPUT
+    mkdir Drill-$1-linux-$DRILL_VERSION-x86_64
+    mv assets Drill-$1-linux-$DRILL_VERSION-x86_64
+    mv drill-$1 Drill-$1-linux-$DRILL_VERSION-x86_64
+    mv DRILL_VERSION Drill-$1-linux-$DRILL_VERSION-x86_64
+    7z a -tzip Drill-$1-linux-$DRILL_VERSION-x86_64.zip Drill-$1-linux-$DRILL_VERSION-x86_64  $OUTPUT
     if [ $? -eq 0 ]; then
         info "Zipping of $1 done"
         mv Drill-$1-linux-$DRILL_VERSION-x86_64.zip build $OUTPUT
