@@ -13,16 +13,17 @@ ingredients:
 
 # create the necessary dirs
   script:
-    - mkdir -p me.santamorena.drill.AppDir/usr
+    - mkdir -p drill.AppDir/usr
 
 # copy the assets
   script:
-    - cp      ../../drill-gtk.elf   me.santamorena.drill/me.santamorena.drill.AppDir/usr/drill-gtk.elf
-    - chmod   +x                    me.santamorena.drill/me.santamorena.drill.AppDir/usr/drill-gtk.elf
-    - cp      DRILL_VERSION         me.santamorena.drill/me.santamorena.drill.AppDir/usr/
-    - cp      -r assets             me.santamorena.drill/me.santamorena.drill.AppDir/usr/
-    - echo    #!/bin/bash >         me.santamorena.drill/me.santamorena.drill.AppDir/usr/drill-search.sh
-    - echo    ./drill-gtk >         me.santamorena.drill/me.santamorena.drill.AppDir/usr/drill-search.sh
-    - chmod   +x                    me.santamorena.drill/me.santamorena.drill.AppDir/usr/drill.sh
-    - cp      drill.desktop         me.santamorena.drill/me.santamorena.drill.AppDir
-    - cp ../../assets/icon.svg      me.santamorena.drill/me.santamorena.drill.AppDir
+    - echo $PWD
+    - cp      ../../drill-gtk.elf     drill/drill.AppDir/usr/drill-gtk.elf
+    - chmod   +x                      drill/drill.AppDir/usr/drill-gtk.elf
+    - cp      DRILL_VERSION           drill/drill.AppDir/usr/
+    - cp      -r assets               drill/drill.AppDir/usr/
+    - echo    #!/bin/bash >           drill/drill.AppDir/usr/drill-search.sh
+    - echo    ./drill-gtk >           drill/drill.AppDir/usr/drill-search.sh
+    - chmod   +x                      drill/drill.AppDir/usr/drill.sh
+    - cp      drill.desktop           drill/drill.AppDir
+    - cp ../../assets/icon.svg        drill/drill.AppDir
