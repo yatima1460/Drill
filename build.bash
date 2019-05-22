@@ -270,10 +270,13 @@ deb() {
         exit 1
     fi
 
+
+    rm -rf DEBFILE/$1/
+
     # install binary redirect for /usr/bin and set it executable
     mkdir -p DEBFILE/$1/usr/bin
-    echo    #!/bin/bash                               >  DEBFILE/usr/bin/$DEB_PACKAGE_NAME
-    echo    /opt/$DEB_PACKAGE_NAME/$EXECUTABLE_IN_OPT >> DEBFILE/$1/usr/bin/$DEB_PACKAGE_NAME
+    echo    #!/bin/bash                                     >  DEBFILE/usr/bin/$DEB_PACKAGE_NAME
+    echo    /opt/$DEB_PACKAGE_NAME/$EXECUTABLE_IN_OPT "\$@" >> DEBFILE/$1/usr/bin/$DEB_PACKAGE_NAME
     chmod   +x                                           DEBFILE/$1/usr/bin/$DEB_PACKAGE_NAME
 
     ## install drill in /opt
