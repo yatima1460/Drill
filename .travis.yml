@@ -31,8 +31,7 @@ script:
   #linux
   - >
     if [ "$TRAVIS_OS_NAME" == "linux" ]; then 
-      chmod +x build_linux.sh
-      ./build_linux.sh
+      sh build_linux.sh
     fi
 
   #windows
