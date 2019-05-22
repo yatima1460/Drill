@@ -24,11 +24,11 @@ DEB_PACKAGE_NAME="drill-search"
 #==============================
 
 info () {
-    echo "\033[34m[DRILL BUILD][INFO]: $1\033[0m"
+    echo "\033[32m[DRILL BUILD][INFO]: $1\033[0m"
 }
 
 warn() {
-    echo "\033[93m[DRILL BUILD][WARNING]: $1\033[0m"
+    echo "\033[33m[DRILL BUILD][WARNING]: $1\033[0m"
 }
 
 error() {
