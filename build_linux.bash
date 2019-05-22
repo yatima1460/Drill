@@ -23,15 +23,15 @@ DEB_PACKAGE_NAME="drill-search"
 #==============================
 
 info () {
-    echo "\033[32m[DRILL BUILD][INFO]: $1\033[0m"
+    echo -e "\033[32m[DRILL BUILD][INFO]: $1\033[0m"
 }
 
 warn() {
-    echo "\033[33m[DRILL BUILD][WARNING]: $1\033[0m"
+    echo -e "\033[33m[DRILL BUILD][WARNING]: $1\033[0m"
 }
 
 error() {
-    echo "\033[31m[DRILL BUILD][ERROR]: $1\033[0m"
+    echo -e "\033[31m[DRILL BUILD][ERROR]: $1\033[0m"
     exit 1
 }
 
@@ -157,7 +157,7 @@ build() {
     info "Starting build of $1..."
     cd $1 $OUTPUT
     dub build -b release --parallel --arch=x86_64 $OUTPUT
-    if [ $result -eq 0 ]; then
+    if [ $? -eq 0 ]; then
         info "$1 built correctly"
     else
         error "Building $1... failed"
