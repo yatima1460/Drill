@@ -80,10 +80,11 @@ deploy:
   name: $TRAVIS_TAG
   body: Automated Travis build
   target_commitish: $TRAVIS_COMMIT
+  file_glob: true
   api_key:
     secure: $GITHUB_TOKEN
   file: 
-    - build/*
+    - build/*.*
     
     #- tools/appimage/Drill-cli.AppImage
     #- Drill-cli-windows.zip
