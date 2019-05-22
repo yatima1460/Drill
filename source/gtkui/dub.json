@@ -7,12 +7,9 @@
 	"copyright": "Copyright © 2019, Federico Santamorena",
 	"license": "GPL-2.0",
 	"homepage": "https://github.com/yatima1460/Drill",
-	"preGenerateCommands-windows": [],
     "targetType": "executable",
     "targetPath": "../../",
-    "targetName-linux": "drill-gtk.elf",
-	"targetName-Windows": "drill-gtk.exe",
-	"targetName-OSX": "drill-gtk.mach-o",
+    "targetName": "drill-gtk",
     "sourcePaths": [
         "../core"
     ],

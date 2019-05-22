@@ -119,7 +119,7 @@ fi
 
 
 package() {
-    7z a -tzip Drill-$1-linux-$DRILL_VERSION-x86_64.zip assets drill-$1.elf DRILL_VERSION  $OUTPUT
+    7z a -tzip Drill-$1-linux-$DRILL_VERSION-x86_64.zip assets drill-$1 DRILL_VERSION  $OUTPUT
     if [ $? -eq 0 ]; then
         info "Zipping of $1 done"
         mv Drill-$1-linux-$DRILL_VERSION-x86_64.zip build $OUTPUT
@@ -169,14 +169,14 @@ build() {
 appdir() {
     mkdir               build/$1
     cp -r assets        build/$1
-    cp drill-$1.elf     build/$1
+    cp drill-$1     build/$1
     cp DRILL_VERSION    build/$1
 }
 
 deb() {
     info "Starting creation of .deb for $1..."
     cd tools/deb $OUTPUT
-    EXECUTABLE_IN_OPT="drill-$1.elf"
+    EXECUTABLE_IN_OPT="drill-$1"
     if [ -f ../../$EXECUTABLE_IN_OPT ]; then
         info "$EXECUTABLE_IN_OPT executable found"
     else
