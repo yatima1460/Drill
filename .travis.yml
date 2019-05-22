@@ -32,6 +32,7 @@ script:
   - >
     if [ "$TRAVIS_OS_NAME" == "linux" ]; then 
       sh build_linux.sh
+      ls -lah build
     fi
 
   #windows
