@@ -1,29 +1,24 @@
+# Binaries
+build
+*.a
+drill-gtk
+drill-cli
+
 # Drill
-*.log
 DRILL_VERSION
 
 # D
 dub.selections.json
 .dub
 
-# Executables
-DrillExecutable
-Drill-*
-*.exe
-
-# Binaries
-*.o
-
-# Libraries
-*.a
-*.lib
-
 
 #AppImage
 *.AppImage
-me.santamorena.drill
+tools/appimage/drill/
 pkg2appimage*
 
 #.deb
-DEBFILE
+tools/deb/DEBFILE
+
+
 

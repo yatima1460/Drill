@@ -1,26 +1,29 @@
-app: me.santamorena.drill
+app: drill
 ingredients:
   dist: trusty
   sources:
     - deb http://deb.debian.org/debian stretch main
-  packages:
-    - libgcc1
+  # AppImage guidelines assume they are always present
+  # should I remove them?
+  packages:       
+    - libgcc1     
     - libgtk3.0
+  # debs:
+  
 
 
 # create the necessary dirs
   script:
-    - mkdir -p me.santamorena.drill.AppDir/usr
+    - mkdir -p drill.AppDir/usr
 
 # copy the assets
   script:
-    - cd ../../../
-    - cp Drill-GTK tools/appimage/me.santamorena.drill/me.santamorena.drill.AppDir/usr/Drill
-    - cp DRILL_VERSION tools/appimage/me.santamorena.drill/me.santamorena.drill.AppDir/usr/
-    - chmod +x tools/appimage/me.santamorena.drill/me.santamorena.drill.AppDir/usr/Drill
-    - cp -r assets tools/appimage/me.santamorena.drill/me.santamorena.drill.AppDir/usr/
-    - cd tools/appimage
-    - cp drill.sh me.santamorena.drill/me.santamorena.drill.AppDir/usr/
-    - chmod +x me.santamorena.drill/me.santamorena.drill.AppDir/usr/drill.sh
-    - cp me.santamorena.drill.desktop me.santamorena.drill/me.santamorena.drill.AppDir
-    - cp ../../assets/icon.svg me.santamorena.drill/me.santamorena.drill.AppDir
+    - cp      ../../../drill-gtk          drill.AppDir/usr/drill-gtk
+    - chmod   +x                          drill.AppDir/usr/drill-gtk
+    - cp      ../../../DRILL_VERSION      drill.AppDir/usr/
+    - cp      -r ../../../assets          drill.AppDir/usr/
+    - echo    #!/bin/bash >               drill.AppDir/usr/drill-search.sh
+    - echo    ./drill-gtk >>              drill.AppDir/usr/drill-search.sh
+    - chmod   +x                          drill.AppDir/usr/drill-search.sh
+    - cp      ../drill.desktop            drill.AppDir
+    - cp      ../../../assets/icon.svg    drill.AppDir

@@ -43,6 +43,12 @@ If your distro doesn't ask you to mark it executable or nothing happens try:
 **Some dependencies don't build with GDC!!!**
 **Use DMD or LDC!!!**
 
+The build chain is:
+
+&& = parallel
+
+datefmt && gtkd → drill-core → drill-cli && drill-gtk → zip cli && zip gtk && zip both → appimage && .deb && other formats
+
 ## Manual prerequisites
 
 - The repo, remember to clone the submodules too with:
@@ -50,23 +56,19 @@ If your distro doesn't ask you to mark it executable or nothing happens try:
 - D
     - `curl -fsS https://dlang.org/install.sh | bash -s dmd`
 
-### Configurations available (in dub.json)
-
-- CLI
-- GTK
-- ~~Win~~
-- ~~MacOS~~
-- ~~ncurses~~
-
-### Debug
+**Debug (not recommended)**
 ```
-dub run -c CONFIGURATION_NAME
+cd source/WHAT_YOU_WANT_TO_BUILD
+dub build
 ```
 
-### Release (no logs and faster)
+**Release (no logs and faster)**
 ```
-dub run -c CONFIGURATION_NAME -b release
+cd source/WHAT_YOU_WANT_TO_BUILD
+dub build -b release
 ```
+
+Executables will spawn in the root git folder
 
 # What is this
 

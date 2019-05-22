@@ -57,7 +57,7 @@ public:
         }
         catch (FileException fe)
         {
-            version_temp = "LOCAL BUILT VERSION";
+            version_temp = "LOCAL_BUILD";
         }
 
         this.blocklist = temp_blocklist.idup;
