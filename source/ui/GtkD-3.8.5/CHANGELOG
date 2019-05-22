@@ -1,0 +1,228 @@
+GtkD ChangeLog
+==============
+
+Release: 3.8.5
+--------------
+-Set the correct version number.
+
+Release: 3.8.4
+--------------
+-Fix a memory leak when signals are used on a widget in a container. #254
+-Update the GdkPixbuf Lookup file for the canges in 2.38. #250
+-Add a get template for gobject.Value.
+-Don't hardcode pkg-config #249
+-All function names and parameters that are D keywords are now post fixed with an underscore.
+-This is instead of the more random substitutes used previously.
+-Fix an out-of-bounds write in toStringzArray #248
+
+Release: 3.8.3
+--------------
+-Make sure we only use one toggle reference per GObject.
+-Allow empty arrays in the Dialog constructor.
+-Fix Windows build script. #242
+
+Release: 3.8.2
+--------------
+-Check for null in the ObjectG opCast, so we can cast objects that are null.
+-Add len and index methods to PtrArray
+
+Release: 3.8.1
+--------------
+-Fix the gobject.Value constructor for Objects. #239
+-Also use toggle references for getInterfaceInstance. #239
+
+Release: 3.8.0
+--------------
+-Update the libraries to the latest versions.
+-Implement a DClosure. #225
+-Add a Signals.connect overload for D functions and delegates.
+-Bring back the OpCast changes for ObjectG.
+-Add ldc support to the Build.d script.
+-Clean up Idles and Timeouts when they are destroyed on the C side.
+-Add missing properties for gtk.TreeIter.
+
+Release: 3.7.4
+--------------
+-Fix building with dmd 2.079.
+
+Release: 3.7.3
+--------------
+-Use the Slice allocator to allocate structs. #221
+
+Release: 3.7.2
+--------------
+-Don't use the phobos version of Scoped, to avoid issues when the struct is moved.
+-Fix the Windows build script for dmd 2.077.
+
+Release: 3.7.1
+--------------
+-Revert the opCast changes for the 3.7 release.
+-Use hasMember instead of hasStaticMember.
+
+Release: 3.7.0
+--------------
+-Add GstMpegts bindings.
+-Add GstBase and GstApp bindings. #215
+-Add an opCast for ObjectG.
+-Add properties for simple structs with fields marked as writable.
+-Templatize ListStore.setValue, TreeStore.setValue andthe gobject.Value constructor to allow for more types.
+-Also generate constants. #213
+-Add gobject.Signals.Signals.connect(). #207.
+-Update some of the demos to the Gtk3 way of doing things. #204, #205 and #206
+-Remove GtkGlExt demos.
+
+Release: 3.6.6
+--------------
+-Fix a memory leak with signals. #211
+
+Release: 3.6.5
+--------------
+-Fix the Windows build script.
+-Fix the 64bit Windows workaround.
+
+Release: 3.6.4
+--------------
+-Don't add deprecation warnings in a bugfix release.
+
+Release: 3.6.3
+--------------
+-Fix the destroyNotify error when destroying an object with unref.
+-Retrieve the library names from the gir files instead of gtkd.paths.
+
+Release: 3.6.2
+--------------
+-Fix dub.json.
+-Call free in the destructors of classes not derived from ObjectG.
+
+Release: 3.6.1
+--------------
+-Fix the GNUMakefile. #196
+
+Release: 3.6.0
+--------------
+-Update the libraries to the latest versions.
+-Add librsvg. #193
+-Allow for not using the runtime linker when generating the binding.
+-Add mixin templates to generate the boilerplate needed to implement Gtk interfaces
+   or overrideing Gtk functions.
+
+Release: 3.5.1
+--------------
+-Set the correct path for the pkgconfig files. #181
+
+Release: 3.5.0
+--------------
+-Add dub configurations for the demos. #177
+-Fix gio.Socket.receive. #178
+-Allow removing signal handlers and register each handler seperatly with GTK #170
+-Use the correct Homebrew path #172
+
+Release: 3.4.1
+--------------
+-Properly remove toggle references when an object is destroyed. #169
+
+Release: 3.4.0
+--------------
+-Update to GTK 3.22
+-Properly finalize GTK objects. #165
+-Reset the ID for glib.Timeout. #154
+-Add libPeas Binding. #152
+-Load libraries in the Global namespace to avoid Sourceview errors.
+-Check the "GTK_BASEPATH" and "HOMEBREW_ROOT" environment variables on OSX.
+-Print a more informative error message when we fail to load a library.
+
+Release: 3.3.0
+--------------
+-Update to GTK 3.20.
+
+Release: 3.2.3
+--------------
+-Fix some memory errors, #146
+-Add a scoped version of addOnCommandline. #142
+
+Release: 3.2.2
+--------------
+-Add ddox generation script by Gerald Nunn.
+-Allocate GTK structs with g_malloc0.
+-GIO Action and Popover demo by Gerald Nunn. #140
+-Don't create new objects in ListG and ListSG toArray.
+
+Release: 3.2.1
+--------------
+-Fix ListG.toArray, and the unittest. #129
+-Returning a TreeIter from a custom TreeModel should be optional. #130
+-New CoreGL demo by: Sebastien Alaiwan. #132
+-New Multithreading demo by: Gerald Nunn. #134
+-Fix the vte path. #135
+
+Release: 3.2.0
+--------------
+-Update to GTK 3.18.
+
+Release: 3.1.5
+--------------
+-The Wrapper now shows file and linenumber on errors in the GIR files.
+-Fix iterating ListG and ListSG. #123
+-Fix building GtkDGL.
+
+Release: 3.1.4
+--------------
+-Fix issues with dmd 2.068.
+-Throw GExceptions before ConstructionExceptions. #118
+-Add addMany and removeMany to gstreamer.Bin. #116
+
+Release: 3.1.3
+--------------
+-Don't document length parameters that arn't there.
+-Don't treat guchar* as string. #115
+-Set the TreeModel after retrieving the TreeIter. Fix #113
+
+Release: 3.1.2
+--------------
+-Fix Builder.addFromFile.
+
+Release: 3.1.1
+--------------
+-Remove conflicting GStreamer Files
+
+Release: 3.1.0
+--------------
+-Wraps the GTK+ 3.16 API.
+-Add TreeModelFilter and TreeModelSort constructors, Fix #110
+
+Release: 3.0.0
+--------------
+-New Generator based on the gir files. for changes because of it see the wiki: https://github.com/gtkd-developers/GtkD/wiki/GtkD-2-vs-GtkD-3
+-Wraps the GTK+ 3.14 API.
+-Deprecated the addOnDraw function that doesn't use scoped.
+-Improve memory management for classes derived from gobject.ObjectG.
+-Don't use absolute paths for the GTK libraries on OSX, Issue #97.
+
+Release: 2.4.2
+--------------
+-Fix issue #102, stop allocating in the ObjectG destructor.
+
+Release: 2.4.1
+--------------
+-Fix memory leak with gdk.Pixbuf.
+-On Windows search for an copy of GTK+ in &lt;exe path&gt;\gtk.
+
+Release: 2.4.0
+--------------
+- Calling unsupported functions now throws an Error.
+- Add a Scoped overload for addOnDraw.
+    Since the GC can keep a lot of Contexts alive before a collection cycle
+    starts, some memory and GDI/X11 handles arn't released when no longer
+    needed.
+    The Scoped overload destroys the Context at the end of the call
+    releasing there resources.
+- Avoid DLL issues on Windows.
+    GtkD now searches for the correct copy of Gtk+.
+- Add a toArray function to glib.ListG and glib.ListSG.
+- Add VTE binding, provided by Deadalnix.
+- Remove D1 support.
+    There are a few reasons to do this:
+    1. All three compilers have discontinued there D1 version.
+    2. GtkD with D1 + Tango has been broken for a year now, without any complain
+    3. I hope to better support D2 features like const, imutable, nothrow, pure.
+- bug fixes.

@@ -1,0 +1,81 @@
+{
+    "name": "gtk-d",
+    "targetType": "none",
+    "description": "GtkD is the Digital Mars D programing language OO wrapper for Gtk+.",
+    "homepage": "http://gtkd.org",
+    "license": "LGPL license with additional exceptions",
+    "authors": [
+        "Frank Benoit",
+        "Jake Day",
+        "Jonas Kivi",
+        "Alan Knowles",
+        "Antonio Monteiro",
+        "Sebastián E. Peyrott",
+        "John Reimer",
+        "Mike Wey",
+        "hauptmech"
+    ],
+    "dependencies": {
+        "gtk-d:sv": "*",
+        "gtk-d:vte": "*",
+        "gtk-d:gtkd": "*",
+        "gtk-d:gstreamer": "*",
+        "gtk-d:peas": "*"
+    },
+
+    "subPackages" : [
+        {
+            "name": "gtkd",
+            "targetType": "library",
+            "targetName": "gtkd-3",
+            "sourcePaths": ["generated/gtkd"],
+            "libs-posix": ["dl"],
+            "importPaths": ["generated/gtkd"]
+        },
+        {
+            "name": "gtkdgl",
+            "targetType": "library",
+            "targetName": "gtkdgl-3",
+            "sourcePaths": ["generated/gtkdgl"],
+            "libs-posix": ["dl"],
+            "importPaths": ["generated/gtkdgl"],
+            "dependencies": {"gtk-d:gtkd":"*"}
+        },
+        {
+            "name": "sv",
+            "targetType": "library",
+            "targetName": "gtkdsv-3",
+            "sourcePaths": ["generated/sourceview"],
+            "libs-posix": ["dl"],
+            "importPaths": ["generated/sourceview"],
+            "dependencies": {"gtk-d:gtkd":"*"}
+        },
+        {
+            "name": "gstreamer",
+            "targetType": "library",
+            "targetName": "gstreamerd-3",
+            "sourcePaths": ["generated/gstreamer"],
+            "libs-posix": ["dl"],
+            "importPaths": ["generated/gstreamer"],
+            "dependencies": {"gtk-d:gtkd":"*"}
+        },
+        {
+            "name": "vte",
+            "targetType": "library",
+            "targetName": "vted-3",
+            "sourcePaths": ["generated/vte"],
+            "libs-posix": ["dl"],
+            "importPaths": ["generated/vte"],
+            "dependencies": {"gtk-d:gtkd":"*"}
+        },
+        {
+            "name": "peas",
+            "targetType": "library",
+            "targetName": "peasd-3",
+            "sourcePaths": ["generated/peas"],
+            "libs-posix": ["dl"],
+            "importPaths": ["generated/peas"],
+            "dependencies": {"gtk-d:gtkd":"*"}
+        }
+    ]
+}
