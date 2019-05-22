@@ -27,6 +27,11 @@ export ZIPDIR_UI=false
 #export CREATE_INSTALLER=false
 
 
+
+# FIX FOR WINDOWS
+export BUILD_DIR="$PWD"
+
+
 ###### LINUX ONLY ######
 
 # .deb
@@ -64,7 +69,9 @@ error() {
 }
 
 
+
 #===== TRAVIS FUNCTIONS
+
 
 # if TRAVIS_OS_NAME is set, override OS to TRAVIS_OS_NAME
 if [[ -n $TRAVIS_OS_NAME ]]; then
@@ -291,7 +298,7 @@ build() {
     fi
     if [[ $OS == "windows" ]]; then
         
-        if dmd2/windows/bin/dub build -b release --parallel --arch=x86 $OUTPUT; then
+        if "$BUILD_DIR"/dmd2/windows/bin/dub build -b release --parallel --arch=x86 $OUTPUT; then
             info "$1 built correctly"
         else
             error "Building $1... failed"
