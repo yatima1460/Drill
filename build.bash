@@ -177,7 +177,7 @@ if dub --version; then
     info "D environment found"
 else
     warn "D environment missing, will try to install dlang"
-    if $OS = "linux"; then
+    if [[ $OS == "linux" ]]; then
         curl -fsS https://dlang.org/install.sh | bash -s dmd $OUTPUT
         if [ $? -eq 0 ]; then
             info "D environment installed correctly"
