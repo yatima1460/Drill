@@ -330,9 +330,9 @@ deb() {
 
     mv DEBFILE/$1.deb ../../build/Drill-$1-linux-$DRILL_VERSION-x86_64.deb $OUTPUT
     if [ $? -eq 0 ]; then
-        info ".deb moved to build"
+        info "Drill-$1-linux-$DRILL_VERSION-x86_64.deb moved to build"
     else
-        error ".deb can't be moved to build"
+        error "Drill-$1-linux-$DRILL_VERSION-x86_64.deb can't be moved to build"
         exit 1
     fi
 
