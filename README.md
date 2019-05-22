@@ -25,16 +25,18 @@ Search files without indexing, but clever crawling:
 
 # How to run this
 
-**Use the provided AppImage, just double click it**
+**Install the provided .deb (sudo required) or just double click the AppImage (no sudo)**
 
-If your distro doesn't ask you to mark it executable or nothing happens try:
-- `chmod +x Drill.AppImage`
-- `./Drill.AppImage`
+If your distro doesn't ask you to mark the AppImage as executable or nothing happens try:
+- `chmod +x appimage_name_you_downloaded.AppImage`
+- `./appimage_name_you_downloaded.AppImage`
+
+If you want a version that doesn't require sudo and can be configurable download the .zip files.
 
 # UI Guide
 
 - Open                    = Left Double Click / Return / Enter / Space
-- ~~Open containing folder  = Right click~~
+- ~~Open containing folder  = Contextual menu~~
 
 
 
@@ -43,32 +45,33 @@ If your distro doesn't ask you to mark it executable or nothing happens try:
 **Some dependencies don't build with GDC!!!**
 **Use DMD or LDC!!!**
 
-The build chain is:
 
-&& = parallel
+## Automated build
 
-datefmt && gtkd → drill-core → drill-cli && drill-gtk → zip cli && zip gtk && zip both → appimage && .deb && other formats
+### Linux, Windows (git bash) and OSX
+Run `bash build.bash`
 
-## Manual prerequisites
-
-- The repo, remember to clone the submodules too with:
-    - `git clone --recurse-submodules -j8 https://github.com/yatima1460/Drill.git`
-- D
-    - `curl -fsS https://dlang.org/install.sh | bash -s dmd`
-
-**Debug (not recommended)**
-```
-cd source/WHAT_YOU_WANT_TO_BUILD
-dub build
-```
-
-**Release (no logs and faster)**
-```
-cd source/WHAT_YOU_WANT_TO_BUILD
-dub build -b release
-```
+## Manual building
 
 Executables will spawn in the root git folder
+If you omit `-b release` a debug version (not recommended) will be created
+
+### Linux
+- `git clone https://github.com/yatima1460/Drill.git`
+- D
+    - `curl -fsS https://dlang.org/install.sh | bash -s dmd`
+    - `. ~/dlang/dmd-2.086.0/activate`
+- `cd source/ui` or `cd source/cli`
+- `dub build -b release`
+- `cd ../../` location of the binary
+
+### Windows
+
+TODO
+
+### OSX
+
+TODO
 
 # What is this
 
@@ -88,8 +91,10 @@ Second change is excluding some obvious folders while crawling like `Windows` an
 * Use your goddamn RAM: The third change is caching everything, I don't care about your RAM, I will use even 8GB of your RAM if this provides me a faster way to find your files, unused RAM is wasted RAM, even truer the more time passes.
 
 # Contributing
-TODOs:
+Read the Issues and check the labels for high priority ones
 
+
+TODOs will slowly get converted to Issues
 - Core Backend
     - Open file or path
         - ~~Linux X11~~
