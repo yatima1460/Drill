@@ -44,12 +44,12 @@ script:
       cd source/cli
       dmd2/windows/bin/dub build -b release --parallel --force --arch=x86
       cd ../../
-      7z a -tzip ../../build/Drill-cli-windows-$TRAVIS_TAG-x86.zip assets Drill-cli.exe;
+      7z a -tzip ../../build/Drill-cli-windows-$TRAVIS_TAG-x86.zip assets drill-cli.exe;
       cd source/gtkui
       dmd2/windows/bin/dub build -b release --parallel --force --arch=x86;
       cd ../../
       mv GTK3-windows-32bit/*.dll .;
-      7z a -tzip ../../build/Drill-gtk-windows-$TRAVIS_TAG-x86.zip assets Drill-gtk.exe DRILL_VERSION *.dll;
+      7z a -tzip ../../build/Drill-gtk-windows-$TRAVIS_TAG-x86.zip assets drill-gtk.exe DRILL_VERSION *.dll;
     fi
 
   #osx 
@@ -58,10 +58,10 @@ script:
       cd source/cli
       dub build -b release --parallel --force --arch=x86_64;
       cd ../../
-      7z a -tzip ../../build/Drill-cli-osx-$TRAVIS_TAG-x86_64.zip assets Drill-cli DRILL_VERSION;
+      7z a -tzip ../../build/Drill-cli-osx-$TRAVIS_TAG-x86_64.zip assets drill-cli.mach-o DRILL_VERSION;
       cd source/gtkui
       dub build -b release --parallel --force --arch=x86_64;
-      7z a -tzip ../../build/Drill-gtk-osx-$TRAVIS_TAG-x86_64.zip assets Drill-gtk DRILL_VERSION;
+      7z a -tzip ../../build/Drill-gtk-osx-$TRAVIS_TAG-x86_64.zip assets drill-gtk.mach-o DRILL_VERSION;
       cd ../../
     fi
 
