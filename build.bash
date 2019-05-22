@@ -2,34 +2,54 @@
 
 #==== DRILL BUILD SETTINGS ====
 
-export VERBOSE=false
 export OS=linux #windows, osx
+export VERBOSE=false
 
-export BUILD_CLI=true
+# CLI and UI are both standalone and use source/core
+# you can have both true or one true
+# or both false if you just want to package an already built binary
+export BUILD_CLI=false
 export BUILD_UI=true
 
 # create a portable directory in build
-export APPDIR_CLI=true
-export APPDIR_UI=true
+# just a folder with the binary and assets
+export APPDIR_CLI=false
+export APPDIR_UI=false
 
-# create a portable zip in build
+# create a zip of the portable directory in build
+# this is independent, you can create a .zip without creating the APPDIR
 export ZIPDIR_CLI=false
 export ZIPDIR_UI=false
 
+
+
+###### WINDOWS ONLY ######
+#export CREATE_INSTALLER=false
+
+
+###### LINUX ONLY ######
+
+# .deb
+export CREATE_DEB_UI=true
+export DEB_UI_PACKAGE_NAME="drill-search"
+export CREATE_DEB_CLI=true
+export DEB_CLI_PACKAGE_NAME="drill-search-cli"
+
+# .AppImage
 # https://appimage.org/
 export CREATE_APPIMAGE=false
 
+# .flatpak
 #export CREATE_FLATPAK=false
 
+# .snap
 #export CREATE_SNAP=false
-
-export CREATE_DEB_UI=true
-export CREATE_DEB_CLI=true
-export DEB_UI_PACKAGE_NAME="drill-search"
-export DEB_CLI_PACKAGE_NAME="drill-search-cli"
 
 #==============================
 
+
+
+#===== LOGGING FUNCTIONS
 info () {
     echo -e "\033[32m[DRILL BUILD][INFO]: $1\033[0m"
 }
@@ -43,77 +63,77 @@ error() {
     exit 1
 }
 
+
+#===== TRAVIS FUNCTIONS
+
 # if TRAVIS_OS_NAME is set, override OS to TRAVIS_OS_NAME
 if [[ -n $TRAVIS_OS_NAME ]]; then
-    warn "Travis OS override set to $TRAVIS_OS_NAME"
     unset $OS
-    export $OS="$TRAVIS_OS_NAME"
+    export OS="$TRAVIS_OS_NAME"
+    warn "Travis OS override set to $TRAVIS_OS_NAME"
 fi
-
 
 info "Current OS for this build is: $OS"
 
 if [[ $TRAVIS_OS_NAME == "linux" ]]; then
-    BUILD_CLI=true
     if ! $BUILD_CLI; then warn "Travis override: BUILD_CLI=true"; fi
-    BUILD_UI=true
+    BUILD_CLI=true
     if ! $BUILD_UI; then warn "Travis override: BUILD_CLI=true"; fi
-    APPDIR_CLI=false
+    BUILD_UI=true
     if $APPDIR_CLI; then warn "Travis override: APPDIR_CLI=false"; fi
-    APPDIR_UI=false
+    APPDIR_CLI=false
     if $APPDIR_UI; then warn "Travis override: APPDIR_UI=false"; fi
-    ZIPDIR_CLI=true
+    APPDIR_UI=false
     if ! $ZIPDIR_CLI; then warn "Travis override: ZIPDIR_CLI=true"; fi
-    ZIPDIR_UI=true
+    ZIPDIR_CLI=true
     if ! $ZIPDIR_UI; then warn "Travis override: ZIPDIR_CLI=true"; fi
-    CREATE_APPIMAGE=true
+    ZIPDIR_UI=true
     if ! $CREATE_APPIMAGE; then warn "Travis override: CREATE_APPIMAGE=true"; fi
-    CREATE_DEB_UI=true
+    CREATE_APPIMAGE=true
     if ! $CREATE_DEB_UI; then warn "Travis override: CREATE_DEB_UI=true"; fi
-    CREATE_DEB_CLI=true
+    CREATE_DEB_UI=true
     if ! $CREATE_DEB_CLI; then warn "Travis override: CREATE_DEB_CLI=true"; fi
-    DEB_PACKAGE_NAME="drill-search"
-    warn "Travis override: DEB_PACKAGE_NAME=drill-search";
+    CREATE_DEB_CLI=true
 fi
 if [[ $TRAVIS_OS_NAME == "windows" ]]; then
-    BUILD_CLI=true
     if ! $BUILD_CLI; then warn "Travis override: BUILD_CLI=true"; fi
-    BUILD_UI=true
+    BUILD_CLI=true
     if ! $BUILD_UI; then warn "Travis override: BUILD_CLI=true"; fi
-    APPDIR_CLI=false
+    BUILD_UI=true
     if $APPDIR_CLI; then warn "Travis override: APPDIR_CLI=false"; fi
-    APPDIR_UI=false
+    APPDIR_CLI=false
     if $APPDIR_UI; then warn "Travis override: APPDIR_UI=false"; fi
-    ZIPDIR_CLI=true
+    APPDIR_UI=false
     if ! $ZIPDIR_CLI; then warn "Travis override: ZIPDIR_CLI=true"; fi
-    ZIPDIR_UI=true
+    ZIPDIR_CLI=true
     if ! $ZIPDIR_UI; then warn "Travis override: ZIPDIR_CLI=true"; fi
-    CREATE_APPIMAGE=false
+    ZIPDIR_UI=true
     if $CREATE_APPIMAGE; then warn "Travis override: CREATE_APPIMAGE=false"; fi
-    CREATE_DEB_UI=false
+    CREATE_APPIMAGE=false
     if $CREATE_DEB_UI; then warn "Travis override: CREATE_DEB_UI=false"; fi
-    CREATE_DEB_CLI=false
+    CREATE_DEB_UI=false
     if $CREATE_DEB_CLI; then warn "Travis override: CREATE_DEB_CLI=false"; fi
+    CREATE_DEB_CLI=false
 fi
 if [[ $TRAVIS_OS_NAME == "osx" ]]; then
-    BUILD_CLI=true
     if ! $BUILD_CLI; then warn "Travis override: BUILD_CLI=true"; fi
-    BUILD_UI=true
+    BUILD_CLI=true
     if ! $BUILD_UI; then warn "Travis override: BUILD_CLI=true"; fi
-    APPDIR_CLI=false
+    BUILD_UI=true
     if $APPDIR_CLI; then warn "Travis override: APPDIR_CLI=false"; fi
-    APPDIR_UI=false
+    APPDIR_CLI=false
     if $APPDIR_UI; then warn "Travis override: APPDIR_UI=false"; fi
-    ZIPDIR_CLI=true
+    APPDIR_UI=false
     if ! $ZIPDIR_CLI; then warn "Travis override: ZIPDIR_CLI=true"; fi
-    ZIPDIR_UI=true
+    ZIPDIR_CLI=true
     if ! $ZIPDIR_UI; then warn "Travis override: ZIPDIR_CLI=true"; fi
-    CREATE_APPIMAGE=false
+    ZIPDIR_UI=true
     if $CREATE_APPIMAGE; then warn "Travis override: CREATE_APPIMAGE=false"; fi
-    CREATE_DEB_UI=false
+    CREATE_APPIMAGE=false
     if $CREATE_DEB_UI; then warn "Travis override: CREATE_DEB_UI=false"; fi
-    CREATE_DEB_CLI=false
+    CREATE_DEB_UI=false
     if $CREATE_DEB_CLI; then warn "Travis override: CREATE_DEB_CLI=false"; fi
+    CREATE_DEB_CLI=false
 fi
 
 if $VERBOSE; then 
@@ -130,6 +150,21 @@ else
 fi
 
 
+# if we are running in travis use travis build number
+# otherwise set string version to "LOCAL_BUILD"
+if [ -z "$TRAVIS_BUILD_NUMBER" ]; then
+    export TRAVIS_TAG="0.0.0"
+    export DRILL_VERSION=$TRAVIS_TAG
+    warn "Not a travis build, TRAVIS_BUILD_NUMBER not set, will use '$DRILL_VERSION' as version string"
+else
+    info "This is a Travis build"
+    export TRAVIS_TAG="1.$TRAVIS_BUILD_NUMBER"
+    export DRILL_VERSION=$TRAVIS_TAG
+fi
+
+
+#===== CTRL-C EVENT
+
 # trap ctrl-c and call ctrl_c()
 trap ctrl_c INT
 ctrl_c() {
@@ -141,7 +176,7 @@ ctrl_c() {
 
 
 
-
+#===== CLEAR PREVIOUS BUILD
 if rm -rf build; then
     info "build directory cleared"
 else
@@ -161,21 +196,14 @@ fi
 
 
 
-# if we are running in travis use travis build number
-# otherwise set string version to "LOCAL_BUILD"
-if [ -z "$TRAVIS_BUILD_NUMBER" ]; then
-    export TRAVIS_TAG="0.0.0"
-    export DRILL_VERSION=$TRAVIS_TAG
-    warn "Not a travis build, TRAVIS_BUILD_NUMBER not set, will use '$DRILL_VERSION' as version string"
-else
-    info "This is a Travis build"
-    export TRAVIS_TAG="1.$TRAVIS_BUILD_NUMBER"
-    export DRILL_VERSION=$TRAVIS_TAG
-fi
+
 
 # write version to file
 # it will be included in all packaged versions
 echo -n "$DRILL_VERSION" > DRILL_VERSION
+
+
+#===== D ENVIRONMENT CHECKS
 
 if dub --version && dmd --version; then
     info "D environment found"
@@ -208,26 +236,28 @@ else
     fi 
 fi
 
-
+#===== CREATE A PORTABLE .ZIP FILE
 package() {
     local EXE_NAME=drill-$1
     if [[ $OS == "windows" ]]; then EXE_NAME=drill-$1.exe; fi
     
-    if 7z a -tzip Drill-"$1"-$OS-"$DRILL_VERSION"-x86_64.zip assets "$EXE_NAME" DRILL_VERSION  $OUTPUT; then
+    if 7z a -tzip Drill-"$1"-"$OS"-"$DRILL_VERSION"-x86_64.zip assets "$EXE_NAME" DRILL_VERSION  $OUTPUT; then
         info "Zipping of $1 done"
         
-        if mv Drill-"$1"-$OS-"$DRILL_VERSION"-x86_64.zip build $OUTPUT; then
+        if mv Drill-"$1"-"$OS"-"$DRILL_VERSION"-x86_64.zip build $OUTPUT; then
             info "Drill-$1-$OS-$DRILL_VERSION-x86_64.zip moved to build folder"
         else
             error "Drill-$1-$OS-$DRILL_VERSION-x86_64.zip could not be moved to build folder"
         fi
     else
-        rm Drill-"$1"-$OS-"$DRILL_VERSION"-x86_64.zip
+        rm Drill-"$1"-"$OS"-"$DRILL_VERSION"-x86_64.zip
         error "Zipping of $1 could not find some files"
         exit 1
     fi
 }
 
+#===== DOWNLOAD DEPENDENCIES AND CREATE THE APPIMAGE 
+# $1 = project subfolder in source 
 appimage() {
     cd tools/appimage $OUTPUT || exit
     wget -c https://raw.githubusercontent.com/AppImage/pkg2appimage/master/pkg2appimage $OUTPUT
@@ -245,7 +275,8 @@ appimage() {
     rm tools/appimage/pkg2appimage  $OUTPUT
 }
 
-
+#===== BUILD
+# $1 = project path 
 build() {
     info "Starting build of $1..."
     cd "$1" $OUTPUT || exit
@@ -274,7 +305,7 @@ build() {
 appdir() {
     mkdir               build/"$1"
     cp -r assets        build/"$1"
-    cp drill-"$1"     build/"$1"
+    cp drill-"$1"       build/"$1"
     cp DRILL_VERSION    build/"$1"
 }
 
