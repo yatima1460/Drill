@@ -26,7 +26,7 @@ addons:
       - p7zip
 
 script:
-  - bash build_$TRAVIS_OS_NAME.bash; fi
+  - bash build_$TRAVIS_OS_NAME.bash;
 
 before_deploy:
  - git config --local user.name "Federico Santamorena"
