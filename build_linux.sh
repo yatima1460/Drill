@@ -5,21 +5,20 @@
 VERBOSE=false
 
 
-
 BUILD_CLI=true
 BUILD_GTK=true
 
 APPDIR_CLI=true
 APPDIR_GTK=true
 
+ZIPDIR_CLI=true
+ZIPDIR_GTK=true
+
 CREATE_APPIMAGE=true
 
 CREATE_DEB=true
 DEB_PACKAGE_NAME="drill-search"
 
-
-#CREATE_ZIP=true
-#CREATE_GTK=true
 
 #==============================
 
@@ -130,6 +129,7 @@ package() {
             error "Drill-$1-linux-$DRILL_VERSION-x86_64.zip could not be moved to build folder"
         fi
     else
+        rm Drill-$1-linux-$DRILL_VERSION-x86_64.zip
         error "Zipping of $1 could not find some files"
         exit 1
     fi
@@ -158,7 +158,7 @@ build() {
     cd $1 $OUTPUT
     
     if $VERBOSE; then
-        dub build -b release --parallel --arch=x86_64 $OUTPUT
+        dub build -b release --parallel --arch=x86_64
         result=$?
     else
         dub build -b release --parallel --arch=x86_64 --vquiet $OUTPUT
@@ -269,7 +269,7 @@ pipeline() {
         wait
 
         if $BUILD_CLI; then
-        build "source/cli" || exit 1 &
+            build "source/cli" || exit 1 &
         else
             warn "Skipping build CLI"
         fi
@@ -290,10 +290,10 @@ pipeline() {
         else
             warn "Skipping creating appdir GTK"
         fi
-        if $APPDIR_CLI; then
+        if $ZIPDIR_CLI; then
             package "cli" || exit 1 &
         fi
-        if $APPDIR_GTK; then
+        if $ZIPDIR_GTK; then
             package "gtk" || exit 1 &
         fi
     else
@@ -311,6 +311,7 @@ pipeline() {
     fi
     wait
     info "All done."
+    exit 0 
 }
 
 
