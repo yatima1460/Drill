@@ -1,0 +1,6 @@
+[submodule "source/gtkui/GtkD"]
+	path = source/gtkui/GtkD
+	url = http://github.com/yatima1460/GtkD
+[submodule "source/core/datefmt"]
+	path = source/core/datefmt
+	url = http://github.com/yatima1460/datefmt
