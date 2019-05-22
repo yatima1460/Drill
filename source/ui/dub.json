@@ -19,7 +19,7 @@
 	],
 	"dependencies": {
 		"gtk-d": {
-			"path": "GtkD"
+			"path": "GtkD-3.8.5"
 		}
 	}
 }
