@@ -41,9 +41,13 @@ if $VERBOSE; then
     info "Verbose mode on"
     #OUTPUT=1>&1
 else
-    warn "Verbose mode off"
-    OUTPUT=&>/dev/null
-    export OUTPUT
+    if [ -z "$TRAVIS_TAG" ]; then
+        warn "Verbose mode off"
+        OUTPUT=&>/dev/null
+        export OUTPUT
+    else
+        warn "Verbose mode forcefully enabled because this is a travis build"
+    fi
 fi
 
 
