@@ -82,7 +82,7 @@ deploy:
   api_key:
     secure: $GITHUB_TOKEN
   file: 
-    - build/*.*
+    - build/*
     
     #- tools/appimage/Drill-cli.AppImage
     #- Drill-cli-windows.zip
