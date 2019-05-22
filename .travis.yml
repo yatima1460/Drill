@@ -29,7 +29,7 @@ addons:
 script:
 
   #linux
-  - if [ "$TRAVIS_OS_NAME" == "linux" ]; then sh build_linux.sh; fi
+  - if [ "$TRAVIS_OS_NAME" == "linux" ]; then bash build_linux.sh; fi
   - if [ "$TRAVIS_OS_NAME" == "linux" ]; then ls -lah build; fi
 
   #windows
