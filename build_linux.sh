@@ -2,8 +2,12 @@
 
 #==== DRILL BUILD SETTINGS ====
 
+CREATE_ZIP=true
+CREATE_GTK=true
+
 CREATE_APPIMAGE=true
 CREATE_DEB=false
+
 
 #==============================
 
@@ -133,6 +137,13 @@ build() {
     cd -
 }
 
+appdir() {
+    mkdir               build/$1
+    cp -r assets        build/$1
+    cp drill-$1.elf     build/$1
+    cp DRILL_VERSION    build/$1
+}
+
 
 
 pipeline() {
@@ -144,6 +155,8 @@ pipeline() {
     build "source/cli" || exit 1 &
     build "source/gtkui/GtkD" || exit 1 &
     wait
+    appdir "cli" || exit 1 &
+    appdir "gtk" || exit 1 &
     package "cli" || exit 1 &
     package "gtk" || exit 1 &
     if $CREATE_APPIMAGE; then
