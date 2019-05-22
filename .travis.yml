@@ -1,7 +1,7 @@
 os:
 - linux
 - windows
-#- osx
+- osx
 
 language: bash
 
@@ -74,15 +74,13 @@ script:
 
 
   #osx 
-  # - >
-  #   if [ "$TRAVIS_OS_NAME" = "osx" ]; then
-  #     dub build -c CLI -b release --parallel --force --arch=x86_64;
-  #     7z a -tzip -r Drill-CLI-OSX.zip assets Drill-CLI DRILL_VERSION;
-  #     dub build -c GTK -b release --parallel --force --arch=x86_64;
-  #     7z a -tzip -r Drill-GTK-OSX.zip assets Drill-GTK DRILL_VERSION;
-  #     test -f Drill-GTK-OSX.zip;
-  #     test -f Drill-CLI-OSX.zip;
-  #   fi
+   - >
+     if [ "$TRAVIS_OS_NAME" = "osx" ]; then
+       dub build -c CLI -b release --parallel --force --arch=x86_64;
+       7z a -tzip Drill-CLI-OSX.zip assets Drill-CLI DRILL_VERSION;
+       dub build -c GTK -b release --parallel --force --arch=x86_64;
+       7z a -tzip Drill-GTK-OSX.zip assets Drill-GTK DRILL_VERSION;
+     fi
 
   
 before_deploy:
