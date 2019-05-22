@@ -156,14 +156,7 @@ appimage() {
 build() {
     info "Starting build of $1..."
     cd $1 $OUTPUT
-    
-    if $VERBOSE; then
-        dub build -b release --parallel --arch=x86_64
-        result=$?
-    else
-        dub build -b release --parallel --arch=x86_64 --vquiet $OUTPUT
-        result=$?
-    fi
+    dub build -b release --parallel --arch=x86_64 $OUTPUT
     if [ $result -eq 0 ]; then
         info "$1 built correctly"
     else
