@@ -21,7 +21,7 @@ addons:
     update: true
     packages:
       - dmd
-      - gtk+3
+      #- gtk+3
       - dub
       - p7zip
 
