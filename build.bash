@@ -46,8 +46,11 @@ error() {
 # if TRAVIS_OS_NAME is set, override OS to TRAVIS_OS_NAME
 if [[ -n $TRAVIS_OS_NAME ]]; then
     warn "Travis OS override set to $TRAVIS_OS_NAME"
-    export $OS=$TRAVIS_OS_NAME
+    export $OS="$TRAVIS_OS_NAME"
 fi
+
+
+info "Current OS for this build is: $OS"
 
 if [[ $TRAVIS_OS_NAME == "linux" ]]; then
     BUILD_CLI=true
@@ -137,16 +140,16 @@ ctrl_c() {
 
 
 
-rm -rf build
-if [ $? -eq 0 ]; then
+
+if rm -rf build; then
     info "build directory cleared"
 else
     error "can't clear build directory"
     exit 1
 fi
 
-mkdir -p build
-if [ $? -eq 0 ]; then
+
+if mkdir -p build; then
     info "build directory created"
 else
     error "can't create build directory"
@@ -171,63 +174,72 @@ fi
 
 # write version to file
 # it will be included in all packaged versions
-echo -n $DRILL_VERSION > DRILL_VERSION
+echo -n "$DRILL_VERSION" > DRILL_VERSION
 
-if dub --version; then
+if dub --version && dmd --version; then
     info "D environment found"
 else
     warn "D environment missing, will try to install dlang"
     if [[ $OS == "linux" ]]; then
-        curl -fsS https://dlang.org/install.sh | bash -s dmd $OUTPUT
-        if [ $? -eq 0 ]; then
+        
+        if curl -fsS https://dlang.org/install.sh | bash -s dmd $OUTPUT; then
             info "D environment installed correctly"
         else
             error "D environment installation failed"
             exit 1
         fi
-        . ~/dlang/dmd-2.086.0/activate;
-        if [ $? -eq 0 ]; then
+        
+        if . ~/dlang/dmd-2.086.0/activate; then
             info "D environment activated correctly"
         else
             error "D environment can't be activated"
             exit 1
         fi
     fi
+    if [[ $OS == "osx" ]]; then
+        error "you need to install dmd and dub using homebrew"
+        exit 1
+    fi 
+    if [[ $OS == "windows" ]]; then
+        wget http://downloads.dlang.org/nightlies/dmd-master/dmd.master.windows.7z
+        7z x dmd.master.windows.7z
+        dmd2/windows/bin/dub --version
+    fi 
 fi
 
 
 package() {
     local EXE_NAME=drill-$1
     if [[ $OS == "windows" ]]; then EXE_NAME=drill-$1.exe; fi
-    7z a -tzip Drill-$1-$OS-$DRILL_VERSION-x86_64.zip assets $EXE_NAME DRILL_VERSION  $OUTPUT
-    if [ $? -eq 0 ]; then
+    
+    if 7z a -tzip Drill-"$1"-$OS-"$DRILL_VERSION"-x86_64.zip assets "$EXE_NAME" DRILL_VERSION  $OUTPUT; then
         info "Zipping of $1 done"
-        mv Drill-$1-$OS-$DRILL_VERSION-x86_64.zip build $OUTPUT
-        if [ $? -eq 0 ]; then
+        
+        if mv Drill-"$1"-$OS-"$DRILL_VERSION"-x86_64.zip build $OUTPUT; then
             info "Drill-$1-$OS-$DRILL_VERSION-x86_64.zip moved to build folder"
         else
             error "Drill-$1-$OS-$DRILL_VERSION-x86_64.zip could not be moved to build folder"
         fi
     else
-        rm Drill-$1-$OS-$DRILL_VERSION-x86_64.zip
+        rm Drill-"$1"-$OS-"$DRILL_VERSION"-x86_64.zip
         error "Zipping of $1 could not find some files"
         exit 1
     fi
 }
 
 appimage() {
-    cd tools/appimage $OUTPUT
+    cd tools/appimage $OUTPUT || exit
     wget -c https://raw.githubusercontent.com/AppImage/pkg2appimage/master/pkg2appimage $OUTPUT
     chmod +x pkg2appimage
-    ./pkg2appimage $1.yml $OUTPUT
-    if [ $? -eq 0 ]; then
+    
+    if ./pkg2appimage "$1".yml $OUTPUT; then
         info "AppImage build done"
     else
         error "AppImage build failed"
     fi
-    cd ../../ $OUTPUT
-    mv tools/appimage/out/*.AppImage build/Drill-$1-linux-$DRILL_VERSION-x86_64.AppImage  $OUTPUT
-    chmod +x build/Drill-$1-linux-$DRILL_VERSION-x86_64.AppImage  $OUTPUT
+    cd ../../ $OUTPUT || exit
+    mv tools/appimage/out/*.AppImage build/Drill-"$1"-linux-"$DRILL_VERSION"-x86_64.AppImage  $OUTPUT
+    chmod +x build/Drill-"$1"-linux-"$DRILL_VERSION"-x86_64.AppImage  $OUTPUT
     rmdir tools/appimage/out  $OUTPUT
     rm tools/appimage/pkg2appimage  $OUTPUT
 }
@@ -235,22 +247,34 @@ appimage() {
 
 build() {
     info "Starting build of $1..."
-    cd $1 $OUTPUT
-    dub build -b release --parallel --arch=x86_64 $OUTPUT
-    if [ $? -eq 0 ]; then
-        info "$1 built correctly"
-    else
-        error "Building $1... failed"
-        exit 1
+    cd "$1" $OUTPUT || exit
+    if [[ $OS == "linux" || $OS == "osx" ]]; then
+        
+        if dub build -b release --parallel --arch=x86_64 $OUTPUT; then
+            info "$1 built correctly"
+        else
+            error "Building $1... failed"
+            exit 1
+        fi
     fi
-    cd - $OUTPUT
+    if [[ $OS == "windows" ]]; then
+        
+        if dmd2/windows/bin/dub build -b release --parallel --arch=x86 $OUTPUT; then
+            info "$1 built correctly"
+        else
+            error "Building $1... failed"
+            exit 1
+        fi
+    fi
+
+    cd - $OUTPUT || exit
 }
 
 appdir() {
-    mkdir               build/$1
-    cp -r assets        build/$1
-    cp drill-$1     build/$1
-    cp DRILL_VERSION    build/$1
+    mkdir               build/"$1"
+    cp -r assets        build/"$1"
+    cp drill-"$1"     build/"$1"
+    cp DRILL_VERSION    build/"$1"
 }
 
 deb() {
@@ -261,9 +285,9 @@ deb() {
     if [[ $1 == "cli" ]]; then
         DEB_PACKAGE_NAME=$DEB_CLI_PACKAGE_NAME  
     fi
-    cd tools/deb $OUTPUT
+    cd tools/deb $OUTPUT || exit
     EXECUTABLE_IN_OPT="drill-$1"
-    if [ -f ../../$EXECUTABLE_IN_OPT ]; then
+    if [ -f ../../"$EXECUTABLE_IN_OPT" ]; then
         info "$EXECUTABLE_IN_OPT executable found"
     else
         error "No $EXECUTABLE_IN_OPT executable found!"
@@ -271,24 +295,24 @@ deb() {
     fi
 
 
-    rm -rf DEBFILE/$1/
+    rm -rf DEBFILE/"$1"/
 
     # install binary redirect for /usr/bin and set it executable
-    mkdir -p DEBFILE/$1/usr/bin
+    mkdir -p DEBFILE/"$1"/usr/bin
     echo    #!/bin/bash                                     >  DEBFILE/usr/bin/$DEB_PACKAGE_NAME
-    echo    /opt/$DEB_PACKAGE_NAME/$EXECUTABLE_IN_OPT "\$@" >> DEBFILE/$1/usr/bin/$DEB_PACKAGE_NAME
-    chmod   +x                                           DEBFILE/$1/usr/bin/$DEB_PACKAGE_NAME
+    echo    /opt/$DEB_PACKAGE_NAME/"$EXECUTABLE_IN_OPT" "\$@" >> DEBFILE/"$1"/usr/bin/$DEB_PACKAGE_NAME
+    chmod   +x                                           DEBFILE/"$1"/usr/bin/$DEB_PACKAGE_NAME
 
     ## install drill in /opt
 
     # add assets
-    mkdir   -p DEBFILE/$1/opt/$DEB_PACKAGE_NAME/
-    cp      ../../$EXECUTABLE_IN_OPT            DEBFILE/$1/opt/$DEB_PACKAGE_NAME/$EXECUTABLE_IN_OPT
-    cp      -r ../../assets                     DEBFILE/$1/opt/$DEB_PACKAGE_NAME/
-    chmod   +x                                  DEBFILE/$1/opt/$DEB_PACKAGE_NAME/$EXECUTABLE_IN_OPT
+    mkdir   -p DEBFILE/"$1"/opt/$DEB_PACKAGE_NAME/
+    cp      ../../"$EXECUTABLE_IN_OPT"            DEBFILE/"$1"/opt/$DEB_PACKAGE_NAME/"$EXECUTABLE_IN_OPT"
+    cp      -r ../../assets                     DEBFILE/"$1"/opt/$DEB_PACKAGE_NAME/
+    chmod   +x                                  DEBFILE/"$1"/opt/$DEB_PACKAGE_NAME/"$EXECUTABLE_IN_OPT"
 
-    mkdir DEBFILE/$1/DEBIAN
-    cp control-$1 DEBFILE/$1/DEBIAN/control
+    mkdir DEBFILE/"$1"/DEBIAN
+    cp control-"$1" DEBFILE/"$1"/DEBIAN/control
 
     # append .deb version to the .deb metadata
     # and add DRILL_VERSION to /opt
@@ -296,47 +320,47 @@ deb() {
 
 
     if [ -f ../../DRILL_VERSION ]; then
-        cp ../../DRILL_VERSION DEBFILE/$1/opt/$DEB_PACKAGE_NAME/
-        echo Version: $(cat ../../DRILL_VERSION) >> DEBFILE/$1/DEBIAN/control
-        cat DEBFILE/$1/DEBIAN/control $OUTPUT
-        echo Building .deb for version $(cat ../../DRILL_VERSION)
+        cp ../../DRILL_VERSION DEBFILE/"$1"/opt/$DEB_PACKAGE_NAME/
+        echo Version: "$(cat ../../DRILL_VERSION)" >> DEBFILE/"$1"/DEBIAN/control
+        cat DEBFILE/"$1"/DEBIAN/control $OUTPUT
+        echo Building .deb for version "$(cat ../../DRILL_VERSION)"
         export DRILL_VERSION=$(cat ../../DRILL_VERSION)
     else
         echo No Drill version found! Using 0.0.0
-        echo Version: 0.0.0 >> DEBFILE/$1/DEBIAN/control
+        echo Version: 0.0.0 >> DEBFILE/"$1"/DEBIAN/control
         export DRILL_VERSION="LOCAL_BUILD"
     fi
 
 
 
     # add desktop file
-    mkdir -p DEBFILE/$1/usr/share/applications
+    mkdir -p DEBFILE/"$1"/usr/share/applications
     desktop-file-validate $DEB_PACKAGE_NAME.desktop
-    cp $DEB_PACKAGE_NAME.desktop DEBFILE/$1/usr/share/applications/
+    cp $DEB_PACKAGE_NAME.desktop DEBFILE/"$1"/usr/share/applications/
 
     # add icon
-    mkdir -p DEBFILE/$1/usr/share/icons/$DEB_PACKAGE_NAME
-    cp ../../assets/icon.png DEBFILE/$1/usr/share/icons/$DEB_PACKAGE_NAME/drill.png
+    mkdir -p DEBFILE/"$1"/usr/share/icons/$DEB_PACKAGE_NAME
+    cp ../../assets/icon.png DEBFILE/"$1"/usr/share/icons/$DEB_PACKAGE_NAME/drill.png
     #cp ../../assets/icon.svg DEBFILE/usr/share/app-install/icons/drill.svg
 
     # build the .deb file
-    dpkg-deb --build DEBFILE/$1/ $OUTPUT
-    if [ $? -eq 0 ]; then
+    
+    if dpkg-deb --build DEBFILE/"$1"/ $OUTPUT; then
         info ".deb built correctly"
     else
         error "Building .deb failed"
         exit 1
     fi
 
-    mv DEBFILE/$1.deb ../../build/Drill-$1-linux-$DRILL_VERSION-x86_64.deb $OUTPUT
-    if [ $? -eq 0 ]; then
+    
+    if mv DEBFILE/"$1".deb ../../build/Drill-"$1"-linux-$DRILL_VERSION-x86_64.deb $OUTPUT; then
         info "Drill-$1-linux-$DRILL_VERSION-x86_64.deb moved to build"
     else
         error "Drill-$1-linux-$DRILL_VERSION-x86_64.deb can't be moved to build"
         exit 1
     fi
 
-    cd ../../ $OUTPUT
+    cd ../../ $OUTPUT || exit
 }
 
 pipeline() {
