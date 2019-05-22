@@ -1,7 +1,7 @@
 os:
-- linux
-- windows
-- osx
+  - linux
+  - windows
+  - osx
 
 language: bash
 
@@ -10,6 +10,7 @@ before_install:
  - echo -n $TRAVIS_TAG > DRILL_VERSION
 
 addons:
+
   #linux
   apt:
     packages:
@@ -26,6 +27,7 @@ addons:
 
 
 script:
+
   #linux
   - >
     if [ "$TRAVIS_OS_NAME" == "linux" ]; then 
@@ -39,23 +41,29 @@ script:
       then wget http://downloads.dlang.org/nightlies/dmd-master/dmd.master.windows.7z;
       7z x dmd.master.windows.7z;
       git clone https://github.com/yatima1460/GTK3-windows-32bit;
-      dmd2/windows/bin/dub build -c CLI -b release --parallel --force --arch=x86;
-      7z a -tzip build/Drill-cli-windows-$TRAVIS_TAG-x86.zip assets Drill-cli.exe;
+      cd source/cli
+      dmd2/windows/bin/dub build -b release --parallel --force --arch=x86
+      cd ../../
+      7z a -tzip ../../build/Drill-cli-windows-$TRAVIS_TAG-x86.zip assets Drill-cli.exe;
+      cd source/gtkui
       dmd2/windows/bin/dub build -c GTK -b release --parallel --force --arch=x86;
+      cd ../../
       mv GTK3-windows-32bit/*.dll .;
-      7z a -tzip build/Drill-gtk-windows-$TRAVIS_TAG-x86.zip assets Drill-gtk.exe DRILL_VERSION *.dll;
+      7z a -tzip ../../build/Drill-gtk-windows-$TRAVIS_TAG-x86.zip assets Drill-gtk.exe DRILL_VERSION *.dll;
     fi
 
-
-
   #osx 
-   - >
-     if [ "$TRAVIS_OS_NAME" = "osx" ]; then
-       dub build -c CLI -b release --parallel --force --arch=x86_64;
-       7z a -tzip build/Drill-cli-osx-$TRAVIS_TAG-x86_64.zip assets Drill-cli DRILL_VERSION;
-       dub build -c GTK -b release --parallel --force --arch=x86_64;
-       7z a -tzip build/Drill-gtk-osx-$TRAVIS_TAG-x86_64.zip assets Drill-gtk DRILL_VERSION;
-     fi
+  - >
+    if [ "$TRAVIS_OS_NAME" = "osx" ]; then
+      cd source/cli
+      dub build -b release --parallel --force --arch=x86_64;
+      cd ../../
+      7z a -tzip ../../build/Drill-cli-osx-$TRAVIS_TAG-x86_64.zip assets Drill-cli DRILL_VERSION;
+      cd source/gtkui
+      dub build -c GTK -b release --parallel --force --arch=x86_64;
+      7z a -tzip ../../build/Drill-gtk-osx-$TRAVIS_TAG-x86_64.zip assets Drill-gtk DRILL_VERSION;
+      cd ../../
+    fi
 
 
 
