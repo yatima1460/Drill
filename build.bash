@@ -46,6 +46,7 @@ error() {
 # if TRAVIS_OS_NAME is set, override OS to TRAVIS_OS_NAME
 if [[ -n $TRAVIS_OS_NAME ]]; then
     warn "Travis OS override set to $TRAVIS_OS_NAME"
+    unset $OS
     export $OS="$TRAVIS_OS_NAME"
 fi
 
