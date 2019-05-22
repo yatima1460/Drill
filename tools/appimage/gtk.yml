@@ -7,8 +7,7 @@ ingredients:
     - libgcc1
     - libgtk3.0
   # debs:
-  #   - /home/area42/kdenlive.deb
-  #   - /home/area42/kdenlive/*
+  
 
 
 # create the necessary dirs
@@ -17,13 +16,12 @@ ingredients:
 
 # copy the assets
   script:
-    - echo $PWD
-    - cp      ../../drill-gtk.elf     drill/drill.AppDir/usr/drill-gtk.elf
-    - chmod   +x                      drill/drill.AppDir/usr/drill-gtk.elf
-    - cp      DRILL_VERSION           drill/drill.AppDir/usr/
-    - cp      -r assets               drill/drill.AppDir/usr/
-    - echo    #!/bin/bash >           drill/drill.AppDir/usr/drill-search.sh
-    - echo    ./drill-gtk >           drill/drill.AppDir/usr/drill-search.sh
-    - chmod   +x                      drill/drill.AppDir/usr/drill.sh
-    - cp      drill.desktop           drill/drill.AppDir
-    - cp ../../assets/icon.svg        drill/drill.AppDir
+    - cp      ../../../drill-gtk.elf      drill.AppDir/usr/drill-gtk.elf
+    - chmod   +x                          drill.AppDir/usr/drill-gtk.elf
+    - cp      ../../../DRILL_VERSION      drill.AppDir/usr/
+    - cp      -r ../../../assets          drill.AppDir/usr/
+    - echo    #!/bin/bash >               drill.AppDir/usr/drill-search.sh
+    - echo    ./drill-gtk.elf >>          drill.AppDir/usr/drill-search.sh
+    - chmod   +x                          drill.AppDir/usr/drill-search.sh
+    - cp      ../drill.desktop            drill.AppDir
+    - cp      ../../../assets/icon.svg    drill.AppDir
