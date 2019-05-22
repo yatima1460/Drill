@@ -18,7 +18,7 @@
 	],
 	"dependencies": {
 		"datefmt": {
-			"path": "datefmt"
+			"path": "datefmt-1.0.3"
 		}
 	}
 }
