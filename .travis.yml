@@ -25,49 +25,13 @@ addons:
       - dub
       - p7zip
 
-
 script:
-
-  #linux
-  - if [ "$TRAVIS_OS_NAME" == "linux" ]; then bash build_linux.bash; fi
-  - if [ "$TRAVIS_OS_NAME" == "linux" ]; then ls -lah build; fi
-
-  #windows
-  - >
-    if [ "$TRAVIS_OS_NAME" == "windows" ]; then 
-      wget http://downloads.dlang.org/nightlies/dmd-master/dmd.master.windows.7z;
-      7z x dmd.master.windows.7z;
-      git clone https://github.com/yatima1460/GTK3-windows-32bit;
-      cd source/cli
-      ../../dmd2/windows/bin/dub build -b release --parallel --force --arch=x86
-      cd ../../
-      7z a -tzip ../../build/Drill-cli-windows-$TRAVIS_TAG-x86.zip assets drill-cli.exe;
-      cd source/gtkui
-      ../../dmd2/windows/bin/dub build -b release --parallel --force --arch=x86;
-      cd ../../
-      mv GTK3-windows-32bit/*.dll .;
-      7z a -tzip ../../build/Drill-gtk-windows-$TRAVIS_TAG-x86.zip assets drill-gtk.exe DRILL_VERSION *.dll;
-    fi
-
-  #osx 
-  - >
-    if [ "$TRAVIS_OS_NAME" = "osx" ]; then
-      cd source/cli
-      dub build -b release --parallel --force --arch=x86_64;
-      cd ../../
-      7z a -tzip ../../build/Drill-cli-osx-$TRAVIS_TAG-x86_64.zip assets drill-cli.mach-o DRILL_VERSION;
-      cd source/gtkui
-      dub build -b release --parallel --force --arch=x86_64;
-      7z a -tzip ../../build/Drill-gtk-osx-$TRAVIS_TAG-x86_64.zip assets drill-gtk.mach-o DRILL_VERSION;
-      cd ../../
-    fi
-
-
+  - bash build_$TRAVIS_OS_NAME.bash; fi
 
 before_deploy:
  - git config --local user.name "Federico Santamorena"
  - git config --local user.email "federico@santamorena.me"
- #- git tag "$TRAVIS_TAG" "$TRAVIS_COMMIT"
+ - ls -p build | grep -v / 
 
 deploy:
   provider: releases
@@ -82,13 +46,6 @@ deploy:
     secure: $GITHUB_TOKEN
   file: 
     - build/*.*
-    
-    #- tools/appimage/Drill-cli.AppImage
-    #- Drill-cli-windows.zip
-    #- Drill-gtk-windows.zip
-    #- Drill-gtk-OSX.zip
-    #- Drill-cli-OSX.zip
-    
     
   on:
     repo: yatima1460/Drill
