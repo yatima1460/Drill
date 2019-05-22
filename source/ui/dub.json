@@ -1,5 +1,5 @@
 {
-	"name": "drill-gtk",
+	"name": "drill-ui",
 	"authors": [
 		"Federico Santamorena"
 	],
@@ -9,7 +9,7 @@
 	"homepage": "https://github.com/yatima1460/Drill",
     "targetType": "executable",
     "targetPath": "../../",
-    "targetName": "drill-gtk",
+    "targetName": "drill-ui",
     "sourcePaths": [
         "../core"
     ],
