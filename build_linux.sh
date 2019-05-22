@@ -147,7 +147,7 @@ appimage() {
     fi
     cd ../../ $OUTPUT
     mv tools/appimage/out/*.AppImage build/Drill-$1-$DRILL_VERSION.AppImage  $OUTPUT
-    chmod +x build/Drill-$1-$DRILL_VERSION.AppImage  $OUTPUT
+    chmod +x build/Drill-$1-linux-$DRILL_VERSION.AppImage  $OUTPUT
     rmdir tools/appimage/out  $OUTPUT
     rm tools/appimage/pkg2appimage  $OUTPUT
 }
