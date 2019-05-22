@@ -10,7 +10,9 @@
 	"preGenerateCommands-windows": [],
     "targetType": "executable",
     "targetPath": "../../",
-    "targetName": "drill-cli.elf",
+    "targetName-linux": "drill-cli.elf",
+	"targetName-Windows": "drill-cli.exe",
+	"targetName-OSX": "drill-cli.mach-o",
     "sourcePaths": [
         "../core"
     ],
