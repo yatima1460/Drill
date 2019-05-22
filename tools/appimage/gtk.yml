@@ -3,8 +3,10 @@ ingredients:
   dist: trusty
   sources:
     - deb http://deb.debian.org/debian stretch main
-  packages:
-    - libgcc1
+  # AppImage guidelines assume they are always present
+  # should I remove them?
+  packages:       
+    - libgcc1     
     - libgtk3.0
   # debs:
   
