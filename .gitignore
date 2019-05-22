@@ -1,22 +1,15 @@
+# Binaries
+build
+*.a
+drill-gtk
+drill-cli
+
 # Drill
-*.log
 DRILL_VERSION
 
 # D
 dub.selections.json
 .dub
-
-# Executables
-*.exe
-*.elf
-
-# Binaries
-*.o
-*.bin
-
-# Libraries
-*.a
-*.lib
 
 
 #AppImage
@@ -25,9 +18,7 @@ tools/appimage/drill/
 pkg2appimage*
 
 #.deb
-DEBFILE
-*.deb
+tools/deb/DEBFILE
 
-*.zip
-build
+
 
