@@ -1,7 +1,7 @@
 # Binaries
 build
 *.a
-drill-gtk
+drill-ui
 drill-cli
 
 # Drill
