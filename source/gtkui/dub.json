@@ -10,7 +10,9 @@
 	"preGenerateCommands-windows": [],
     "targetType": "executable",
     "targetPath": "../../",
-    "targetName": "drill-gtk.elf",
+    "targetName-linux": "drill-gtk.elf",
+	"targetName-Windows": "drill-gtk.exe",
+	"targetName-OSX": "drill-gtk.mach-o",
     "sourcePaths": [
         "../core"
     ],
