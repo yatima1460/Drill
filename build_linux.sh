@@ -105,7 +105,7 @@ else
         error "D environment installation failed"
         exit 1
     fi
-    source ~/dlang/dmd-2.086.0/activate;
+    . ~/dlang/dmd-2.086.0/activate;
     if [ $? -eq 0 ]; then
         info "D environment activated correctly"
     else
