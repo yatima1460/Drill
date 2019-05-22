@@ -120,14 +120,14 @@ fi
 
 
 package() {
-    7z a -tzip Drill-$1-linux-$DRILL_VERSION.zip assets drill-$1.elf DRILL_VERSION  $OUTPUT
+    7z a -tzip Drill-$1-linux-$DRILL_VERSION-x86_64.zip assets drill-$1.elf DRILL_VERSION  $OUTPUT
     if [ $? -eq 0 ]; then
         info "Zipping of $1 done"
-        mv Drill-$1-linux-$DRILL_VERSION.zip build $OUTPUT
+        mv Drill-$1-linux-$DRILL_VERSION-x86_64.zip build $OUTPUT
         if [ $? -eq 0 ]; then
-            info "Drill-$1-linux-$DRILL_VERSION.zip moved to build folder"
+            info "Drill-$1-linux-$DRILL_VERSION-x86_64.zip moved to build folder"
         else
-            error "Drill-$1-linux-$DRILL_VERSION.zip could not be moved to build folder"
+            error "Drill-$1-linux-$DRILL_VERSION-x86_64.zip could not be moved to build folder"
         fi
     else
         error "Zipping of $1 could not find some files"
@@ -146,7 +146,7 @@ appimage() {
         error "AppImage build failed"
     fi
     cd ../../ $OUTPUT
-    mv tools/appimage/out/*.AppImage build/Drill-$1-linux-$DRILL_VERSION.AppImage  $OUTPUT
+    mv tools/appimage/out/*.AppImage build/Drill-$1-linux-$DRILL_VERSION-x86_64.AppImage  $OUTPUT
     chmod +x build/Drill-$1-linux-$DRILL_VERSION.AppImage  $OUTPUT
     rmdir tools/appimage/out  $OUTPUT
     rm tools/appimage/pkg2appimage  $OUTPUT
@@ -248,7 +248,7 @@ deb() {
         exit 1
     fi
 
-    mv DEBFILE.deb ../../build/Drill-$1-linux-$DRILL_VERSION.deb $OUTPUT
+    mv DEBFILE.deb ../../build/Drill-$1-linux-$DRILL_VERSION-x86_64.deb $OUTPUT
     if [ $? -eq 0 ]; then
         info ".deb moved to build"
     else
