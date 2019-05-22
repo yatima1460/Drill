@@ -29,33 +29,8 @@ script:
   #linux
   - >
     if [ "$TRAVIS_OS_NAME" == "linux" ]; then 
-    
-      # download and install D
-      # don't use apt dmd because it uses GDC, we need DMD or LDC (GDC is broken with gtkd)
-      curl -fsS https://dlang.org/install.sh | bash -s dmd;
-      source ~/dlang/dmd-2.086.0/activate;
-
-      # build and package CLI
-      cd source/cli
-      dub build -b release --parallel --arch=x86_64
-      cd ../../
-      7z a -tzip Drill-CLI-$TRAVIS_OS-$TRAVIS_TAG.zip assets drill-cli.elf DRILL_VERSION
-
-      # build and package GTK UI frontend
-      cd source/gtkui
-      dub build -b release --parallel --arch=x86_64
-      cd ../../
-      7z a -tzip Drill-GTK-$TRAVIS_OS-$TRAVIS_TAG.zip assets drill-gtk.elf DRILL_VERSION
-
-      # build .deb file
-      cd tools/deb
-      sh generate_deb.sh
-      cd ../../
-
-      # build AppImage
-      cd tools/appimage
-      sh gtk.sh
-      cd ../../
+      chmod +x build_linux.sh
+      ./build_linux.sh
     fi
 
   #windows
@@ -63,12 +38,12 @@ script:
     if [ "$TRAVIS_OS_NAME" == "windows" ]; 
       then wget http://downloads.dlang.org/nightlies/dmd-master/dmd.master.windows.7z;
       7z x dmd.master.windows.7z;
-      git clone https://github.com/yatima1460/GTK3-Windows-32bit;
+      git clone https://github.com/yatima1460/GTK3-windows-32bit;
       dmd2/windows/bin/dub build -c CLI -b release --parallel --force --arch=x86;
-      7z a -tzip Drill-CLI-Windows-x86.zip assets Drill-CLI.exe;
+      7z a -tzip build/Drill-cli-windows-$TRAVIS_TAG-x86.zip assets Drill-cli.exe;
       dmd2/windows/bin/dub build -c GTK -b release --parallel --force --arch=x86;
-      mv GTK3-Windows-32bit/*.dll .;
-      7z a -tzip Drill-GTK-Windows-x86.zip assets Drill-GTK.exe DRILL_VERSION *.dll;
+      mv GTK3-windows-32bit/*.dll .;
+      7z a -tzip build/Drill-gtk-windows-$TRAVIS_TAG-x86.zip assets Drill-gtk.exe DRILL_VERSION *.dll;
     fi
 
 
@@ -77,19 +52,12 @@ script:
    - >
      if [ "$TRAVIS_OS_NAME" = "osx" ]; then
        dub build -c CLI -b release --parallel --force --arch=x86_64;
-       7z a -tzip Drill-CLI-OSX.zip assets Drill-CLI DRILL_VERSION;
+       7z a -tzip build/Drill-cli-osx-$TRAVIS_TAG-x86_64.zip assets Drill-cli DRILL_VERSION;
        dub build -c GTK -b release --parallel --force --arch=x86_64;
-       7z a -tzip Drill-GTK-OSX.zip assets Drill-GTK DRILL_VERSION;
+       7z a -tzip build/Drill-gtk-osx-$TRAVIS_TAG-x86_64.zip assets Drill-gtk DRILL_VERSION;
      fi
 
-  
-before_deploy:
-  - test -f tools/appimage/Drill-GTK.AppImage
-  - test -f tools/deb/Drill-GTK.deb
-  - test -f Drill-GTK-AppDir.zip
-  - test -f Drill-CLI-AppDir.zip
-  - test -f Drill-CLI-Windows-x86.zip
-  - test -f Drill-GTK-Windows-x86.zip
+
 
 before_deploy:
  - git config --local user.name "Federico Santamorena"
@@ -107,18 +75,13 @@ deploy:
   api_key:
     secure: $GITHUB_TOKEN
   file: 
-    - tools/appimage/Drill-GTK.AppImage
-    - tools/deb/Drill-GTK.deb
-    - Drill-GTK-AppDir.zip
-    - Drill-CLI-AppDir.zip
-    - Drill-CLI-Windows-x86.zip
-    - Drill-GTK-Windows-x86.zip
+    - build/*.*
     
-    #- tools/appimage/Drill-CLI.AppImage
-    #- Drill-CLI-Windows.zip
-    #- Drill-GTK-Windows.zip
-    #- Drill-GTK-OSX.zip
-    #- Drill-CLI-OSX.zip
+    #- tools/appimage/Drill-cli.AppImage
+    #- Drill-cli-windows.zip
+    #- Drill-gtk-windows.zip
+    #- Drill-gtk-OSX.zip
+    #- Drill-cli-OSX.zip
     
     
   on:
