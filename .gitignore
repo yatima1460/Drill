@@ -21,7 +21,7 @@ dub.selections.json
 
 #AppImage
 *.AppImage
-me.santamorena.drill
+tools/appimage/drill/
 pkg2appimage*
 
 #.deb
