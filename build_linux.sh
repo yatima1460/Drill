@@ -94,7 +94,7 @@ fi
 # it will be included in all packaged versions
 echo -n $DRILL_VERSION > DRILL_VERSION
 
-if [ "dmd --version" ] && [ "dub --version" ]; then
+if dub --version; then
     info "D environment found"
 else
     warn "D environment missing, will try to install dlang"
