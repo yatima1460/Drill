@@ -18,12 +18,12 @@ ingredients:
 
 # copy the assets
   script:
-    - cp      ../../../drill-gtk          drill.AppDir/usr/drill-gtk
-    - chmod   +x                          drill.AppDir/usr/drill-gtk
+    - cp      ../../../drill-ui           drill.AppDir/usr/drill-ui
+    - chmod   +x                          drill.AppDir/usr/drill-ui
     - cp      ../../../DRILL_VERSION      drill.AppDir/usr/
     - cp      -r ../../../assets          drill.AppDir/usr/
     - echo    #!/bin/bash >               drill.AppDir/usr/drill-search.sh
-    - echo    ./drill-gtk >>              drill.AppDir/usr/drill-search.sh
+    - echo    ./drill-ui >>               drill.AppDir/usr/drill-search.sh
     - chmod   +x                          drill.AppDir/usr/drill-search.sh
     - cp      ../drill.desktop            drill.AppDir
     - cp      ../../../assets/icon.svg    drill.AppDir
