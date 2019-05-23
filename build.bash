@@ -28,8 +28,10 @@ export ZIPDIR_UI=false
 
 
 
-# FIX FOR WINDOWS
+# FIXES FOR WINDOWS
 export BUILD_DIR="$PWD"
+export ARCH=x86_64
+if [[ $OS == "windows" ]]; then unset ARCH && export ARCH=x86; fi
 
 
 ###### LINUX ONLY ######
@@ -248,16 +250,17 @@ package() {
     local EXE_NAME=drill-$1
     if [[ $OS == "windows" ]]; then EXE_NAME=drill-$1.exe; fi
     
-    if 7z a -tzip Drill-"$1"-"$OS"-"$DRILL_VERSION"-x86_64.zip assets "$EXE_NAME" DRILL_VERSION  $OUTPUT; then
+    
+    if 7z a -tzip Drill-"$1"-"$OS"-"$DRILL_VERSION"-"$ARCH".zip assets "$EXE_NAME" DRILL_VERSION  $OUTPUT; then
         info "Zipping of $1 done"
         
-        if mv Drill-"$1"-"$OS"-"$DRILL_VERSION"-x86_64.zip build $OUTPUT; then
+        if mv Drill-"$1"-"$OS"-"$DRILL_VERSION"-"$ARCH".zip build $OUTPUT; then
             info "Drill-$1-$OS-$DRILL_VERSION-x86_64.zip moved to build folder"
         else
             error "Drill-$1-$OS-$DRILL_VERSION-x86_64.zip could not be moved to build folder"
         fi
     else
-        rm Drill-"$1"-"$OS"-"$DRILL_VERSION"-x86_64.zip
+        rm Drill-"$1"-"$OS"-"$DRILL_VERSION"-"$ARCH".zip
         error "Zipping of $1 could not find some files"
         exit 1
     fi
@@ -460,7 +463,7 @@ pipeline() {
     fi       
     wait
     info "Build folder list:"
-    ls -p build | grep -v /
+    find "build" -maxdepth 1 -not -type d
     info "All done."
     exit 0 
 }
