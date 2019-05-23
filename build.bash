@@ -44,7 +44,7 @@ export DEB_CLI_PACKAGE_NAME="drill-search-cli"
 
 # .AppImage
 # https://appimage.org/
-export CREATE_APPIMAGE=false
+export CREATE_APPIMAGE=true
 
 # .flatpak
 #export CREATE_FLATPAK=false
@@ -278,10 +278,11 @@ package() {
 # $1 = project subfolder in source 
 appimage() {
     cd tools/appimage $OUTPUT || exit
-    wget -c https://raw.githubusercontent.com/AppImage/pkg2appimage/master/pkg2appimage $OUTPUT
-    chmod +x pkg2appimage
+    rm -f pkg2appimage
+    wget https://raw.githubusercontent.com/AppImage/pkg2appimage/master/pkg2appimage $OUTPUT
+    #chmod +x pkg2appimage
     
-    if ./pkg2appimage "$1".yml $OUTPUT; then
+    if bash pkg2appimage "$1".yml $OUTPUT; then
         info "AppImage build done"
     else
         error "AppImage build failed"
