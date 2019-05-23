@@ -25,7 +25,6 @@ addons:
     update: true
     packages:
       - dmd
-      #- gtk+3
       - dub
       - p7zip
 
@@ -35,7 +34,7 @@ script:
 before_deploy:
  - git config --local user.name "Federico Santamorena"
  - git config --local user.email "federico@santamorena.me"
- - ls -p build | grep -v / 
+ - find "build" -maxdepth 1 -not -type d
 
 deploy:
   provider: releases
@@ -43,14 +42,12 @@ deploy:
   draft: false
   prerelease: true
   name: $TRAVIS_TAG
-  body: Automated Travis build
+  body: $TRAVIS_COMMIT_MESSAGE
   target_commitish: $TRAVIS_COMMIT
   file_glob: true
   api_key:
     secure: $GITHUB_TOKEN
-  file: 
-    - build/*.*
-    
+  file: build/*.*
   on:
     repo: yatima1460/Drill
 
