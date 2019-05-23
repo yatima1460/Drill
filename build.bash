@@ -259,7 +259,7 @@ package() {
     fi
 
     
-    if 7z a -tzip Drill-"$1"-"$OS"-"$DRILL_VERSION"-"$ARCH".zip assets "$EXE_NAME" DRILL_VERSION -mx9 -ms -mmt $OUTPUT; then
+    if 7z a -tzip Drill-"$1"-"$OS"-"$DRILL_VERSION"-"$ARCH".zip assets "$EXE_NAME" DRILL_VERSION -mx9 -mmt $OUTPUT; then
         info "Zipping of $1 done"
         
         if mv Drill-"$1"-"$OS"-"$DRILL_VERSION"-"$ARCH".zip build $OUTPUT; then
