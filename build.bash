@@ -371,16 +371,17 @@ deb() {
     fi
 
 
+    if [[ $1 == "ui" ]]; then
+        # add desktop file
+        mkdir -p DEBFILE/"$1"/usr/share/applications
+        desktop-file-validate $DEB_PACKAGE_NAME.desktop
+        cp $DEB_PACKAGE_NAME.desktop DEBFILE/"$1"/usr/share/applications/
 
-    # add desktop file
-    mkdir -p DEBFILE/"$1"/usr/share/applications
-    desktop-file-validate $DEB_PACKAGE_NAME.desktop
-    cp $DEB_PACKAGE_NAME.desktop DEBFILE/"$1"/usr/share/applications/
-
-    # add icon
-    mkdir -p DEBFILE/"$1"/usr/share/icons/$DEB_PACKAGE_NAME
-    cp ../../assets/icon.png DEBFILE/"$1"/usr/share/icons/$DEB_PACKAGE_NAME/drill.png
-    #cp ../../assets/icon.svg DEBFILE/usr/share/app-install/icons/drill.svg
+        # add icon
+        mkdir -p DEBFILE/"$1"/usr/share/pixmaps
+        cp ../../assets/icon.svg DEBFILE/"$1"/usr/share/pixmaps/"$DEB_PACKAGE_NAME".svg
+        #cp ../../assets/icon.svg DEBFILE/usr/share/app-install/icons/drill.svg
+    fi
 
     # build the .deb file
     
