@@ -2,7 +2,7 @@
 Name=Drill
 Type=Application
 Comment=Search files without using indexing, but clever crawling
-Icon=/usr/share/icons/drill-search/drill.png
+Icon=drill-search
 Exec=/usr/bin/drill-search
 TryExec=/usr/bin/drill-search
 Terminal=false
