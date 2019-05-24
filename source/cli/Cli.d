@@ -90,8 +90,9 @@ int main(string[] args)
     }
     
     else if (args.length == 2){
-        auto selectedPrint = (date ? (size ? &resultsFoundWithSizeAndDate : &resultsFoundWithDate) : 
-                                (size ? &resultsFoundWithSize : &resultsFoundBare));
+        auto selectedPrint = (date ? 
+                             (size ? &resultsFoundWithSizeAndDate : &resultsFoundWithDate)
+                             :(size ? &resultsFoundWithSize : &resultsFoundBare));
         drill.startCrawling(args[1],toDelegate(selectedPrint));
     }
 
