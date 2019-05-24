@@ -8,7 +8,23 @@ import core.stdc.stdio :printf;
 import drill.core.fileinfo : FileInfo;
 
 
-void resultsFound(immutable(FileInfo) result)
+void resultsFoundWithDate(immutable(FileInfo) result)
+{
+    synchronized 
+    {
+        writeln(result.dateModifiedString,"\t",result.fullPath);
+    }
+}
+
+void resultsFoundWithSize(immutable(FileInfo) result)
+{
+    synchronized 
+    {
+        writeln(result.sizeString,"\t",result.fullPath);
+    }
+}
+
+void resultsFoundWithSizeAndDate(immutable(FileInfo) result)
 {
     synchronized 
     {
@@ -25,7 +41,6 @@ void resultsFoundBare(immutable(FileInfo) result)
     }
 }
 
-
 immutable(string) searchInput()
 {
     printf("Search for: ");
@@ -40,33 +55,51 @@ immutable(string) searchInput()
 int main(string[] args)
 {
     import std.path : dirName, buildNormalizedPath;
+    import std.getopt;
+
     immutable(string) exe_path = dirName(buildNormalizedPath(args[0]));
     DrillAPI drill = new DrillAPI(exe_path);
 
     import std.functional : toDelegate;
-    
-    if (args.length == 1)
-    {
-        writeln("Drill CLI - https://github.com/yatima1460/drill");
-        writeln(drill.getVersion());
-        printf("Mount points: ");
-        writeln(drill.getMountPoints());
-        drill.startCrawling(searchInput(),toDelegate(&resultsFound));
+
+    bool date = false;
+    bool size = false;
+
+    auto opt = getopt(args,
+        std.getopt.config.bundling,
+        std.getopt.config.passThrough,
+        "date|d", "Show results date", &date,
+        "size|s", "Show results size", &size
+    );
+
+    if(opt.helpWanted){
+        writeln("Drill CLI v",drill.getVersion()," https://github.com/yatima1460/drill");
+        writeln("Example use: drill-cli -ds \"foobar\"");
+        defaultGetoptPrinter("Options:", opt.options);
+        import core.stdc.stdlib : exit;
+        exit(0);
     }
-       
-    else if (args.length == 2)
-        drill.startCrawling(args[1],toDelegate(&resultsFoundBare));
-    else
+
+    if (args.length == 1) // No search string
     {
-        writeln("Wrong arguments count.");
-        writeln("Just write one \"value to search\" argument.");
-        writeln("It can be inside quotes so you can search for multiple tokens.");
+        writeln("Pass a string as an argument for Drill to search");
+        writeln("Example use: drill-cli -ds \"foobar\"");
+        defaultGetoptPrinter("Options:", opt.options);
         import core.stdc.stdlib : exit;
         exit(-1);
     }
-        
+    
+    else if (args.length == 2){
+        auto selectedPrint = (date ? (size ? &resultsFoundWithSizeAndDate : &resultsFoundWithDate) : 
+                                (size ? &resultsFoundWithSize : &resultsFoundBare));
+        drill.startCrawling(args[1],toDelegate(selectedPrint));
+    }
 
-    drill.waitForCrawlers();
+    else{
+        writeln("Oops, you gave more arguments than expected.");
+        import core.stdc.stdlib : exit;
+        exit(-1);
+    }
     // import core.memory;
     // GC.disable();
 
@@ -76,7 +109,5 @@ int main(string[] args)
     //     new DrillWindow(application);
     // });
     // return application.run(args);
-
     return 0;
-    
 }
