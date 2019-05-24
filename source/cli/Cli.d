@@ -60,7 +60,6 @@ int main(string[] args)
     immutable(string) exe_path = dirName(buildNormalizedPath(args[0]));
     DrillAPI drill = new DrillAPI(exe_path);
 
-    import std.functional : toDelegate;
 
     bool date = false;
     bool size = false;
@@ -90,6 +89,7 @@ int main(string[] args)
     }
     
     else if (args.length == 2){
+        import std.functional : toDelegate;
         auto selectedPrint = (date ? 
                              (size ? &resultsFoundWithSizeAndDate : &resultsFoundWithDate)
                              :(size ? &resultsFoundWithSize : &resultsFoundBare));
