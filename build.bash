@@ -2,6 +2,12 @@
 
 #==== DRILL BUILD SETTINGS ====
 
+# NOTE: building the AppImage could take a long time
+#       it depends on your internet connection
+#       it could take even 10 minutes on ADSL
+#       to download the necessary libraries,
+#       generally it's fast for VDSL 100+ megabit connections
+
 export OS=linux #windows, osx
 export VERBOSE=false
 
