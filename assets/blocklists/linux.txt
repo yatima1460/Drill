@@ -22,5 +22,4 @@ lost\+found
 ^/vmlinuz
 ^/initrd
 ^/src
-^/run
 ^/sys
