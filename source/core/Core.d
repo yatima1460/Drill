@@ -42,6 +42,9 @@ public:
             {
                 temp_blocklist ~= readText(partial_blocklist).split("\n");
             }
+
+            // remove empty newlines
+            temp_blocklist = temp_blocklist.filter!(x => x.length != 0).array;
             
         }
         catch (FileException fe)
