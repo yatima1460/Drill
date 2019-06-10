@@ -17,9 +17,10 @@ import std.regex : Regex;
 class Crawler : Thread
 {
 private:
-    string root;
+    immutable(string) root;
     bool running;
-    Regex!char[] exclusion_list;
+    const(Regex!char[]) exclusion_list;
+    const(Regex!char[]) priority_list;
     // Array!DirEntry* index;
     debug
     {
@@ -41,7 +42,8 @@ public:
     // invariant(resultCallback != null);
     // invariant(exclusion_list.length > 0);
 
-    this(string root, Regex!char[] exclusion_list,
+    this(immutable(string) root, const(Regex!char[]) exclusion_list,
+            const(Regex!char[]) priority_list,
             void delegate(immutable(FileInfo) result) resultFound, immutable(string) search)
     {
 
@@ -50,6 +52,7 @@ public:
         super(&run);
         this.root = root;
         this.exclusion_list = exclusion_list;
+        this.priority_list = priority_list;
         // debug {
         //     if (this.exclusion_list.length == 0)
         //         logConsole(this ~ " has an empty exclusion list!");
@@ -122,21 +125,24 @@ private:
                     auto d1 = baseName(de1.name);
                     auto d2 = baseName(de2.name);
 
-                    //HACK: these need to use the prioritylists folder
-                    if (d1 == "Downloads" || d1 == "Documents" || d1 == "Pictures" || d1 == "home"
-                            || d1 == "Music" || d1 == "Videos" || d1 == "Users"
-                            || d1 == "Google Drive")
+                    import std.regex;
+                    foreach (ref regexrule; this.priority_list)
                     {
-                        return true;
-                    }
 
-                    //do not swap
+                        RegexMatch!string mo = std.regex.match(d1, regexrule);
+                        if (!mo.empty())
+                            return true;
+                    }
                     return false;
+
                 }
 
                 foreach (parent; sort!(myComp)(q))
                 {
-
+                    debug
+                    {
+                        logConsole(this.toString() ~ " parent:" ~ parent);
+                    }
                     try
                     {
                         DirIterator entries = dirEntries(parent, SpanMode.shallow, true);
@@ -221,7 +227,6 @@ private:
                                     //writeln("skipping...");
                                     continue fileloop;
                                 }
-                           
 
                             }
 
