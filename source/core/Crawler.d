@@ -120,21 +120,53 @@ private:
 
                 auto q = array(queue);
 
-                bool myComp(DirEntry de1, DirEntry de2)
+                bool myComp(DirEntry directory1, DirEntry directory2)
                 {
-                    auto d1 = baseName(de1.name);
-                    auto d2 = baseName(de2.name);
+                    auto directory1_name = baseName(directory1.name);
+                    auto directory2_name = baseName(directory2.name);
+                    debug
+                    {
+                        logConsole(this.toString() ~ " priority list comparator:" ~ directory1_name ~ " " ~ directory2_name);
+                    }
 
                     import std.regex;
+
+                    bool directory1_found = false;
+                    bool directory2_found = false;
+                   
+                    // check if first directory is in any regex
                     foreach (ref regexrule; this.priority_list)
                     {
 
-                        RegexMatch!string mo = std.regex.match(d1, regexrule);
-                        if (!mo.empty())
-                            return true;
+                        RegexMatch!string mo1 = std.regex.match(directory1_name, regexrule);
+                   
+                        
+                        if (!mo1.empty())
+                        {
+                            directory1_found = true;
+                            break;
+                        }
+                           
                     }
-                    return false;
+                     // check if second directory is in any regex
+                    foreach (ref regexrule; this.priority_list)
+                    {
 
+                        RegexMatch!string mo2 = std.regex.match(directory2_name, regexrule);
+                   
+                        
+                        if (!mo2.empty())
+                        {
+                            directory2_found = true;
+                            break;
+                        }
+                           
+                    }
+
+                   
+                   // swap directory1 only if directory2 is not a regex too
+                    return directory1_found && !directory2_found;
+                
                 }
 
                 foreach (parent; sort!(myComp)(q))
