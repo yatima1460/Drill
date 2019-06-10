@@ -106,3 +106,72 @@ string[] readListFiles(immutable(string) path)
     
     return temp_blocklist.filter!(x => x.length != 0).array;
 }
+
+
+void showInfoMessagebox(immutable(string) message)
+{
+        import drill.core.utils : logConsole;
+        logConsole("showMessagebox "~message);
+        version (linux)
+        {
+            import std.process : executeShell;
+            executeShell("zenity --info --text=\""~message~"\" --title=\"Drill\" --width=160 --height=90");
+
+            //TODO: if failed call this
+            //executeShell("xmessage -center \""~title~":"~message~"\"");
+        }
+        version (Windows)
+        {
+
+        }
+        version (OSX)
+        {
+
+        }
+    }
+
+
+void showWarningMessagebox(immutable(string) message)
+{
+        import drill.core.utils : logConsole;
+        logConsole("showMessagebox "~message);
+        version (linux)
+        {
+            import std.process : executeShell;
+            executeShell("zenity --warning --text=\""~message~"\" --title=\"Drill\" --width=160 --height=90");
+
+            //TODO: if failed call this
+            //executeShell("xmessage -center \""~title~":"~message~"\"");
+        }
+        version (Windows)
+        {
+
+        }
+        version (OSX)
+        {
+
+        }
+    }
+
+
+void showErrorMessagebox(immutable(string) message)
+{
+        import drill.core.utils : logConsole;
+        logConsole("showMessagebox "~message);
+        version (linux)
+        {
+            import std.process : executeShell;
+            executeShell("zenity --error --text=\""~message~"\" --title=\"Drill\" --width=160 --height=90");
+
+            //TODO: if failed call this
+            //executeShell("xmessage -center \""~title~":"~message~"\"");
+        }
+        version (Windows)
+        {
+
+        }
+        version (OSX)
+        {
+
+        }
+    }
