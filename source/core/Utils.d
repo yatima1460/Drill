@@ -85,3 +85,24 @@ void logConsole(immutable(string) message)
         } 
     }
 }
+
+
+string[] readListFiles(immutable(string) path)
+{
+    import std.file : dirEntries, SpanMode, DirEntry, readText, FileException;
+    string[] temp_blocklist = [];
+
+    auto blocklists_file = dirEntries(DirEntry( path), SpanMode.shallow, true);
+
+    foreach (string partial_blocklist; blocklists_file)
+    {
+        import std.array : split;
+        temp_blocklist ~= readText(partial_blocklist).split("\n");
+    }
+
+    // remove empty newlines
+    import std.algorithm : filter;
+  
+    
+    return temp_blocklist.filter!(x => x.length != 0).array;
+}
