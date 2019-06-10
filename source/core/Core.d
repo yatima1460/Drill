@@ -18,6 +18,8 @@ class DrillAPI
 private:
     Array!Crawler threads;
     immutable(string[]) blocklist;
+       import std.regex;
+    const(Regex!char[]) priority_regexes;
     immutable(string) drill_version;
 
 public:
@@ -32,6 +34,7 @@ public:
         import std.path : buildPath;
 
         string[] temp_blocklist = [];
+       
         string version_temp = "?";
         try
         {
@@ -54,7 +57,20 @@ public:
             version_temp = "LOCAL_BUILD";
         }
 
+        string[] temp_priority_list = [];
+        try
+        {
+            import drill.core.utils : readListFiles;
+            temp_priority_list = readListFiles(buildPath(exe_path,"assets/prioritylists"));            
+        }
+        catch (FileException fe)
+        {
+            // TODO: notify this happened
+        }
+
         this.blocklist = temp_blocklist.idup;
+      
+        this.priority_regexes = temp_priority_list[].map!(x => regex(x)).array;
         this.drill_version = version_temp;
 
     }
@@ -102,12 +118,13 @@ public:
             // {
             //     log.info("Compiling Regex...");
             // }
-            Regex!char[] regexes = crawler_exclusion_list[].map!(x => regex(x)).array;
+            const(Regex!char[]) exclusion_regexes = crawler_exclusion_list[].map!(x => regex(x)).array;
+          
             // debug
             // {
             //     log.info("Compiling Regex... DONE");
             // }
-            auto crawler = new Crawler(mountpoint, regexes, resultFound, search);
+            auto crawler = new Crawler(mountpoint, exclusion_regexes, priority_regexes, resultFound, search);
             crawler.start();
             this.threads.insertBack(crawler);
         }
