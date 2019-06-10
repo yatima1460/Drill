@@ -35,17 +35,8 @@ public:
         string version_temp = "?";
         try
         {
-
-            auto blocklists_file = dirEntries(DirEntry( buildPath(exe_path,"assets/blocklists")), SpanMode.shallow, true);
-
-            foreach (string partial_blocklist; blocklists_file)
-            {
-                temp_blocklist ~= readText(partial_blocklist).split("\n");
-            }
-
-            // remove empty newlines
-            temp_blocklist = temp_blocklist.filter!(x => x.length != 0).array;
-            
+            import drill.core.utils : readListFiles;
+            temp_blocklist = readListFiles(buildPath(exe_path,"assets/blocklists"));            
         }
         catch (FileException fe)
         {
