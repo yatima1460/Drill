@@ -11,6 +11,7 @@ import std.process : executeShell;
 import std.string : indexOf;
 import std.array : split;
 import std.algorithm : canFind, filter, map;
+import drill.core.utils : showWarningMessagebox;
 
 class DrillAPI
 {
@@ -26,7 +27,11 @@ public:
 
     this(immutable(string) exe_path) 
     {
-
+        debug 
+        {
+            import drill.core.utils : showInfoMessagebox;
+            showInfoMessagebox("exe_path: "~exe_path);
+        }
 
 
         this.threads = Array!Crawler();
@@ -43,7 +48,8 @@ public:
         }
         catch (FileException fe)
         {
-            // TODO: notify this happened
+      
+            showWarningMessagebox("Error when trying to load blocklists, will default to an empty list");
         }
 
         try
@@ -55,6 +61,8 @@ public:
         catch (FileException fe)
         {
             version_temp = "LOCAL_BUILD";
+             
+            showWarningMessagebox("Error when trying to read version number, will default to LOCAL_BUILD");
         }
 
         string[] temp_priority_list = [];
@@ -65,7 +73,7 @@ public:
         }
         catch (FileException fe)
         {
-            // TODO: notify this happened
+             showWarningMessagebox("Error when trying to read priority lists, will default to an empty list");
         }
 
         this.blocklist = temp_blocklist.idup;
@@ -163,7 +171,7 @@ public:
 
     Returns: immutable array of full paths
     */
-    immutable(string[]) getMountPoints() @safe
+    immutable(string[]) getMountPoints() 
     {
         version (linux)
         {
@@ -172,7 +180,7 @@ public:
             immutable auto ls = executeShell("df -h --output=target");
             if (ls.status != 0)
             {
-                // TODO: messagebox can't retrieve mountpoints will just scan /
+                showWarningMessagebox("Can't retrieve mount points, will just scan '/'");
                 return ["/"];
             }
             immutable auto result = array(ls.output.split("\n").filter!(x => canFind(x, "/"))).idup;
@@ -184,7 +192,8 @@ public:
             immutable auto ls = executeShell("df -h");
             if (ls.status != 0)
             {
-                // TODO: messagebox can't retrieve mountpoints will just scan /
+                showWarningMessagebox("Can't retrieve mount points, will just scan '/'");
+               
                 return ["/"];
             }
             immutable auto startColumn = indexOf(ls.output.split("\n")[0], 'M');
@@ -203,8 +212,8 @@ public:
             immutable auto ls = executeShell("wmic logicaldisk get caption");
             if (ls.status != 0)
             {
-                // TODO: messagebox can't retrieve mountpoints will just scan /
-                  return ["C:"];
+                showWarningMessagebox("Can't retrieve mount points, will just scan 'C:'");
+                return ["C:"];
             }
             import std.algorithm : map;
             immutable auto result = array(map!(x => x[0 .. 2])(ls.output.split("\n").filter!(x => canFind(x, ":")))).idup;
@@ -219,7 +228,7 @@ public:
 
     Returns: number of crawlers active
     */
-    const immutable(ulong) getActiveCrawlersCount() 
+    immutable(ulong) getActiveCrawlersCount() const
     {
         return array(this.threads[].filter!(x => x.isCrawling())).length;
     }
@@ -228,9 +237,10 @@ public:
     /**
     Returns the version of Drill
     */
-    pure const immutable(string) getVersion()  @safe @nogc
+    pure immutable(string) getVersion() const @safe @nogc
     {
         return this.drill_version;
     }
 
+ 
 }
