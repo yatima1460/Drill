@@ -1,0 +1,9 @@
+Package: drill-search
+Architecture: amd64
+Essential: no
+Priority: optional
+Depends: libgtk-3-0 (>= 3.22.0),libgcc1
+Maintainer: Federico Santamorena <federico@santamorena.me>
+Description: Search files without using indexing, but clever crawling
+Homepage: https://github.com/yatima1460/Drill
+Installed-Size: 2048
