@@ -11,4 +11,6 @@ x264
 240p
 multi
 Season
+season
+Multi
 ddp5\.1
