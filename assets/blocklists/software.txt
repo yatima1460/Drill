@@ -1,3 +1,0 @@
-ZeroNet-master/data
-ZeroNet-win-dist/data
-Manga StudioCommon/Material

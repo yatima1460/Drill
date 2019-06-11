@@ -20,5 +20,6 @@ pkg2appimage*
 #.deb
 tools/deb/DEBFILE
 
-
-
+# Windows
+*.lib
+*.exe
