@@ -19,5 +19,5 @@
     "datefmt": "1.0.3"
   },
   "copyFiles": ["../Assets"],
-	"targetPath": "../Build"
+	"targetPath": "../Build/Drill-Core-$PLATFORM-$ARCH-$BUILD_TYPE"
 }

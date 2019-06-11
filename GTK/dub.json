@@ -22,5 +22,5 @@
 	"importPaths": [
 		"../Core"
 	],
-	"targetPath": "../Build"
+	"targetPath": "../Build/Drill-GTK-$PLATFORM-$ARCH-$BUILD_TYPE"
 }
