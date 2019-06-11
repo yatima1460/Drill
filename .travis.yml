@@ -17,6 +17,7 @@ addons:
 
   #linux
   apt:
+    update: true
     packages:
       - desktop-file-utils
       - p7zip-full
@@ -29,6 +30,12 @@ addons:
       - dub
       - p7zip
 
+  choco:
+    update: true
+    packages:
+      - dmd
+      - dub
+
 script:
 
   # install D
@@ -38,10 +45,10 @@ script:
   - if [ "$TRAVIS_OS_NAME" = "linux" ]; then . ~/dlang/dmd-2.086.0/activate; fi
 
   ## windows
-  - if [ "$TRAVIS_OS_NAME" = "windows" ]; then wget http://downloads.dlang.org/nightlies/dmd-master/dmd.master.windows.7z; fi
-  - if [ "$TRAVIS_OS_NAME" = "windows" ]; then 7z x dmd.master.windows.7z; fi
-  - if [ "$TRAVIS_OS_NAME" = "windows" ]; then cp dmd2/windows/bin/*.* Source/Frontend/CLI; fi
-  - if [ "$TRAVIS_OS_NAME" = "windows" ]; then cp dmd2/windows/bin/*.* Source/Frontend/WinAPI; fi
+  # - if [ "$TRAVIS_OS_NAME" = "windows" ]; then wget http://downloads.dlang.org/nightlies/dmd-master/dmd.master.windows.7z; fi
+  # - if [ "$TRAVIS_OS_NAME" = "windows" ]; then 7z x dmd.master.windows.7z; fi
+  # - if [ "$TRAVIS_OS_NAME" = "windows" ]; then cp dmd2/windows/bin/*.* Source/Frontend/CLI; fi
+  # - if [ "$TRAVIS_OS_NAME" = "windows" ]; then cp dmd2/windows/bin/*.* Source/Frontend/WinAPI; fi
 
   ## osx
   # already installs using homebrew travis settings
