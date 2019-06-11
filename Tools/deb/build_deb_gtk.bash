@@ -9,15 +9,15 @@ export DEB_CLI_PACKAGE_NAME="drill-search-cli"
 
 #===== LOGGING FUNCTIONS
 info () {
-    echo -e "\033[32m[DRILL BUILD][INFO]: $1\033[0m"
+    echo -e "\033[32m[DEB BUILD][INFO]: $1\033[0m"
 }
 
 warn() {
-    echo -e "\033[33m[DRILL BUILD][WARNING]: $1\033[0m"
+    echo -e "\033[33m[DEB BUILD][WARNING]: $1\033[0m"
 }
 
 error() {
-    echo -e "\033[31m[DRILL BUILD][ERROR]: $1\033[0m"
+    echo -e "\033[31m[DEB BUILD][ERROR]: $1\033[0m"
     exit 1
 }
 #========================
