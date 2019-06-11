@@ -69,7 +69,8 @@ else
     exit 1
 fi
 
-if mv DEBFILE/CLI.deb Drill-CLI-linux-$DRILL_VERSION-x86_64.deb; then
+mkdir Build
+if mv DEBFILE/CLI.deb Build/Drill-CLI-linux-$DRILL_VERSION-x86_64.deb; then
     info "Drill-CLI-linux-$DRILL_VERSION-x86_64.deb moved to build"
 else
     error "Drill-CLI-linux-$DRILL_VERSION-x86_64.deb can't be moved to build"
