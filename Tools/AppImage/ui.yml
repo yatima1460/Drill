@@ -1,0 +1,29 @@
+app: drill
+ingredients:
+  dist: trusty
+  sources:
+    - deb http://deb.debian.org/debian stretch main
+  # AppImage guidelines assume they are always present
+  # should I remove them?
+  packages:       
+    - libgcc1     
+    - libgtk3.0
+  # debs:
+  
+
+
+# create the necessary dirs
+  script:
+    - mkdir -p drill.AppDir/usr
+
+# copy the assets
+  script:
+    - cp      ../../../drill-ui           drill.AppDir/usr/drill-ui
+    - chmod   +x                          drill.AppDir/usr/drill-ui
+    - cp      ../../../DRILL_VERSION      drill.AppDir/usr/
+    - cp      -r ../../../assets          drill.AppDir/usr/
+    - echo    #!/bin/bash >               drill.AppDir/usr/drill-search.sh
+    - echo    ./drill-ui >>               drill.AppDir/usr/drill-search.sh
+    - chmod   +x                          drill.AppDir/usr/drill-search.sh
+    - cp      ../drill.desktop            drill.AppDir
+    - cp      ../../../assets/icon.svg    drill.AppDir

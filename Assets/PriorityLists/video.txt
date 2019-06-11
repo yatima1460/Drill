@@ -1,0 +1,14 @@
+1080p
+720p
+2160p
+480p
+h264
+h265
+hevc
+x265
+x264
+360p
+240p
+multi
+Season
+ddp5\.1
