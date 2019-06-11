@@ -1,0 +1,34 @@
+ 
+
+
+  {
+    "name": "drill-winapi",
+    "authors": ["Federico Santamorena"],
+    "description": "Search files without indexing, but clever crawling.",
+    "copyright": "Copyright © 2019, Federico Santamorena",
+    "license": "GPL-2.0",
+    "homepage": "https://github.com/yatima1460/Drill",
+  
+    "targetType": "executable",
+    "targetName": "drill-search-winapi",
+  
+    "sourceFiles": ["WinAPI.d"],
+  
+    "mainSourceFile": "WinAPI.d",
+  
+    "importPaths": [
+      "../../Backend"
+    ],
+    "dependencies": {
+      "drill-core": {"path": "../../Backend"}
+    },
+
+    "lflags": [
+      "/SUBSYSTEM:windows",
+      "User32.lib"
+    ],
+  
+    "copyFiles": ["../../../Assets"],
+    "targetPath": "Build/Drill-WinAPI-$PLATFORM-$ARCH-$BUILD_TYPE"
+  }
+  
