@@ -78,7 +78,8 @@ else
     exit 1
 fi
 
-if mv DEBFILE/GTK.deb Drill-GTK-linux-$DRILL_VERSION-x86_64.deb; then
+mkdir Build
+if mv DEBFILE/GTK.deb Build/Drill-GTK-linux-$DRILL_VERSION-x86_64.deb; then
     info "Drill-GTK-linux-$DRILL_VERSION-x86_64.deb built"
 else
     error "Drill-GTK-linux-$DRILL_VERSION-x86_64.deb can't be moved to build"
