@@ -1,0 +1,129 @@
+branches:
+  only:
+  - master
+
+os:
+  - linux
+  - windows
+  - osx
+
+language: bash
+
+before_install:
+ - export TRAVIS_TAG="1.$TRAVIS_BUILD_NUMBER"
+ - echo -n $TRAVIS_TAG > DRILL_VERSION
+
+addons:
+
+  #linux
+  apt:
+    packages:
+      - desktop-file-utils
+      - p7zip-full
+  #osx
+  homebrew:
+    update: true
+    packages:
+      - dmd
+      - dub
+      - p7zip
+
+script:
+
+  # install D
+
+  ## linux
+  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then curl -fsS https://dlang.org/install.sh | bash -s dmd; fi
+  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then . ~/dlang/dmd-2.086.0/activate; fi
+
+  ## windows
+  - if [ "$TRAVIS_OS_NAME" = "windows" ]; then wget http://downloads.dlang.org/nightlies/dmd-master/dmd.master.windows.7z; fi
+  - if [ "$TRAVIS_OS_NAME" = "windows" ]; then 7z x dmd.master.windows.7z; fi
+  - if [ "$TRAVIS_OS_NAME" = "windows" ]; then mv dmd2/windows/bin/*.* .; fi
+
+  ## osx
+  # already installs using homebrew travis settings
+
+
+  # build
+
+  ## build CLI
+  - cd Source/Frontend/CLI
+  - dub build --arch=x86
+  - dub build
+  - dub build -b release --arch=x86
+  - dub build -b release 
+  - cd ../../../
+
+  ## build UI
+
+  ### linux
+  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then cd Source/Frontend/GTK; fi
+  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then dub build --arch=x86; fi
+  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then dub build; fi
+  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then dub build -b release --arch=x86; fi
+  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then dub build -b release; fi
+  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then cd ../../../; fi
+
+  ### windows
+  - if [ "$TRAVIS_OS_NAME" = "windows" ]; then cd Source/Frontend/WinAPI; fi
+  - if [ "$TRAVIS_OS_NAME" = "windows" ]; then dub build --arch=x86; fi
+  - if [ "$TRAVIS_OS_NAME" = "windows" ]; then dub build; fi
+  - if [ "$TRAVIS_OS_NAME" = "windows" ]; then dub build -b release --arch=x86; fi
+  - if [ "$TRAVIS_OS_NAME" = "windows" ]; then dub build -b release; fi
+  - if [ "$TRAVIS_OS_NAME" = "windows" ]; then cd ../../../; fi
+
+
+  # build installers/packages
+
+  # zip files
+  - cd Tools/PortableZip
+  - bash create_zip.bash
+  - cd ../../
+
+  ## linux
+
+  ### deb
+  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then cd Tools/deb; fi
+  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then bash build_deb_cli.bash; fi
+  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then bash build_deb_gtk.bash; fi
+  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then cd ../../; fi
+
+  ### AppImage
+  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then cd Tools/AppImage; fi
+  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then bash build_appimage_gtk.bash; fi
+  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then cd ../../; fi
+
+  # - if [ "$TRAVIS_OS_NAME" = "linux" ]; then ; fi
+  # - if [ "$TRAVIS_OS_NAME" = "linux" ]; then ; fi
+  # - if [ "$TRAVIS_OS_NAME" = "linux" ]; then ; fi
+  # - if [ "$TRAVIS_OS_NAME" = "linux" ]; then ; fi
+  
+
+
+before_deploy:
+ - git config --local user.name "Federico Santamorena"
+ - git config --local user.email "federico@santamorena.me"
+
+deploy:
+  provider: releases
+  skip_cleanup: true
+  draft: false
+  prerelease: true
+  name: $TRAVIS_TAG
+  body: $TRAVIS_COMMIT_MESSAGE
+  target_commitish: $TRAVIS_COMMIT
+  file_glob: true
+  api_key:
+    secure: $GITHUB_TOKEN
+  file: 
+    - Tools/deb/Build/*.deb
+    - Tools/AppImage/Build/*.AppImage
+    - Tools/PortableZip/Build/*.zip
+  on:
+    repo: yatima1460/Drill
+
+notifications:
+  email:
+    on_success: never
+    on_failure: always
