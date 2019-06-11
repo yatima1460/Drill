@@ -1,5 +1,5 @@
 # Binaries
-build
+Build
 *.a
 drill-ui
 drill-cli
@@ -18,7 +18,8 @@ tools/appimage/drill/
 pkg2appimage*
 
 #.deb
-tools/deb/DEBFILE
+Tools/deb/DEBFILE
+*.deb
 
 # Windows
 *.lib
