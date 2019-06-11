@@ -51,6 +51,8 @@ If you want a version that doesn't require sudo and can be configurable download
 ### All OSes
 
 - Install DMD
+    - on Linux download the .deb, don't install it from apt,
+      be sure GDC doesn't get installed as backend compiler
 - cd CLI / cd GTK / cd WinAPI etc..
 - dub build -b release
 
