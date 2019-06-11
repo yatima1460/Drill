@@ -1,0 +1,27 @@
+# Drill
+*.log
+DRILL_VERSION
+
+# D
+dub.selections.json
+
+# Executables
+DrillExecutable
+Drill-*
+*.exe
+
+# Binaries
+*.o
+
+# Libraries
+*.a
+
+
+#AppImage
+*.AppImage
+me.santamorena.drill
+pkg2appimage*
+
+#.deb
+DEBFILE
+
