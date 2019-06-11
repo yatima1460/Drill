@@ -48,38 +48,24 @@ If you want a version that doesn't require sudo and can be configurable download
 
 ## Build
 
-### Windows
+### All OSes
+
+- Install DMD
+- cd CLI / cd GTK / cd WinAPI etc..
+- dub build -b release
+
+### Windows Visual Studio
 
 - Install DMD
 - Install Visual Studio 2017
 - Install VisualD
+- cd CLI / cd WinAPI
+- dub generate visuald
 - Open the project & Build Solution
-
-### Linux and OSX
-
-- Install dmd and dub
-- `bash build_linux.bash`
 
 ### Remember
 
-If you omit `-b release` a debug version (not recommended) will be created
-
-### Linux
-- `git clone https://github.com/yatima1460/Drill.git`
-- D
-    - `curl -fsS https://dlang.org/install.sh | bash -s dmd`
-    - `. ~/dlang/dmd-2.086.0/activate`
-- `cd source/ui` or `cd source/cli`
-- `dub build -b release`
-- `cd ../../` location of the binary
-
-### Windows
-
-TODO
-
-### OSX
-
-TODO
+If you omit `-b release` a slower debug version with various logs (not recommended) will be created
 
 # What is this
 
@@ -149,7 +135,7 @@ TODOs will slowly get converted to Issues
     - No GC
 
 - Cli Frontend
-    - More arguments
+    - ~~More arguments~~
     - ~~Better/bare printing~~
 
 - ncurses
