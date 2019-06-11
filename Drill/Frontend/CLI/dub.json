@@ -14,12 +14,12 @@
   "mainSourceFile": "CLI.d",
 
   "importPaths": [
-    "../Core"
+    "../../Backend"
   ],
   "dependencies": {
-		"drill-core": {"path": "../Core"}
+		"drill-core": {"path": "../../Backend"}
   },
  
-  
-	"targetPath": "../Build/Drill-CLI-$PLATFORM-$ARCH-$BUILD_TYPE"
+  "copyFiles": ["../../../Assets"],
+	"targetPath": "Build/Drill-CLI-$PLATFORM-$ARCH-$BUILD_TYPE"
 }

@@ -16,11 +16,12 @@
 	"dependencies": {
 		"gtk-d:gtkd": "3.9.0",
 		"drill-core": {
-			"path": "../Core"
+			"path": "../../Backend"
 		}
 	},
 	"importPaths": [
-		"../Core"
+		"../../Backend"
 	],
-	"targetPath": "../Build/Drill-GTK-$PLATFORM-$ARCH-$BUILD_TYPE"
+	"copyFiles": ["../../../Assets"],
+	"targetPath": "Build/Drill-GTK-$PLATFORM-$ARCH-$BUILD_TYPE"
 }
