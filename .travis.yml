@@ -20,6 +20,7 @@ addons:
     packages:
       - desktop-file-utils
       - p7zip-full
+      - gcc-multilib
   #osx
   homebrew:
     update: true
