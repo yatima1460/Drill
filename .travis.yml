@@ -40,7 +40,8 @@ script:
   ## windows
   - if [ "$TRAVIS_OS_NAME" = "windows" ]; then wget http://downloads.dlang.org/nightlies/dmd-master/dmd.master.windows.7z; fi
   - if [ "$TRAVIS_OS_NAME" = "windows" ]; then 7z x dmd.master.windows.7z; fi
-  - if [ "$TRAVIS_OS_NAME" = "windows" ]; then mv dmd2/windows/bin/*.* .; fi
+  - if [ "$TRAVIS_OS_NAME" = "windows" ]; then cp dmd2/windows/bin/*.* Source/Frontend/CLI; fi
+  - if [ "$TRAVIS_OS_NAME" = "windows" ]; then cp dmd2/windows/bin/*.* Source/Frontend/WinAPI; fi
 
   ## osx
   # already installs using homebrew travis settings
@@ -50,9 +51,9 @@ script:
 
   ## build CLI
   - cd Source/Frontend/CLI
-  - dub build --arch=x86
+  # - dub build --arch=x86
   - dub build
-  - dub build -b release --arch=x86
+  # - dub build -b release --arch=x86
   - dub build -b release 
   - cd ../../../
 
