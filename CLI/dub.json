@@ -1,5 +1,5 @@
 {
-  "name": "drillcli",
+  "name": "drill-cli",
   "authors": ["Federico Santamorena"],
   "description": "Search files without indexing, but clever crawling.",
   "copyright": "Copyright © 2019, Federico Santamorena",
@@ -7,7 +7,7 @@
   "homepage": "https://github.com/yatima1460/Drill",
 
   "targetType": "executable",
-  "targetName": "drillcli",
+  "targetName": "drill-cli",
 
   "sourceFiles": ["CLI.d"],
 
@@ -17,7 +17,7 @@
     "../Core"
   ],
   "dependencies": {
-		"drillcore": {"path": "../Core"}
+		"drill-core": {"path": "../Core"}
   },
  
   
