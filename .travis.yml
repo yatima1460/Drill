@@ -30,11 +30,11 @@ addons:
       - dub
       - p7zip
 
-  choco:
-    update: true
-    packages:
-      - dmd
-      - dub
+  # choco:
+  #   update: true
+  #   packages:
+  #     - dmd
+  #     - dub
 
 script:
 
@@ -45,6 +45,8 @@ script:
   - if [ "$TRAVIS_OS_NAME" = "linux" ]; then . ~/dlang/dmd-2.086.0/activate; fi
 
   ## windows
+  - if [ "$TRAVIS_OS_NAME" = "windows" ]; then choco install dmd; fi
+  - if [ "$TRAVIS_OS_NAME" = "windows" ]; then choco install dub; fi
   # - if [ "$TRAVIS_OS_NAME" = "windows" ]; then wget http://downloads.dlang.org/nightlies/dmd-master/dmd.master.windows.7z; fi
   # - if [ "$TRAVIS_OS_NAME" = "windows" ]; then 7z x dmd.master.windows.7z; fi
   # - if [ "$TRAVIS_OS_NAME" = "windows" ]; then cp dmd2/windows/bin/*.* Source/Frontend/CLI; fi
