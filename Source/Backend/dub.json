@@ -19,5 +19,5 @@
     "datefmt": "1.0.3"
   },
   
-	"targetPath": "../Build/Drill-Core-$PLATFORM-$ARCH-$BUILD_TYPE"
+	"targetPath": "Build/Drill-Core-$PLATFORM-$ARCH-$BUILD_TYPE"
 }
