@@ -1,0 +1,1 @@
+The files in this folder are meant to be used by build_$TRAVIS_OS.sh script
