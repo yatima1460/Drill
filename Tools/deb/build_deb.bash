@@ -68,7 +68,7 @@ deb() {
     if [ -f ../../DRILL_VERSION ]; then
         cp ../../DRILL_VERSION DEBFILE/"$1"/opt/$DEB_PACKAGE_NAME/
         echo Version: "$(cat ../../DRILL_VERSION)" >> DEBFILE/"$1"/DEBIAN/control
-        cat DEBFILE/"$1"/DEBIAN/control $OUTPUT
+        cat DEBFILE/"$1"/DEBIAN/control
         echo Building .deb for version "$(cat ../../DRILL_VERSION)"
         export DRILL_VERSION=$(cat ../../DRILL_VERSION)
     else
@@ -81,18 +81,17 @@ deb() {
     if [[ $1 == "gtk" ]]; then
         # add desktop file
         mkdir -p DEBFILE/"$1"/usr/share/applications
-        desktop-file-validate $DEB_PACKAGE_NAME.desktop
-        cp $DEB_PACKAGE_NAME.desktop DEBFILE/"$1"/usr/share/applications/
+        desktop-file-validate drill-search-gtk.desktop
+        cp drill-search-gtk.desktop DEBFILE/gtk/usr/share/applications/
 
         # add icon
         mkdir -p DEBFILE/"$1"/usr/share/pixmaps
-        cp ../../assets/icon.svg DEBFILE/"$1"/usr/share/pixmaps/"$DEB_PACKAGE_NAME".svg
-        #cp ../../assets/icon.svg DEBFILE/usr/share/app-install/icons/drill.svg
+        cp drill-search-gtk.svg DEBFILE/gtk/usr/share/pixmaps/drill-search-gtk.svg
     fi
 
     # build the .deb file
 
-    if dpkg-deb --build DEBFILE/"$1"/ $OUTPUT; then
+    if dpkg-deb --build DEBFILE/"$1"/; then
         info ".deb built correctly"
     else
         error "Building .deb failed"
@@ -100,7 +99,7 @@ deb() {
     fi
 
 
-    if mv DEBFILE/"$1".deb ../../build/Drill-"$1"-linux-$DRILL_VERSION-x86_64.deb $OUTPUT; then
+    if mv DEBFILE/"$1".deb Drill-"$1"-linux-$DRILL_VERSION-x86_64.deb; then
         info "Drill-$1-linux-$DRILL_VERSION-x86_64.deb moved to build"
     else
         error "Drill-$1-linux-$DRILL_VERSION-x86_64.deb can't be moved to build"
