@@ -1,5 +1,0 @@
-.AppImage
-.exe
-.msi
-.elf
-.sfx

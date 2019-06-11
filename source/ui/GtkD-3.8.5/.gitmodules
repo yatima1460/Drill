@@ -1,3 +1,0 @@
-[submodule "wrap"]
-	path = wrap
-	url = https://github.com/gtkd-developers/gir-to-d.git

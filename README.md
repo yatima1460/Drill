@@ -46,14 +46,22 @@ If you want a version that doesn't require sudo and can be configurable download
 **Use DMD or LDC!!!**
 
 
-## Automated build
+## Build
 
-### Linux, Windows (git bash) and OSX
-Run `bash build.bash`
+### Windows
 
-## Manual building
+- Install DMD
+- Install Visual Studio 2017
+- Install VisualD
+- Open the project & Build Solution
 
-Executables will spawn in the root git folder
+### Linux and OSX
+
+- Install dmd and dub
+- `bash build_linux.bash`
+
+### Remember
+
 If you omit `-b release` a debug version (not recommended) will be created
 
 ### Linux
