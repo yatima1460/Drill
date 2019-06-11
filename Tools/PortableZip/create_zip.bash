@@ -5,8 +5,6 @@ mkdir Build
 FILES="../../Source/Frontend/GTK/Build/*
 ../../Source/Frontend/CLI/Build/*
 ../../Source/Frontend/WinAPI/Build/*
-../../Source/Frontend/WinAPI/Build/*
-../../Source/Backend/Build/*
 "
 for f in $FILES
 do
