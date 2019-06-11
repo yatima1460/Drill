@@ -1,0 +1,23 @@
+{
+  "name": "drillcore",
+  "authors": [
+    "Federico Santamorena"
+  ],
+  "description": "Search files without indexing, but clever crawling.",
+  "copyright": "Copyright © 2019, Federico Santamorena",
+  "license": "GPL-2.0",
+  "homepage": "https://github.com/yatima1460/Drill",
+  "targetType": "library",
+  "targetName": "drillcore",
+  "sourceFiles": [
+    "API.d",
+    "FileInfo.d",
+    "Crawler.d",
+    "Utils.d"
+  ],
+  "dependencies": {
+    "datefmt": "1.0.3"
+  },
+  "copyFiles": ["../Assets"],
+	"targetPath": "../Build"
+}

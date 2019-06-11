@@ -1,0 +1,4 @@
+  "lflags-windows": [
+    "/SUBSYSTEM:windows",
+    "User32.lib"
+  ],

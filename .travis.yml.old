@@ -1,0 +1,57 @@
+branches:
+  only:
+  - master
+
+os:
+  - linux
+#  - windows
+  - osx
+
+language: bash
+
+before_install:
+ - export TRAVIS_TAG="1.$TRAVIS_BUILD_NUMBER"
+ - echo -n $TRAVIS_TAG > DRILL_VERSION
+
+addons:
+
+  #linux
+  apt:
+    packages:
+      - desktop-file-utils
+      - p7zip-full
+  #osx
+  homebrew:
+    update: true
+    packages:
+      - dmd
+      - dub
+      - p7zip
+
+script:
+  - bash build.bash
+
+before_deploy:
+ - git config --local user.name "Federico Santamorena"
+ - git config --local user.email "federico@santamorena.me"
+ - find "build" -maxdepth 1 -not -type d
+
+deploy:
+  provider: releases
+  skip_cleanup: true
+  draft: false
+  prerelease: true
+  name: $TRAVIS_TAG
+  body: $TRAVIS_COMMIT_MESSAGE
+  target_commitish: $TRAVIS_COMMIT
+  file_glob: true
+  api_key:
+    secure: $GITHUB_TOKEN
+  file: build/*.*
+  on:
+    repo: yatima1460/Drill
+
+notifications:
+  email:
+    on_success: never
+    on_failure: always
