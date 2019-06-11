@@ -7,7 +7,7 @@
   "homepage": "https://github.com/yatima1460/Drill",
 
   "targetType": "executable",
-  "targetName": "drill-cli",
+  "targetName": "drill-search-cli",
 
   "sourceFiles": ["CLI.d"],
 
