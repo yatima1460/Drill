@@ -20,8 +20,9 @@ error() {
 }
 #========================
 
+export BUILD_DIR=../../Source/Frontend/CLI/Build/"$CLI_BUILD_DIR"
 
-if [ -f ../../Build/"$CLI_BUILD_DIR"/"$DEB_PACKAGE_NAME" ]; then
+if [ -f $BUILD_DIR/"$DEB_PACKAGE_NAME" ]; then
     info "$DEB_PACKAGE_NAME   executable found"
 else
     error "No $DEB_PACKAGE_NAME   executable found!"
@@ -39,8 +40,8 @@ chmod   +x                                           DEBFILE/CLI/usr/bin/$DEB_PA
 
 # install in /opt
 mkdir -p DEBFILE/CLI/opt/
-cp      -r ../../Build/"$CLI_BUILD_DIR"     DEBFILE/CLI/opt/$DEB_PACKAGE_NAME
-chmod   +x                                  DEBFILE/CLI/opt/$DEB_PACKAGE_NAME/"$DEB_PACKAGE_NAME"
+cp      -r "$BUILD_DIR"     DEBFILE/CLI/opt/$DEB_PACKAGE_NAME
+chmod   +x                  DEBFILE/CLI/opt/$DEB_PACKAGE_NAME/"$DEB_PACKAGE_NAME"
 
 # make .deb metadata
 mkdir DEBFILE/CLI/DEBIAN
