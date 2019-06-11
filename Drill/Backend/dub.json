@@ -18,6 +18,6 @@
   "dependencies": {
     "datefmt": "1.0.3"
   },
-  "copyFiles": ["../Assets"],
+  
 	"targetPath": "../Build/Drill-Core-$PLATFORM-$ARCH-$BUILD_TYPE"
 }
