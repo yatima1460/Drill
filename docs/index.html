@@ -126,9 +126,10 @@
                         let text = "";
                         let ext = asset.name.split(".")[2];
 
-                        if (ext === "deb") text = "Debian / Ubuntu";
+                        if (ext === "deb") text = "Debian, Ubuntu, Deepin";
                         if (ext === "zip") text = "Portable";
                         if (ext === "AppImage") text = "AppImage";
+                        if (ext === "rpm") text = "Red Hat, Fedora, SUSE";
                        
 
                         let icon_name = ext + ".svg?sanitize=true";
