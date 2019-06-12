@@ -91,6 +91,7 @@
             //console.log(data)
             document.getElementsByClassName("version")[0].innerHTML = "<h3>Version "+data.tag_name+"</h3>";
 
+            CreateDownloadButton("Linux","https://aur.archlinux.org/packages/drill-search-gtk-bin/","Arch","Arch");
             OSes.forEach(function(OS)
             {
                 let assets = [];
@@ -122,13 +123,15 @@
 
                     if (asset.name.toLowerCase().includes(OS.toLowerCase()))
                     {
-
+                        let text = "";
                         let ext = asset.name.split(".")[2];
-                        
+                        if (ext === "deb") text="Debian / Ubuntu";
+                        if (ext === "zip") text = "Portable";
+                        if (ext === "AppImage") text = "AppImage";
 
                         let icon_name = ext+".svg?sanitize=true";
-                        if (ext === "zip") ext = "Portable";
-                        else ext = "."+ext;
+                        
+                       
 
                         let config = asset.name.split("-")[1];
                         if (config === "WinAPI") config = "";
@@ -143,25 +146,26 @@
                         }
 
                         let arch = asset.name.split("-")[3];
+                 
                         
                       
 
                         
                         let linux_downloads = document.getElementById(OS);
-                        CreateDownloadButton(OS,asset.browser_download_url,icon_name,build+" "+config+" "+ext+" "+arch);
+                        CreateDownloadButton(OS,asset.browser_download_url,icon_name,config+" "+text);
                        
                     }
                     console.log(asset.name);
                 });
             });
 
-            CreateDownloadButton("Linux","https://aur.archlinux.org/packages/drill-search-gtk-bin/","Arch","AUR GTK");
-            CreateDownloadButton("Linux","https://aur.archlinux.org/packages/drill-search-cli-bin/","Arch","AUR CLI");
-            
+           
+            CreateDownloadButton("Linux","https://aur.archlinux.org/packages/drill-search-cli-bin/","Terminal","Arch CLI");
+
             CreateDownloadButton("Source","http://github.com/yatima1460/Drill","GitHub","GitHub");
             CreateDownloadButton("Source","http://github.com/yatima1460/Drill/issues/new","Bug","Submit a bug");
             CreateDownloadButton("Source","https://travis-ci.org/yatima1460/Drill","Travis","Travis");
-            CreateDownloadButton("Source","http://github.com/yatima1460/Drill/zipball/master/","zip","zip");
+            CreateDownloadButton("Source","http://github.com/yatima1460/Drill/zipball/master/","zip","zipball");
             CreateDownloadButton("Source","http://github.com/yatima1460/Drill/tarball/master/","gz","tarball");
         })
         .catch(err => {
