@@ -466,8 +466,19 @@ private:
         gdk.Threads.threadsAddTimeout(10, &threadIdleProcess, cast(void*) this);
 
         addOnDelete(delegate bool(Event event, Widget widget) {
-            logConsole("Window started to close");
+            logConsole("Window started to close, stopping crawlers");
             drillapi.stopCrawlingSync();
+            return false;
+        });
+
+        addOnKeyPress(delegate bool(GdkEventKey* event, Widget widget) {
+            import gdk.Keysyms : GdkKeysyms;
+            if (event.keyval == GdkKeysyms.GDK_Escape) {
+                logConsole("ESC pressed, window is closing");
+                drillapi.stopCrawlingSync();
+                this.close();
+                return true;
+            }
             return false;
         });
     }
