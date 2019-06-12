@@ -13,7 +13,7 @@
   </script>
   {% endif %}
   <meta charset="UTF-8">
-  
+
 
   {% seo %} -->
     <title>Drill</title>
@@ -43,6 +43,120 @@
 
 <body>
 
+
+    <script>
+        const OSes = ["Linux","Windows","OSX"];
+
+
+        function CreateCategory(Category)
+        {
+            let downloads_div = document.getElementById("downloads");
+            console.log(Category+" category does not exist");
+            let cat_html = '<div id="'+Category+'" class="os">'+
+                '<div class="os-header">'+
+                    '<img src="icons/'+Category+'.svg?sanitize=true" srcset="" alt="'+Category+'">'+
+                    '<h1>'+Category+'</h1>'+
+                '</div>'+
+            '</div>';
+            
+            downloads_div.innerHTML += cat_html;
+            child_category = downloads_div.querySelector("#"+Category);
+            return child_category;
+        }
+
+        function CreateDownloadButton(Category,URL,Icon,Text)
+        {
+            
+            let child_category = downloads.querySelector("#"+Category);
+            console.log(child_category);
+            if (!child_category)
+            {
+                child_category = CreateCategory(Category);
+            }
+            child_category.innerHTML += "<a href=\""+URL+
+                        "\"class=\"btn\" target=\"_blank\"><img src=\"icons/"+Icon+".svg?sanitize=true\" srcset=\"\" alt=\""+Icon+"\">"+
+                        "<span class=\"spacer\">"+Text+"</span></a>"
+
+        }
+
+
+        window.onload = function()
+        {
+            fetch('https://api.github.com/repos/yatima1460/Drill/releases/latest')
+        .then(response => {
+            return response.json()
+        })
+        .then(data => {
+            // Work with JSON data here
+            //console.log(data)
+            document.getElementsByClassName("version")[0].innerHTML = "Version "+data.tag_name;
+
+            OSes.forEach(function(OS)
+            {
+                data.assets = data.assets.sort(function(x, y) {
+                    if (x.name.toLowerCase().includes("cli") || x.name.toLowerCase().includes("debug")) {
+                        return 1;
+                    }
+                    if (y.name.toLowerCase().includes("cli") || y.name.toLowerCase().includes("debug")) {
+                        return -1;
+                    }
+                    return 0;
+                });
+                data.assets.forEach(function(asset)
+                {
+
+                    if (asset.name.toLowerCase().includes(OS.toLowerCase()))
+                    {
+
+                        const ext = asset.name.split(".")[2];
+                        let config = asset.name.split("-")[1];
+                        if (config === "WinAPI") config = "";
+                        if (config === "ui") config = "GTK";
+                        if (config === "cli") config = "CLI";
+                        const icon_name = ext+".svg?sanitize=true";
+                        let linux_downloads = document.getElementById(OS);
+                        CreateDownloadButton(OS,asset.browser_download_url,icon_name,config+" "+ext);
+                       
+                    }
+                    console.log(asset.name);
+                });
+            });
+
+
+            CreateDownloadButton("Source","http://github.com/yatima1460/Drill","GitHub","GitHub");
+            CreateDownloadButton("Source","http://github.com/yatima1460/Drill/issues/new","Bug","Submit a bug");
+            CreateDownloadButton("Source","https://travis-ci.org/yatima1460/Drill","Travis","Travis");
+            CreateDownloadButton("Source","http://github.com/yatima1460/Drill/zipball/master/","zip","zip");
+            CreateDownloadButton("Source","http://github.com/yatima1460/Drill/tarball/master/","gz","tarball");
+
+
+        })
+        .catch(err => {
+            let downloads_div = document.getElementById("downloads");
+            downloads_div.innerHTML = "<h1><font color=\"red\">An error occured while fetching available downloads, check <a href=\"https://github.com/yatima1460/Drill/releases\" target=\"_blank\">GitHub's Releases</a></font><h1>";
+        })
+
+
+          
+        };
+
+
+
+        // Replace ./data.json with your JSON feed
+       
+        function UrlExists(url) {
+            var http = new XMLHttpRequest();
+            http.open('HEAD', url, false);
+            http.send();
+            return http.status != 404;
+        }
+
+        function download(frontend, os, arch, build) {
+
+        }
+
+    </script>
+
     <div class="desktop-only">
         <a href="https://github.com/yatima1460/Drill/fork" target="_blank">
             <img width="149" height="149"
@@ -67,210 +181,11 @@
         <img class="screenshot" src="screenshot.png?sanitize=true">
 
         <div class="version">
-            Version 1.199
-        </div>
-        <h4>All downloads are x86_64/amd64 64-bit if not specified</h4>
-        <div class="downloads">
-
-            <div class="os">
-                <div class="os-header">
-                    <img src="icons/linux.png?sanitize=true" srcset="" alt="Linux">
-                    <h1>Linux</h1>
-                </div>
-                <a href="https://github.com/yatima1460/Drill/releases/download/1.199/Drill-ui-linux-1.199-x86_64.AppImage"
-                    class="btn">
-                    <img src="icons/App-image-logo.svg?sanitize=true" srcset="" alt="AppImage">
-                    <span class="spacer">GTK AppImage</span>
-                </a>
-                <a href="https://github.com/yatima1460/Drill/releases/download/1.199/Drill-ui-linux-1.199-x86_64.deb"
-                    class="btn">
-                    <img src="icons/debian.png" srcset="" alt="Debian">
-                    <span class="spacer">GTK .deb</span>
-                </a>
-                <a href="javascript:void(0)" class="btn disabled">
-                    <img src="icons/redhat.png" srcset="" alt="RedHat">
-                    <span class="spacer">GTK .rpm</span>
-                </a>
-
-                <a href="javascript:void(0)" class="btn disabled">
-                    <img src="icons/flatpak.png?sanitize=true" srcset="" alt="Flatpak logo">
-                    <span class="spacer">GTK Flatpak</span>
-                </a>
-                <a href="javascript:void(0)" class="btn disabled">
-                    <img src="icons/snap.png?sanitize=true" srcset="" alt="Snap">
-                    <span class="spacer">GTK Snap</span>
-                </a>
-
-
-
-                <a href="https://aur.archlinux.org/packages/drill-search-gtk-bin/" target="_blank" class="btn">
-                    <img src="icons/arch.svg?sanitize=true" srcset="" alt="Arch">
-                    <span class="spacer">GTK bin</span>
-                </a>
-
-                <a href="https://github.com/yatima1460/Drill/releases/download/1.199/Drill-ui-linux-1.199-x86_64.zip"
-                    class="btn">
-                    <img src="icons/zip.svg?sanitize=true" srcset="" alt="Zip">
-                    <span class="spacer">GTK Portable</span>
-                </a>
-
-
-                <a href="https://github.com/yatima1460/Drill/releases/download/1.199/Drill-cli-linux-1.199-x86_64.deb"
-                    class="btn">
-                    <img src="icons/debian.png" srcset="" alt="Debian">
-                    <span class="spacer">CLI .deb</span>
-                </a>
-
-                <a href="javascript:void(0)" class="btn disabled">
-                    <img src="icons/redhat.png" srcset="" alt="RedHat">
-                    <span class="spacer">CLI .rpm</span>
-                </a>
-
-
-                <a href="https://aur.archlinux.org/packages/drill-search-cli-bin/" target="_blank" class="btn">
-                    <img src="icons/arch.svg?sanitize=true" srcset="" alt="Arch">
-                    <span class="spacer">CLI bin</span>
-                </a>
-
-
-
-
-                <a href="https://github.com/yatima1460/Drill/releases/download/1.199/Drill-cli-linux-1.199-x86_64.zip"
-                    class="btn">
-                    <img src="icons/zip.svg?sanitize=true" srcset="" alt="Zip">
-                    <span class="spacer">CLI Portable</span>
-                </a>
-                <!-- <a href="javascript:void(0)" class="btn disabled">
-                    <img src="icons/gz.svg?sanitize=true" srcset="" alt="gz">
-                    <span class="spacer">Portable</span>
-                </a>
-                <a href="javascript:void(0)" class="btn disabled">
-                    <img src="icons/gz.svg?sanitize=true" srcset="" alt="gz">
-                    <span class="spacer">CLI Portable</span>
-                </a> -->
-                <!-- <a href="javascript:void(0)" class="btn disabled">
-                    <img src="debian.png" srcset="" alt="Debian">
-                    <span class="spacer">.deb ARM</span>
-                </a>
-                <a href="javascript:void(0)" class="btn disabled">
-                    <img src="debian.png" srcset="" alt="Debian">
-                    <span class="spacer">.deb RISC-V</span>
-                </a>-->
-
-                <!-- <a href="javascript:void(0)" class="btn disabled">
-                    <img src="zip.svg?sanitize=true" srcset="" alt="Zip">
-                    <span class="spacer">CLI Portable x86</span>
-                </a>
-                <a href="javascript:void(0)" class="btn disabled">
-                    <img src="zip.svg?sanitize=true" srcset="" alt="Zip">
-                    <span class="spacer">CLI Portable ARM</span>
-                </a>
-                <a href="javascript:void(0)" class="btn disabled">
-                    <img src="zip.svg?sanitize=true" srcset="" alt="Zip">
-                    <span class="spacer">CLI Portable RISC-V</span>
-                </a> -->
-            </div>
-            <div class="os">
-                <div class="os-header">
-                    <img src="icons/windows.svg?sanitize=true" srcset="" alt="Windows logo">
-                    <h1>Windows</h1>
-                </div>
-
-
-                <a href="javascript:void(0)" class="btn disabled">
-                    <img src="icons/msi.png?sanitize=true" srcset="" alt="Windows logo">
-                    <span class="spacer">Installer</span>
-                </a>
-                <a href="javascript:void(0)" class="btn disabled">
-                    <img src="icons/zip.svg?sanitize=true" srcset="" alt="Windows logo">
-                    <span class="spacer">Portable</span>
-                </a>
-                <a href="https://github.com/yatima1460/Drill/releases/download/1.199/Drill-cli-windows-1.199-x86_64.zip"
-                    class="btn">
-                    <img src="icons/zip.svg?sanitize=true" srcset="" alt="Windows logo">
-                    <span class="spacer">CLI Portable</span>
-                </a>
-
-                <!-- <a href="javascript:void(0)" class="btn disabled">
-                    <img src="icons/zip.svg?sanitize=true" srcset="" alt="Windows logo">
-                    <span class="spacer">Portable</span>
-                </a> -->
-                <!-- <a href="javascript:void(0)" class="btn disabled">
-                <img src="msi.png?sanitize=true" srcset="" alt="Windows logo">
-                    <span class="spacer">Installer x86</span>
-                </a>
-                <a href="javascript:void(0)" class="btn disabled">
-                    <img src="msi.png?sanitize=true" srcset="" alt="Windows logo">
-                    <span class="spacer">Installer ARM</span>
-                </a>
-                <a href="javascript:void(0)" class="btn disabled">
-                    <img src="zip.svg?sanitize=true" srcset="" alt="Windows logo">
-                    <span class="spacer">Portable ARM</span>
-                </a> -->
-            </div>
-            <div class="os">
-                <div class="os-header">
-                    <img src="icons/apple.png?sanitize=true" srcset="" alt="Windows logo">
-                    <h1>OSX</h1>
-                </div>
-                <a href="javascript:void(0)" class="btn disabled">
-                    <img src="icons/Mac_OS_X_Disk_Image.png" srcset="" alt="Windows logo">
-                    <span class="spacer">.dmg</span>
-                </a>
-                <a href="javascript:void(0)" class="btn disabled">
-                    <img src="icons/zip.svg?sanitize=true" srcset="" alt="Apple logo">
-                    <span class="spacer">Portable</span>
-                </a>
-                <a href="https://github.com/yatima1460/Drill/releases/download/1.199/Drill-CLI-OSX-1.199-x86_64.zip"
-                    class="btn">
-                    <img src="icons/zip.svg?sanitize=true" srcset="" alt="gz">
-                    <span class="spacer">CLI Portable</span>
-                </a>
-            </div>
-            <!-- <div class="os">
-                <div class="os-header">
-                    <img src="android.png" srcset="" alt="Android logo">
-                    <h1>Android</h1>
-                </div>
-                <a href="javascript:void(0)" class="btn disabled">
-                    <img src="apk.svg?sanitize=true" srcset="" alt="Android logo">
-                    <span class="spacer">APK</span>
-                </a>
-
-
-            </div> -->
-            <div class="os">
-                <div class="os-header">
-                    <img src="icons/dlang.svg" srcset="" alt="Dlang logo">
-                    <h1>Source</h1>
-                </div>
-
-
-                <a href="http://github.com/yatima1460/Drill" target="_blank" class="btn">
-
-                    <img src="icons/github.svg?sanitize=true" srcset="" alt="github">
-                    <span class="spacer">GitHub</span>
-
-                </a>
-
-
-                <a href="http://github.com/yatima1460/Drill/zipball/master/" class="btn">
-
-                    <img src="icons/zip.svg?sanitize=true" srcset="" alt=".zip">
-                    <span class="spacer">.zip</span>
-
-                </a>
-                <a href="http://github.com/yatima1460/Drill/tarball/master/" class="btn">
-
-                    <img src="icons/gz.svg?sanitize=true" srcset="" alt=".tar.gz">
-                    <span class="spacer">.tar.gz</span>
-
-                </a>
-
-            </div>
 
         </div>
-
+        <h4>All downloads are x86_64/amd64 64-bit and generated automatically by reading <a href="https://github.com/yatima1460/Drill/releases" target="_blank">GitHub's Releases</a></h4>
+        <div id="downloads" class="downloads">
+        </div>
 
 
     </main>
@@ -309,7 +224,7 @@
         <p>
             Love it? Consider a donation to support the project!
         </p>
-        
+
         <form action="https://www.paypal.com/cgi-bin/webscr" method="post" target="_top">
             <input type="hidden" name="cmd" value="_donations" />
             <input type="hidden" name="business" value="27PBE8F7PFCGS" />
