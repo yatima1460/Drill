@@ -62,8 +62,8 @@ script:
 
   ## build CLI
   - cd Source/Frontend/CLI
-  - if [ "$TRAVIS_OS_NAME" = "windows" ]; then dub build --arch=x86_64; fi
-  - if [ "$TRAVIS_OS_NAME" = "windows" ]; then dub build -b release --arch=x86_64; fi
+  - if [ "$TRAVIS_OS_NAME" = "windows" ]; then $DUB build --arch=x86_64; fi
+  - if [ "$TRAVIS_OS_NAME" = "windows" ]; then $DUB build -b release --arch=x86_64; fi
   - if [ "$TRAVIS_OS_NAME" = "osx" ]; then dub build --arch=x86_64; fi
   - if [ "$TRAVIS_OS_NAME" = "osx" ]; then dub build -b release --arch=x86_64; fi
   - if [ "$TRAVIS_OS_NAME" = "linux" ]; then dub build --arch=x86; fi
@@ -76,17 +76,17 @@ script:
 
   ### linux
   - if [ "$TRAVIS_OS_NAME" = "linux" ]; then cd Source/Frontend/GTK; fi
-  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then dub build --arch=x86; fi
+  # - if [ "$TRAVIS_OS_NAME" = "linux" ]; then dub build --arch=x86; fi
   - if [ "$TRAVIS_OS_NAME" = "linux" ]; then dub build --arch=x86_64; fi
   - if [ "$TRAVIS_OS_NAME" = "linux" ]; then dub build -b release --arch=x86; fi
-  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then dub build -b release --arch=x86_64; fi
+  # - if [ "$TRAVIS_OS_NAME" = "linux" ]; then dub build -b release --arch=x86_64; fi
   - if [ "$TRAVIS_OS_NAME" = "linux" ]; then cd ../../../; fi
 
   ### windows
   # - if [ "$TRAVIS_OS_NAME" = "windows" ]; then cd Source/Frontend/WinAPI; fi
-  # - if [ "$TRAVIS_OS_NAME" = "windows" ]; then dub build --arch=x86; fi
+  # - if [ "$TRAVIS_OS_NAME" = "windows" ]; then $DUB build --arch=x86; fi
   # - if [ "$TRAVIS_OS_NAME" = "windows" ]; then $DUB build --arch=x86_64; fi
-  # - if [ "$TRAVIS_OS_NAME" = "windows" ]; then dub build -b release --arch=x86; fi
+  # - if [ "$TRAVIS_OS_NAME" = "windows" ]; then $DUB build -b release --arch=x86; fi
   # - if [ "$TRAVIS_OS_NAME" = "windows" ]; then $DUB build -b release --arch=x86_64; fi
   # - if [ "$TRAVIS_OS_NAME" = "windows" ]; then cd ../../../; fi
 
