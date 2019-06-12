@@ -4,7 +4,7 @@
 
 
 if [ -z "$TRAVIS_TAG" ]; then
-  echo No Drill version found! Using LOCAL_BUILD
+  echo This is not a Travis build! Using LOCAL_BUILD as version string
   export TRAVIS_TAG="LOCAL_BUILD"
 fi
 
@@ -22,7 +22,7 @@ do
 
   if [[ -d "$f" ]]; then
     echo "$f exists"
-    7z a -tzip $f-$TRAVIS_TAG.zip $f
+    7z a -tzip $f-$TRAVIS_TAG.zip $f ../../DRILL_VERSION
     mv $f-$TRAVIS_TAG.zip Build
   else
     echo "$f does not exist, skipping"
