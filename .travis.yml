@@ -21,7 +21,7 @@ addons:
     packages:
       - desktop-file-utils
       - p7zip-full
-      # - gcc-multilib
+      - gcc-multilib
   #osx
   homebrew:
     update: true
@@ -62,19 +62,23 @@ script:
 
   ## build CLI
   - cd Source/Frontend/CLI
-  # - dub build --arch=x86
-  - $DUB build --arch=x86_64
-  # - dub build -b release --arch=x86
-  - $DUB build -b release --arch=x86_64
+  - if [ "$TRAVIS_OS_NAME" = "windows" ]; then dub build --arch=x86_64; fi
+  - if [ "$TRAVIS_OS_NAME" = "windows" ]; then dub build -b release --arch=x86_64; fi
+  - if [ "$TRAVIS_OS_NAME" = "osx" ]; then dub build --arch=x86_64; fi
+  - if [ "$TRAVIS_OS_NAME" = "osx" ]; then dub build -b release --arch=x86_64; fi
+  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then dub build --arch=x86; fi
+  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then dub build --arch=x86_64; fi
+  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then dub build -b release --arch=x86; fi
+  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then dub build -b release --arch=x86_64; fi
   - cd ../../../
 
   ## build UI
 
   ### linux
   - if [ "$TRAVIS_OS_NAME" = "linux" ]; then cd Source/Frontend/GTK; fi
-  # - if [ "$TRAVIS_OS_NAME" = "linux" ]; then dub build --arch=x86; fi
+  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then dub build --arch=x86; fi
   - if [ "$TRAVIS_OS_NAME" = "linux" ]; then dub build --arch=x86_64; fi
-  # - if [ "$TRAVIS_OS_NAME" = "linux" ]; then dub build -b release --arch=x86; fi
+  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then dub build -b release --arch=x86; fi
   - if [ "$TRAVIS_OS_NAME" = "linux" ]; then dub build -b release --arch=x86_64; fi
   - if [ "$TRAVIS_OS_NAME" = "linux" ]; then cd ../../../; fi
 
