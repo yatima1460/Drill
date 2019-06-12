@@ -133,6 +133,7 @@ deploy:
     - Tools/deb/Build/*.deb
     - Tools/AppImage/Build/*.AppImage
     - Tools/PortableZip/Build/*.zip
+
   on:
     repo: yatima1460/Drill
 
