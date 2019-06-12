@@ -128,9 +128,12 @@
 
                         let icon_name = ext+".svg?sanitize=true";
                         if (ext === "zip") ext = "Portable";
+                        else ext = "."+ext;
 
                         let config = asset.name.split("-")[1];
                         if (config === "WinAPI") config = "";
+                        if (config === "CLI") icon_name = "Terminal";
+                        if (config === "GTK") config = "";
 
                         let build = asset.name.split("-")[4];
                         if (build === "release") build = "";
@@ -152,14 +155,14 @@
                 });
             });
 
-
+            CreateDownloadButton("Linux","https://aur.archlinux.org/packages/drill-search-gtk-bin/","Arch","AUR GTK");
+            CreateDownloadButton("Linux","https://aur.archlinux.org/packages/drill-search-cli-bin/","Arch","AUR CLI");
+            
             CreateDownloadButton("Source","http://github.com/yatima1460/Drill","GitHub","GitHub");
             CreateDownloadButton("Source","http://github.com/yatima1460/Drill/issues/new","Bug","Submit a bug");
             CreateDownloadButton("Source","https://travis-ci.org/yatima1460/Drill","Travis","Travis");
             CreateDownloadButton("Source","http://github.com/yatima1460/Drill/zipball/master/","zip","zip");
             CreateDownloadButton("Source","http://github.com/yatima1460/Drill/tarball/master/","gz","tarball");
-
-
         })
         .catch(err => {
             console.error(err);
