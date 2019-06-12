@@ -93,29 +93,54 @@
 
             OSes.forEach(function(OS)
             {
-                data.assets = data.assets.sort(function(x, y) {
-                    if (x.name.toLowerCase().includes("cli") || x.name.toLowerCase().includes("debug")) {
-                        return 1;
-                    }
-                    if (y.name.toLowerCase().includes("cli") || y.name.toLowerCase().includes("debug")) {
-                        return -1;
-                    }
-                    return 0;
+                let assets = [];
+           
+                // debug as last items
+                // cli as second to last
+                // everything else on top
+                data.assets.forEach(function(asset)
+                {
+                    if (asset.name.toLowerCase().includes("debug"))
+                        assets.unshift(asset);
                 });
                 data.assets.forEach(function(asset)
+                {
+                    if (asset.name.toLowerCase().includes("cli") && !asset.name.toLowerCase().includes("debug"))
+                        assets.unshift(asset);
+                });
+                data.assets.forEach(function(asset)
+                {
+                    if (!asset.name.toLowerCase().includes("cli") 
+                    && !asset.name.toLowerCase().includes("debug") )
+                        assets.unshift(asset);
+                });
+
+                assets.forEach(function(asset)
                 {
 
                     if (asset.name.toLowerCase().includes(OS.toLowerCase()))
                     {
 
-                        const ext = asset.name.split(".")[2];
+                        let ext = asset.name.split(".")[2];
+                        
+
+                        let icon_name = ext+".svg?sanitize=true";
+                        if (ext === "zip") ext = "Portable";
+
                         let config = asset.name.split("-")[1];
                         if (config === "WinAPI") config = "";
-                        if (config === "ui") config = "GTK";
-                        if (config === "cli") config = "CLI";
-                        const icon_name = ext+".svg?sanitize=true";
+
+                        let build = asset.name.split("-")[4];
+                        if (build === "release") build = "";
+                        if (build === "debug") {
+                            build = "DEBUG";
+                            icon_name = "Bug";
+                        }
+                      
+
+                        
                         let linux_downloads = document.getElementById(OS);
-                        CreateDownloadButton(OS,asset.browser_download_url,icon_name,config+" "+ext);
+                        CreateDownloadButton(OS,asset.browser_download_url,icon_name,build+" "+config+" "+ext);
                        
                     }
                     console.log(asset.name);
