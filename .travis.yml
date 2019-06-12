@@ -112,7 +112,7 @@ script:
   - if [ "$TRAVIS_OS_NAME" = "linux" ]; then cd ../../; fi
 
   ### Slackware
-  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then cd Tools/rpm; fi
+  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then cd Tools/Slackware; fi
   - if [ "$TRAVIS_OS_NAME" = "linux" ]; then bash build_slackware.bash; fi
   - if [ "$TRAVIS_OS_NAME" = "linux" ]; then cd ../../; fi
 
