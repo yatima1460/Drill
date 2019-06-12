@@ -125,13 +125,21 @@
                     {
                         let text = "";
                         let ext = asset.name.split(".")[2];
-                        if (ext === "deb") text="Debian / Ubuntu";
+
+                        if (ext === "deb") text = "Debian / Ubuntu";
                         if (ext === "zip") text = "Portable";
                         if (ext === "AppImage") text = "AppImage";
-
-                        let icon_name = ext+".svg?sanitize=true";
-                        
                        
+
+                        let icon_name = ext + ".svg?sanitize=true";
+
+                        if (ext === "tgz") 
+                        { 
+                            text = "Slackware";
+                            icon_name = "Slackware";
+                        }
+
+                        
 
                         let config = asset.name.split("-")[1];
                         if (config === "WinAPI") config = "";
@@ -146,11 +154,7 @@
                         }
 
                         let arch = asset.name.split("-")[3];
-                 
-                        
-                      
 
-                        
                         let linux_downloads = document.getElementById(OS);
                         CreateDownloadButton(OS,asset.browser_download_url,icon_name,config+" "+text);
                        
