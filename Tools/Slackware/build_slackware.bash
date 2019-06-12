@@ -3,7 +3,7 @@
 
 
 sudo rm -rf Build
-sudo rm *.rpm
+sudo rm *.tgz
 mkdir Build
 
 FILES="../../Tools/deb/Build/*"
