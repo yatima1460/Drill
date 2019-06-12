@@ -11,10 +11,9 @@ DRILL_VERSION
 dub.selections.json
 .dub
 
-
 #AppImage
 *.AppImage
-tools/appimage/drill/
+Tools/AppImage/Drill/
 pkg2appimage*
 
 #.deb
