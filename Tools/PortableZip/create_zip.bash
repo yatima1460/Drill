@@ -22,8 +22,8 @@ do
 
   if [[ -d "$f" ]]; then
     echo "$f exists"
-    7z a -tzip $f-$TRAVIS_TAG.zip $f/* ../../DRILL_VERSION
-    mv $f-$TRAVIS_TAG.zip Build
+    7z a -tzip "$f"-"$TRAVIS_TAG".zip "$f"/* ../../DRILL_VERSION
+    mv "$f"-$TRAVIS_TAG.zip Build
   else
     echo "$f does not exist, skipping"
   fi
