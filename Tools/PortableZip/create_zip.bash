@@ -4,7 +4,7 @@
 
 
 if [ -z "$TRAVIS_TAG" ]; then
-  echo No Drill version found! Using 0.0.0
+  echo No Drill version found! Using LOCAL_BUILD
   export TRAVIS_TAG="LOCAL_BUILD"
 fi
 

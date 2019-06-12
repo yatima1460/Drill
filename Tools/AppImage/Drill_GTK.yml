@@ -1,0 +1,11 @@
+app: Drill
+ingredients:
+  dist: trusty
+  sources:
+    - deb http://deb.debian.org/debian stretch main
+  debs:
+    - ../../deb/Build/Drill-GTK-linux-x86_64-release-$TRAVIS_TAG.deb
+
+script:
+  - cp usr/share/applications/drill-search-gtk.desktop .
+  - cp usr/share/pixmaps/drill-search-gtk.svg .
