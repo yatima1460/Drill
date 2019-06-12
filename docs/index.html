@@ -45,148 +45,148 @@
 
 
     <script>
-        const OSes = ["Linux","Windows","OSX"];
+        const OSes = ["Linux", "Windows", "OSX"];
 
 
-        function CreateCategory(Category)
-        {
+        function CreateCategory(Category) {
             let downloads_div = document.getElementById("downloads");
-            console.log(Category+" category does not exist");
-            let cat_html = '<div id="'+Category+'" class="os">'+
-                '<div class="os-header">'+
-                    '<img src="icons/'+Category+'.svg?sanitize=true" srcset="" alt="'+Category+'">'+
-                    '<h1>'+Category+'</h1>'+
-                '</div>'+
-            '</div>';
-            
+            console.log(Category + " category does not exist");
+            let cat_html = '<div id="' + Category + '" class="os">' +
+                '<div class="os-header">' +
+                '<img src="icons/' + Category + '.svg?sanitize=true" srcset="" alt="' + Category + '">' +
+                '<h1>' + Category + '</h1>' +
+                '</div>' +
+                '</div>';
+
             downloads_div.innerHTML += cat_html;
-            child_category = downloads_div.querySelector("#"+Category);
+            child_category = downloads_div.querySelector("#" + Category);
             return child_category;
         }
 
-        function CreateDownloadButton(Category,URL,Icon,Text)
-        {
-            
-            let child_category = downloads.querySelector("#"+Category);
+        function CreateDownloadButton(Category, URL, Icon, Text, Tooltip) {
+
+            let child_category = downloads.querySelector("#" + Category);
             console.log(child_category);
-            if (!child_category)
-            {
+            if (!child_category) {
                 child_category = CreateCategory(Category);
             }
-            child_category.innerHTML += "<a href=\""+URL+
-                        "\"class=\"btn\" target=\"_blank\"><img src=\"icons/"+Icon+".svg?sanitize=true\" srcset=\"\" alt=\""+Icon+"\">"+
-                        "<span class=\"spacer\">"+Text+"</span></a>"
+            if (Tooltip === undefined) Tooltip = "";
+            child_category.innerHTML += "<a href=\"" + URL +
+                "\"class=\"btn\" target=\"_blank\" title=\""+Tooltip+"\"><img src=\"icons/" + Icon + ".svg?sanitize=true\" srcset=\"\" alt=\"" + Icon + "\">" +
+                "<span class=\"spacer\">" + Text + "</span></a>"
 
         }
 
 
-        window.onload = function()
-        {
+        window.onload = function () {
             fetch('https://api.github.com/repos/yatima1460/Drill/releases/latest')
-        .then(response => {
-            return response.json()
-        })
-        .then(data => {
-            // Work with JSON data here
-            //console.log(data)
-            document.getElementsByClassName("version")[0].innerHTML = "<h3>Version "+data.tag_name+"</h3>";
+                .then(response => {
+                    return response.json()
+                })
+                .then(data => {
+                    // Work with JSON data here
+                    //console.log(data)
+                    document.getElementsByClassName("version")[0].innerHTML = "<h3>Version " + data.tag_name + "</h3>";
 
-            CreateDownloadButton("Linux","https://aur.archlinux.org/packages/drill-search-gtk-bin/","Arch","Arch");
-            OSes.forEach(function(OS)
-            {
-                let assets = [];
-           
-               
-                // debug as last items
-                // cli as second to last
-                // everything else on top
-                // data.assets.forEach(function(asset)
-                // {
-                //     if (asset.name.toLowerCase().includes("debug"))
-                //         assets.unshift(asset);
-                // });
-                data.assets.forEach(function(asset)
-                {
-                    if (asset.name.toLowerCase().includes("cli"))
-                        assets.unshift(asset);
-                });
-                data.assets.forEach(function(asset)
-                {
-                    if (!asset.name.toLowerCase().includes("cli"))
-                        assets.unshift(asset);
-                });
-
-                assets.forEach(function(asset)
-                {
-                    if (asset.name.toLowerCase().includes("debug"))
-                        return;
-
-                    if (asset.name.toLowerCase().includes(OS.toLowerCase()))
-                    {
-                        let text = "";
-                        let ext = asset.name.split(".")[2];
-
-                        if (ext === "deb") text = "Debian, Ubuntu, Deepin";
-                        if (ext === "zip") text = "Portable";
-                        if (ext === "AppImage") text = "AppImage";
-                        if (ext === "rpm") text = "Red Hat, Fedora, SUSE";
-                       
-
-                        let icon_name = ext + ".svg?sanitize=true";
-
-                        if (ext === "tgz") 
-                        { 
-                            text = "Slackware";
-                            icon_name = "Slackware";
-                        }
-
-                        
-
-                        let config = asset.name.split("-")[1];
-                        if (config === "WinAPI") config = "";
-                        if (config === "CLI") icon_name = "Terminal";
-                        if (config === "GTK") config = "";
-
-                        let build = asset.name.split("-")[4];
-                        if (build === "release") build = "";
-                        if (build === "debug") {
-                            build = "DEBUG";
-                            icon_name = "Bug";
-                        }
-
-                        let arch = asset.name.split("-")[3];
-
-                        let linux_downloads = document.getElementById(OS);
-                        CreateDownloadButton(OS,asset.browser_download_url,icon_name,config+" "+text);
-                       
-                    }
-                    console.log(asset.name);
-                });
-            });
-
-           
-            CreateDownloadButton("Linux","https://aur.archlinux.org/packages/drill-search-cli-bin/","Terminal","Arch CLI");
-
-            CreateDownloadButton("Source","http://github.com/yatima1460/Drill","GitHub","GitHub");
-            CreateDownloadButton("Source","http://github.com/yatima1460/Drill/issues/new","Bug","Submit a bug");
-            CreateDownloadButton("Source","https://travis-ci.org/yatima1460/Drill","Travis","Travis");
-            CreateDownloadButton("Source","http://github.com/yatima1460/Drill/zipball/master/","zip","zipball");
-            CreateDownloadButton("Source","http://github.com/yatima1460/Drill/tarball/master/","gz","tarball");
-        })
-        .catch(err => {
-            console.error(err);
-            let downloads_div = document.getElementById("downloads");
-            downloads_div.innerHTML = "<h1><font color=\"red\">An error occured while fetching available downloads, check <a href=\"https://github.com/yatima1460/Drill/releases\" target=\"_blank\">GitHub's Releases</a></font><h1>";
-        })
+                    CreateDownloadButton("Linux", "https://aur.archlinux.org/packages/drill-search-gtk-bin/", "Arch", "Arch");
+                    OSes.forEach(function (OS) {
+                        let assets = [];
 
 
-          
+                        // debug as last items
+                        // cli as second to last
+                        // everything else on top
+                        // data.assets.forEach(function(asset)
+                        // {
+                        //     if (asset.name.toLowerCase().includes("debug"))
+                        //         assets.unshift(asset);
+                        // });
+                        data.assets.forEach(function (asset) {
+                            if (asset.name.toLowerCase().includes("cli"))
+                                assets.unshift(asset);
+                        });
+                        data.assets.forEach(function (asset) {
+                            if (!asset.name.toLowerCase().includes("cli"))
+                                assets.unshift(asset);
+                        });
+
+                        assets.forEach(function (asset) {
+                            if (asset.name.toLowerCase().includes("debug"))
+                                return;
+
+                            if (asset.name.toLowerCase().includes(OS.toLowerCase())) {
+                                
+                                let ext = asset.name.split(".")[2];
+
+                                let text = ext;
+
+                                if (ext === "deb") text = "Debian, Ubuntu, Deepin";
+                                if (ext === "zip") text = "Portable";
+                                if (ext === "AppImage") {
+                                    // text = "AppImage";
+                                    text += "<br><b><font size=1.7em color=#FF0000>"+
+                                    "Not supported on Linux Mint, use .deb"+
+                                    "</b></font>"
+                                }
+                                if (ext === "rpm") text = "Red Hat, Fedora, SUSE";
+
+
+                                let icon_name = ext + ".svg?sanitize=true";
+
+                                if (ext === "tgz") {
+                                    text = "Slackware";
+                                    icon_name = "Slackware";
+                                }
+
+
+
+                                let config = asset.name.split("-")[1];
+                                if (config === "WinAPI") config = "";
+                                if (config === "CLI") icon_name = "Terminal";
+                                if (config === "GTK") config = "";
+
+                                let build = asset.name.split("-")[4];
+                                if (build === "release") build = "";
+                                if (build === "debug") {
+                                    build = "DEBUG";
+                                    icon_name = "Bug";
+                                }
+
+                                let arch = asset.name.split("-")[3];
+
+                                let linux_downloads = document.getElementById(OS);
+                                CreateDownloadButton(OS, asset.browser_download_url, icon_name, config + " " + text, asset.name);
+
+                            }
+                            console.log(asset.name);
+                        });
+                    });
+
+
+                    CreateDownloadButton("Linux", "https://aur.archlinux.org/packages/drill-search-cli-bin/", "Terminal", "Arch CLI");
+
+                    CreateDownloadButton("Project", "https://paypal.me/federicosantamorena", "Donate", "Donate");
+                    CreateDownloadButton("Project", "http://github.com/yatima1460/Drill", "GitHub", "GitHub");
+                    CreateDownloadButton("Project", "http://github.com/yatima1460/Drill/issues/new", "Bug", "Submit a bug");
+                    CreateDownloadButton("Project", "https://travis-ci.org/yatima1460/Drill", "Travis", "Travis");
+                    CreateDownloadButton("Project", "http://github.com/yatima1460/Drill/zipball/master/", "zip", "zipball");
+                    CreateDownloadButton("Project", "http://github.com/yatima1460/Drill/tarball/master/", "gz", "tarball");
+
+                })
+                .catch(err => {
+                    console.error(err);
+                    let downloads_div = document.getElementById("downloads");
+                    downloads_div.innerHTML = "<h1><font color=\"red\">An error occured while fetching available downloads, check <a href=\"https://github.com/yatima1460/Drill/releases\" target=\"_blank\">GitHub's Releases</a></font><h1>";
+                })
+
+
+
         };
 
 
 
         // Replace ./data.json with your JSON feed
-       
+
         function UrlExists(url) {
             var http = new XMLHttpRequest();
             http.open('HEAD', url, false);
@@ -226,7 +226,8 @@
         <div class="version">
 
         </div>
-        <h4>All downloads are automatically generated by reading <a href="https://github.com/yatima1460/Drill/releases" target="_blank">GitHub's Releases</a></h4>
+        <h4>All downloads are automatically generated by reading <a href="https://github.com/yatima1460/Drill/releases"
+                target="_blank">GitHub's Releases</a></h4>
         <div id="downloads" class="downloads">
         </div>
 
@@ -264,19 +265,6 @@
                 Santamorena</a></p>
 
 
-        <p>
-            Love it? Consider a donation to support the project!
-        </p>
-
-        <form action="https://www.paypal.com/cgi-bin/webscr" method="post" target="_top">
-            <input type="hidden" name="cmd" value="_donations" />
-            <input type="hidden" name="business" value="27PBE8F7PFCGS" />
-            <input type="hidden" name="item_name" value="Drill" />
-            <input type="hidden" name="currency_code" value="EUR" />
-            <input type="image" src="icons/donate.png" border="0" name="submit"
-                title="PayPal - The safer, easier way to pay online!" alt="Donate with PayPal button" />
-            <img alt="" border="0" src="https://www.paypal.com/en_IT/i/scr/pixel.gif" width="1" height="1" />
-        </form>
 
         <div>Some icons are made by <a href="https://www.flaticon.com/authors/freepik" title="Freepik">Freepik</a> and
             <a href="https://www.flaticon.com/authors/icomoon" title="Icomoon">Icomoon</a> from <a
