@@ -1,2 +1,6 @@
 * linguist-vendored
 *.d linguist-vendored=false
+
+*.txt -crlf
+*.d -crlf
+*.yml -crlf
