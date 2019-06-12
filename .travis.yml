@@ -21,7 +21,8 @@ addons:
     packages:
       - desktop-file-utils
       - p7zip-full
-      - gcc-multilib
+      - alien
+
   #osx
   homebrew:
     update: true
@@ -105,6 +106,16 @@ script:
   - if [ "$TRAVIS_OS_NAME" = "linux" ]; then bash build_appimage_gtk.bash; fi
   - if [ "$TRAVIS_OS_NAME" = "linux" ]; then cd ../../; fi
 
+  ### rpm
+  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then cd Tools/rpm; fi
+  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then bash build_rpm.bash; fi
+  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then cd ../../; fi
+
+  ### Slackware
+  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then cd Tools/rpm; fi
+  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then bash build_slackware.bash; fi
+  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then cd ../../; fi
+
   # - if [ "$TRAVIS_OS_NAME" = "linux" ]; then ; fi
   # - if [ "$TRAVIS_OS_NAME" = "linux" ]; then ; fi
   # - if [ "$TRAVIS_OS_NAME" = "linux" ]; then ; fi
@@ -129,6 +140,8 @@ deploy:
     secure: $GITHUB_TOKEN
   file: 
     - Tools/deb/Build/*.deb
+    - Tools/rpm/Build/*.rpm
+    - Tools/Slackware/Build/*.tgz
     - Tools/AppImage/Build/*.AppImage
     - Tools/PortableZip/Build/*.zip
 

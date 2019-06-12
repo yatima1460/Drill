@@ -24,3 +24,7 @@ Tools/deb/DEBFILE
 *.lib
 *.exe
 .vs
+
+# RedHat
+*.rpm
+*.spec
