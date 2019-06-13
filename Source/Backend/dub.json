@@ -13,7 +13,8 @@
     "API.d",
     "FileInfo.d",
     "Crawler.d",
-    "Utils.d"
+    "Utils.d",
+    "Logger.d"
   ],
   "dependencies": {
     "datefmt": "1.0.3"

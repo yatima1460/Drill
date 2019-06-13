@@ -5,6 +5,12 @@ FileInfo is a struct filled by the information a crawler can find about a file
 */
 struct FileInfo
 {
+
+    /**
+    The original mountpoint used by a crawler that found this file
+    */
+    string originalMountpoint;
+
     /**
     true if the file is a directory
     */

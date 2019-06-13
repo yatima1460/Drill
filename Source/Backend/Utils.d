@@ -77,13 +77,13 @@ string toDateString(SysTime time)
 
 
 
-void logConsole(immutable(string) message)
-{
-    import std.stdio : writeln;
-    synchronized {
-        writeln(message);
-    } 
-}
+// void logConsole(immutable(string) message)
+// {
+//     import std.stdio : writeln;
+//     synchronized {
+//         writeln(message);
+//     } 
+// }
 
 
 string[] readListFiles(immutable(string) path)
@@ -107,80 +107,80 @@ string[] readListFiles(immutable(string) path)
 }
 
 
-void showInfoMessagebox(immutable(string) message)
-{
+// void showInfoMessagebox(immutable(string) message)
+// {
        
-        logConsole("showMessagebox "~message);
-		//version (linux)
-		//{
-		//    import std.process : executeShell;
-		//    executeShell("zenity --info --text=\""~message~"\" --title=\"Drill\" --width=160 --height=90");
-		//
-		//    //TODO: if failed call this
-		//    //executeShell("xmessage -center \""~title~":"~message~"\"");
-		//}
-		//version (Windows)
-		//{	
-		//    import std.utf : toUTF16z;
-		//    import core.sys.windows.windows;
-		//
-		//    MessageBox(NULL, message.toUTF16z, "Drill", 0);
-		//}
-		//version (OSX)
-		//{
-		//
-		//}
-    }
+//         logConsole("showMessagebox "~message);
+// 		//version (linux)
+// 		//{
+// 		//    import std.process : executeShell;
+// 		//    executeShell("zenity --info --text=\""~message~"\" --title=\"Drill\" --width=160 --height=90");
+// 		//
+// 		//    //TODO: if failed call this
+// 		//    //executeShell("xmessage -center \""~title~":"~message~"\"");
+// 		//}
+// 		//version (Windows)
+// 		//{	
+// 		//    import std.utf : toUTF16z;
+// 		//    import core.sys.windows.windows;
+// 		//
+// 		//    MessageBox(NULL, message.toUTF16z, "Drill", 0);
+// 		//}
+// 		//version (OSX)
+// 		//{
+// 		//
+// 		//}
+//     }
 
 
-void showWarningMessagebox(immutable(string) message)
-{
-	logConsole("showMessagebox "~message);
-		//version(CLI)
-		//{
-		//    
-		//}
-		//else
-		//{
-		//    version (linux)
-		//    {
-		//        import std.process : executeShell;
-		//        executeShell("zenity --warning --text=\""~message~"\" --title=\"Drill\" --width=160 --height=90");
-		//
-		//        //TODO: if failed call this
-		//        //executeShell("xmessage -center \""~title~":"~message~"\"");
-		//    }
-		//    version (Windows)
-		//    {
-		//
-		//    }
-		//    version (OSX)
-		//    {
-		//
-		//    }
-		//}
+// void showWarningMessagebox(immutable(string) message)
+// {
+// 	logConsole("showMessagebox "~message);
+// 		//version(CLI)
+// 		//{
+// 		//    
+// 		//}
+// 		//else
+// 		//{
+// 		//    version (linux)
+// 		//    {
+// 		//        import std.process : executeShell;
+// 		//        executeShell("zenity --warning --text=\""~message~"\" --title=\"Drill\" --width=160 --height=90");
+// 		//
+// 		//        //TODO: if failed call this
+// 		//        //executeShell("xmessage -center \""~title~":"~message~"\"");
+// 		//    }
+// 		//    version (Windows)
+// 		//    {
+// 		//
+// 		//    }
+// 		//    version (OSX)
+// 		//    {
+// 		//
+// 		//    }
+// 		//}
         
-    }
+//     }
 
 
-void showErrorMessagebox(immutable(string) message)
-{
+// void showErrorMessagebox(immutable(string) message)
+// {
        
-        logConsole("showMessagebox "~message);
-		//version (linux)
-		//{
-		//    import std.process : executeShell;
-		//    executeShell("zenity --error --text=\""~message~"\" --title=\"Drill\" --width=160 --height=90");
-		//
-		//    //TODO: if failed call this
-		//    //executeShell("xmessage -center \""~title~":"~message~"\"");
-		//}
-		//version (Windows)
-		//{
-		//
-		//}
-		//version (OSX)
-		//{
-		//
-		//}
-    }
+//         logConsole("showMessagebox "~message);
+// 		//version (linux)
+// 		//{
+// 		//    import std.process : executeShell;
+// 		//    executeShell("zenity --error --text=\""~message~"\" --title=\"Drill\" --width=160 --height=90");
+// 		//
+// 		//    //TODO: if failed call this
+// 		//    //executeShell("xmessage -center \""~title~":"~message~"\"");
+// 		//}
+// 		//version (Windows)
+// 		//{
+// 		//
+// 		//}
+// 		//version (OSX)
+// 		//{
+// 		//
+// 		//}
+//     }
