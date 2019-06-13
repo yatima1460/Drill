@@ -1,7 +1,7 @@
-Desktop
-Downloads
-Pictures
-Documents
-Videos
-Music
-Users
+Desktop$
+Downloads$
+Pictures$
+Documents$
+Videos$
+Music$
+Users$

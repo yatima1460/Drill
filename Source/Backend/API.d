@@ -10,83 +10,88 @@ import std.string : indexOf;
 
 import std.algorithm : canFind, filter, map;
 
-import Utils : showWarningMessagebox;
-import Utils : showInfoMessagebox;
+
 import Utils : readListFiles;
-import Utils : logConsole;
+// import Utils : logConsole;
+
+import Logger : Logger;
+
 import Crawler : Crawler;
 import FileInfo : FileInfo;
 
+import std.file : dirEntries, SpanMode, DirEntry, readText, FileException;
+import std.path : buildPath;
+
 // TODO: register delegate for messagebox show called from UI frontend library
+
+import std.regex: Regex, regex;
+import std.conv: to;
+import std.algorithm : map;
+
+
+/*
+NOTE: the basic idea is to use logConsole inside debug{ } like a log trace, only when it's something that happens more than once, like a crawler finding files
+Errors should always be logged and should never be inside debug{ }
+*/
+
 
 class DrillAPI
 {
 
+
 private:
     Array!Crawler threads;
-    immutable(string[]) blocklist;
-    import std.regex;
-
-    const(Regex!char[]) priority_regexes;
-    immutable(string) drill_version;
+    immutable(string[]) BLOCK_LIST;
+    
+    const(Regex!char[]) PRIORITY_LIST_REGEX;
+    static string DRILL_VERSION = "0.0.0";
 
 public:
 
-    this(immutable(string) exe_path)
+
+
+    /**
+    Initializes a new Drill search engine
+    */
+    this(immutable(string) assetsDirectory)
     {
-        debug
-        {
-            logConsole("exe_path: " ~ exe_path);
-        }
-
-        this.threads = Array!Crawler();
-        import std.file : dirEntries, SpanMode, DirEntry, readText, FileException;
-        import std.path : buildPath;
-
-        string[] temp_blocklist = [];
-
-        string version_temp = "?";
-        try
-        {
-
-            temp_blocklist = readListFiles(buildPath(exe_path, "Assets/BlockLists"));
-        }
-        catch (FileException fe)
-        {
-
-            logConsole("Error when trying to load blocklists, will default to an empty list");
-        }
+        Logger.logDebug("DrillAPI " ~ DRILL_VERSION);
+        Logger.logDebug("Mount points found: "~to!string(getMountPoints()));
+        auto blockListsFullPath = buildPath(assetsDirectory,"BlockLists");
+        
+        Logger.logDebug("Assets Directory: " ~ assetsDirectory);
+        Logger.logDebug("blockListsFullPath: " ~ blockListsFullPath);
 
         try
         {
-            import std.array : join, replace;
-
-            version_temp = replace(join(readText(buildPath(exe_path,
-                    "DRILL_VERSION")).split("\n"), "-"), " ", "-");
-
+            BLOCK_LIST = cast(immutable(string[]))readListFiles(blockListsFullPath);
         }
         catch (FileException fe)
         {
-            version_temp = "LOCAL_BUILD";
-
-            logConsole("Error when trying to read version number, will default to LOCAL_BUILD");
+            Logger.logError(fe.toString());
+            Logger.logError("Error when trying to load block lists, will default to an empty list");
         }
-
-        string[] temp_priority_list = [];
         try
         {
-
-            temp_priority_list = readListFiles(buildPath(exe_path, "Assets/PriorityLists"));
+            immutable(string[]) PRIORITY_LIST = cast(immutable(string[]))readListFiles(buildPath(assetsDirectory,"PriorityLists"));
+            this.PRIORITY_LIST_REGEX = PRIORITY_LIST[].map!(x => regex(x)).array; 
         }
         catch (FileException fe)
         {
-            logConsole("Error when trying to read priority lists, will default to an empty list");
+            Logger.logError(fe.toString());
+            Logger.logError("Error when trying to read priority lists, will default to an empty list");
         }
+    }
 
-        this.blocklist = temp_blocklist.idup;
+    void startCrawler(immutable(string) mountpoint, immutable(string) search,
+            void delegate(immutable(FileInfo) result) resultFound)
+    {
 
-        this.priority_regexes = temp_priority_list[].map!(x => regex(x)).array;
-        this.drill_version = version_temp;
+    }
+
+    void startCrawler(immutable(string) mountpoint, immutable(string) search,
+            void delegate(immutable(FileInfo) result) resultFound)
+    {
 
     }
 
@@ -102,55 +107,21 @@ public:
     */
     void startCrawling(immutable(string) search, void delegate(immutable(FileInfo) result) resultFound)
     {
+        // stop previous crawlers
         this.stopCrawlingAsync();
 
-        import std.algorithm : map;
-
-        immutable string[] mountpoints = this.getMountPoints();
-
-        foreach (string mountpoint; mountpoints)
+        foreach (immutable(string) mountpoint; getMountPoints())
         {
-            // // debug
-            // // {
-            // //     log.info("Starting thread for: ", mountpoint);
-            // // }
-            Array!string crawler_exclusion_list = Array!string(blocklist);
-
-            // for safety measure add the mount points minus itself to the exclusion list
-            string[] cp_tmp = mountpoints[].filter!(x => x != mountpoint)
-                .map!(x => "^" ~ x ~ "$")
-                .array;
-            // debug
-            // {
-            //     log.info(join(cp_tmp, " "));
-            // }
-            crawler_exclusion_list ~= cp_tmp;
-            // assert mountpoint not in crawler_exclusion_list, "crawler mountpoint can't be excluded";
-
-            import std.regex;
-
-            // debug
-            // {
-            //     log.info("Compiling Regex...");
-            // }
-            const(Regex!char[]) exclusion_regexes = crawler_exclusion_list[].map!(x => regex(x))
-                .array;
-
-            // debug
-            // {
-            //     log.info("Compiling Regex... DONE");
-            // }
-            auto crawler = new Crawler(mountpoint, exclusion_regexes,
-                    priority_regexes, resultFound, search);
+            Crawler crawler = new Crawler(mountpoint, this.BLOCK_LIST, this.PRIORITY_LIST_REGEX, resultFound, search);
             crawler.start();
             this.threads.insertBack(crawler);
         }
     }
 
-    /**
+    /*
     Notifies the crawlers to stop.
-    This action is non-blocking.
-    If no crawling is currently underway this will do nothing.
+    This function is non-blocking.
+    If no crawling is currently underway this function will do nothing.
     */
     void stopCrawlingAsync()
     {
@@ -161,26 +132,39 @@ public:
         this.threads.clear(); // TODO: if nothing has a reference to a thread does the thread get GC-ed?
     }
 
+    /**
+    This function stops all the crawlers and will return only when all of them are stopped
+    */
     void stopCrawlingSync()
     {
         stopCrawlingAsync();
         waitForCrawlers();
     }
 
+    /**
+    This function will return only when all crawlers finished their jobs or were stopped
+    This function does not stop the crawlers!!!
+    */
     void waitForCrawlers()
     {
+        Logger.logInfo("Waiting for "~to!string(getActiveCrawlersCount())~" crawlers to stop");
         foreach (Crawler crawler; this.threads)
         {
+            Logger.logInfo("Waiting for crawler "~to!string(crawler)~" to stop");
             crawler.join();
+            Logger.logInfo("Crawler "~to!string(crawler)~" stopped");
         }
+        Logger.logInfo("All crawlers stopped.");
     }
 
     /**
-    Returns the mount points the crawlers will scan when started with startSearch
+    Returns the mount points of the current system
 
     Returns: immutable array of full paths
+
+    It's not assured that every mount point is a physical disk
     */
-    immutable(string[]) getMountPoints()
+    static immutable(string[]) getMountPoints()
     {
         version (linux)
         {
@@ -189,10 +173,11 @@ public:
             immutable auto ls = executeShell("df -h --output=target");
             if (ls.status != 0)
             {
-                showWarningMessagebox("Can't retrieve mount points, will just scan '/'");
+                Logger.logError("Can't retrieve mount points, will just scan '/'");
                 return ["/"];
             }
             immutable auto result = array(ls.output.split("\n").filter!(x => canFind(x, "/"))).idup;
+            //debug{logConsole("Mount points found: "~to!string(result));}
             return result;
         }
 
@@ -201,40 +186,39 @@ public:
             immutable auto ls = executeShell("df -h");
             if (ls.status != 0)
             {
-                showWarningMessagebox("Can't retrieve mount points, will just scan '/'");
-
+                Logger.logError("Can't retrieve mount points, will just scan '/'");
                 return ["/"];
             }
             immutable auto startColumn = indexOf(ls.output.split("\n")[0], 'M');
-            immutable auto result = array(ls.output.split("\n").filter!(x => x.length > startColumn)
-                    .map!(x => x[startColumn .. $])
-                    .filter!(x => canFind(x, "/"))).idup;
+            immutable auto result = array(ls.output.split("\n").filter!(x => x.length > startColumn).map!(x => x[startColumn .. $]).filter!(x => canFind(x, "/"))).idup;
+            //debug{logConsole("Mount points found: "~result);}
             return result;
         }
 
         version (Windows)
         {
-            //TODO fix this
             immutable auto ls = executeShell("wmic logicaldisk get caption");
             if (ls.status != 0)
             {
-                showWarningMessagebox("Can't retrieve mount points, will just scan 'C:'");
+                Logger.logError("Can't retrieve mount points, will just scan 'C:'");
                 return ["C:"];
             }
-            import std.algorithm : map;
 
-            immutable auto result = array(map!(x => x[0 .. 2])(ls.output.split("\n")
-                    .filter!(x => canFind(x, ":")))).idup;
+            immutable auto result = array(map!(x => x[0 .. 2])(ls.output.split("\n").filter!(x => canFind(x, ":")))).idup;
+            //debug{logConsole("Mount points found: "~result);}
             return result;
         }
     }
 
     /**
     A crawler is active when it's scanning something.
-    If a crawler cleanly finished its job it's considered not active.
+    If a crawler cleanly finished its job it's not considered active.
     If a crawler crashes (should never happen) it's not considered active.
+    Minimum: 0
+    Maximum: length of total number of mountpoints unless the user started the crawlers manually
 
     Returns: number of crawlers active
+    
     */
     immutable(ulong) getActiveCrawlersCount() const
     {
@@ -242,11 +226,11 @@ public:
     }
 
     /**
-    Returns the version of Drill
+    Returns the version of DrillAPI
     */
-    pure immutable(string) getVersion() const @safe @nogc
+    static immutable(string) getVersion() @safe @nogc
     {
-        return this.drill_version;
+        return DRILL_VERSION;
     }
 
 }

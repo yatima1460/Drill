@@ -8,7 +8,7 @@ import core.stdc.stdio :printf;
 import FileInfo : FileInfo;
 import API : DrillAPI;
 import Crawler : Crawler;
-
+import std.path : buildPath;
 
 void resultsFoundWithDate(immutable(FileInfo) result)
 {
@@ -56,11 +56,11 @@ immutable(string) searchInput()
 
 int main(string[] args)
 {
-    import std.path : dirName, buildNormalizedPath;
+    import std.path : dirName, buildNormalizedPath, absolutePath;
     import std.getopt;
 
-    immutable(string) exe_path = dirName(buildNormalizedPath(args[0]));
-    DrillAPI drill = new DrillAPI(exe_path);
+    writeln("Drill "~DrillAPI.getVersion()~" - https://github.com/yatima1460/Drill");
+    DrillAPI drill = new DrillAPI(buildPath(absolutePath(dirName(buildNormalizedPath(args[0]))),"Assets"));
 
 
     bool date = false;
