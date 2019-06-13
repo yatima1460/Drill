@@ -22,3 +22,11 @@ lost\+found
 ^/vmlinuz
 ^/initrd
 ^/src
+\.pid$
+\.ctl$
+\.lock$
+\.socket$
+\.tdb$
+^/run/libvirt$
+^/run/laptop-mode-tools$
+^/run/alsa$

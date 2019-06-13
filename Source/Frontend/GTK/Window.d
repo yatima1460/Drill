@@ -5,8 +5,8 @@ module DrillGTK.Window;
 ////////////////////////////////
 
 // Window size always centered in the screen
-const uint WINDOW_WIDTH = 800;
-const uint WINDOW_HEIGHT = 450;
+const uint WINDOW_WIDTH = 960;
+const uint WINDOW_HEIGHT = 540;
 
 // Maximum number of files to show
 // -1 for infinite, be careful it could slow down the UI
@@ -29,6 +29,8 @@ import std.file : readText;
 import std.file : DirEntry;
 import std.concurrency : Tid;
 import std.regex : Regex;
+import std.path;
+
 
 debug
 {
@@ -78,15 +80,31 @@ import FileInfo : FileInfo;
 import Utils : humanSize;
 import Utils : logConsole;
 import Utils : openFile;
+import std.path : dirName, buildNormalizedPath, absolutePath, buildPath;
+import std.array;
+import std.conv : to;
 
-enum Column
+debug {
+    enum Column
+    {
+        NAME_ICON,
+        NAME,
+        PATH,
+        SIZE,
+        DATE_MODIFIED,
+        FOUND_BY_CRAWLER
+    }
+}
+else
 {
-    // TYPE,
-    NAME_ICON,
-    NAME,
-    PATH,
-    SIZE,
-    DATE_MODIFIED,
+    enum Column
+    {
+        NAME_ICON,
+        NAME,
+        PATH,
+        SIZE,
+        DATE_MODIFIED,
+    }
 }
 
 extern (C) static nothrow int threadIdleProcess(void* data)
@@ -99,12 +117,11 @@ out(r; r == 0 || r == 1, "GTK task should return 0 or 1")
         DrillWindow mainWindow = cast(DrillWindow) data;
         const ulong crawlers_count = mainWindow.drillapi.getActiveCrawlersCount();
         const icon_to_use = ["object-select", "emblem-synchronizing"];
-        mainWindow.search_input.setIconFromIconName(GtkEntryIconPosition.PRIMARY,
-                icon_to_use[crawlers_count != 0]);
+        mainWindow.search_input.setIconFromIconName(GtkEntryIconPosition.PRIMARY, icon_to_use[crawlers_count != 0]);
 
         debug
         {
-            import std.conv : to;
+           
 
             mainWindow.threads_active.setText("Crawlers active: " ~ to!string(crawlers_count));
 
@@ -113,7 +130,7 @@ out(r; r == 0 || r == 1, "GTK task should return 0 or 1")
         {
 
             // mainWindow.files_ignored_count.setText("Files ignored: " ~ to!string(ignored_total));
-            import std.array;
+        
 
             synchronized (mainWindow)
             {
@@ -182,21 +199,26 @@ private:
 
     void appendRecord(immutable(FileInfo) fi)
     {
+       
+        
         TreeIter it = liststore.createIter();
+        import gtk.Requisition;
+        Requisition minimumSize;
+        Requisition naturalSize;
+        this.getPreferredSize(minimumSize,naturalSize);
+        this.setSizeRequest(minimumSize.width, minimumSize.height);
         import std.conv : to;
 
-        static import std.path;
-
+        
         if (fi.isDirectory)
         {
             liststore.setValue(it, Column.NAME_ICON, "folder");
             liststore.setValue(it, Column.SIZE, "");
         }
-
         else
         {
-            liststore.setValue(it, Column.SIZE, fi.sizeString);
             liststore.setValue(it, Column.NAME_ICON, "text-x-generic");
+            liststore.setValue(it, Column.SIZE, fi.sizeString);
             auto ext = fi.extension;
             if (ext != null)
             {
@@ -207,19 +229,23 @@ private:
                     assert(icon_name != null);
                     liststore.setValue(it, Column.NAME_ICON, icon_name);
 
-                    debug
-                    {
-                        logConsole("Setting icon to " ~ this.iconmap[ext]);
-                    }
-
+                    debug{logConsole("[DRILL][GTK] "~fi.extension~" setting icon to " ~ this.iconmap[ext]);}
                 }
             }
 
         }
 
+        // import gtk.Requisition;
+        // Requisition requisition;
+        // this.sizeRequest(requisition);
+
         liststore.setValue(it, Column.NAME, fi.fileName);
         liststore.setValue(it, Column.PATH, fi.containingFolder);
         liststore.setValue(it, Column.DATE_MODIFIED, fi.dateModifiedString);
+        debug{liststore.setValue(it, Column.FOUND_BY_CRAWLER, fi.originalMountpoint);}
+
+        debug{logConsole("[DRILL][GTK] Added to the list: "~fi.fullPath);}
+        // this.setSizeRequest(requisition.width,requisition.height);
     }
 
     private void doubleclick(TreePath tp, TreeViewColumn tvc, TreeView tv)
@@ -250,6 +276,22 @@ private:
 
     }
 
+
+    private void createNewList()
+    {
+        debug {
+            this.liststore = new ListStore([GType.STRING, GType.STRING, GType.STRING, GType.STRING, GType.STRING, GType.STRING]);
+        }
+        else
+        {
+            this.liststore = new ListStore([GType.STRING, GType.STRING, GType.STRING, GType.STRING, GType.STRING]);
+        }
+       
+
+       this.treeview.setModel(this.liststore);
+       
+    }
+
     private void searchChanged(EditableIF ei)
     {
 
@@ -262,11 +304,7 @@ private:
         // this is realistically faster than liststore.clear();
         // assigning a new list is O(1)
         // instead clearing the list in GTK uses a foreach
-        this.liststore = new ListStore([
-                GType.STRING, GType.STRING, GType.STRING, GType.STRING,
-                GType.STRING
-                ]);
-        this.treeview.setModel(liststore);
+        createNewList();
 
         logConsole("Wrote input:" ~ ei.getChars(0, -1));
 
@@ -279,7 +317,7 @@ private:
 
     }
 
-    private void loadGTKIconFiletypes(immutable(string) exe_path)
+    private void loadGTKIconFiletypes(immutable(string) assetsFolder)
     {
         import std.file : dirEntries, SpanMode;
         import std.path : buildNormalizedPath, absolutePath;
@@ -287,8 +325,8 @@ private:
 
         try
         {
-            auto filetypes_file = dirEntries(DirEntry(buildPath(exe_path,
-                    "Assets/IconsAssociations")), SpanMode.shallow, true);
+            auto filetypes_file = dirEntries(DirEntry(buildPath(assetsFolder,
+                    "IconsAssociations")), SpanMode.shallow, true);
 
             foreach (string partial_filetype; filetypes_file)
             {
@@ -309,13 +347,13 @@ private:
 
     }
 
-    public void loadGTKIcon(immutable(string) exe_path)
+    public void loadGTKIcon(immutable(string) assetsFolder)
     {
         import std.path : buildPath;
 
         try
         {
-            this.setIconFromFile(buildPath(exe_path, "Assets/icon.png"));
+            this.setIconFromFile(buildPath(assetsFolder, "icon.png"));
         }
         catch (GException ge)
         {
@@ -327,12 +365,13 @@ private:
 
     }
 
-    public this(immutable(string) exe, Application application)
+    public this(immutable(string) exe_path, Application application)
     {
         import std.path : dirName, buildNormalizedPath;
 
-        immutable(string) exe_path = dirName(buildNormalizedPath(exe));
-        drillapi = new DrillAPI(exe_path);
+
+        immutable(string) assetsFolder = buildPath(absolutePath(dirName(buildNormalizedPath(exe_path))),"Assets");
+        drillapi = new DrillAPI(assetsFolder);
 
         super(application);
         this.setTitle("Drill");
@@ -348,19 +387,20 @@ private:
 
         // mb.append(file);
 
-        this.setDefaultSize(960, 540);
+
+
+        this.setSizeRequest(WINDOW_WIDTH,WINDOW_HEIGHT);
         this.setResizable(true);
         this.setPosition(GtkWindowPosition.CENTER);
 
-        this.loadGTKIconFiletypes(exe_path);
-        this.loadGTKIcon(exe_path);
+        this.loadGTKIconFiletypes(assetsFolder);
+        this.loadGTKIcon(assetsFolder);
 
-        this.liststore = new ListStore([
-                GType.STRING, GType.STRING, GType.STRING, GType.STRING,
-                GType.STRING
-                ]);
 
+
+        
         this.treeview = new TreeView();
+        this.createNewList();
         this.treeview.addOnRowActivated(&doubleclick);
 
         Box v = new Box(GtkOrientation.VERTICAL, 8);
@@ -455,12 +495,26 @@ private:
         column.packStart(cell_text, false);
         column.addAttribute(cell_text, "text", Column.DATE_MODIFIED);
 
+        debug {
+            column = new TreeViewColumn();
+            column.setTitle("Found by crawler");
+            column.setFixedWidth(200);
+            column.setResizable(true);
+            column.setSizing(GtkTreeViewColumnSizing.FIXED);
+
+            this.treeview.appendColumn(column);
+            cell_text = new CellRendererText();
+            column.packStart(cell_text, false);
+            column.addAttribute(cell_text, "text", Column.FOUND_BY_CRAWLER);
+        }
+
+
         // v.packStart(mb, false, false, 0);
         v.packStart(search_input, false, false, 0);
         v.packStart(scroll, true, true, 0);
         v.packStart(h, false, true, 0);
 
-        this.treeview.setModel(this.liststore);
+        
         showAll();
 
         gdk.Threads.threadsAddTimeout(10, &threadIdleProcess, cast(void*) this);
