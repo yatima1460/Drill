@@ -378,21 +378,17 @@ private:
                       const string fileNameLower = toLower(baseName(currentFile.name));
                     foreach (token; searchTokens)
                     {
-                  
-                    if (!canFind(fileNameLower, token))
-                    {
-                        Logger.logTrace("Not matching search, skipped: "~fileNameLower);
-                        continue fileloop;
+                        if (!canFind(fileNameLower, token))
+                        {
+                            Logger.logTrace("Not matching search, skipped: "~fileNameLower);
+                            continue fileloop;
+                        }
+                        else
+                        {
+                            Logger.logTrace("Matching search"~fileNameLower);
+                        }
                     }
-                    else
-                    {
-                        Logger.logTrace("Matching search"~fileNameLower);
-                    }
-
-
                     resultCallback(buildFileInfo(currentFile));
-                        
-                    }
                     
 
               
