@@ -78,7 +78,7 @@ import gio.Application : GioApplication = Application;
 import API : DrillAPI;
 import FileInfo : FileInfo;
 import Utils : humanSize;
-import Utils : logConsole;
+import Logger : Logger;
 import Utils : openFile;
 import std.path : dirName, buildNormalizedPath, absolutePath, buildPath;
 import std.array;
@@ -306,7 +306,7 @@ private:
         // instead clearing the list in GTK uses a foreach
         createNewList();
 
-        logConsole("Wrote input:" ~ ei.getChars(0, -1));
+        Logger.logTrace("Wrote input:" ~ ei.getChars(0, -1));
 
         immutable(string) search_string = ei.getChars(0, -1);
         if (search_string.length != 0)
@@ -342,7 +342,7 @@ private:
         }
         catch (std.file.FileException e)
         {
-            logConsole("Error reading icons associations, not using icons" ~ e.toString());
+            Logger.logError("Error reading icons associations, not using icons" ~ e.toString());
         }
 
     }
@@ -357,7 +357,7 @@ private:
         }
         catch (GException ge)
         {
-            logConsole("Can't find program icon, will fallback to default GTK one! " ~ ge.toString());
+            Logger.logError("Can't find program icon, will fallback to default GTK one! " ~ ge.toString());
 
             //fallback to default GTK icon if it can't find its own
             this.setIconName("search");
@@ -520,7 +520,7 @@ private:
         gdk.Threads.threadsAddTimeout(10, &threadIdleProcess, cast(void*) this);
 
         addOnDelete(delegate bool(Event event, Widget widget) {
-            logConsole("Window started to close, stopping crawlers");
+            Logger.logInfo("Window started to close, stopping crawlers");
             drillapi.stopCrawlingSync();
             return false;
         });
@@ -528,7 +528,7 @@ private:
         addOnKeyPress(delegate bool(GdkEventKey* event, Widget widget) {
             import gdk.Keysyms : GdkKeysyms;
             if (event.keyval == GdkKeysyms.GDK_Escape) {
-                logConsole("ESC pressed, window is closing");
+                Logger.logInfo("ESC pressed, window is closing");
                 drillapi.stopCrawlingSync();
                 this.close();
                 return true;
