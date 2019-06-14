@@ -31,6 +31,8 @@ import std.concurrency : Tid;
 import std.regex : Regex;
 import std.path;
 
+import std.container.dlist : DList;
+
 
 debug
 {
@@ -111,6 +113,7 @@ extern (C) static nothrow int threadIdleProcess(void* data)
 in(data != null, "data can't be null in GTK task")
 out(r; r == 0 || r == 1, "GTK task should return 0 or 1")
 {
+    
     try
     {
         assert(data != null);
@@ -130,16 +133,23 @@ out(r; r == 0 || r == 1, "GTK task should return 0 or 1")
         {
 
             // mainWindow.files_ignored_count.setText("Files ignored: " ~ to!string(ignored_total));
-        
+            assert(mainWindow.buffer != null);
+            assert(mainWindow.buffer == &mainWindow.buffer1 || mainWindow.buffer == &mainWindow.buffer2);
 
-            synchronized (mainWindow)
-            {
-                foreach (FileInfo fi; mainWindow.buffer)
-                {
-                    mainWindow.appendRecord(fi);
-                }
-                mainWindow.buffer.clear();
-            }
+            if (mainWindow.buffer == &mainWindow.buffer1)
+                mainWindow.buffer = &mainWindow.buffer2;
+            if (mainWindow.buffer == &mainWindow.buffer2)
+                mainWindow.buffer = &mainWindow.buffer1;
+
+            //mainWindow.buffer_mutex.lock_nothrow();
+            
+            DList!FileInfo thread_local_buffer = cast(DList!FileInfo) *mainWindow.buffer;
+            foreach (FileInfo fi; thread_local_buffer)
+                mainWindow.appendRecord(fi);
+            // thread_local_buffer.clear();
+            *mainWindow.buffer = DList!FileInfo();
+
+            //mainWindow.buffer_mutex.unlock_nothrow();
 
             debug
             {
@@ -181,6 +191,14 @@ private:
 
     Entry search_input;
     TreeView treeview;
+ 
+    
+    shared(DList!FileInfo) buffer1;
+    shared(DList!FileInfo) buffer2;
+    shared(DList!FileInfo)* buffer;
+
+    import core.sync.mutex : Mutex;
+    shared(Mutex) buffer_mutex;
 
     debug
     {
@@ -202,11 +220,7 @@ private:
        
         
         TreeIter it = liststore.createIter();
-        import gtk.Requisition;
-        Requisition minimumSize;
-        Requisition naturalSize;
-        this.getPreferredSize(minimumSize,naturalSize);
-        this.setSizeRequest(minimumSize.width, minimumSize.height);
+     
         import std.conv : to;
 
         
@@ -263,17 +277,12 @@ private:
         // TODO: open_file failed
     }
 
-    Array!FileInfo buffer;
+    
 
-    private void resultFound(immutable(FileInfo) result) @nogc
+    private void resultFound(immutable(FileInfo) result)
     {
         list_dirty = true;
-
-        synchronized (this)
-        {
-            buffer.insertBack(result);
-        }
-
+        (cast(DList!FileInfo)*buffer).insertFront(result);
     }
 
 
@@ -296,23 +305,25 @@ private:
     {
 
         drillapi.stopCrawlingAsync();
-        synchronized (this)
-        {
-            buffer.clear();
-        }
-        //
+        
+     
+        buffer1 = DList!FileInfo();
+        buffer2 = DList!FileInfo();
+        buffer = &buffer1;
+        
         // this is realistically faster than liststore.clear();
         // assigning a new list is O(1)
         // instead clearing the list in GTK uses a foreach
         createNewList();
 
-        Logger.logTrace("Wrote input:" ~ ei.getChars(0, -1));
+   
 
         immutable(string) search_string = ei.getChars(0, -1);
+        Logger.logTrace("Wrote input:" ~ search_string);
+
         if (search_string.length != 0)
         {
             drillapi.startCrawling(search_string, &this.resultFound);
-
         }
 
     }
@@ -367,8 +378,11 @@ private:
 
     public this(immutable(string) exe_path, Application application)
     {
-        import std.path : dirName, buildNormalizedPath;
 
+        buffer = &buffer1;
+
+        import std.path : dirName, buildNormalizedPath;
+        buffer_mutex = new shared Mutex();
 
         immutable(string) assetsFolder = buildPath(absolutePath(dirName(buildNormalizedPath(exe_path))),"Assets");
         drillapi = new DrillAPI(assetsFolder);
