@@ -19,8 +19,25 @@
   "dependencies": {
     "datefmt": "1.0.3"
   },
-
-  "dflags":["-J=\"../../../\""],
-  
-	"targetPath": "Build/Drill-Core-$PLATFORM-$ARCH-$BUILD_TYPE"
+  "dflags": [
+    "-J=\"../../../\"",
+    "-J=\"../../\""
+  ],
+  "buildRequirements": [
+    "allowWarnings"
+  ],
+  "importPaths": [
+    "."
+  ],
+  "buildTypes": {
+    "release": {
+      "buildOptions": [
+        "releaseMode",
+        "optimize",
+        "noBoundsCheck",
+        "inline"
+      ]
+    }
+  },
+  "targetPath": "Build/Drill-Core-$PLATFORM-$ARCH-$BUILD_TYPE"
 }
