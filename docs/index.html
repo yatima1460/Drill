@@ -71,10 +71,32 @@
             if (!child_category) {
                 child_category = CreateCategory(Category);
             }
-            if (Tooltip === undefined) Tooltip = "";
+
+            
+            
+
+
+            UrlExists(URL, function(exists) {
+            if (exists) {
+                let Class = "btn";
+                _CreateButton(Class);
+
+            } else {
+                let Class = "btn disabled";
+                _CreateButton(Class);
+            }
+            });
+
+            function _CreateButton(Class)
+            {
+                if (Tooltip === undefined) Tooltip = "";
             child_category.innerHTML += "<a href=\"" + URL +
-                "\"class=\"btn\" target=\"_blank\" title=\"" + Tooltip + "\"><img src=\"icons/" + Icon + ".svg?sanitize=true\" srcset=\"\" alt=\"" + Icon + "\">" +
-                "<span class=\"spacer\">" + Text + "</span></a>"
+                "\"class=\""+Class+"\" target=\"_blank\" title=\"" + Tooltip + "\"><img src=\"icons/" + Icon + ".svg?sanitize=true\" srcset=\"\" alt=\"" + Icon + "\">" +
+                "<span class=\"spacer\">" + Text + "</span></a>";
+            }
+
+
+            
 
         }
 
@@ -196,14 +218,29 @@
 
 
 
-        // Replace ./data.json with your JSON feed
-
-        function UrlExists(url) {
+    // Replace ./data.json with your JSON feed
+    function UrlExists(url, callback) {
+        try {
             var http = new XMLHttpRequest();
-            http.open('HEAD', url, false);
-            http.send();
-            return http.status != 404;
+            http.open('HEAD', url, true);
+            http.onload = function (e) {
+                if (http.readyState === 4) {
+                    callback(http.status != 404);
+                }
+            };
+            http.onerror = function (e) {
+                callback(false);
+            };
+            http.send(null);
+           
         }
+        catch (e)
+        {
+            callback(false);
+        }
+
+    }
+
 
 
     </script>
