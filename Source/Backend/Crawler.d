@@ -22,11 +22,16 @@ class Crawler : Thread
 
 private:
     immutable(string) MOUNTPOINT;
-    bool running;
-    const(Regex!char[]) BLOCK_LIST_REGEX;
+    immutable(string) SEARCH_STRING;
+    immutable(string[]) BLOCK_LIST;
+
+    Regex!char[] BLOCK_LIST_REGEX;
     const(Regex!char[]) PRIORITY_LIST_REGEX;
-    void delegate(immutable(FileInfo) result) resultCallback;
-    immutable(string) search;
+    
+    shared(bool) running;
+
+    shared(void delegate(immutable(FileInfo) result)) resultCallback;
+
     debug
     {
         long ignored_count;
@@ -35,9 +40,18 @@ private:
 
 public:
 
-    this(immutable(string) MOUNTPOINT, immutable(string[]) BLOCK_LIST,
-            const(Regex!char[]) PRIORITY_LIST_REGEX,
-            void delegate(immutable(FileInfo) result) resultFound, immutable(string) search)
+    this(
+        immutable(string) MOUNTPOINT, 
+        immutable(string[]) BLOCK_LIST,
+        const(Regex!char[]) PRIORITY_LIST_REGEX,
+        shared(void delegate(immutable(FileInfo) result)) resultFound, 
+        immutable(string) search
+    )
+    in (MOUNTPOINT != null)
+    in (MOUNTPOINT.length != 0)
+    in (resultFound != null)
+    in (search != null)
+    in (search.length != 0)
     {
 
         //TODO: invariant root contains /
@@ -49,26 +63,16 @@ public:
         Logger.logDebug("Search term '" ~ search ~ "'",this.toString());
         Logger.logDebug("Global blocklist.length = " ~ to!string(BLOCK_LIST.length),this.toString());
 
-        // Every Crawler will have all the other mountpoints in its blocklist
-        // In this way crawlers will not cross paths
-        string[] cp_tmp = DrillAPI.getMountPoints()[].filter!(x => x != MOUNTPOINT)
-            .map!(x => "^" ~ x ~ "$")
-            .array;
-        Logger.logDebug("Adding these to the global blocklist: " ~ to!string(cp_tmp),this.toString());
-        Array!string crawler_exclusion_list = Array!string(BLOCK_LIST);
-        crawler_exclusion_list ~= cp_tmp;
-        const(Regex!char[]) exclusion_regexes = crawler_exclusion_list[].map!(x => regex(x)).array;
-        this.BLOCK_LIST_REGEX = exclusion_regexes;
-
-        Logger.logDebug("New crawler custom blocklist.length = " ~ to!string(BLOCK_LIST_REGEX.length),this.toString());
+       
         Logger.logDebug("Global priority list length = " ~ to!string(PRIORITY_LIST_REGEX.length),this.toString());
         this.PRIORITY_LIST_REGEX = PRIORITY_LIST_REGEX;
 
-        this.search = search;
+        this.SEARCH_STRING = search;
         resultCallback = resultFound;
+        this.BLOCK_LIST = BLOCK_LIST;
     }
 
-    private void noop_resultFound(immutable(FileInfo) result) @nogc 
+    private void noop_resultFound(immutable(FileInfo) result) @nogc const pure @safe
     {
 
     }
@@ -79,61 +83,36 @@ public:
         this.running = false;
     }
 
-    void stopSync()
+    void stopSync() @system 
     {
         this.stopAsync();
         this.join();
     }
 
-    pure const override string toString() @safe
+    pure const @safe override string toString()
     {
         return "Crawler(" ~ MOUNTPOINT ~ ")";
     }
 
-    pure const bool isCrawling() @safe @nogc
+    pure const @safe @nogc bool isCrawling()
     {
         return this.running;
     }
 
 private:
 
-    bool isPrioritylisted(immutable(string) value)
+    bool isInRegexList(const(Regex!char[]) list, immutable(string) value) const @safe
+    in (value != null)
     {
-        foreach (ref regexrule; this.PRIORITY_LIST_REGEX)
+        foreach (ref regexrule; list)
         {
-            RegexMatch!string mo1 = match(value, regexrule);
-            if (!mo1.empty())
-                return true;
-        }
-        return false;
-    }
-
-    bool isBlocklisted(immutable(string) value)
-    {
-        foreach (ref regexrule; this.BLOCK_LIST_REGEX)
-        {
-            // matchAll() returns a range that can be iterated
-            // to get all subsequent matches.
-            
+            if (!this.running) return false;
             RegexMatch!string mo = match(value, regexrule);
-
             if (!mo.empty())
-            {
-                
-                Logger.logTrace("Blocked, in the blocklists: '" ~ value ~ "'");
-                
-                debug
-                {
-                    this.ignored_count++;
-                }
                 return true;
-            }
         }
-        
-        Logger.logTrace("Allowed, not in the blocklist: '" ~ value ~ "'",this.toString());
         return false;
     }
-
 
     immutable(FileInfo) buildFileInfo(DirEntry currentFile) const
     {
@@ -152,25 +131,15 @@ private:
     }
 
 
-    bool isMatchingSearch(string filename)
+    bool isMatchingSearch(string filename) const pure @safe
+    in (filename != null)
     {
-        
-        const string[] searchTokens = toLower(strip(search)).split(" ");
-        //writeln(searchTokens, fileNameLower);
-
+        //FIXME: filter and remove empty strings (if the user writes "a   b")
+        const string[] searchTokens = toLower(strip(SEARCH_STRING)).split(" ");
         const string fileNameLower = toLower(baseName(filename));
         foreach (token; searchTokens)
-        {
             if (!canFind(fileNameLower, token))
-            {
-                Logger.logTrace("Not matching search, skipped: "~fileNameLower,this.toString());
                 return false;
-            }
-            else
-            {
-                Logger.logTrace("Matching search"~fileNameLower,this.toString());
-            }
-        }
         return true;
     }
 
@@ -181,12 +150,32 @@ private:
     */
     void run()
     {
+        assert(SEARCH_STRING != null, "the search string can't be null");
+        assert(SEARCH_STRING.length != 0,"the search string can't be empty");
+        assert(this.running == false, "the crawler is marked running when it isn't even run yet");
+        assert(MOUNTPOINT  != null, "the mountpoint can't be null");
+        assert(MOUNTPOINT.length != 0, "the mountpoint string can't be empty");
+        assert(resultCallback != null, "the result callback can't be null");
+
+         // Every Crawler will have all the other mountpoints in its blocklist
+        // In this way crawlers will not cross paths
+        string[] cp_tmp = DrillAPI.getMountPoints()[].filter!(x => x != MOUNTPOINT)
+            .map!(x => "^" ~ x ~ "$")
+            .array;
+        Logger.logDebug("Adding these to the global blocklist: " ~ to!string(cp_tmp),this.toString());
+        Array!string crawler_exclusion_list = Array!string(BLOCK_LIST);
+        crawler_exclusion_list ~= cp_tmp;
+        Regex!char[] exclusion_regexes = crawler_exclusion_list[].map!(x => regex(x)).array;
+        this.BLOCK_LIST_REGEX = exclusion_regexes;
+
+        Logger.logDebug("New crawler custom blocklist.length = " ~ to!string(BLOCK_LIST_REGEX.length),this.toString());
+
         this.running = true;
         Logger.logDebug("Started");
 
         import std.container.dlist : DList;
         DList!DirEntry queue;
-        if (isBlocklisted(MOUNTPOINT))
+        if (isInRegexList(BLOCK_LIST_REGEX,MOUNTPOINT))
         {
             this.running = false;
             Logger.logDebug("Crawler mountpoint is in the blocklist, the crawler will stop.",this.toString());
@@ -211,7 +200,7 @@ private:
             Logger.logDebug("Directory: " ~ currentDirectory.name,this.toString());
 
 
-            if (isBlocklisted(currentDirectory.name))
+            if (isInRegexList(BLOCK_LIST_REGEX,currentDirectory.name))
             {
                 Logger.logDebug("Blocked: " ~ currentDirectory.name,this.toString());
                 continue;
@@ -235,7 +224,7 @@ private:
                 continue;
             }
 
-            fileloop: foreach (currentFile; files)
+            foreach (currentFile; files)
             {
                 if (!this.running) return;
                 try
@@ -243,37 +232,20 @@ private:
                     if (currentFile.isSymlink())
                     {
                         Logger.logDebug("Symlink ignored: " ~ currentDirectory.name,this.toString());
-                        continue fileloop;
+                        continue;
                     }
-                    if (isBlocklisted(currentFile.name))
+                    if (!this.running) return;
+                    if (isInRegexList(BLOCK_LIST_REGEX, currentFile.name))
                     {
                         Logger.logDebug("Ignored: " ~ currentFile.name,this.toString());
-                        continue fileloop;
+                        continue;
                     }
+                    if (!this.running) return;
                     if (currentFile.isDir())
                     {
-                        if (isPrioritylisted(currentFile.name))
+                        if (isInRegexList(this.PRIORITY_LIST_REGEX, currentFile.name))
                         {
                             Logger.logDebug("High priority: "~currentFile.name,this.toString());
-
-
-                            // DirIterator files_priority;
-                            // try
-                            // {
-                            //     files_priority = dirEntries(currentFile, SpanMode.shallow, true);
-                            // }
-                            // catch (Exception e)
-                            // {
-                            //     Logger.logError(e.msg,this.toString());
-                            // }
-                            // foreach (currentFilePriority; files_priority)
-                            // {
-                            //     if (!currentFilePriority.isDir())
-                            //     {
-                            //         if(isMatchingSearch(currentFilePriority.))
-                            //     }
-                            // }
-
                             queue.insertFront(currentFile);
                         }
                         else
@@ -282,16 +254,46 @@ private:
                             queue.insertBack(currentFile);
                         }
                     }
+                    if (!this.running) return;
+                    if (isMatchingSearch(currentFile.name))
+                    //if (canFind(currentFile.name, SEARCH_STRING))
+                    {
+                      
 
-                                //FIXME: filter and remove empty strings (if the user writes "a   b")
+                        Logger.logTrace("Matching search"~currentFile.name,this.toString());
+           // auto composed = new Thread(resultCallback,buildFileInfo(currentFile)).start();
+                        // try
+                        // {
+                        //     class ResultThread : Thread
+                        //     {
+                        //         DirEntry resultFile;
 
-                    if (!isMatchingSearch(currentFile.name))
-                        continue fileloop;
-                        
-                    //auto composed = new Thread(&threadFunc).start();
-                    new Thread({
-                        resultCallback(buildFileInfo(currentFile));
-                    }).start();
+                        //         this(DirEntry resultFile)
+                        //         {
+                        //             super(&run);
+                        //             this.resultFile = resultFile;
+                        //         }
+
+                        //     private:
+                        //         void run()
+                        //         {
+                        //             // Derived thread running.
+                        //             resultCallback(buildFileInfo(this.resultFile));
+                        //         }
+                        //     }
+
+                        //     auto derived = new ResultThread(currentFile).start();
+                        // }
+                        // catch (Exception e)
+                        // {
+                            resultCallback(buildFileInfo(currentFile));
+                        // }
+
+                    }
+                    else
+                    {
+                        Logger.logTrace("Not matching file, skipped: "~currentFile.name,this.toString());
+                    }
                 }
                 catch (Exception e)
                 {

@@ -19,13 +19,24 @@ import FileInfo : FileInfo;
 class DrillAPI
 {
 
+    unittest
+    {
+        DrillAPI drill = new DrillAPI("../../Assets");
+        assert(drill.DRILL_VERSION == readText("../../DRILL_VERSION"));
+        assert(drill.PRIORITY_LIST == readListFiles("../../Assets/PriorityLists"));
+        assert(drill.BLOCK_LIST == readListFiles("../../Assets/BlockLists"));
+        assert(drill.PRIORITY_LIST_REGEX.length != 0);
+    }
+
 
 private:
+
     Array!Crawler threads;
+
     immutable(string[]) BLOCK_LIST;
-    
+    immutable(string[]) PRIORITY_LIST;
     const(Regex!char[]) PRIORITY_LIST_REGEX;
-    static string DRILL_VERSION = import("DRILL_VERSION");
+    static immutable(string) DRILL_VERSION = import("DRILL_VERSION");
 
 public:
 
@@ -54,7 +65,7 @@ public:
         }
         try
         {
-            immutable(string[]) PRIORITY_LIST = cast(immutable(string[]))readListFiles(buildPath(assetsDirectory,"PriorityLists"));
+            PRIORITY_LIST = cast(immutable(string[]))readListFiles(buildPath(assetsDirectory,"PriorityLists"));
             this.PRIORITY_LIST_REGEX = PRIORITY_LIST[].map!(x => regex(x)).array; 
         }
         catch (FileException fe)
@@ -86,7 +97,7 @@ public:
         search = the search string, case insensitive, every word (split by space) will be searched in the file name
         resultFound = the delegate that will be called when a crawler will find a new result
     */
-    void startCrawling(immutable(string) search, void delegate(immutable(FileInfo) result) resultFound)
+    void startCrawling(immutable(string) search, shared(void delegate(immutable(FileInfo) result)) resultFound)
     {
         // stop previous crawlers
         this.stopCrawlingAsync();
@@ -116,7 +127,7 @@ public:
     /**
     This function stops all the crawlers and will return only when all of them are stopped
     */
-    void stopCrawlingSync()
+    void stopCrawlingSync() 
     {
         stopCrawlingAsync();
         waitForCrawlers();
@@ -126,7 +137,7 @@ public:
     This function will return only when all crawlers finished their jobs or were stopped
     This function does not stop the crawlers!!!
     */
-    void waitForCrawlers()
+    void waitForCrawlers() 
     {
         Logger.logInfo("Waiting for "~to!string(getActiveCrawlersCount())~" crawlers to stop");
         foreach (Crawler crawler; this.threads)
@@ -145,7 +156,7 @@ public:
 
     It's not assured that every mount point is a physical disk
     */
-    static immutable(string[]) getMountPoints()
+    static @system immutable(string[]) getMountPoints()
     {
         version (linux)
         {
@@ -201,15 +212,21 @@ public:
     Returns: number of crawlers active
     
     */
-    immutable(ulong) getActiveCrawlersCount() const
+    const @nogc @safe immutable(uint) getActiveCrawlersCount()
     {
-        return array(this.threads[].filter!(x => x.isCrawling())).length;
+        int active = 0;
+        for (int i = 0; i < threads.length; i++)
+        {   
+            if (threads[i].isCrawling())
+                active++;
+        }
+        return active;
     }
 
     /**
     Returns the version of DrillAPI
     */
-    static immutable(string) getVersion() @safe @nogc
+    static pure @nogc @safe immutable(string) getVersion()
     {
         return DRILL_VERSION;
     }
