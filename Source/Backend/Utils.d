@@ -10,8 +10,8 @@ import std.conv : to;
 
 
 
-
-string humanSize(ulong bytes)
+import std.functional : memoize;
+string _humanSize(ulong bytes)
 {
 	string[] suffix = ["B", "KB", "MB", "GB", "TB"];
 
@@ -26,12 +26,13 @@ string humanSize(ulong bytes)
 
 	return to!string(floor(dblBytes)) ~ " " ~ suffix[i];
 }
+alias humanSize = memoize!_humanSize;
 
 import std.datetime : SysTime;
 
 
 
-string toDateString(SysTime time)
+string _toDateString(SysTime time)
 {
 	import datefmt : format;
 	return time.format("%d/%m/%Y %H:%M:%S");
@@ -42,6 +43,7 @@ string toDateString(SysTime time)
 	// gmtime(&timestamp);
 	// return buffer[0 .. ret].idup;
 }
+alias toDateString = memoize!_toDateString;
 
 
  /***
