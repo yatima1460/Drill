@@ -7,6 +7,7 @@ drill-cli
 # D
 dub.selections.json
 .dub
+*.def
 
 #AppImage
 *.AppImage
@@ -25,3 +26,7 @@ Tools/deb/DEBFILE
 # RedHat
 *.rpm
 *.spec
+
+*.log
+
+
