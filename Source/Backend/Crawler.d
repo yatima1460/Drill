@@ -359,7 +359,7 @@ private:
 
                     if (currentFile.isDir())
                     {
-                        if (isPrioritylisted(currentFile.name))
+                        if (isPrioritylisted(baseName(currentFile.name)))
                         {
                             Logger.logDebug("Priority listed: "~currentFile.name);
                             queue.insertFront(currentFile);

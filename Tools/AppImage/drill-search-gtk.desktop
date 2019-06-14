@@ -1,0 +1,12 @@
+[Desktop Entry]
+Version=1.0
+Name=Drill
+Type=Application
+Comment=Search files without using indexing, but clever crawling
+Comment[it]=Trova files sul tuo PC senza indicizzare, ma cercando intelligentemente
+Icon=drill-search-gtk.svg
+Exec=bash drill-search-gtk.bash
+TryExec=bash drill-search-gtk.bash
+Terminal=false
+Categories=Application;Utility;GTK;
+Keywords=Search;FileSearch;File Search;Find;

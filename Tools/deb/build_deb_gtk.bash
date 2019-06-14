@@ -2,8 +2,9 @@
 
 
 # .deb
-export DEB_PACKAGE_NAME="drill-search-gtk"
-export GTK_BUILD_DIR="Drill-GTK-linux-x86_64-release"
+DEB_PACKAGE_NAME="drill-search-gtk"
+GTK_BUILD_DIR="Drill-GTK-linux-x86_64-release"
+DRILL_VERSION=$(cat ../../DRILL_VERSION)
 
 #===== LOGGING FUNCTIONS
 info () {
@@ -25,7 +26,7 @@ export BUILD_DIR=../../Source/Frontend/GTK/Build/"$GTK_BUILD_DIR"
 if [ -f $BUILD_DIR/"$DEB_PACKAGE_NAME" ]; then
     info "$DEB_PACKAGE_NAME   executable found"
 else
-    error "No $DEB_PACKAGE_NAME   executable found in $BUILD_DIR/"$DEB_PACKAGE_NAME" !"
+    error "No $DEB_PACKAGE_NAME   executable found in $BUILD_DIR/$DEB_PACKAGE_NAME !"
     exit 1
 fi
 
@@ -49,17 +50,7 @@ cp control-gtk DEBFILE/GTK/DEBIAN/control
 
 # append .deb version to the .deb metadata
 # and add DRILL_VERSION to /opt
-if [ -f ../../DRILL_VERSION ]; then
-    cp ../../DRILL_VERSION DEBFILE/GTK/opt/$DEB_PACKAGE_NAME/
-    echo Version: "$(cat ../../DRILL_VERSION)" >> DEBFILE/GTK/DEBIAN/control
-    cat DEBFILE/GTK/DEBIAN/control
-    echo Building .deb for version "$(cat ../../DRILL_VERSION)"
-    export DRILL_VERSION=$(cat ../../DRILL_VERSION)
-else
-    echo No Drill version found! Using 0.0.0
-    echo Version: 0.0.0 >> DEBFILE/GTK/DEBIAN/control
-    export DRILL_VERSION="LOCAL_BUILD"
-fi
+echo Version: $DRILL_VERSION >> DEBFILE/GTK/DEBIAN/control
 
  # add desktop file
 mkdir -p DEBFILE/GTK/usr/share/applications

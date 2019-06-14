@@ -2,16 +2,20 @@ branches:
   only:
   - master
 
+
 os:
   - linux
   - windows
   - osx
 
+
 language: bash
+
 
 before_install:
  - export TRAVIS_TAG="1.$TRAVIS_BUILD_NUMBER"
  - echo -n $TRAVIS_TAG > DRILL_VERSION
+
 
 addons:
 
@@ -31,11 +35,6 @@ addons:
       - dub
       - p7zip
 
-  # choco:
-  #   update: true
-  #   packages:
-  #     - dmd
-  #     - dub
 
 script:
 
@@ -48,12 +47,8 @@ script:
   - if [ "$TRAVIS_OS_NAME" = "linux" ]; then sudo apt install ./dmd_2.086.0-0_amd64.deb; fi
 
   ## windows
-  # - if [ "$TRAVIS_OS_NAME" = "windows" ]; then choco install dmd; fi
-  # - if [ "$TRAVIS_OS_NAME" = "windows" ]; then choco install dub; fi
   - if [ "$TRAVIS_OS_NAME" = "windows" ]; then wget http://downloads.dlang.org/nightlies/dmd-master/dmd.master.windows.7z; fi
   - if [ "$TRAVIS_OS_NAME" = "windows" ]; then 7z x dmd.master.windows.7z; fi
-  # - if [ "$TRAVIS_OS_NAME" = "windows" ]; then cp dmd2/windows/bin/*.* Source/Frontend/CLI; fi
-  # - if [ "$TRAVIS_OS_NAME" = "windows" ]; then cp dmd2/windows/bin/*.* Source/Frontend/WinAPI; fi
 
   ## osx
   # already installs using homebrew travis settings
@@ -69,21 +64,21 @@ script:
 
   ## build UI
 
-  ### linux
+  ### Linux
   - if [ "$TRAVIS_OS_NAME" = "linux" ]; then cd Source/Frontend/GTK; fi
-  # - if [ "$TRAVIS_OS_NAME" = "linux" ]; then dub build --arch=x86; fi
   - if [ "$TRAVIS_OS_NAME" = "linux" ]; then dub build --arch=x86_64; fi
-  # - if [ "$TRAVIS_OS_NAME" = "linux" ]; then dub build -b release --arch=x86; fi
   - if [ "$TRAVIS_OS_NAME" = "linux" ]; then dub build -b release --arch=x86_64; fi
   - if [ "$TRAVIS_OS_NAME" = "linux" ]; then cd ../../../; fi
 
-  ### windows
+  ### Windows
   # - if [ "$TRAVIS_OS_NAME" = "windows" ]; then cd Source/Frontend/WinAPI; fi
   # - if [ "$TRAVIS_OS_NAME" = "windows" ]; then $DUB build --arch=x86; fi
   # - if [ "$TRAVIS_OS_NAME" = "windows" ]; then $DUB build --arch=x86_64; fi
   # - if [ "$TRAVIS_OS_NAME" = "windows" ]; then $DUB build -b release --arch=x86; fi
   # - if [ "$TRAVIS_OS_NAME" = "windows" ]; then $DUB build -b release --arch=x86_64; fi
   # - if [ "$TRAVIS_OS_NAME" = "windows" ]; then cd ../../../; fi
+
+  ### OSX
 
 
   # build installers/packages
