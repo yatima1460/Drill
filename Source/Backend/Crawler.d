@@ -68,14 +68,20 @@ public:
         resultCallback = resultFound;
     }
 
+    private void noop_resultFound(immutable(FileInfo) result) @nogc 
+    {
+
+    }
+
     pure void stopAsync() @safe @nogc
     {
+        this.resultCallback = &this.noop_resultFound;
         this.running = false;
     }
 
     void stopSync()
     {
-        this.running = false;
+        this.stopAsync();
         this.join();
     }
 
