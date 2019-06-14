@@ -156,7 +156,9 @@ public:
 
     It's not assured that every mount point is a physical disk
     */
-    static @system immutable(string[]) getMountPoints()
+    
+
+    static @system string[] _getMountPoints()
     {
         version (linux)
         {
@@ -168,9 +170,9 @@ public:
                 Logger.logError("Can't retrieve mount points, will just scan '/'");
                 return ["/"];
             }
-            immutable auto result = array(ls.output.split("\n").filter!(x => canFind(x, "/"))).idup;
+            auto result = array(ls.output.split("\n").filter!(x => canFind(x, "/"))).idup;
             //debug{logConsole("Mount points found: "~to!string(result));}
-            return result;
+            return cast(string[])result;
         }
 
         version (OSX)
@@ -182,9 +184,9 @@ public:
                 return ["/"];
             }
             immutable auto startColumn = indexOf(ls.output.split("\n")[0], 'M');
-            immutable auto result = array(ls.output.split("\n").filter!(x => x.length > startColumn).map!(x => x[startColumn .. $]).filter!(x => canFind(x, "/"))).idup;
+            auto result = array(ls.output.split("\n").filter!(x => x.length > startColumn).map!(x => x[startColumn .. $]).filter!(x => canFind(x, "/"))).idup;
             //debug{logConsole("Mount points found: "~result);}
-            return result;
+            return cast(string[])result;
         }
 
         version (Windows)
@@ -196,11 +198,13 @@ public:
                 return ["C:"];
             }
 
-            immutable auto result = array(map!(x => x[0 .. 2])(ls.output.split("\n").filter!(x => canFind(x, ":")))).idup;
+            auto result = array(map!(x => x[0 .. 2])(ls.output.split("\n").filter!(x => canFind(x, ":")))).idup;
             //debug{logConsole("Mount points found: "~result);}
-            return result;
+            return cast(string[])result;
         }
     }
+    import std.functional : memoize;
+    alias getMountPoints = memoize!_getMountPoints;
 
     /**
     A crawler is active when it's scanning something.
