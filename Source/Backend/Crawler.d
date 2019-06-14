@@ -250,7 +250,7 @@ private:
                         }
                         else
                         {
-                            Logger.logDebug("Low priority: "~currentFile.name,this.toString());
+                            Logger.logTrace("Low priority: "~currentFile.name,this.toString());
                             queue.insertBack(currentFile);
                         }
                     }
