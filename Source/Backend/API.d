@@ -1,38 +1,19 @@
 module API;
 
+import std.algorithm : canFind, filter, map;
 import std.container : Array;
-
-import std.array : array;
-import std.array : split;
-
+import std.array : array, split;
 import std.process : executeShell;
 import std.string : indexOf;
-
-import std.algorithm : canFind, filter, map;
-
-
-import Utils : readListFiles;
-// import Utils : logConsole;
-
-import Logger : Logger;
-
-import Crawler : Crawler;
-import FileInfo : FileInfo;
-
+import std.regex: Regex, regex;
 import std.file : dirEntries, SpanMode, DirEntry, readText, FileException;
 import std.path : buildPath;
-
-// TODO: register delegate for messagebox show called from UI frontend library
-
-import std.regex: Regex, regex;
 import std.conv: to;
-import std.algorithm : map;
 
-
-/*
-NOTE: the basic idea is to use logConsole inside debug{ } like a log trace, only when it's something that happens more than once, like a crawler finding files
-Errors should always be logged and should never be inside debug{ }
-*/
+import Utils : readListFiles;
+import Logger : Logger;
+import Crawler : Crawler;
+import FileInfo : FileInfo;
 
 
 class DrillAPI
@@ -83,17 +64,17 @@ public:
         }
     }
 
-    void startCrawler(immutable(string) mountpoint, immutable(string) search,
-            void delegate(immutable(FileInfo) result) resultFound)
-    {
+    // void startCrawler(immutable(string) mountpoint, immutable(string) search,
+    //         void delegate(immutable(FileInfo) result) resultFound)
+    // {
 
-    }
+    // }
 
-    void startCrawler(immutable(string) mountpoint, immutable(string) search,
-            void delegate(immutable(FileInfo) result) resultFound)
-    {
+    // void startCrawler(immutable(string) mountpoint, immutable(string) search,
+    //         void delegate(immutable(FileInfo) result) resultFound)
+    // {
 
-    }
+    // }
 
     /**
     Starts the crawling, every crawler will filter on its own.
