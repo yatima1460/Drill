@@ -9,8 +9,13 @@ x265
 x264
 360p
 240p
-multi
 Season
 season
-Multi
+bluray
+BluRay
+Bluray
 ddp5\.1
+Film
+film
+movies
+Movies

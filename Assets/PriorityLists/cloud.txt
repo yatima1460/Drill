@@ -1,1 +1,2 @@
-Google Drive
+Google Drive\/(.[^\/]+)$
+OneDrive\/(.[^\/]+)$
