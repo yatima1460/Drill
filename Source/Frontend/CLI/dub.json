@@ -1,25 +1,38 @@
 {
   "name": "drill-cli",
-  "authors": ["Federico Santamorena"],
+  "authors": [
+    "Federico Santamorena"
+  ],
   "description": "Search files without indexing, but clever crawling.",
   "copyright": "Copyright © 2019, Federico Santamorena",
   "license": "GPL-2.0",
   "homepage": "https://github.com/yatima1460/Drill",
-
   "targetType": "executable",
   "targetName": "drill-search-cli",
-
-  "sourceFiles": ["CLI.d"],
-
+  "sourceFiles": [
+    "CLI.d"
+  ],
   "mainSourceFile": "CLI.d",
-
   "importPaths": [
     "../../Backend"
   ],
   "dependencies": {
-		"drill-core": {"path": "../../Backend"}
+    "drill-core": {
+      "path": "../../Backend"
+    }
   },
- 
-  "copyFiles": ["../../../Assets"],
-	"targetPath": "Build/Drill-CLI-$PLATFORM-$ARCH-$BUILD_TYPE"
+  "buildTypes": {
+    "release": {
+      "buildOptions": [
+        "releaseMode",
+        "optimize",
+        "noBoundsCheck",
+        "inline"
+      ]
+    }
+  },
+  "copyFiles": [
+    "../../../Assets"
+  ],
+  "targetPath": "Build/Drill-CLI-$PLATFORM-$ARCH-$BUILD_TYPE"
 }
