@@ -2,8 +2,10 @@
 
 
 # .deb
-export DEB_PACKAGE_NAME="drill-search-cli"
-export CLI_BUILD_DIR="Drill-CLI-linux-x86_64-release"
+DEB_PACKAGE_NAME="drill-search-cli"
+CLI_BUILD_DIR="Drill-CLI-linux-x86_64-release"
+BUILD_DIR=../../Source/Frontend/CLI/Build/"$CLI_BUILD_DIR"
+DRILL_VERSION=$(cat ../../DRILL_VERSION)
 
 #===== LOGGING FUNCTIONS
 info () {
@@ -20,7 +22,6 @@ error() {
 }
 #========================
 
-export BUILD_DIR=../../Source/Frontend/CLI/Build/"$CLI_BUILD_DIR"
 
 if [ -f $BUILD_DIR/"$DEB_PACKAGE_NAME" ]; then
     info "$DEB_PACKAGE_NAME   executable found"
@@ -28,6 +29,7 @@ else
     error "No $DEB_PACKAGE_NAME   executable found!"
     exit 1
 fi
+#========================
 
 # remove old temp files
 rm -rf DEBFILE/CLI/
@@ -47,19 +49,8 @@ chmod   +x                  DEBFILE/CLI/opt/$DEB_PACKAGE_NAME/"$DEB_PACKAGE_NAME
 mkdir DEBFILE/CLI/DEBIAN
 cp control-cli DEBFILE/CLI/DEBIAN/control
 
-# append .deb version to the .deb metadata
-# and add DRILL_VERSION to /opt
-if [ -f ../../DRILL_VERSION ]; then
-    cp ../../DRILL_VERSION DEBFILE/CLI/opt/$DEB_PACKAGE_NAME/
-    echo Version: "$(cat ../../DRILL_VERSION)" >> DEBFILE/CLI/DEBIAN/control
-    cat DEBFILE/CLI/DEBIAN/control
-    echo Building .deb for version "$(cat ../../DRILL_VERSION)"
-    export DRILL_VERSION=$(cat ../../DRILL_VERSION)
-else
-    echo No Drill version found! Using 0.0.0
-    echo Version: 0.0.0 >> DEBFILE/CLI/DEBIAN/control
-    export DRILL_VERSION="LOCAL_BUILD"
-fi
+# append version to the .deb metadata
+echo Version: $DRILL_VERSION >> DEBFILE/CLI/DEBIAN/control
 
 # build the .deb file
 if dpkg-deb --build DEBFILE/CLI/; then

@@ -229,7 +229,7 @@ private:
                     assert(icon_name != null);
                     liststore.setValue(it, Column.NAME_ICON, icon_name);
 
-                    debug{logConsole("[DRILL][GTK] "~fi.extension~" setting icon to " ~ this.iconmap[ext]);}
+                    Logger.logTrace(fi.extension~" setting icon to " ~ this.iconmap[ext]);
                 }
             }
 
@@ -244,7 +244,7 @@ private:
         liststore.setValue(it, Column.DATE_MODIFIED, fi.dateModifiedString);
         debug{liststore.setValue(it, Column.FOUND_BY_CRAWLER, fi.originalMountpoint);}
 
-        debug{logConsole("[DRILL][GTK] Added to the list: "~fi.fullPath);}
+        Logger.logTrace("[DRILL][GTK] Added to the list: "~fi.fullPath);
         // this.setSizeRequest(requisition.width,requisition.height);
     }
 

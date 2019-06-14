@@ -44,7 +44,7 @@ private:
     immutable(string[]) BLOCK_LIST;
     
     const(Regex!char[]) PRIORITY_LIST_REGEX;
-    static string DRILL_VERSION = "0.0.0";
+    static string DRILL_VERSION = import("DRILL_VERSION");
 
 public:
 
