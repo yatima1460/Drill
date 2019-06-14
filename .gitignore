@@ -4,9 +4,6 @@ Build
 drill-ui
 drill-cli
 
-# Drill
-DRILL_VERSION
-
 # D
 dub.selections.json
 .dub
