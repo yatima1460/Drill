@@ -74,18 +74,20 @@
 
             
             
+            let Class = "btn";
+            _CreateButton(Class);
 
 
-            UrlExists(URL, function(exists) {
-            if (exists) {
-                let Class = "btn";
-                _CreateButton(Class);
+            // UrlExists(URL, function(exists) {
+            // if (exists) {
+            //     let Class = "btn";
+            //     _CreateButton(Class);
 
-            } else {
-                let Class = "btn disabled";
-                _CreateButton(Class);
-            }
-            });
+            // } else {
+            //     let Class = "btn disabled";
+            //     _CreateButton(Class);
+            // }
+            // });
 
             function _CreateButton(Class)
             {
@@ -111,7 +113,7 @@
                     //console.log(data)
                     document.getElementsByClassName("version")[0].innerHTML = "<h3>Version " + data.tag_name + "</h3>";
 
-                    CreateDownloadButton("Linux", "https://aur.archlinux.org/packages/drill-search-gtk-bin/", "Arch", "Arch");
+                    CreateDownloadButton("Linux", "https://aur.archlinux.org/pkgbase/drill-search/", "Arch", "Arch");
                     OSes.forEach(function (OS) {
                         let assets = [];
 
@@ -128,10 +130,12 @@
                             if (asset.name.toLowerCase().includes("cli"))
                                 assets.unshift(asset);
                         });
+                       
                         data.assets.forEach(function (asset) {
                             if (!asset.name.toLowerCase().includes("cli"))
                                 assets.unshift(asset);
                         });
+                        
 
                         assets.forEach(function (asset) {
                             if (asset.name.toLowerCase().includes("debug"))
@@ -148,17 +152,26 @@
                                 if (ext === "AppImage") {
                                     // text = "AppImage";
                                     text += "<br><b><font size=1.7em color=#FF0000>" +
-                                        "Not supported on Linux Mint, use .deb" +
+                                        "Has problems on Linux Mint, use .deb" +
                                         "</b></font>"
                                 }
-                                if (ext === "rpm") text = "Red Hat, Fedora, SUSE";
-
+                               
+                                if (ext === "rpm") { 
+                                    text = "Red Hat, Fedora, SUSE"; 
+                                    text += "<br><b><font size=1.7em color=#FF0000>" +
+                                        "Untested" +
+                                        "</b></font>"
+                                }
+                            
 
                                 let icon_name = ext + ".svg?sanitize=true";
 
                                 if (ext === "tgz") {
                                     text = "Slackware";
                                     icon_name = "Slackware";
+                                    text += "<br><b><font size=1.7em color=#FF0000>" +
+                                        "Untested" +
+                                        "</b></font>"
                                 }
 
 
@@ -184,9 +197,9 @@
                             console.log(asset.name);
                         });
                     });
+                   
 
-
-                    CreateDownloadButton("Linux", "https://aur.archlinux.org/packages/drill-search-cli-bin/", "Terminal", "Arch CLI");
+                    // CreateDownloadButton("Linux", "https://aur.archlinux.org/packages/drill-search-cli-bin/", "Terminal", "Arch CLI");
 
                     CreateDownloadButton("Project", "https://paypal.me/federicosantamorena", "Donate", "Donate");
                     CreateDownloadButton("Project", "http://github.com/yatima1460/Drill", "GitHub", "GitHub");
