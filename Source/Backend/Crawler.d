@@ -45,23 +45,23 @@ public:
         super(&run);
         this.MOUNTPOINT = MOUNTPOINT;
 
-        Logger.logDebug("Created");
-        Logger.logDebug("Search term '" ~ search ~ "'");
-        Logger.logDebug("Global blocklist.length = " ~ to!string(BLOCK_LIST.length));
+        Logger.logDebug("Created",this.toString());
+        Logger.logDebug("Search term '" ~ search ~ "'",this.toString());
+        Logger.logDebug("Global blocklist.length = " ~ to!string(BLOCK_LIST.length),this.toString());
 
         // Every Crawler will have all the other mountpoints in its blocklist
         // In this way crawlers will not cross paths
         string[] cp_tmp = DrillAPI.getMountPoints()[].filter!(x => x != MOUNTPOINT)
             .map!(x => "^" ~ x ~ "$")
             .array;
-        Logger.logDebug("Adding these to the global blocklist: " ~ to!string(cp_tmp));
+        Logger.logDebug("Adding these to the global blocklist: " ~ to!string(cp_tmp),this.toString());
         Array!string crawler_exclusion_list = Array!string(BLOCK_LIST);
         crawler_exclusion_list ~= cp_tmp;
         const(Regex!char[]) exclusion_regexes = crawler_exclusion_list[].map!(x => regex(x)).array;
         this.BLOCK_LIST_REGEX = exclusion_regexes;
 
-        Logger.logDebug("New crawler custom blocklist.length = " ~ to!string(BLOCK_LIST_REGEX.length));
-        Logger.logDebug("Global priority list length = " ~ to!string(PRIORITY_LIST_REGEX.length));
+        Logger.logDebug("New crawler custom blocklist.length = " ~ to!string(BLOCK_LIST_REGEX.length),this.toString());
+        Logger.logDebug("Global priority list length = " ~ to!string(PRIORITY_LIST_REGEX.length),this.toString());
         this.PRIORITY_LIST_REGEX = PRIORITY_LIST_REGEX;
 
         this.search = search;
@@ -130,7 +130,7 @@ private:
             }
         }
         
-        Logger.logTrace("Allowed, not in the blocklist: '" ~ value ~ "'");
+        Logger.logTrace("Allowed, not in the blocklist: '" ~ value ~ "'",this.toString());
         return false;
     }
 
@@ -152,6 +152,28 @@ private:
     }
 
 
+    bool isMatchingSearch(string filename)
+    {
+        
+        const string[] searchTokens = toLower(strip(search)).split(" ");
+        //writeln(searchTokens, fileNameLower);
+
+        const string fileNameLower = toLower(baseName(filename));
+        foreach (token; searchTokens)
+        {
+            if (!canFind(fileNameLower, token))
+            {
+                Logger.logTrace("Not matching search, skipped: "~fileNameLower,this.toString());
+                return false;
+            }
+            else
+            {
+                Logger.logTrace("Matching search"~fileNameLower,this.toString());
+            }
+        }
+        return true;
+    }
+
     /**
     NOTE: We don't really care about CPU time, Drill isn't CPU intensive but disk intensive,
     in this function it's not bad design that there are multiple IFs checking the same thing over and over again,
@@ -167,7 +189,7 @@ private:
         if (isBlocklisted(MOUNTPOINT))
         {
             this.running = false;
-            Logger.logDebug("Crawler mountpoint is in the blocklist, the crawler will stop.");
+            Logger.logDebug("Crawler mountpoint is in the blocklist, the crawler will stop.",this.toString());
         }
         else
         {
@@ -177,7 +199,7 @@ private:
             }
             catch (Exception e)
             {
-                Logger.logError(e.msg);
+                Logger.logError(e.msg,this.toString());
                 this.running = false;
             }
         }
@@ -186,18 +208,18 @@ private:
         {
             DirEntry currentDirectory = queue.front();
             queue.removeFront();
-            Logger.logTrace("Current directory: " ~ currentDirectory.name);
+            Logger.logDebug("Directory: " ~ currentDirectory.name,this.toString());
 
 
             if (isBlocklisted(currentDirectory.name))
             {
-                Logger.logTrace("Blocked: " ~ currentDirectory.name);
+                Logger.logDebug("Blocked: " ~ currentDirectory.name,this.toString());
                 continue;
             }
 
             if (currentDirectory.isSymlink())
             {
-                Logger.logTrace("Symlink ignored: " ~ currentDirectory.name);
+                Logger.logDebug("Symlink ignored: " ~ currentDirectory.name,this.toString());
                 continue;
             }
             
@@ -208,65 +230,72 @@ private:
             }
             catch (Exception e)
             {
-                debug
-                {
-                    Logger.logError(e.msg);
-                }
+               
+                Logger.logError(e.msg,this.toString());
                 continue;
             }
 
             fileloop: foreach (currentFile; files)
             {
-                
+                if (!this.running) return;
                 try
                 {
                     if (currentFile.isSymlink())
                     {
-                        Logger.logTrace("Symlink ignored: " ~ currentDirectory.name);
+                        Logger.logDebug("Symlink ignored: " ~ currentDirectory.name,this.toString());
                         continue fileloop;
                     }
                     if (isBlocklisted(currentFile.name))
                     {
-                        Logger.logTrace("File blocklisted: " ~ currentDirectory.name);
+                        Logger.logDebug("Ignored: " ~ currentFile.name,this.toString());
                         continue fileloop;
                     }
                     if (currentFile.isDir())
                     {
-                        if (isPrioritylisted(baseName(currentFile.name)))
+                        if (isPrioritylisted(currentFile.name))
                         {
-                            Logger.logDebug("Priority listed: "~currentFile.name);
+                            Logger.logDebug("High priority: "~currentFile.name,this.toString());
+
+
+                            // DirIterator files_priority;
+                            // try
+                            // {
+                            //     files_priority = dirEntries(currentFile, SpanMode.shallow, true);
+                            // }
+                            // catch (Exception e)
+                            // {
+                            //     Logger.logError(e.msg,this.toString());
+                            // }
+                            // foreach (currentFilePriority; files_priority)
+                            // {
+                            //     if (!currentFilePriority.isDir())
+                            //     {
+                            //         if(isMatchingSearch(currentFilePriority.))
+                            //     }
+                            // }
+
                             queue.insertFront(currentFile);
                         }
                         else
                         {
-                            Logger.logTrace("Not priority listed: "~currentFile.name);
+                            Logger.logDebug("Low priority: "~currentFile.name,this.toString());
                             queue.insertBack(currentFile);
                         }
                     }
 
                                 //FIXME: filter and remove empty strings (if the user writes "a   b")
-                    const string[] searchTokens = toLower(strip(search)).split(" ");
-                    //writeln(searchTokens, fileNameLower);
 
-                    const string fileNameLower = toLower(baseName(currentFile.name));
-                    foreach (token; searchTokens)
-                    {
-                        if (!canFind(fileNameLower, token))
-                        {
-                            Logger.logTrace("Not matching search, skipped: "~fileNameLower);
-                            continue fileloop;
-                        }
-                        else
-                        {
-                            Logger.logTrace("Matching search"~fileNameLower);
-                        }
-                    }
-
-                    resultCallback(buildFileInfo(currentFile));
+                    if (!isMatchingSearch(currentFile.name))
+                        continue fileloop;
+                        
+                    //auto composed = new Thread(&threadFunc).start();
+                    new Thread({
+                        resultCallback(buildFileInfo(currentFile));
+                    }).start();
                 }
                 catch (Exception e)
                 {
-                    Logger.logError(e.msg);
+                    Logger.logError(e.msg,this.toString());
                 }
             }
         }
