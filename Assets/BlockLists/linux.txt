@@ -30,3 +30,5 @@ lost\+found
 ^/run/libvirt$
 ^/run/laptop-mode-tools$
 ^/run/alsa$
+^/media/apt
+^/run/samba/ncalrpc
