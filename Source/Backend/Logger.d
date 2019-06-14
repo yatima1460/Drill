@@ -20,67 +20,78 @@ final class Logger
 
 static:
 
-    LogLevel globalLevel;
-
-
-    static this()
+    debug
     {
-        debug
-        {
-            setLogLevel(LogLevel.Debug);
-        }
-        else
-        {
-            setLogLevel(LogLevel.Info);
-        }
+        immutable(LogLevel) globalLevel = LogLevel.Debug;
     }
+    else
+    {
+        immutable(LogLevel) globalLevel = LogLevel.Error;
+    }
+
+    // version (release)
+    // {
+    //     immutable(LogLevel) globalLevel = LogLevel.Info;
+    // }
+    // version (profile)
+    // {
+    //     immutable(LogLevel) globalLevel = LogLevel.Info;
+    // }
+    // version (trace)
+    // {
+    //     immutable(LogLevel) globalLevel = LogLevel.Trace;
+    // }
+    // version (debug_normal)
+    // {
+    //     immutable(LogLevel) globalLevel = LogLevel.Debug;
+    // }
 
 public:
 
-    LogLevel getLogLevel()
+    immutable(LogLevel) getLogLevel() pure @nogc @safe
     {
         return globalLevel;
     } 
 
-    void setLogLevel(LogLevel level)
+    void logTrace(immutable(string) message, immutable(string) channel=__PRETTY_FUNCTION__) @system
     {
-        globalLevel = level;
+        debug
+        {
+            log(LogLevel.Trace,message,channel);
+        }
     }
 
-    void logDebug(string message, string channel=__FUNCTION__)
+    void logDebug(immutable(string) message, immutable(string) channel=__PRETTY_FUNCTION__) @system
     {
-        log(LogLevel.Debug,message,channel);
+        debug
+        {
+            log(LogLevel.Debug,message,channel);
+        }
     }
 
-    void logError(string message, string channel=__FUNCTION__)
-    {
-        log(LogLevel.Error,message,channel);
-    }
-
-    void logFatal(string message, string channel=__FUNCTION__)
-    {
-        log(LogLevel.Fatal,message,channel);
-    }
-
-
-    void logTrace(string message, string channel=__FUNCTION__)
-    {
-        log(LogLevel.Trace,message,channel);
-    }
-
-    void logWarning(string message, string channel=__FUNCTION__)
-    {
-        log(LogLevel.Warning,message,channel);
-    }
-
-    void logInfo(string message, string channel=__FUNCTION__)
+    void logInfo(immutable(string) message, immutable(string) channel=__PRETTY_FUNCTION__) @system
     {
         log(LogLevel.Info,message,channel);
     }
 
+    void logWarning(immutable(string) message, immutable(string) channel=__PRETTY_FUNCTION__) @system
+    {
+        log(LogLevel.Warning,message,channel);
+    }
+
+    void logError(immutable(string) message, immutable(string) channel=__PRETTY_FUNCTION__) @system
+    {
+        log(LogLevel.Error,message,channel);
+    }
+
+    void logFatal(immutable(string) message, immutable(string) channel=__PRETTY_FUNCTION__) @system
+    {
+        log(LogLevel.Fatal,message,channel);
+    }
+
     import std.conv : to;
 
-    void log(LogLevel level, string message, string channel)
+    void log(LogLevel level, immutable(string) message, immutable(string) channel) @system
     {
         synchronized
         {
