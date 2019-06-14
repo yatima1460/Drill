@@ -19,6 +19,8 @@
   "dependencies": {
     "datefmt": "1.0.3"
   },
+
+  "dflags":["-J=\"../../../\""],
   
 	"targetPath": "Build/Drill-Core-$PLATFORM-$ARCH-$BUILD_TYPE"
 }

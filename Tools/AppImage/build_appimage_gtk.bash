@@ -1,10 +1,7 @@
 #!/bin/bash
 
 
-if [ -z "$TRAVIS_TAG" ]; then
-  echo This is not a Travis build! Using LOCAL_BUILD as version string
-  export TRAVIS_TAG="LOCAL_BUILD"
-fi
+export DRILL_VERSION=$(cat ../../DRILL_VERSION)
 
 #cp ../deb/Build/Drill-GTK-linux-x86_64-release-$TRAVIS_TAG.deb .
 
@@ -15,5 +12,5 @@ bash -ex ./pkg2appimage Drill_GTK.yml
 #rm Drill-GTK-linux-x86_64-release-$TRAVIS_TAG.deb
 
 mkdir -p Build
-mv out/*.AppImage Build/Drill-GTK-linux-x86_64-release-$TRAVIS_TAG.AppImage
+mv out/*.AppImage Build/Drill-GTK-linux-x86_64-release-"$DRILL_VERSION".AppImage
 rmdir out
