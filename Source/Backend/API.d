@@ -111,16 +111,14 @@ public:
     }
 
     /*
-    Notifies the crawlers to stop.
+    Notifies the crawlers to stop and clears the crawlers array stored inside DrillAPI
     This function is non-blocking.
     If no crawling is currently underway this function will do nothing.
     */
     void stopCrawlingAsync()
     {
         foreach (Crawler crawler; this.threads)
-        {
             crawler.stopAsync();
-        }
         this.threads.clear(); // TODO: if nothing has a reference to a thread does the thread get GC-ed?
     }
 
@@ -129,7 +127,8 @@ public:
     */
     void stopCrawlingSync() 
     {
-        stopCrawlingAsync();
+        foreach (Crawler crawler; this.threads)
+            crawler.stopAsync();
         waitForCrawlers();
     }
 
