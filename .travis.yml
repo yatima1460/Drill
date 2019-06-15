@@ -29,30 +29,37 @@ addons:
 
   #osx
   homebrew:
-    update: false
+    #update: false
     packages:
-      - dmd
-      - dub
+      #- dmd
+      #- dub
       - p7zip
 
 
 script:
 
   # install D
-  - export DUB=dub
-  - if [ "$TRAVIS_OS_NAME" = "windows" ]; then export DUB="$PWD"/dmd2/windows/bin/dub.exe; fi
 
   ## linux
-  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then wget http://downloads.dlang.org/releases/2.x/2.086.0/dmd_2.086.0-0_amd64.deb; fi
-  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then sudo apt install ./dmd_2.086.0-0_amd64.deb; fi
+  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then wget http://downloads.dlang.org/releases/2.x/2.086.0/dmd.2.086.0.linux.tar.xz; fi
+  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then 7z x dmd.2.086.0.linux.tar.xz; fi
+  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then 7z x dmd.2.086.0.linux.tar; fi
+  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then export DUB="$PWD"/dmd2/linux/bin64/dub; fi
+  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then chmod +x $DUB; fi
+  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then chmod +x "$PWD"/dmd2/linux/bin64/dmd; fi
 
   ## windows
-  - if [ "$TRAVIS_OS_NAME" = "windows" ]; then wget http://downloads.dlang.org/nightlies/dmd-master/dmd.master.windows.7z; fi
-  - if [ "$TRAVIS_OS_NAME" = "windows" ]; then 7z x dmd.master.windows.7z; fi
+  - if [ "$TRAVIS_OS_NAME" = "windows" ]; then wget http://downloads.dlang.org/releases/2.x/2.086.0/dmd.2.086.0.windows.7z; fi
+  - if [ "$TRAVIS_OS_NAME" = "windows" ]; then 7z x dmd.2.086.0.windows.7z; fi
+  - if [ "$TRAVIS_OS_NAME" = "windows" ]; then export DUB="$PWD"/dmd2/windows/bin/dub.exe; fi
 
   ## osx
-  # already installs using homebrew travis settings
-
+  - if [ "$TRAVIS_OS_NAME" = "osx" ]; then wget http://downloads.dlang.org/releases/2.x/2.086.0/dmd.2.086.0.osx.tar.xz; fi
+  - if [ "$TRAVIS_OS_NAME" = "osx" ]; then 7z x dmd.2.086.0.osx.tar.xz; fi
+  - if [ "$TRAVIS_OS_NAME" = "osx" ]; then 7z x dmd.2.086.0.osx.tar; fi
+  - if [ "$TRAVIS_OS_NAME" = "osx" ]; then export DUB="$PWD"/dmd2/osx/bin/dub; fi
+  - if [ "$TRAVIS_OS_NAME" = "osx" ]; then chmod +x $DUB; fi
+  - if [ "$TRAVIS_OS_NAME" = "osx" ]; then chmod +x "$PWD"/dmd2/linux/bin64/dmd; fi
 
   # build
 
@@ -67,7 +74,7 @@ script:
   ### Linux
   - if [ "$TRAVIS_OS_NAME" = "linux" ]; then cd Source/Frontend/GTK; fi
   # - if [ "$TRAVIS_OS_NAME" = "linux" ]; then dub build --arch=x86_64; fi
-  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then dub build -b release --arch=x86_64 --parallel; fi
+  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then $DUB build -b release --arch=x86_64 --parallel; fi
   - if [ "$TRAVIS_OS_NAME" = "linux" ]; then cd ../../../; fi
 
   ### Windows
