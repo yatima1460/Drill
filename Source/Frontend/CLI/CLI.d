@@ -57,9 +57,9 @@ immutable(string) searchInput()
 int main(string[] args)
 {
     import std.path : dirName, buildNormalizedPath, absolutePath;
-    import std.getopt;
+    import std.getopt : getopt, defaultGetoptPrinter;
 
-    writeln("Drill "~DrillAPI.getVersion()~" - https://github.com/yatima1460/Drill");
+    writeln("Drill "~DrillAPI.DRILL_VERSION~" - "~DrillAPI.GITHUB_URL);
     DrillAPI drill = new DrillAPI(buildPath(absolutePath(dirName(buildNormalizedPath(args[0]))),"Assets"));
 
 
