@@ -59,7 +59,7 @@ script:
   - if [ "$TRAVIS_OS_NAME" = "osx" ]; then 7z x dmd.2.086.0.osx.tar; fi
   - if [ "$TRAVIS_OS_NAME" = "osx" ]; then export DUB="$PWD"/dmd2/osx/bin/dub; fi
   - if [ "$TRAVIS_OS_NAME" = "osx" ]; then chmod +x $DUB; fi
-  - if [ "$TRAVIS_OS_NAME" = "osx" ]; then chmod +x "$PWD"/dmd2/linux/bin64/dmd; fi
+  - if [ "$TRAVIS_OS_NAME" = "osx" ]; then chmod +x "$PWD"/dmd2/osx/bin64/dmd; fi
 
   # build
 
