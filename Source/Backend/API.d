@@ -36,7 +36,15 @@ private:
     immutable(string[]) BLOCK_LIST;
     immutable(string[]) PRIORITY_LIST;
     const(Regex!char[]) PRIORITY_LIST_REGEX;
+
+public:
     static immutable(string) DRILL_VERSION = import("DRILL_VERSION");
+    static immutable(string) BUILD_TIME = __TIMESTAMP__;
+    static immutable(string) GITHUB_URL = "https://github.com/yatima1460/Drill";
+    static immutable(string) WEBSITE_URL = "https://www.drill.santamorena.me";
+    static immutable(string) AUTHOR_URL = "https://www.linkedin.com/in/yatima1460/";
+    static immutable(string) AUTHOR_NAME = "Federico Santamorena";
+    
 
 public:
 
@@ -226,12 +234,5 @@ public:
         return active;
     }
 
-    /**
-    Returns the version of DrillAPI
-    */
-    static pure @nogc @safe immutable(string) getVersion()
-    {
-        return DRILL_VERSION;
-    }
 
 }
