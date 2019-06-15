@@ -57,9 +57,9 @@ immutable(string) searchInput()
 int main(string[] args)
 {
     import std.path : dirName, buildNormalizedPath, absolutePath;
-    import std.getopt : getopt, defaultGetoptPrinter;
+    import std.getopt : getopt, defaultGetoptPrinter, config;
 
-    writeln("Drill "~DrillAPI.DRILL_VERSION~" - "~DrillAPI.GITHUB_URL);
+    
     DrillAPI drill = new DrillAPI(buildPath(absolutePath(dirName(buildNormalizedPath(args[0]))),"Assets"));
 
 
@@ -67,14 +67,14 @@ int main(string[] args)
     bool size = false;
 
     auto opt = getopt(args,
-        std.getopt.config.bundling,
-        std.getopt.config.passThrough,
+        config.bundling,
+        config.passThrough,
         "date|d", "Show results date", &date,
         "size|s", "Show results size", &size
     );
 
     if(opt.helpWanted){
-        writeln("Drill CLI v",drill.getVersion()," https://github.com/yatima1460/drill");
+        writeln("Drill CLI v"~DrillAPI.DRILL_VERSION~" - "~DrillAPI.GITHUB_URL);
         writeln("Example use: drill-cli -ds \"foobar\"");
         defaultGetoptPrinter("Options:", opt.options);
         import core.stdc.stdlib : exit;
