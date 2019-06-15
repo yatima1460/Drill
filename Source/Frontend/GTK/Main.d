@@ -12,7 +12,7 @@ int main(string[] args)
 {
     Application application = new Application("me.santamorena.drill", GApplicationFlags.FLAGS_NONE);
     application.addOnActivate(delegate void(GioApplication app) {
-        new DrillWindow(args[0],application);
+        new DrillWindow(args[0], application);
     });
     return application.run(args);
 }
