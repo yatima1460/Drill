@@ -21,7 +21,6 @@ addons:
 
   #linux
   apt:
-    update: true
     packages:
       - desktop-file-utils
       - p7zip-full
@@ -29,7 +28,6 @@ addons:
 
   #osx
   homebrew:
-    update: true
     packages:
       - dmd
       - dub
