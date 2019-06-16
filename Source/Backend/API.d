@@ -156,6 +156,24 @@ public:
         Logger.logInfo("All crawlers stopped.");
     }
 
+
+    
+    static @system string[] _getApplicationsList()
+    {
+        version(linux)
+        {
+            immutable auto ls = executeShell("ls /usr/share/applications/*.desktop | grep -v _");
+            if (ls.status == 0)
+            {
+                // TODO: move to init
+                // Logger.logError("Can't retrieve applications, will return an empty list");
+                return ls.output.split("\n");
+            }
+        }   
+        return [];
+    }
+    alias getApplicationsList = memoize!_getApplicationsList;
+
     /**
     Returns the mount points of the current system
 
