@@ -54,11 +54,13 @@ import FileInfo : FileInfo;
 import Utils : humanSize;
 import Logger : Logger;
 import Utils : openFile;
+import ApplicationInfo : ApplicationInfo;
 
 debug
 {
     enum Column
     {
+        TYPE,
         NAME_ICON,
         NAME,
         PATH,
@@ -71,6 +73,7 @@ else
 {
     enum Column
     {
+        TYPE,
         NAME_ICON,
         NAME,
         PATH,
@@ -262,10 +265,27 @@ public:
             h.packStart(github_notice, true, true, 0);
         }
 
+
+        // the Type column is used to determine what to do when
+        // a user double clicks the row
+        // and it's shown only on debug builds
+        TreeViewColumn column = new TreeViewColumn();
+        column.setTitle("Type");
+        column.setFixedWidth(80);
+        column.setResizable(true);
+        column.setSizing(GtkTreeViewColumnSizing.FIXED);
+        debug
+        {
+            this.treeview.appendColumn(column);
+        }
+   
+        CellRendererText cell_text = new CellRendererText();
+        column.packStart(cell_text, false);
+        column.addAttribute(cell_text, "text", Column.TYPE);
         // file_icon.setIconName("file");
 
         // create second column with two renderers
-        TreeViewColumn column = new TreeViewColumn();
+         column = new TreeViewColumn();
         column.setTitle("Name");
         column.setFixedWidth(400);
         column.setResizable(true);
@@ -275,7 +295,7 @@ public:
         file_icon.setProperty("icon-name", "dialog-question");
 
         this.treeview.appendColumn(column);
-        CellRendererText cell_text = new CellRendererText();
+        cell_text = new CellRendererText();
         column.packStart(file_icon, false);
         column.packStart(cell_text, true);
         column.addAttribute(cell_text, "text", Column.NAME);
@@ -360,6 +380,17 @@ public:
 
 private:
 
+    void appendApplication(immutable(ApplicationInfo) applicationInfo)
+    {
+        TreeIter it = liststore.createIter();
+        liststore.setValue(it, Column.TYPE, "Application");
+        liststore.setValue(it, Column.NAME_ICON, applicationInfo.icon);
+        liststore.setValue(it, Column.SIZE, "");
+        liststore.setValue(it, Column.NAME, applicationInfo.name);
+        liststore.setValue(it, Column.PATH, join(applicationInfo.execProcess, " "));
+        liststore.setValue(it, Column.DATE_MODIFIED, applicationInfo.desktopFileDateModifiedString);
+    }
+
     void appendRecord(immutable(FileInfo) fi)
     {
 
@@ -369,11 +400,13 @@ private:
 
         if (fi.isDirectory)
         {
+            liststore.setValue(it, Column.TYPE, "Folder");
             liststore.setValue(it, Column.NAME_ICON, "folder");
             liststore.setValue(it, Column.SIZE, "");
         }
         else
         {
+            liststore.setValue(it, Column.TYPE, "File");
             liststore.setValue(it, Column.NAME_ICON, "text-x-generic");
             liststore.setValue(it, Column.SIZE, fi.sizeString);
             auto ext = fi.extension;
@@ -408,19 +441,52 @@ private:
         // this.setSizeRequest(requisition.width,requisition.height);
     }
 
+     import std.path : chainPath;
+        import std.array : array;
     private void doubleclick(TreePath tp, TreeViewColumn tvc, TreeView tv)
     {
         TreeIter ti = new TreeIter();
         this.liststore.getIter(ti, tp);
-        string path = this.liststore.getValueString(ti, Column.PATH);
-        string name = this.liststore.getValueString(ti, Column.NAME);
-        import std.path : chainPath;
-        import std.array : array;
+        immutable(string) path = this.liststore.getValueString(ti, Column.PATH);
+        immutable(string) name = this.liststore.getValueString(ti, Column.NAME);
+        immutable(string) type = this.liststore.getValueString(ti, Column.TYPE);
+   
+        import gtk.MessageDialog;
 
-        string chained = chainPath(path, name).array;
-
-        openFile(chained);
-        // TODO: open_file failed
+        if (type != "Application")
+        {
+             string chained = chainPath(path, name).array;
+             try
+            {
+           
+            openFile(chained);
+            }
+            catch(Exception e)
+            {
+                MessageDialog d = new MessageDialog(this, GtkDialogFlags.MODAL, MessageType.ERROR, ButtonsType.OK, 
+                "Error opening file `"~chained~"`\n"~e.msg);
+                d.run();
+                d.destroy();
+            }
+        }
+        else
+        {
+            import std.process : spawnProcess;
+            import std.stdio : stdin, stdout, stderr;
+            import std.process : Config;
+            import Utils : cleanExecLine;
+            try
+            {
+                spawnProcess(cleanExecLine(path), stdin, stdout, stderr, null, Config.detached, null);
+            }
+            catch (Exception e)
+            {
+                MessageDialog d = new MessageDialog(this, GtkDialogFlags.MODAL, MessageType.ERROR, ButtonsType.OK, 
+                "Error starting application `"~path~"`\n"~e.msg);
+                d.run();
+                d.destroy();
+            }
+        }
     }
 
     private void resultFound(immutable(FileInfo) result)
@@ -434,14 +500,14 @@ private:
         debug
         {
             this.liststore = new ListStore([
-                    GType.STRING, GType.STRING, GType.STRING, GType.STRING,
+                    GType.STRING, GType.STRING, GType.STRING, GType.STRING, GType.STRING,
                     GType.STRING, GType.STRING
                     ]);
         }
         else
         {
             this.liststore = new ListStore([
-                    GType.STRING, GType.STRING, GType.STRING, GType.STRING,
+                    GType.STRING, GType.STRING, GType.STRING, GType.STRING, GType.STRING,
                     GType.STRING
                     ]);
         }
@@ -469,6 +535,16 @@ private:
 
         if (search_string.length != 0)
         {
+            
+            ApplicationInfo[] applications = DrillAPI.getApplicationsInfo();
+            foreach (ApplicationInfo application; applications)
+            {
+                import std.uni : toLower;
+                if (canFind(application.name.toLower(), search_string.toLower()))
+                {     
+                    appendApplication(cast(immutable(ApplicationInfo))application);
+                }
+            }
             drillapi.startCrawling(search_string, &this.resultFound);
         }
 

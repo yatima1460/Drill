@@ -6,10 +6,66 @@ In this module go useful functions that are not strictly related to crawling
 
 import std.math : log, floor, pow;
 import std.conv : to;
-
+import std.algorithm : canFind;
 import std.functional : memoize;
+import std.process : executeShell;
+import std.file : dirEntries, SpanMode, DirEntry, readText, FileException;
+import std.array : array, split;
 
-string _humanSize(ulong bytes)
+import ApplicationInfo : ApplicationInfo;
+
+import Logger : Logger;
+
+string[] _cleanExecLine(immutable(string) exec) pure @safe
+{
+    import std.algorithm : filter;
+    import std.array : array, split;
+    return exec.split(" ")[].filter!(x => x[0 .. 1] != "%").array;
+}
+alias cleanExecLine = memoize!_cleanExecLine;
+
+
+ApplicationInfo _readDesktopFile(immutable(string) fullPath) @system
+{
+    string[] desktopFileLines;
+    ApplicationInfo ai;
+    try
+    {
+        desktopFileLines = readText(fullPath).split("\n");
+        ai.desktopFileDateModifiedString = toDateString(DirEntry(fullPath).timeLastModified);
+    }
+    catch (Exception e)
+    {
+        Logger.logError(e.msg);
+    }
+    
+    
+    ai.desktopFileFullPath = fullPath;
+   
+    foreach (line; desktopFileLines)
+    {
+     
+        if (canFind(line[0..5],"Exec="))
+        {
+            ai.exec = line[5..$];
+            ai.execProcess = cleanExecLine(line[5..$]);
+        }
+        if (canFind(line[0..5],"Name="))
+        {
+            ai.name = line[5..$];
+        }
+        if (canFind(line[0..5],"Icon="))
+        {
+            ai.icon = line[5..$];
+        }
+        
+    }
+    return ai;
+}
+alias readDesktopFile = memoize!_readDesktopFile;
+
+
+string _humanSize(ulong bytes) @safe
 {
     string[] suffix = ["B", "KB", "MB", "GB", "TB"];
 
@@ -29,19 +85,11 @@ alias humanSize = memoize!_humanSize;
 
 import std.datetime : SysTime;
 
-string _toDateString(SysTime time)
+string _toDateString(SysTime time) @safe
 {
     import datefmt : format;
-
     return time.format("%d/%m/%Y %H:%M:%S");
-
-    // const string format = "";
-    // char[256] buffer;
-    // auto ret = strftime(buffer.ptr, buffer.ptr, toStringz(format))
-    // gmtime(&timestamp);
-    // return buffer[0 .. ret].idup;
 }
-
 alias toDateString = memoize!_toDateString;
 
 /***
@@ -106,15 +154,9 @@ bool openFile(immutable(string) fullpath) @system
     //TODO: return bool if successful?
 }
 
-// void logConsole(immutable(string) message)
-// {
-//     import std.stdio : writeln;
-//     synchronized {
-//         writeln(message);
-//     } 
-// }
 
-string[] readListFiles(immutable(string) path)
+
+string[] _readListFiles(immutable(string) path) @system
 {
     import std.file : dirEntries, SpanMode, DirEntry, readText, FileException;
 
@@ -136,79 +178,4 @@ string[] readListFiles(immutable(string) path)
 
     return temp_blocklist.filter!(x => x.length != 0).array;
 }
-
-// void showInfoMessagebox(immutable(string) message)
-// {
-
-//         logConsole("showMessagebox "~message);
-// 		//version (linux)
-// 		//{
-// 		//    import std.process : executeShell;
-// 		//    executeShell("zenity --info --text=\""~message~"\" --title=\"Drill\" --width=160 --height=90");
-// 		//
-// 		//    //TODO: if failed call this
-// 		//    //executeShell("xmessage -center \""~title~":"~message~"\"");
-// 		//}
-// 		//version (Windows)
-// 		//{	
-// 		//    import std.utf : toUTF16z;
-// 		//    import core.sys.windows.windows;
-// 		//
-// 		//    MessageBox(NULL, message.toUTF16z, "Drill", 0);
-// 		//}
-// 		//version (OSX)
-// 		//{
-// 		//
-// 		//}
-//     }
-
-// void showWarningMessagebox(immutable(string) message)
-// {
-// 	logConsole("showMessagebox "~message);
-// 		//version(CLI)
-// 		//{
-// 		//    
-// 		//}
-// 		//else
-// 		//{
-// 		//    version (linux)
-// 		//    {
-// 		//        import std.process : executeShell;
-// 		//        executeShell("zenity --warning --text=\""~message~"\" --title=\"Drill\" --width=160 --height=90");
-// 		//
-// 		//        //TODO: if failed call this
-// 		//        //executeShell("xmessage -center \""~title~":"~message~"\"");
-// 		//    }
-// 		//    version (Windows)
-// 		//    {
-// 		//
-// 		//    }
-// 		//    version (OSX)
-// 		//    {
-// 		//
-// 		//    }
-// 		//}
-
-//     }
-
-// void showErrorMessagebox(immutable(string) message)
-// {
-
-//         logConsole("showMessagebox "~message);
-// 		//version (linux)
-// 		//{
-// 		//    import std.process : executeShell;
-// 		//    executeShell("zenity --error --text=\""~message~"\" --title=\"Drill\" --width=160 --height=90");
-// 		//
-// 		//    //TODO: if failed call this
-// 		//    //executeShell("xmessage -center \""~title~":"~message~"\"");
-// 		//}
-// 		//version (Windows)
-// 		//{
-// 		//
-// 		//}
-// 		//version (OSX)
-// 		//{
-// 		//
-// 		//}
-//     }
+alias readListFiles = memoize!_readListFiles;

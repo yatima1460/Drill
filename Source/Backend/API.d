@@ -156,9 +156,36 @@ public:
         Logger.logInfo("All crawlers stopped.");
     }
 
+import ApplicationInfo : ApplicationInfo;
+
+    static @system ApplicationInfo[] _getApplicationsInfo()
+    {
+        version(linux)
+        {
+            ApplicationInfo[] applications;
+            string[] desktopFiles = _getDesktopFilesList();
+            foreach (desktopFile; desktopFiles)
+            {
+                // ApplicationInfo ai;
+                 import Utils : readDesktopFile;
+                // ai.name = getDesktopFileNameValue(desktopFile);
+                // ai.desktopFileFullPath = desktopFile;
+                
+                // ai.exec = getDesktopFileExecValue(desktopFile);
+
+                applications ~= readDesktopFile(desktopFile);
+            }
+            return applications;
+        }
+        else
+        {
+            return [];
+        }
+    }
+    alias getApplicationsInfo = memoize!_getApplicationsInfo;
 
     
-    static @system string[] _getApplicationsList()
+    static @system string[] _getDesktopFilesList()
     {
         version(linux)
         {
@@ -172,7 +199,7 @@ public:
         }   
         return [];
     }
-    alias getApplicationsList = memoize!_getApplicationsList;
+    alias getApplicationsList = memoize!_getDesktopFilesList;
 
     /**
     Returns the mount points of the current system
