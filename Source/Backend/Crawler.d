@@ -61,7 +61,7 @@ public:
     in (MOUNTPOINT.length != 0)
     in (resultFound != null)
     in (search != null)
-    //in (search.length != 0)
+    in (search.length != 0)
     {
 
         //TODO: invariant root contains /
@@ -161,7 +161,7 @@ private:
     void run()
     {
         assert(SEARCH_STRING != null, "the search string can't be null");
-        //assert(SEARCH_STRING.length != 0,"the search string can't be empty");
+        assert(SEARCH_STRING.length != 0,"the search string can't be empty");
         assert(this.running == false, "the crawler is marked running when it isn't even run yet");
         assert(MOUNTPOINT  != null, "the mountpoint can't be null");
         assert(MOUNTPOINT.length != 0, "the mountpoint string can't be empty");
