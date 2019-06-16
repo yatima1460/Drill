@@ -354,8 +354,6 @@ public:
         v.packStart(scroll, true, true, 0);
         v.packStart(h, false, true, 0);
 
-        drillapi.startCrawling("",&resultFound);
-
         showAll();
 
         gdk.Threads.threadsAddTimeout(10, &threadIdleProcess, cast(void*) this);
