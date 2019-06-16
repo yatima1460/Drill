@@ -221,6 +221,7 @@ public:
         this.loadGTKIcon(assetsFolder);
 
         this.treeview = new TreeView();
+        treeview.setEnableSearch(false);
         this.createNewList();
         this.treeview.addOnRowActivated(&doubleclick);
 
