@@ -14,7 +14,8 @@
     "FileInfo.d",
     "Crawler.d",
     "Utils.d",
-    "Logger.d"
+    "Logger.d",
+    "ApplicationInfo.d"
   ],
   "dependencies": {
     "datefmt": "1.0.3"
