@@ -1,0 +1,52 @@
+{
+  "name": "drill-webview",
+  "authors": [
+    "Federico Santamorena"
+  ],
+  "description": "Search files without indexing, but clever crawling.",
+  "copyright": "Copyright © 2019, Federico Santamorena",
+  "license": "GPL-2.0",
+  "homepage": "https://github.com/yatima1460/Drill",
+  "targetType": "executable",
+  "targetName": "drill-search-cli",
+  "sourceFiles": [
+    "DWebView.d",
+    "webview.o"
+  ],
+ 
+  "importPaths": [
+    ".",
+    "../../Backend"
+  ],
+
+  "libs-posix": [
+
+    "gtk+-3.0",
+    "webkit2gtk-4.0"
+  ],
+  "mainSourceFile": "DWebView.d",
+  "dependencies": {
+    "drill-core": {
+      "path": "../../Backend"
+    }
+  },
+  "buildTypes": {
+    "release": {
+      "buildOptions": [
+        "releaseMode",
+        "optimize",
+        "noBoundsCheck",
+        "inline"
+      ]
+    }
+  },
+  "copyFiles": [
+    "../../../Assets"
+  ],
+  "targetPath": "Build/Drill-CLI-$PLATFORM-$ARCH-$BUILD_TYPE",
+  "toolchainRequirements": {
+    "dmd": ">=2.086.0",
+    "gdc": "no",
+    "ldc": "no"
+  }
+}
