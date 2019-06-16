@@ -109,8 +109,7 @@ bool openFile(immutable(string) fullpath) @system
     {
         try
         {
-            spawnProcess(["explorer", fullpath], stdin, stdout, stderr, null,
-                    Config.detached, null);
+            spawnProcess(["explorer", fullpath], null, Config.none, null);
             return true;
         }
         catch (Exception e)
@@ -129,8 +128,7 @@ bool openFile(immutable(string) fullpath) @system
         {
             try
             {
-                spawnProcess([OPENER, fullpath], stdin, stdout, stderr, null,
-                        Config.detached, null);
+                spawnProcess([OPENER, fullpath], null, Config.none, null);
                 return true;
             }
             catch (Exception e)
@@ -144,7 +142,7 @@ bool openFile(immutable(string) fullpath) @system
     {
         try
         {
-            spawnProcess(["open", fullpath], stdin, stdout, stderr, null, Config.detached, null);
+            spawnProcess(["open", fullpath], null, Config.none, null);
             return true;
         }
         catch (Exception e)
