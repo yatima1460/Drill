@@ -17,6 +17,16 @@ import Utils : humanSize, toDateString;
 import FileInfo : FileInfo;
 import API : DrillAPI;
 
+import std.functional : memoize;
+alias memoizedDirEntries = memoize!dirEntries;
+
+DirEntry _memoizedDirEntry(immutable(string) fullPath)
+{
+    return DirEntry(fullPath);
+}
+
+alias memoizedDirEntry = memoize!_memoizedDirEntry;
+
 class Crawler : Thread
 {
 
@@ -51,7 +61,7 @@ public:
     in (MOUNTPOINT.length != 0)
     in (resultFound != null)
     in (search != null)
-    in (search.length != 0)
+    //in (search.length != 0)
     {
 
         //TODO: invariant root contains /
@@ -151,7 +161,7 @@ private:
     void run()
     {
         assert(SEARCH_STRING != null, "the search string can't be null");
-        assert(SEARCH_STRING.length != 0,"the search string can't be empty");
+        //assert(SEARCH_STRING.length != 0,"the search string can't be empty");
         assert(this.running == false, "the crawler is marked running when it isn't even run yet");
         assert(MOUNTPOINT  != null, "the mountpoint can't be null");
         assert(MOUNTPOINT.length != 0, "the mountpoint string can't be empty");
@@ -184,7 +194,7 @@ private:
         {
             try
             {
-                queue.insertBack(DirEntry(MOUNTPOINT));
+                queue.insertBack(memoizedDirEntry(MOUNTPOINT));
             }
             catch (Exception e)
             {
@@ -215,7 +225,7 @@ private:
             DirIterator files;
             try
             {
-                files = dirEntries(currentDirectory, SpanMode.shallow, true);
+                files = memoizedDirEntries(currentDirectory, SpanMode.shallow, true);
             }
             catch (Exception e)
             {
@@ -224,7 +234,7 @@ private:
                 continue;
             }
 
-            foreach (currentFile; files)
+            foreach (DirEntry currentFile; files)
             {
                 if (!this.running) return;
                 try
