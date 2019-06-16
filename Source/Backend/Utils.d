@@ -36,7 +36,7 @@ ApplicationInfo _readDesktopFile(immutable(string) fullPath) @system
     }
     catch (Exception e)
     {
-        Logger.logError(e.msg);
+        Logger.logError("Error reading file: '" ~ fullPath~ "' "~e.msg);
     }
     
     
