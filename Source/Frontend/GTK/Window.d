@@ -222,6 +222,7 @@ public:
 
         this.treeview = new TreeView();
         treeview.setEnableSearch(false);
+        
         this.createNewList();
         this.treeview.addOnRowActivated(&doubleclick);
 
@@ -377,6 +378,8 @@ public:
             }
             return false;
         });
+
+        treeview.setFixedHeightMode(true);
     }
 
 private:
