@@ -30,3 +30,4 @@ Tools/deb/DEBFILE
 *.log
 
 
+*.o
