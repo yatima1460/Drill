@@ -235,6 +235,8 @@ public:
         search_input.setIconFromIconName(GtkEntryIconPosition.SECONDARY, null);
 
         ScrolledWindow scroll = new ScrolledWindow();
+        //scroll.setMaxContentHeight(300);
+        //scroll.setMinContentHeight(300);
 
         scroll.add(this.treeview);
 
@@ -280,24 +282,29 @@ public:
         {
             this.treeview.appendColumn(column);
         }
-   
+        const int CELL_HEIGHT = 32;
         CellRendererText cell_text = new CellRendererText();
+        cell_text.setFixedSize(-1,CELL_HEIGHT);
         column.packStart(cell_text, false);
         column.addAttribute(cell_text, "text", Column.TYPE);
+        
         // file_icon.setIconName("file");
 
         // create second column with two renderers
          column = new TreeViewColumn();
         column.setTitle("Name");
-        column.setFixedWidth(400);
+        column.setFixedWidth(450);
         column.setResizable(true);
         column.setSizing(GtkTreeViewColumnSizing.FIXED);
 
         CellRendererPixbuf file_icon = new CellRendererPixbuf();
         file_icon.setProperty("icon-name", "dialog-question");
+        file_icon.setProperty("stock-size", 5);
+        file_icon.setFixedSize(-1,CELL_HEIGHT);
 
         this.treeview.appendColumn(column);
         cell_text = new CellRendererText();
+        cell_text.setFixedSize(-1,CELL_HEIGHT);
         column.packStart(file_icon, false);
         column.packStart(cell_text, true);
         column.addAttribute(cell_text, "text", Column.NAME);
@@ -305,12 +312,13 @@ public:
 
         column = new TreeViewColumn();
         column.setTitle("Path");
-        column.setFixedWidth(200);
+        column.setFixedWidth(250);
         column.setResizable(true);
         column.setSizing(GtkTreeViewColumnSizing.FIXED);
 
         this.treeview.appendColumn(column);
         cell_text = new CellRendererText();
+        cell_text.setFixedSize(-1,CELL_HEIGHT);
         column.packStart(cell_text, false);
         column.addAttribute(cell_text, "text", Column.PATH);
 
@@ -318,22 +326,24 @@ public:
         column = new TreeViewColumn();
         column.setTitle("Size");
         this.treeview.appendColumn(column);
-        column.setFixedWidth(50);
+        column.setFixedWidth(75);
         column.setResizable(true);
         column.setSizing(GtkTreeViewColumnSizing.FIXED);
 
         cell_text = new CellRendererText();
+        cell_text.setFixedSize(-1,CELL_HEIGHT);
         column.packStart(cell_text, false);
         column.addAttribute(cell_text, "text", Column.SIZE);
 
         column = new TreeViewColumn();
         column.setTitle("Date Modified");
-        column.setFixedWidth(200);
+        column.setFixedWidth(150);
         column.setResizable(true);
         column.setSizing(GtkTreeViewColumnSizing.FIXED);
 
         this.treeview.appendColumn(column);
         cell_text = new CellRendererText();
+        cell_text.setFixedSize(-1,CELL_HEIGHT);
         column.packStart(cell_text, false);
         column.addAttribute(cell_text, "text", Column.DATE_MODIFIED);
 
@@ -347,6 +357,7 @@ public:
 
             this.treeview.appendColumn(column);
             cell_text = new CellRendererText();
+            cell_text.setFixedSize(-1,CELL_HEIGHT);
             column.packStart(cell_text, false);
             column.addAttribute(cell_text, "text", Column.FOUND_BY_CRAWLER);
         }
