@@ -45,12 +45,15 @@ ApplicationInfo _readDesktopFile(immutable(string) fullPath) @system
     foreach (line; desktopFileLines)
     {
      
-        if (canFind(line[0..5],"Exec="))
+        // ai.exec.length == 0 &&
+        // is used so we only assign the first line found
+
+        if (ai.exec.length == 0 && canFind(line[0..5],"Exec="))
         {
             ai.exec = line[5..$];
             ai.execProcess = cleanExecLine(line[5..$]);
         }
-        if (canFind(line[0..5],"Name="))
+        if (ai.name.length == 0 && canFind(line[0..5],"Name="))
         {
             ai.name = line[5..$];
         }
