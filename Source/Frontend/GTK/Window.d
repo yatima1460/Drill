@@ -465,8 +465,7 @@ private:
 
             try
             {
-                spawnProcess(cleanExecLine(path), stdin, stdout, stderr, null,
-                        Config.detached, null);
+                spawnProcess(cleanExecLine(path), null, Config.none, null);
             }
             catch (Exception e)
             {
