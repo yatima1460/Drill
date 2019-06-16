@@ -354,6 +354,8 @@ public:
         v.packStart(scroll, true, true, 0);
         v.packStart(h, false, true, 0);
 
+        drillapi.startCrawling("",&resultFound);
+
         showAll();
 
         gdk.Threads.threadsAddTimeout(10, &threadIdleProcess, cast(void*) this);
@@ -443,6 +445,7 @@ private:
 
      import std.path : chainPath;
         import std.array : array;
+
     private void doubleclick(TreePath tp, TreeViewColumn tvc, TreeView tv)
     {
         TreeIter ti = new TreeIter();
@@ -450,39 +453,41 @@ private:
         immutable(string) path = this.liststore.getValueString(ti, Column.PATH);
         immutable(string) name = this.liststore.getValueString(ti, Column.NAME);
         immutable(string) type = this.liststore.getValueString(ti, Column.TYPE);
-   
+
         import gtk.MessageDialog;
 
-        if (type != "Application")
+        if (type == "Application")
         {
-             string chained = chainPath(path, name).array;
-             try
+            import std.process : spawnProcess;
+            import std.stdio : stdin, stdout, stderr;
+            import std.process : Config;
+            import Utils : cleanExecLine;
+
+            try
             {
-           
-            openFile(chained);
+                spawnProcess(cleanExecLine(path), stdin, stdout, stderr, null,
+                        Config.detached, null);
             }
-            catch(Exception e)
+            catch (Exception e)
             {
-                MessageDialog d = new MessageDialog(this, GtkDialogFlags.MODAL, MessageType.ERROR, ButtonsType.OK, 
-                "Error opening file `"~chained~"`\n"~e.msg);
+                MessageDialog d = new MessageDialog(this, GtkDialogFlags.MODAL, MessageType.ERROR,
+                        ButtonsType.OK, "Error starting application `" ~ path ~ "`\n" ~ e.msg);
                 d.run();
                 d.destroy();
             }
         }
         else
         {
-            import std.process : spawnProcess;
-            import std.stdio : stdin, stdout, stderr;
-            import std.process : Config;
-            import Utils : cleanExecLine;
+            string chained = chainPath(path, name).array;
             try
             {
-                spawnProcess(cleanExecLine(path), stdin, stdout, stderr, null, Config.detached, null);
+
+                openFile(chained);
             }
             catch (Exception e)
             {
-                MessageDialog d = new MessageDialog(this, GtkDialogFlags.MODAL, MessageType.ERROR, ButtonsType.OK, 
-                "Error starting application `"~path~"`\n"~e.msg);
+                MessageDialog d = new MessageDialog(this, GtkDialogFlags.MODAL, MessageType.ERROR,
+                        ButtonsType.OK, "Error opening file `" ~ chained ~ "`\n" ~ e.msg);
                 d.run();
                 d.destroy();
             }
