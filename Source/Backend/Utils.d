@@ -121,7 +121,7 @@ bool openFile(immutable(string) fullpath) @system
     version (linux)
     {
         immutable(string[]) FILE_OPENERS = [
-            "gvfs-open", "gnome-open", "kde-open", "exo-open", "xdg-open"
+            "dde-open","gvfs-open", "gnome-open", "kde-open", "exo-open", "xdg-open"
         ];
 
         static foreach (OPENER; FILE_OPENERS)
