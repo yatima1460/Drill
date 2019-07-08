@@ -120,23 +120,16 @@ bool openFile(immutable(string) fullpath) @system
     }
     version (linux)
     {
-        immutable(string[]) FILE_OPENERS = [
-            "dde-open","gvfs-open", "gnome-open", "kde-open", "exo-open", "xdg-open"
-        ];
-
-        static foreach (OPENER; FILE_OPENERS)
+        try
         {
-            try
-            {
-                spawnProcess([OPENER, fullpath], null, Config.none, null);
-                return true;
-            }
-            catch (Exception e)
-            {
-                Logger.logError(e.msg);
-            }
+            spawnProcess(["xdg-open", fullpath], null, Config.none, null);
+            return true;
         }
-        return false;
+        catch (Exception e)
+        {
+            Logger.logError(e.msg);
+            return false;
+        }
     }
     version (OSX)
     {
