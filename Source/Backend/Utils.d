@@ -25,7 +25,7 @@ string[] _cleanExecLine(immutable(string) exec) pure @safe
 alias cleanExecLine = memoize!_cleanExecLine;
 
 
-ApplicationInfo _readDesktopFile(immutable(string) fullPath) @system
+ApplicationInfo readDesktopFile(immutable(string) fullPath) @system
 {
     string[] desktopFileLines;
     ApplicationInfo ai;
@@ -65,7 +65,7 @@ ApplicationInfo _readDesktopFile(immutable(string) fullPath) @system
     }
     return ai;
 }
-alias readDesktopFile = memoize!_readDesktopFile;
+//alias readDesktopFile = memoize!_readDesktopFile;
 
 
 string _humanSize(ulong bytes) @safe
@@ -150,7 +150,7 @@ bool openFile(immutable(string) fullpath) @system
 
 
 
-string[] _readListFiles(immutable(string) path) @system
+string[] readListFiles(immutable(string) path) @system
 {
     import std.file : dirEntries, SpanMode, DirEntry, readText, FileException;
 
@@ -172,4 +172,4 @@ string[] _readListFiles(immutable(string) path) @system
 
     return temp_blocklist.filter!(x => x.length != 0).array;
 }
-alias readListFiles = memoize!_readListFiles;
+//alias readListFiles = memoize!_readListFiles;
