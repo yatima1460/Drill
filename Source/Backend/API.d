@@ -158,12 +158,12 @@ public:
 
 import ApplicationInfo : ApplicationInfo;
 
-    static @system ApplicationInfo[] _getApplicationsInfo()
+    static @system ApplicationInfo[] getApplicationsInfo()
     {
         version(linux)
         {
             ApplicationInfo[] applications;
-            string[] desktopFiles = _getDesktopFilesList();
+            string[] desktopFiles = getDesktopFilesList();
             foreach (desktopFile; desktopFiles)
             {
                 // ApplicationInfo ai;
@@ -182,10 +182,10 @@ import ApplicationInfo : ApplicationInfo;
             return [];
         }
     }
-    alias getApplicationsInfo = memoize!_getApplicationsInfo;
+    //alias getApplicationsInfo = memoize!_getApplicationsInfo;
 
     
-    static @system string[] _getDesktopFilesList()
+    static @system string[] getDesktopFilesList()
     {
         version(linux)
         {
@@ -199,7 +199,7 @@ import ApplicationInfo : ApplicationInfo;
         }   
         return [];
     }
-    alias getApplicationsList = memoize!_getDesktopFilesList;
+    //alias getApplicationsList = memoize!_getDesktopFilesList;
 
     /**
     Returns the mount points of the current system
@@ -210,7 +210,7 @@ import ApplicationInfo : ApplicationInfo;
     */
     
 
-    static @system string[] _getMountPoints()
+    static @system string[] getMountPoints()
     {
         version (linux)
         {
@@ -256,7 +256,7 @@ import ApplicationInfo : ApplicationInfo;
         }
     }
     import std.functional : memoize;
-    alias getMountPoints = memoize!_getMountPoints;
+    //alias getMountPoints = memoize!_getMountPoints;
 
     /**
     A crawler is active when it's scanning something.
