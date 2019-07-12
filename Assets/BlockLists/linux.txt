@@ -32,3 +32,4 @@ lost\+found
 ^/run/alsa$
 ^/media/apt
 ^/run/samba/ncalrpc
+^/run/gdm3$
