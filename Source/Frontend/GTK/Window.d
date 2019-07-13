@@ -185,6 +185,19 @@ private:
 
     bool running;
 
+    private:
+
+    void appendAllApplications()
+    {
+        ApplicationInfo[] applications = DrillAPI.getApplicationsInfo();
+        foreach (ApplicationInfo app; applications)
+        {
+            import std.uni : toLower;
+            appendApplication(cast(immutable(ApplicationInfo))app);
+        }
+    }
+  
+
 public:
 
     public this(immutable(string) drillExecutableLocation, Application application)
@@ -240,12 +253,7 @@ public:
 
         scroll.add(this.treeview);
 
-        ApplicationInfo[] applications = DrillAPI.getApplicationsInfo();
-        foreach (ApplicationInfo app; applications)
-        {
-            import std.uni : toLower;
-            appendApplication(cast(immutable(ApplicationInfo))app);
-        }
+        appendAllApplications();
 
         search_input.addOnChanged(&searchChanged);
 
@@ -571,7 +579,10 @@ private:
             }
             drillapi.startCrawling(search_string, &this.resultFound);
         }
-
+        else
+        {
+            appendAllApplications();
+        }
     }
 
     private void loadGTKIconFiletypes(immutable(string) assetsFolder)
