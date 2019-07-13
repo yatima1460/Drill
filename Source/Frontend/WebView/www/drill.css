@@ -19,18 +19,32 @@ html, body {
 }
 
 .icon {
-    width: 10%;
+    margin: 1em;
+    margin: auto;
+}
+.icon img {
+    width: 3em;
+    height: 3em;
 }
 .name {
-    width: 40%;
+    width: 50%;
+    font-size: 2em;
+
+  
+    margin: auto;
+  
 }
 
 .path {
-    width: 20%;
+    display: none;
+    width: 0%;
+    margin: auto;
 }
 
 .date {
     width: 30%;
+    font-size: 1em;
+    margin: auto;
 }
 
 
@@ -41,9 +55,21 @@ html, body {
     display: flex;
     flex-direction: row;
    
-    
+    flex-wrap: nowrap;
 
+    margin-bottom: 0.5em;
+
+  
+   
+   
 }
+
+
+/* .result:div {
+    display: none;
+    overflow: hidden;
+
+} */
 
 #results {
 
@@ -51,4 +77,9 @@ html, body {
     flex-direction: column;
     height: 100%;
     width: 100%;
+    flex-wrap: nowrap;
 }
+
+.result:nth-child(2n+1) {
+    background: #EEEEEE;
+  }
