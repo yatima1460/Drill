@@ -21,7 +21,7 @@ int main(string[] args)
 {
 //    writeln("Drill WebView v"~DrillAPI.DRILL_VERSION~" - "~DrillAPI.GITHUB_URL);
    //webview("Minimal webview example","https://en.m.wikipedia.org/wiki/Main_Page", 800, 600, 1);
-     printf("%d",webview("Minimal webview example","https://en.m.wikipedia.org/wiki/Main_Page", 800, 600, 1));
+     printf("%d",webview("Minimal webview example","file:///home/yatima1460/Documents/Drill/Source/Frontend/WebView/test.html", 800, 600, 1));
 
        
     return 0;
