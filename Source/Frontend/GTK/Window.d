@@ -235,6 +235,10 @@ public:
 
         this.treeview = new TreeView();
         treeview.setEnableSearch(false);
+
+        // tries to draw the rows with alternate colors
+        // it will do nothing if the theme does not support it
+        treeview.setRulesHint(true);
         
         this.createNewList();
         this.treeview.addOnRowActivated(&doubleclick);
