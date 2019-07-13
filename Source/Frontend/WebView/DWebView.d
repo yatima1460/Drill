@@ -13,17 +13,16 @@ import Dhanos : getNewPlatformInstance;
 
 
 
- void exit(DhanosInterface* d, immutable(string) value)
+ void exit(DhanosInterface d, immutable(string) value)
     {
         writeln("[Drill] drill_exit js callback");
      
         // writeln("DHANOS_PTR");
          writeln(d);
 
-         auto dd = *d;
-          writeln(dd);
+        
 
-         dd.close();   
+         d.close();   
         // writeln("drill_exit end"); 
     }
 
