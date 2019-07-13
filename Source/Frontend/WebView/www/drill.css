@@ -2,10 +2,31 @@
 html, body {
     margin: 0;
     padding: 0;
+   
+  
 }
+
 
 #main {
 
+}
+
+.top {
+    display: flex;
+    flex-direction: row;
+    margin: auto;
+    flex-wrap: nowrap;
+}
+
+.logo {
+   
+    width: 4em;
+    height: 4em;
+    margin: auto;
+    margin-left: 1em;
+}
+.logo img {
+    
 }
 
 #search {
@@ -16,10 +37,15 @@ html, body {
     font-size: 3em;
     padding: 0.2em;
     margin: 0;
+    border: 0;
+    outline-width: 0;
+    border-color: white;
+    outline: none;
+
 }
 
 .icon {
-    margin: 1em;
+  
     margin: auto;
 }
 .icon img {
@@ -28,7 +54,7 @@ html, body {
 }
 .name {
     width: 50%;
-    font-size: 2em;
+    font-size: 1.5em;
 
   
     margin: auto;
@@ -43,7 +69,7 @@ html, body {
 
 .date {
     width: 30%;
-    font-size: 1em;
+    font-size: 1.5em;
     margin: auto;
 }
 
@@ -57,11 +83,12 @@ html, body {
    
     flex-wrap: nowrap;
 
-    margin-bottom: 0.5em;
+    /* margin-bottom: 0.5em; */
 
+    background-color: transparent;
   
-   
-   
+  
+    
 }
 
 
@@ -82,4 +109,9 @@ html, body {
 
 .result:nth-child(2n+1) {
     background: #EEEEEE;
+  }
+
+
+  .result:nth-child(2n) {
+    background: #FFFFFF;
   }
