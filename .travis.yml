@@ -29,7 +29,7 @@ addons:
 
   #osx
   homebrew:
-    update: false
+    update: true
     packages:
       #- dmd
       #- dub
