@@ -69,7 +69,7 @@ int main(string[] args)
     immutable(string) dhanos_project_path = dirName(absolutePath(buildNormalizedPath(args[0])));
     immutable(string) url = buildPath("file:" ~ dhanos_project_path ~ "/drill.html");
     immutable int width = 800;
-    immutable int height = 250;
+    immutable int height = 450;
     immutable bool resizable = false;
 
     DhanosInterface d = getNewPlatformInstance(title, url, width, height, resizable);
