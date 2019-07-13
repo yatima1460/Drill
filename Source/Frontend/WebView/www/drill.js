@@ -5,6 +5,7 @@ window.onload = function() {
     
 
   console.log("window loaded");
+  dhanos.loaded("a");
 
   // bind search input to custom Dhanos callback
   let search = document.getElementById("search");
@@ -13,7 +14,7 @@ window.onload = function() {
 
   search.oninput = function() {
       console.log(search.value)
-      window.dhanos.invoke("search",search.value);
+      dhanos.search(search.value);
   };
 
   // bind ESC to exit Dhanos
@@ -27,7 +28,7 @@ window.onload = function() {
       }
       if (isEscape) {
           console.log("The window will close");
-          window.dhanos.exit();
+          dhanos.exit();
       }
   };
 };
