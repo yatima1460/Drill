@@ -13,7 +13,8 @@ import Dhanos : getNewPlatformInstance;
 
 
 
- void exit(DhanosInterface d, immutable(string) value)
+
+ void drill_exit(DhanosInterface d, immutable(string) value)
     {
         writeln("[Drill] drill_exit js callback");
      
@@ -27,6 +28,22 @@ import Dhanos : getNewPlatformInstance;
     }
 
 
+    
+ void search(DhanosInterface d, immutable(string) value)
+    {
+        writeln("[Drill] search");
+     
+        // writeln("DHANOS_PTR");
+         writeln(value);
+
+        
+
+         //d.close();   
+        // writeln("drill_exit end"); 
+    }
+
+
+
 int main(string[] args)
 {
     writeln("Drill WebView v"~DrillAPI.DRILL_VERSION~" - "~DrillAPI.GITHUB_URL);
@@ -38,8 +55,9 @@ int main(string[] args)
         immutable bool resizable = false;
          DhanosInterface d = getNewPlatformInstance(title, url, width, height, resizable);
     
-        d.setCallback("exit",&exit);
-        //d.setBorder(false);
+        d.setCallback("exit",&drill_exit);
+         d.setCallback("search",&search);
+        d.setBorder(false);
         d.mainLoop();
-    return 0;
+       return 0;
 }
