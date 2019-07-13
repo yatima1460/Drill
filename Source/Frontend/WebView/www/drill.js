@@ -5,7 +5,7 @@ window.onload = function() {
     
 
   console.log("window loaded");
-  dhanos.loaded("a");
+  dhanos.loaded();
 
   // bind search input to custom Dhanos callback
   let search = document.getElementById("search");
