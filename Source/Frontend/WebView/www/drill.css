@@ -1,4 +1,9 @@
 
+html, body {
+    margin: 0;
+    padding: 0;
+}
+
 #main {
 
 }
@@ -6,9 +11,44 @@
 #search {
 
     width: 100%;
-    //line-height: 3em;
+    
     
     font-size: 3em;
     padding: 0.2em;
     margin: 0;
+}
+
+.icon {
+    width: 10%;
+}
+.name {
+    width: 40%;
+}
+
+.path {
+    width: 20%;
+}
+
+.date {
+    width: 30%;
+}
+
+
+.result {
+    font-size: 1em;
+    padding: 0.2em;
+
+    display: flex;
+    flex-direction: row;
+   
+    
+
+}
+
+#results {
+
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    width: 100%;
 }

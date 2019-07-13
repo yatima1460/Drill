@@ -1,10 +1,23 @@
 
+function addApplication(icon,name,exec,desktopFileDateModifiedString)
+{
+    let results = document.getElementById("results");
 
+
+    results.innerHTML += 
+    "<div class=result>"+
+    "<div class=icon><img src="+icon+"></div>"+
+    "<div class=name>"+name+"</div>"+
+    "<div class=path>"+exec+"</div>"+
+    "<div class=date>"+desktopFileDateModifiedString+"</div>"+
+    "</div>";
+};
 
 window.onload = function() {
     
 
   console.log("window loaded");
+
   dhanos.loaded();
 
   // bind search input to custom Dhanos callback
