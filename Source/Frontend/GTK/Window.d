@@ -240,6 +240,13 @@ public:
 
         scroll.add(this.treeview);
 
+        ApplicationInfo[] applications = DrillAPI.getApplicationsInfo();
+        foreach (ApplicationInfo app; applications)
+        {
+            import std.uni : toLower;
+            appendApplication(cast(immutable(ApplicationInfo))app);
+        }
+
         search_input.addOnChanged(&searchChanged);
 
         debug
