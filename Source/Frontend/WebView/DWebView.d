@@ -12,7 +12,6 @@ import std.path : buildPath;
 
 
 
-extern (C) int webview(const char *title, const char *url, int width, int height, int resizable);
 
 
 import std.path : dirName, buildNormalizedPath, absolutePath, buildPath;
@@ -28,6 +27,8 @@ void callback(immutable(string) value)
 }
 
 
+
+
 int main(string[] args)
 {
     writeln("Drill WebView v"~DrillAPI.DRILL_VERSION~" - "~DrillAPI.GITHUB_URL);
@@ -40,8 +41,8 @@ int main(string[] args)
     immutable int height = 250;
     immutable bool resizable = false;
     DhanosInterface d = getNewPlatformInstance(title, url, width, height, resizable);
-   
-    //d.setBorder(false);
+    
+    //md.setBorder(false);
     auto f = &callback;
     d.setJSCallback(f);
     d.mainLoop();
