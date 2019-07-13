@@ -31,7 +31,11 @@ ApplicationInfo readDesktopFile(immutable(string) fullPath) @system
     ApplicationInfo ai;
     try
     {
+            import std.algorithm : filter;
+
+    import std.array : array;
         desktopFileLines = readText(fullPath).split("\n");
+        desktopFileLines = desktopFileLines.filter!(x => x.length != 0).array;
         ai.desktopFileDateModifiedString = toDateString(DirEntry(fullPath).timeLastModified);
     }
     catch (Exception e)
@@ -47,6 +51,7 @@ ApplicationInfo readDesktopFile(immutable(string) fullPath) @system
      
         // ai.exec.length == 0 &&
         // is used so we only assign the first line found
+        if (line.length < 5) continue;
 
         if (ai.exec.length == 0 && canFind(line[0..5],"Exec="))
         {
