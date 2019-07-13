@@ -6,7 +6,10 @@ function addApplication(icon,name,exec,desktopFileDateModifiedString)
 
     results.innerHTML += 
     "<div class=result>"+
-    "<div class=icon><img src="+icon+"></div>"+
+    "<div class=icon>"+
+    "<img src=file:///usr/share/icons/hicolor/scalable/apps/"+icon+".svg>"
+    //"<img srcset=file:///usr/share/pixmaps/"+icon+".png>"+
+    +"</div>"+
     "<div class=name>"+name+"</div>"+
     "<div class=path>"+exec+"</div>"+
     "<div class=date>"+desktopFileDateModifiedString+"</div>"+
