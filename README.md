@@ -69,6 +69,23 @@ If you want a version that doesn't require sudo and can be configurable download
 
 If you omit `-b release` a slower debug version with various logs (not recommended) will be created
 
+### Debugging
+
+Help! GDB crashes/halts!!!
+
+D uses `SIGUSR1` and `SIGUSR2` to let the GC communicate with the threads.
+
+Set GDB or your debugger to ignore them:
+
+```
+handle SIGUSR1 print nostop pass
+handle SIGUSR2 print nostop pass
+```
+If you want to do this automagically add them to .gdbinit in `/home/username/.gdbinit`
+Remember to pass the signals otherwise the threads will lock, ONLY ignore the stop in your debugger.
+
+https://dlang.org/library/core/thread/thread_set_gc_signals.html
+
 # What is this
 
 I was stressed on Linux because I couldn't find the files I needed, file searchers based on system indexing (updatedb) are prone to breaking and hard to configure for the average user, so did an all nighter and started this.
