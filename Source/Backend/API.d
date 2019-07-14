@@ -36,6 +36,7 @@ private:
     immutable(string[]) BLOCK_LIST;
     immutable(string[]) PRIORITY_LIST;
     const(Regex!char[]) PRIORITY_LIST_REGEX;
+    bool singlethread;
 
 public:
     static immutable(string) DRILL_VERSION = import("DRILL_VERSION");
@@ -44,7 +45,7 @@ public:
     static immutable(string) WEBSITE_URL = "https://www.drill.santamorena.me";
     static immutable(string) AUTHOR_URL = "https://www.linkedin.com/in/yatima1460/";
     static immutable(string) AUTHOR_NAME = "Federico Santamorena";
-    
+
 
 public:
 
@@ -55,10 +56,12 @@ public:
     */
     this(immutable(string) assetsDirectory)
     {
+        import core.stdc.signal : signal;
+        //signal(10, null); 
         Logger.logDebug("DrillAPI " ~ DRILL_VERSION);
         Logger.logDebug("Mount points found: "~to!string(getMountPoints()));
         auto blockListsFullPath = buildPath(assetsDirectory,"BlockLists");
-        
+
         Logger.logDebug("Assets Directory: " ~ assetsDirectory);
         Logger.logDebug("blockListsFullPath: " ~ blockListsFullPath);
 
@@ -74,7 +77,7 @@ public:
         try
         {
             PRIORITY_LIST = cast(immutable(string[]))readListFiles(buildPath(assetsDirectory,"PriorityLists"));
-            this.PRIORITY_LIST_REGEX = PRIORITY_LIST[].map!(x => regex(x)).array; 
+            this.PRIORITY_LIST_REGEX = PRIORITY_LIST[].map!(x => regex(x)).array;
         }
         catch (FileException fe)
         {
@@ -105,17 +108,28 @@ public:
         search = the search string, case insensitive, every word (split by space) will be searched in the file name
         resultFound = the delegate that will be called when a crawler will find a new result
     */
-    void startCrawling(immutable(string) search, shared(void delegate(immutable(FileInfo) result)) resultFound)
+    void startCrawling(immutable(string) search, void function(immutable(FileInfo) result, void* userObject) resultFound, void* userObj)
     {
+        if (userObj is null)
+            throw new Exception("it does not make sense for a userObject to be null");
         // stop previous crawlers
-        this.stopCrawlingAsync();
+        this.stopCrawlingSync();
 
         foreach (immutable(string) mountpoint; getMountPoints())
         {
-            Crawler crawler = new Crawler(mountpoint, this.BLOCK_LIST, this.PRIORITY_LIST_REGEX, resultFound, search);
-            crawler.start();
+            Crawler crawler = new Crawler(mountpoint, this.BLOCK_LIST, this.PRIORITY_LIST_REGEX, resultFound, search,userObj);
+            if (singlethread)
+                crawler.run();
+            else
+                crawler.start();
             this.threads.insertBack(crawler);
         }
+    }
+
+
+    void setSinglethread(bool flag)
+    {
+        this.singlethread = flag;
     }
 
     /*
@@ -133,7 +147,7 @@ public:
     /**
     This function stops all the crawlers and will return only when all of them are stopped
     */
-    void stopCrawlingSync() 
+    void stopCrawlingSync()
     {
         foreach (Crawler crawler; this.threads)
             crawler.stopAsync();
@@ -144,14 +158,24 @@ public:
     This function will return only when all crawlers finished their jobs or were stopped
     This function does not stop the crawlers!!!
     */
-    void waitForCrawlers() 
+    void waitForCrawlers()
     {
         Logger.logInfo("Waiting for "~to!string(getActiveCrawlersCount())~" crawlers to stop");
         foreach (Crawler crawler; this.threads)
         {
             Logger.logInfo("Waiting for crawler "~to!string(crawler)~" to stop");
-            crawler.join();
-            Logger.logInfo("Crawler "~to!string(crawler)~" stopped");
+            import core.thread : ThreadException;
+            try
+            {
+                crawler.join();
+                Logger.logInfo("Crawler "~to!string(crawler)~" stopped");
+            }
+            catch(ThreadException e)
+            {
+                Logger.logError("Thread "~crawler.toString()~" crashed when joining");
+                Logger.logError(e.msg);
+            }
+            
         }
         Logger.logInfo("All crawlers stopped.");
     }
@@ -170,7 +194,7 @@ import ApplicationInfo : ApplicationInfo;
                  import Utils : readDesktopFile;
                 // ai.name = getDesktopFileNameValue(desktopFile);
                 // ai.desktopFileFullPath = desktopFile;
-                
+
                 // ai.exec = getDesktopFileExecValue(desktopFile);
 
                 applications ~= readDesktopFile(desktopFile);
@@ -184,7 +208,7 @@ import ApplicationInfo : ApplicationInfo;
     }
     //alias getApplicationsInfo = memoize!_getApplicationsInfo;
 
-    
+
     static @system string[] getDesktopFilesList()
     {
         version(linux)
@@ -196,7 +220,7 @@ import ApplicationInfo : ApplicationInfo;
                 // Logger.logError("Can't retrieve applications, will return an empty list");
                 return ls.output.split("\n");
             }
-        }   
+        }
         return [];
     }
     //alias getApplicationsList = memoize!_getDesktopFilesList;
@@ -208,7 +232,7 @@ import ApplicationInfo : ApplicationInfo;
 
     It's not assured that every mount point is a physical disk
     */
-    
+
 
     static @system string[] getMountPoints()
     {
@@ -266,13 +290,13 @@ import ApplicationInfo : ApplicationInfo;
     Maximum: length of total number of mountpoints unless the user started the crawlers manually
 
     Returns: number of crawlers active
-    
+
     */
     const @nogc @safe immutable(uint) getActiveCrawlersCount()
     {
         int active = 0;
         for (int i = 0; i < threads.length; i++)
-        {   
+        {
             if (threads[i].isCrawling())
                 active++;
         }
