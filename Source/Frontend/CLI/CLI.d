@@ -10,35 +10,35 @@ import API : DrillAPI;
 import Crawler : Crawler;
 import std.path : buildPath;
 
-void resultsFoundWithDate(immutable(FileInfo) result)
+void resultsFoundWithDate(immutable(FileInfo) result, void* userObject)
 {
-    synchronized 
+    synchronized
     {
         writeln(result.dateModifiedString,"\t",result.fullPath);
     }
 }
 
-void resultsFoundWithSize(immutable(FileInfo) result)
+void resultsFoundWithSize(immutable(FileInfo) result, void* userObject)
 {
-    synchronized 
+    synchronized
     {
         writeln(result.sizeString,"\t",result.fullPath);
     }
 }
 
-void resultsFoundWithSizeAndDate(immutable(FileInfo) result)
+void resultsFoundWithSizeAndDate(immutable(FileInfo) result, void* userObject)
 {
-    synchronized 
+    synchronized
     {
         writeln(result.dateModifiedString,"\t",result.sizeString,"\t",result.fullPath);
     }
 }
 
 
-void resultsFoundBare(immutable(FileInfo) result)
+void resultsFoundBare(immutable(FileInfo) result, void* userObject)
 {
-    synchronized 
-    {  
+    synchronized
+    {
         writeln(result.fullPath);
     }
 }
@@ -59,10 +59,10 @@ int main(string[] args)
     import std.path : dirName, buildNormalizedPath, absolutePath;
     import std.getopt : getopt, defaultGetoptPrinter, config;
 
-    
+
     DrillAPI drill = new DrillAPI(buildPath(absolutePath(dirName(buildNormalizedPath(args[0]))),"Assets"));
 
-
+    //debug drill.setSinglethread(true);
     bool date = false;
     bool size = false;
 
@@ -89,13 +89,13 @@ int main(string[] args)
         import core.stdc.stdlib : exit;
         exit(-1);
     }
-    
+
     else if (args.length == 2){
-        import std.functional : toDelegate;
-        auto selectedPrint = (date ? 
+        //import std.functional : toDelegate;
+        auto selectedPrint = (date ?
                              (size ? &resultsFoundWithSizeAndDate : &resultsFoundWithDate)
                              :(size ? &resultsFoundWithSize : &resultsFoundBare));
-        drill.startCrawling(args[1],toDelegate(selectedPrint));
+        drill.startCrawling(args[1],*&selectedPrint,cast(void*)&drill);
     }
 
     else{
