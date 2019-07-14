@@ -9,8 +9,18 @@ html {
   -webkit-text-size-adjust: 100%;
   /* 2 */ 
   margin: auto;
-  width:75%;
+  width:100%;
 }
+
+img {
+  -webkit-user-drag: none;
+  -khtml-user-drag: none;
+  -moz-user-drag: none;
+  -o-user-drag: none;
+  user-drag: none;
+
+}
+
 
 
 .main-content {
@@ -184,6 +194,7 @@ a {
   /* column | row */
   display: flex;
   flex-direction: column; 
+ 
  
  
   width: 15em;
