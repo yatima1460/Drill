@@ -21,7 +21,14 @@ window.onload = function() {
 
   console.log("window loaded");
 
-  dhanos.loaded();
+
+  document.getElementById('logo').addEventListener('click', function (e) {
+      console.log("drill logo clicked");
+      dhanos.open_drill_website();
+    
+  });
+
+  //dhanos.loaded();
 
   // bind search input to custom Dhanos callback
   let search = document.getElementById("search");
@@ -44,7 +51,16 @@ window.onload = function() {
       }
       if (isEscape) {
           console.log("The window will close");
-          dhanos.exit();
+          dhanos.close();
       }
+
+
+      if(evt.keyCode  == 13)
+        {
+            if (search.value.length == 0)
+                dhanos.close()
+            else 
+            dhanos.return();
+        }
   };
 };

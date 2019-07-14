@@ -35,6 +35,13 @@ void search(DhanosInterface d, immutable(string) value)
 
 import ApplicationInfo : ApplicationInfo;
 
+
+void drill_return(DhanosInterface d, immutable(string) value)
+{
+
+    writeln("return pressed");
+}
+
 void dhanos_page_loaded(DhanosInterface d, immutable(string) value)
 {
 
@@ -57,6 +64,15 @@ void dhanos_page_loaded(DhanosInterface d, immutable(string) value)
     }
 }
 
+
+
+void open_drill_website(DhanosInterface d, immutable(string) value)
+{
+    writeln("open_drill_website");
+    import Utils : openFile;
+    openFile(DrillAPI.WEBSITE_URL);
+}
+
 void appendApplication(DhanosInterface d, immutable(ApplicationInfo) a)
 {
     d.runJavascript("javascript:addApplication("~a.name~");");
@@ -68,8 +84,10 @@ int main(string[] args)
     immutable(string) title = "Drill";
     immutable(string) dhanos_project_path = dirName(absolutePath(buildNormalizedPath(args[0])));
     immutable(string) url = buildPath("file:" ~ dhanos_project_path ~ "/drill.html");
-    immutable int width = 800;
-    immutable int height = 450;
+    immutable int width = 960;
+    immutable int height = 80;
+    // width = 100;
+    // height = 100;
     immutable bool resizable = false;
 
     DhanosInterface d = getNewPlatformInstance(title, url, width, height, resizable);
@@ -79,8 +97,10 @@ int main(string[] args)
 
    
     d.setCallback("loaded",&dhanos_page_loaded);
-    d.setCallback("exit", &drill_exit);
+    d.setCallback("close", &drill_exit);
     d.setCallback("search", &search);
+    d.setCallback("return", &drill_return);
+    d.setCallback("open_drill_website", &open_drill_website);
     d.setBorder(false);
     d.mainLoop();
     return 0;
