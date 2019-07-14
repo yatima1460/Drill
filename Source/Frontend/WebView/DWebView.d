@@ -95,13 +95,15 @@ int main(string[] args)
     immutable(string) assetsFolder = buildPath(absolutePath(dirName(buildNormalizedPath(args[0]))), "Assets");
     DrillAPI drillapi = new DrillAPI(assetsFolder);
 
+d.setBorder(false);
+    d.setAlwaysOnTop(true);
    
     d.setCallback("loaded",&dhanos_page_loaded);
     d.setCallback("close", &drill_exit);
     d.setCallback("search", &search);
     d.setCallback("return", &drill_return);
     d.setCallback("open_drill_website", &open_drill_website);
-    d.setBorder(false);
+    
     d.mainLoop();
     return 0;
 }
