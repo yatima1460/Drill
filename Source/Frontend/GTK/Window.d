@@ -82,6 +82,34 @@ else
     }
 }
 
+void resultFound(immutable(FileInfo) result, void* userObject)
+    {
+         //Logger.logError(to!string(userObject),"RESULT CALLBACK 2");
+        assert(userObject !is null);
+        if (userObject is null)
+            throw new Exception("window user object can't be null in resultFound");
+        //assert(userObject !is null, );
+
+        DrillWindow window = cast(DrillWindow)userObject;
+            //Logger.logError(to!string(window),"RESULT CALLBACK 3");
+        assert(window !is null);
+        if (window is null)
+            throw new Exception("userObject is not a DrillWindow GTK");
+            
+       // assert(window !is null, );
+
+        window.list_dirty = true;
+        auto bufferNotShared = cast(DList!FileInfo*)window.buffer;
+
+
+     (*bufferNotShared).insertFront(result);
+
+  
+            //*(cast(DList!FileInfo)window.buffer).insertFront(result);
+        
+   
+    }
+
 extern (C) static nothrow int threadIdleProcess(void* data)
 in(data != null, "data can't be null in GTK task")
 out(r; r == 0 || r == 1, "GTK task should return 0 or 1")
@@ -525,11 +553,7 @@ private:
         }
     }
 
-    private void resultFound(immutable(FileInfo) result)
-    {
-        list_dirty = true;
-        (cast(DList!FileInfo)*buffer).insertFront(result);
-    }
+    
 
     private void createNewList()
     {
@@ -581,7 +605,10 @@ private:
                     appendApplication(cast(immutable(ApplicationInfo))application);
                 }
             }
-            drillapi.startCrawling(search_string, &this.resultFound);
+            
+            //debug drillapi.setSinglethread(true);
+            auto callback = (&resultFound);
+            drillapi.startCrawling(search_string, callback, cast(void*)this);
         }
         else
         {
