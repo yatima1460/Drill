@@ -42,26 +42,33 @@ ApplicationInfo readDesktopFile(immutable(string) fullPath) @system
     
     ai.desktopFileFullPath = fullPath;
    
-    foreach (line; desktopFileLines)
+    try
     {
-     
-        // ai.exec.length == 0 &&
-        // is used so we only assign the first line found
-
-        if (ai.exec.length == 0 && canFind(line[0..5],"Exec="))
+        foreach (line; desktopFileLines)
         {
-            ai.exec = line[5..$];
-            ai.execProcess = cleanExecLine(line[5..$]);
-        }
-        if (ai.name.length == 0 && canFind(line[0..5],"Name="))
-        {
-            ai.name = line[5..$];
-        }
-        if (canFind(line[0..5],"Icon="))
-        {
-            ai.icon = line[5..$];
-        }
+            if (line.length < 5) continue;
+            // ai.exec.length == 0 &&
+            // is used so we only assign the first line found
         
+            if (ai.exec.length == 0 && canFind(line[0..5],"Exec="))
+            {
+                ai.exec = line[5..$];
+                ai.execProcess = cleanExecLine(line[5..$]);
+            }
+            if (ai.name.length == 0 && canFind(line[0..5],"Name="))
+            {
+                ai.name = line[5..$];
+            }
+            if (canFind(line[0..5],"Icon="))
+            {
+                ai.icon = line[5..$];
+            }
+            
+        }
+    }
+    catch (Exception e)
+    {
+        Logger.logError("Error parsing file: '" ~ fullPath~ "' "~e.msg);
     }
     return ai;
 }
