@@ -1,14 +1,21 @@
 
+
+html {
+    border: 0.1em solid black;
+}
 html, body {
     margin: 0;
     padding: 0;
    
     overflow: hidden;
+   
+   
 }
 
 a {
     margin: 0;
     padding: 0;
+   
 }
 
 img {
@@ -22,7 +29,7 @@ img {
 
 
 #main {
-
+   
 }
 
 .top {
