@@ -40,12 +40,14 @@ private:
     
     shared(bool) running;
 
-    shared(void delegate(immutable(FileInfo) result)) resultCallback;
+    void function(  immutable(FileInfo) result, void* userObject) resultCallback;
 
     debug
     {
         long ignored_count;
     }
+
+      void* userObj;
 
 
 public:
@@ -54,16 +56,17 @@ public:
         immutable(string) MOUNTPOINT, 
         immutable(string[]) BLOCK_LIST,
         const(Regex!char[]) PRIORITY_LIST_REGEX,
-        shared(void delegate(immutable(FileInfo) result)) resultFound, 
-        immutable(string) search
+        void function(immutable(FileInfo) result, void* userObject) resultCallback, 
+        immutable(string) search,
+        void* userObj
     )
     in (MOUNTPOINT != null)
     in (MOUNTPOINT.length != 0)
-    in (resultFound != null)
+    in (resultCallback != null)
     in (search != null)
     in (search.length != 0)
     {
-
+        assert(userObj !is null, "it does not make sense for a userObject to be null");
         //TODO: invariant root contains /
 
         super(&run);
@@ -78,18 +81,23 @@ public:
         this.PRIORITY_LIST_REGEX = PRIORITY_LIST_REGEX;
 
         this.SEARCH_STRING = search;
-        resultCallback = resultFound;
+        this.resultCallback = resultCallback;
         this.BLOCK_LIST = BLOCK_LIST;
+
+
+        
+
+        this.userObj = userObj;
     }
 
-    private void noop_resultFound(immutable(FileInfo) result) @nogc const pure @safe
+    private void noop_resultFound(immutable(FileInfo) result,void*) @nogc const pure @safe
     {
 
     }
 
-    pure void stopAsync() @safe @nogc
+    pure void stopAsync() @nogc
     {
-        this.resultCallback = &this.noop_resultFound;
+        this.resultCallback = (&this.noop_resultFound).funcptr;
         this.running = false;
     }
 
@@ -153,6 +161,8 @@ private:
         return true;
     }
 
+    public:
+
     /**
     NOTE: We don't really care about CPU time, Drill isn't CPU intensive but disk intensive,
     in this function it's not bad design that there are multiple IFs checking the same thing over and over again,
@@ -207,18 +217,18 @@ private:
         {
             DirEntry currentDirectory = queue.front();
             queue.removeFront();
-            Logger.logDebug("Directory: " ~ currentDirectory.name,this.toString());
+            //Logger.logDebug("Directory: " ~ currentDirectory.name,this.toString());
 
 
             if (isInRegexList(BLOCK_LIST_REGEX,currentDirectory.name))
             {
-                Logger.logDebug("Blocked: " ~ currentDirectory.name,this.toString());
+                //Logger.logDebug("Blocked: " ~ currentDirectory.name,this.toString());
                 continue;
             }
 
             if (currentDirectory.isSymlink())
             {
-                Logger.logDebug("Symlink ignored: " ~ currentDirectory.name,this.toString());
+                //Logger.logDebug("Symlink ignored: " ~ currentDirectory.name,this.toString());
                 continue;
             }
             
@@ -241,13 +251,13 @@ private:
                 {
                     if (currentFile.isSymlink())
                     {
-                        Logger.logDebug("Symlink ignored: " ~ currentDirectory.name,this.toString());
+                        //Logger.logDebug("Symlink ignored: " ~ currentDirectory.name,this.toString());
                         continue;
                     }
                     if (!this.running) return;
                     if (isInRegexList(BLOCK_LIST_REGEX, currentFile.name))
                     {
-                        Logger.logDebug("Ignored: " ~ currentFile.name,this.toString());
+                        //Logger.logDebug("Ignored: " ~ currentFile.name,this.toString());
                         continue;
                     }
                     if (!this.running) return;
@@ -255,12 +265,12 @@ private:
                     {
                         if (isInRegexList(this.PRIORITY_LIST_REGEX, currentFile.name))
                         {
-                            Logger.logDebug("High priority: "~currentFile.name,this.toString());
+                            //Logger.logDebug("High priority: "~currentFile.name,this.toString());
                             queue.insertFront(currentFile);
                         }
                         else
                         {
-                            Logger.logTrace("Low priority: "~currentFile.name,this.toString());
+                            //Logger.logTrace("Low priority: "~currentFile.name,this.toString());
                             queue.insertBack(currentFile);
                         }
                     }
@@ -296,7 +306,12 @@ private:
                         // }
                         // catch (Exception e)
                         // {
-                            resultCallback(buildFileInfo(currentFile));
+                          if(userObj is null) throw new Exception("userObj can't be null before calling the callback");
+                          if(resultCallback is null) throw new Exception("resultCallback can't be null before calling the callback");
+                         // Logger.logError(to!string(userObj),"RESULT CALLBACK");
+                        
+                        immutable(FileInfo) fi = buildFileInfo(currentFile);
+                        resultCallback(fi, userObj);
                         // }
 
                     }
