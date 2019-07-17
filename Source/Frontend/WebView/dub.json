@@ -8,7 +8,7 @@
   "license": "GPL-2.0",
   "homepage": "https://github.com/yatima1460/Drill",
   "targetType": "executable",
-  "targetName": "drill-search-cli",
+  "targetName": "drill-search-webview",
   "sourceFiles": [
     "DWebView.d"
    
@@ -35,7 +35,7 @@
     "../../../Assets",
     "www/*.*"
   ],
-  "targetPath": "Build/Drill-CLI-$PLATFORM-$ARCH-$BUILD_TYPE",
+  "targetPath": "Build/Drill-WebView-$PLATFORM-$ARCH-$BUILD_TYPE",
   "toolchainRequirements": {
     "dmd": ">=2.086.0",
     "gdc": "no",
