@@ -1,0 +1,3 @@
+[submodule "Source/Frontend/WebView/Dhanos"]
+	path = Source/Frontend/WebView/Dhanos
+	url = https://github.com/yatima1460/Dhanos.git
