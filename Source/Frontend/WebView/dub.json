@@ -10,38 +10,30 @@
   "targetType": "executable",
   "targetName": "drill-search-cli",
   "sourceFiles": [
-    "DWebView.d",
-    "webview.o"
+    "DWebView.d"
+   
   ],
  
   "importPaths": [
     ".",
-    "../../Backend"
+    "../../Backend",
+    "Dhanos/Dhanos"
   ],
 
-  "libs-posix": [
-
-    "gtk+-3.0",
-    "webkit2gtk-4.0"
-  ],
+ 
   "mainSourceFile": "DWebView.d",
   "dependencies": {
     "drill-core": {
       "path": "../../Backend"
+    },
+    "dhanos": {
+      "path": "Dhanos"
     }
   },
-  "buildTypes": {
-    "release": {
-      "buildOptions": [
-        "releaseMode",
-        "optimize",
-        "noBoundsCheck",
-        "inline"
-      ]
-    }
-  },
+  
   "copyFiles": [
-    "../../../Assets"
+    "../../../Assets",
+    "www/*.*"
   ],
   "targetPath": "Build/Drill-CLI-$PLATFORM-$ARCH-$BUILD_TYPE",
   "toolchainRequirements": {
