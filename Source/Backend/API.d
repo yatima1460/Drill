@@ -14,6 +14,8 @@ import Utils : readListFiles;
 import Logger : Logger;
 import Crawler : Crawler;
 import FileInfo : FileInfo;
+import ApplicationInfo : ApplicationInfo;
+
 
 immutable(string) DRILL_VERSION = import("DRILL_VERSION");
 immutable(string) DRILL_BUILD_TIME = __TIMESTAMP__;
@@ -70,7 +72,10 @@ void drill_stop_crawling_async(drill_context context)
     context.threads.clear(); // TODO: if nothing has a reference to a thread does the thread get GC-ed?
 }
 
-
+/**
+This function will return only when all crawlers finished their jobs or were stopped
+This function does not stop the crawlers!!!
+*/
 void drill_wait_for_crawlers(drill_context context)
 {
     Logger.logInfo("Waiting for "~to!string(drill_active_crawlers_count(context))~" crawlers to stop");
@@ -93,8 +98,8 @@ void drill_wait_for_crawlers(drill_context context)
     Logger.logInfo("All crawlers stopped.");
 }
 
-/*
-
+/**
+This function stops all the crawlers and will return only when all of them are stopped
 */
 void drill_stop_crawling_sync(drill_context context)
 {
@@ -103,15 +108,20 @@ void drill_stop_crawling_sync(drill_context context)
     drill_wait_for_crawlers(context);
 }
 
-/*
-Starts the crawling returning a drill_context object
+/**
+Starts the crawling, every crawler will filter on its own.
+Use the resultFound callback as an event to know when a crawler finds a new result.
+You can call this without stopping the crawling, the old crawlers will get stopped automatically.
+If a crawling is already in progress the current one will get stopped asynchronously and a new one will start.
+
+Params:
+    search = the search string, case insensitive, every word (split by space) will be searched in the file name
+    resultFound = the delegate that will be called when a crawler will find a new result
 */
 drill_context drill_start_crawling(drill_data data, immutable(string) search_value, void function(immutable(FileInfo) result, void* user_object) result_callback, void* user_object)
 {
     drill_context c = {search_value};
-    if (user_object is null)
-        throw new Exception("it does not make sense for a userObject to be null");
-    
+    debug Logger.logWarning("user_object is null");
     foreach (immutable(string) mountpoint; DrillAPI.getMountPoints())
     {
         Crawler crawler = new Crawler(mountpoint, data.BLOCK_LIST, data.PRIORITY_LIST_REGEX, result_callback, search_value,user_object);
@@ -189,62 +199,8 @@ class DrillAPI
     }
 
 
-private:
-
-    Array!Crawler threads;
-
-    immutable(string[]) BLOCK_LIST;
-    immutable(string[]) PRIORITY_LIST;
-    const(Regex!char[]) PRIORITY_LIST_REGEX;
-    bool singlethread;
-
-public:
-    static immutable(string) DRILL_VERSION = import("DRILL_VERSION");
-    static immutable(string) BUILD_TIME = __TIMESTAMP__;
-    static immutable(string) GITHUB_URL = "https://github.com/yatima1460/Drill";
-    static immutable(string) WEBSITE_URL = "https://www.drill.santamorena.me";
-    static immutable(string) AUTHOR_URL = "https://www.linkedin.com/in/yatima1460/";
-    static immutable(string) AUTHOR_NAME = "Federico Santamorena";
-
-
 public:
 
-
-
-    /**
-    Initializes a new Drill search engine
-    */
-    this(immutable(string) assetsDirectory)
-    {
-        import core.stdc.signal : signal;
-        //signal(10, null); 
-        Logger.logDebug("DrillAPI " ~ DRILL_VERSION);
-        Logger.logDebug("Mount points found: "~to!string(getMountPoints()));
-        auto blockListsFullPath = buildPath(assetsDirectory,"BlockLists");
-
-        Logger.logDebug("Assets Directory: " ~ assetsDirectory);
-        Logger.logDebug("blockListsFullPath: " ~ blockListsFullPath);
-
-        try
-        {
-            BLOCK_LIST = cast(immutable(string[]))readListFiles(blockListsFullPath);
-        }
-        catch (FileException fe)
-        {
-            Logger.logError(fe.toString());
-            Logger.logError("Error when trying to load block lists, will default to an empty list");
-        }
-        try
-        {
-            PRIORITY_LIST = cast(immutable(string[]))readListFiles(buildPath(assetsDirectory,"PriorityLists"));
-            this.PRIORITY_LIST_REGEX = PRIORITY_LIST[].map!(x => regex(x)).array;
-        }
-        catch (FileException fe)
-        {
-            Logger.logError(fe.toString());
-            Logger.logError("Error when trying to read priority lists, will default to an empty list");
-        }
-    }
 
     // void startCrawler(immutable(string) mountpoint, immutable(string) search,
     //         void delegate(immutable(FileInfo) result) resultFound)
@@ -256,91 +212,7 @@ public:
     //         void delegate(immutable(FileInfo) result) resultFound)
     // {
 
-    // }
 
-    /**
-    Starts the crawling, every crawler will filter on its own.
-    Use the resultFound callback as an event to know when a crawler finds a new result.
-    You can call this without stopping the crawling, the old crawlers will get stopped automatically.
-    If a crawling is already in progress the current one will get stopped asynchronously and a new one will start.
-
-    Params:
-        search = the search string, case insensitive, every word (split by space) will be searched in the file name
-        resultFound = the delegate that will be called when a crawler will find a new result
-    */
-    void startCrawling(immutable(string) search, void function(immutable(FileInfo) result, void* userObject) resultFound, void* userObj)
-    {
-        if (userObj is null)
-            throw new Exception("it does not make sense for a userObject to be null");
-        // stop previous crawlers
-        this.stopCrawlingSync();
-
-        foreach (immutable(string) mountpoint; getMountPoints())
-        {
-            Crawler crawler = new Crawler(mountpoint, this.BLOCK_LIST, this.PRIORITY_LIST_REGEX, resultFound, search,userObj);
-            if (singlethread)
-                crawler.run();
-            else
-                crawler.start();
-            this.threads.insertBack(crawler);
-        }
-    }
-
-
-    void setSinglethread(bool flag)
-    {
-        this.singlethread = flag;
-    }
-
-    /*
-    Notifies the crawlers to stop and clears the crawlers array stored inside DrillAPI
-    This function is non-blocking.
-    If no crawling is currently underway this function will do nothing.
-    */
-    void stopCrawlingAsync()
-    {
-        foreach (Crawler crawler; this.threads)
-            crawler.stopAsync();
-        this.threads.clear(); // TODO: if nothing has a reference to a thread does the thread get GC-ed?
-    }
-
-    /**
-    This function stops all the crawlers and will return only when all of them are stopped
-    */
-    void stopCrawlingSync()
-    {
-        foreach (Crawler crawler; this.threads)
-            crawler.stopAsync();
-        waitForCrawlers();
-    }
-
-    /**
-    This function will return only when all crawlers finished their jobs or were stopped
-    This function does not stop the crawlers!!!
-    */
-    void waitForCrawlers()
-    {
-        Logger.logInfo("Waiting for "~to!string(getActiveCrawlersCount())~" crawlers to stop");
-        foreach (Crawler crawler; this.threads)
-        {
-            Logger.logInfo("Waiting for crawler "~to!string(crawler)~" to stop");
-            import core.thread : ThreadException;
-            try
-            {
-                crawler.join();
-                Logger.logInfo("Crawler "~to!string(crawler)~" stopped");
-            }
-            catch(ThreadException e)
-            {
-                Logger.logError("Thread "~crawler.toString()~" crashed when joining");
-                Logger.logError(e.msg);
-            }
-            
-        }
-        Logger.logInfo("All crawlers stopped.");
-    }
-
-import ApplicationInfo : ApplicationInfo;
 
     static @system ApplicationInfo[] getApplicationsInfo()
     {
@@ -442,26 +314,7 @@ import ApplicationInfo : ApplicationInfo;
     import std.functional : memoize;
     //alias getMountPoints = memoize!_getMountPoints;
 
-    /**
-    A crawler is active when it's scanning something.
-    If a crawler cleanly finished its job it's not considered active.
-    If a crawler crashes (should never happen) it's not considered active.
-    Minimum: 0
-    Maximum: length of total number of mountpoints unless the user started the crawlers manually
 
-    Returns: number of crawlers active
-
-    */
-    const @nogc @safe immutable(uint) getActiveCrawlersCount()
-    {
-        int active = 0;
-        for (int i = 0; i < threads.length; i++)
-        {
-            if (threads[i].isCrawling())
-                active++;
-        }
-        return active;
-    }
 
 
 }
