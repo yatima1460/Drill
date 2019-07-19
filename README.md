@@ -10,6 +10,9 @@
 
 [![Twitter](https://img.shields.io/twitter/url/https/github.com/yatima1460/Drill.svg?style=social)](https://twitter.com/intent/tweet?text=Wow:&url=https%3A%2F%2Fgithub.com%2Fyatima1460%2FDrill)
 
+Get notified for latest releases
+[![https://telegram.me/drill_search](docs/icons/telegram_icon.png?sanitize=true)]()
+
 # TL;DR: What is this
 
 Search files without indexing, but clever crawling:
