@@ -134,17 +134,18 @@ private:
 
     immutable(FileInfo) buildFileInfo(DirEntry currentFile) const
     {
-        FileInfo f;
-        f.isDirectory = !currentFile.isDir();
-        f.isDirectory = currentFile.isDir();
-        f.fullPath = currentFile.name;
-        f.fileName = baseName(currentFile.name);
-        f.fileNameLower = toLower(f.fileName);
-        f.containingFolder = dirName(currentFile.name);
-        f.extension = extension(currentFile.name);
-        f.sizeString = humanSize(currentFile.size);
-        f.originalMountpoint = this.MOUNTPOINT;
-        f.dateModifiedString = toDateString(currentFile.timeLastModified());
+        FileInfo f = {
+            this.MOUNTPOINT,
+            currentFile.isDir(),
+            !currentFile.isDir(),
+            toDateString(currentFile.timeLastModified()),
+            dirName(currentFile.name),
+            baseName(currentFile.name),
+            toLower(baseName(currentFile.name)),
+            extension(currentFile.name),
+            currentFile.name,
+            humanSize(currentFile.size)
+        };
         return f;
     }
 
