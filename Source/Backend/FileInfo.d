@@ -3,9 +3,8 @@ module FileInfo;
 /**
 FileInfo is a struct filled by the information a crawler can find about a file
 */
-struct FileInfo
+immutable struct FileInfo
 {
-
     /**
     The original mountpoint used by a crawler that found this file
     */
@@ -24,7 +23,7 @@ struct FileInfo
     /**
     true if is a symbolic link
     */
-    bool isSymbolic;
+    //bool isSymbolic;
 
     /**
     string of the date modified
@@ -39,13 +38,12 @@ struct FileInfo
     /**
     name of the icon to use on the left of the name
     */
-    string iconName;
+    //string iconName;
 
     /**
     the filename with extension
     */
     string fileName;
-
 
     /**
     the filename with extension but lower string
@@ -57,58 +55,13 @@ struct FileInfo
     */
     string extension;
 
-
-
+    /**
+    Complete full path of the file
+    */
     string fullPath;
 
-
-
+    /**
+    The size of the file, already converted as a human readable string
+    */
     string sizeString;
-
-
-
-
-
 }
-
-//     this(DirEntry de)
-//     {
-
-//     }
-
-//     void isDirectory()
-//     {
-
-//     }
-
-//     string getDateModifiedString()
-//     {
-
-//     }
-
-//     void openContainingFolder()
-//     {
-
-//     }
-
-//     void openFile()
-//     {
-
-//     }
-
-//     string getContainingFolder()
-//     {
-
-//     }
-
-//     string getFileName()
-//     {
-
-//     }
-
-//     string getIconName()
-//     {
-
-//     }
-
-// }
