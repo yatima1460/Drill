@@ -16,6 +16,52 @@ import ApplicationInfo : ApplicationInfo;
 
 import Logger : Logger;
 
+
+/**
+Opens a file using the current system implementation for file associations
+
+Returns: true if successful
+*/
+bool drill_open_file(immutable(string) fullpath) @system
+{
+    import std.process : spawnProcess;
+    import std.stdio : stdin, stdout, stderr;
+    import std.process : Config;
+    import Logger : Logger;
+    
+    try
+    {
+        version (Windows) spawnProcess(["explorer", fullpath], null, Config.none, null);
+        version (linux) spawnProcess(["xdg-open", fullpath], null, Config.none, null);
+        version (OSX) spawnProcess(["open", fullpath], null, Config.none, null);
+        return true;
+    }
+    catch (Exception e)
+    {
+        Logger.logError(e.msg);
+        return false;
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 string[] _cleanExecLine(immutable(string) exec) pure @safe
 {
     import std.algorithm : filter;
@@ -124,58 +170,6 @@ string _toDateString(SysTime time) @safe
 }
 alias toDateString = memoize!_toDateString;
 
-/***
-    Opens the file using the current system implementation
-    */
-bool openFile(immutable(string) fullpath) @system
-{
-    import std.process : spawnProcess;
-    import std.stdio : stdin, stdout, stderr;
-    import std.process : Config;
-    import Logger : Logger;
-
-    version (Windows)
-    {
-        try
-        {
-            spawnProcess(["explorer", fullpath], null, Config.none, null);
-            return true;
-        }
-        catch (Exception e)
-        {
-            Logger.logError(e.msg);
-            return false;
-        }
-    }
-    version (linux)
-    {
-        try
-        {
-            spawnProcess(["xdg-open", fullpath], null, Config.none, null);
-            return true;
-        }
-        catch (Exception e)
-        {
-            Logger.logError(e.msg);
-            return false;
-        }
-    }
-    version (OSX)
-    {
-        try
-        {
-            spawnProcess(["open", fullpath], null, Config.none, null);
-            return true;
-        }
-        catch (Exception e)
-        {
-            Logger.logError(e.msg);
-            return false;
-        }
-    }
-
-    //TODO: return bool if successful?
-}
 
 
 
