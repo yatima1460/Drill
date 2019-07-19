@@ -28,6 +28,12 @@
     "."
   ],
   "buildTypes": {
+    "debug" : {
+      "buildOptions": [
+      "debugMode",
+      "debugInfo",
+      ]
+    },
     "release": {
       "buildOptions": [
         "releaseMode",
