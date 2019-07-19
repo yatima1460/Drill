@@ -66,7 +66,7 @@ public:
     in (search != null)
     in (search.length != 0)
     {
-        assert(userObj !is null, "it does not make sense for a userObject to be null");
+        
         //TODO: invariant root contains /
 
         super(&run);
@@ -307,7 +307,7 @@ private:
                         // }
                         // catch (Exception e)
                         // {
-                          if(userObj is null) throw new Exception("userObj can't be null before calling the callback");
+                      
                           if(resultCallback is null) throw new Exception("resultCallback can't be null before calling the callback");
                          // Logger.logError(to!string(userObj),"RESULT CALLBACK");
                         
