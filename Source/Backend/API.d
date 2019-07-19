@@ -54,10 +54,7 @@ Returns: number of crawlers active
 {
     int active = 0;
     foreach (thread; context.threads)
-    {
-        if (thread.isCrawling())
-            active++;
-    }
+        active += thread.isCrawling();
     return active;
 }
 
