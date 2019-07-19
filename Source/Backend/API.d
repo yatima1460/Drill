@@ -120,7 +120,7 @@ Params:
     search = the search string, case insensitive, every word (split by space) will be searched in the file name
     resultFound = the delegate that will be called when a crawler will find a new result
 */
-drill_context drill_start_crawling(drill_data data, immutable(string) search_value, void function(immutable(FileInfo) result, void* user_object) result_callback, void* user_object)
+drill_context drill_start_crawling(const(drill_data) data, immutable(string) search_value, immutable(void function(immutable(FileInfo) result, void* user_object)) result_callback, void* user_object)
 {
     drill_context c = {search_value};
     debug Logger.logWarning("user_object is null");
@@ -182,7 +182,9 @@ drill_data drill_load_data(immutable(string) assets_directory)
     return dd;
 }
 
-
+/**
+Returns a list of installed applications with their data saved in the ApplicationInfo struct
+*/
 @system ApplicationInfo[] drill_get_applications()
 {
     version(linux)
@@ -191,13 +193,7 @@ drill_data drill_load_data(immutable(string) assets_directory)
         string[] desktopFiles = drill_get_desktop_files();
         foreach (desktopFile; desktopFiles)
         {
-            // ApplicationInfo ai;
-                import Utils : readDesktopFile;
-            // ai.name = getDesktopFileNameValue(desktopFile);
-            // ai.desktopFileFullPath = desktopFile;
-
-            // ai.exec = getDesktopFileExecValue(desktopFile);
-
+            import Utils : readDesktopFile;
             applications ~= readDesktopFile(desktopFile);
         }
         return applications;
