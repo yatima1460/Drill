@@ -3,7 +3,7 @@
 ![](docs/screenshot.png)
 
 [![Build Status](https://travis-ci.org/yatima1460/Drill.svg?branch=master)](https://travis-ci.org/yatima1460/Drill)
-[![GitHub issues](https://img.shields.io/github/issues/yatima1460/Drill.svg)](https://github.com/yatima1460/Drill/issues)
+[![Financial Contributors on Open Collective](https://opencollective.com/Drill/all/badge.svg?label=financial+contributors)](https://opencollective.com/Drill) [![GitHub issues](https://img.shields.io/github/issues/yatima1460/Drill.svg)](https://github.com/yatima1460/Drill/issues)
 [![GitHub forks](https://img.shields.io/github/forks/yatima1460/Drill.svg)](https://github.com/yatima1460/Drill/network)
 [![GitHub stars](https://img.shields.io/github/stars/yatima1460/Drill.svg)](https://github.com/yatima1460/Drill/stargazers)
 [![GitHub license](https://img.shields.io/github/license/yatima1460/Drill.svg)](https://github.com/yatima1460/Drill/blob/master/LICENSE)
@@ -197,3 +197,33 @@ TODOs will slowly get converted to Issues
     - Error messagebox if opening file fails
     - Icons near the file name
     - Drag and drop
+
+## Contributors
+
+### Code Contributors
+
+This project exists thanks to all the people who contribute. [[Contribute](CONTRIBUTING.md)].
+<a href="https://github.com/yatima1460/Drill/graphs/contributors"><img src="https://opencollective.com/Drill/contributors.svg?width=890&button=false" /></a>
+
+### Financial Contributors
+
+Become a financial contributor and help us sustain our community. [[Contribute](https://opencollective.com/Drill/contribute)]
+
+#### Individuals
+
+<a href="https://opencollective.com/Drill"><img src="https://opencollective.com/Drill/individuals.svg?width=890"></a>
+
+#### Organizations
+
+Support this project with your organization. Your logo will show up here with a link to your website. [[Contribute](https://opencollective.com/Drill/contribute)]
+
+<a href="https://opencollective.com/Drill/organization/0/website"><img src="https://opencollective.com/Drill/organization/0/avatar.svg"></a>
+<a href="https://opencollective.com/Drill/organization/1/website"><img src="https://opencollective.com/Drill/organization/1/avatar.svg"></a>
+<a href="https://opencollective.com/Drill/organization/2/website"><img src="https://opencollective.com/Drill/organization/2/avatar.svg"></a>
+<a href="https://opencollective.com/Drill/organization/3/website"><img src="https://opencollective.com/Drill/organization/3/avatar.svg"></a>
+<a href="https://opencollective.com/Drill/organization/4/website"><img src="https://opencollective.com/Drill/organization/4/avatar.svg"></a>
+<a href="https://opencollective.com/Drill/organization/5/website"><img src="https://opencollective.com/Drill/organization/5/avatar.svg"></a>
+<a href="https://opencollective.com/Drill/organization/6/website"><img src="https://opencollective.com/Drill/organization/6/avatar.svg"></a>
+<a href="https://opencollective.com/Drill/organization/7/website"><img src="https://opencollective.com/Drill/organization/7/avatar.svg"></a>
+<a href="https://opencollective.com/Drill/organization/8/website"><img src="https://opencollective.com/Drill/organization/8/avatar.svg"></a>
+<a href="https://opencollective.com/Drill/organization/9/website"><img src="https://opencollective.com/Drill/organization/9/avatar.svg"></a>
