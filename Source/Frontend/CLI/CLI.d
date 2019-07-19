@@ -1,18 +1,20 @@
 module Drill.CLI;
 
+import core.stdc.stdlib : exit;
+import core.stdc.stdio :printf;
+
 import std.array : join;
 import std.stdio : writeln, readln;
 
-import core.stdc.stdio :printf;
-
 import FileInfo : FileInfo;
-import API : DrillAPI;
 import Crawler : Crawler;
 import std.path : buildPath;
 import API : drill_data, drill_context;
 import API : drill_load_data, drill_start_crawling;
-import API : DRILL_VERSION;
-import API : DRILL_GITHUB_URL;
+import API : DRILL_VERSION, DRILL_GITHUB_URL;
+
+// TODO: capture Ctrl-C and close crawlers?
+
 
 void resultsFoundWithDate(immutable(FileInfo) result, void* userObject)
 {
@@ -22,6 +24,7 @@ void resultsFoundWithDate(immutable(FileInfo) result, void* userObject)
     }
 }
 
+
 void resultsFoundWithSize(immutable(FileInfo) result, void* userObject)
 {
     synchronized
@@ -29,6 +32,7 @@ void resultsFoundWithSize(immutable(FileInfo) result, void* userObject)
         writeln(result.sizeString,"\t",result.fullPath);
     }
 }
+
 
 void resultsFoundWithSizeAndDate(immutable(FileInfo) result, void* userObject)
 {
@@ -39,6 +43,7 @@ void resultsFoundWithSizeAndDate(immutable(FileInfo) result, void* userObject)
 }
 
 
+
 void resultsFoundBare(immutable(FileInfo) result, void* userObject)
 {
     synchronized
@@ -46,6 +51,7 @@ void resultsFoundBare(immutable(FileInfo) result, void* userObject)
         writeln(result.fullPath);
     }
 }
+
 
 immutable(string) searchInput()
 {
@@ -90,6 +96,7 @@ int main(string[] args)
         case 0:
             writeln("Your operating system does not pass the executable path as first argument");
             exit(-2);
+            break;
             
         // No search string
         case 1:
@@ -98,6 +105,7 @@ int main(string[] args)
             defaultGetoptPrinter("Options:", opt.options);
             import core.stdc.stdlib : exit;
             exit(-1);
+            break;
 
         // Search string provided
         case 2:
@@ -110,7 +118,6 @@ int main(string[] args)
         // More unnecessary arguments
         default:
             writeln("Oops, you gave more arguments than expected.");
-            import core.stdc.stdlib : exit;
             exit(-1);
     }
     return 0;
