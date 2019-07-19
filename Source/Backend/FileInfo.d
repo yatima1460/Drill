@@ -1,24 +1,24 @@
 module FileInfo;
 
 /**
-FileInfo is a struct filled by the information a crawler can find about a file
+FileInfo is a struct filled by the information a crawler found about files matching the search
 */
-immutable struct FileInfo
+struct FileInfo
 {
     /**
     The original mountpoint used by a crawler that found this file
     */
-    string originalMountpoint;
+    immutable(string) originalMountpoint;
 
     /**
     true if the file is a directory
     */
-    bool isDirectory;
+    immutable(bool) isDirectory;
 
     /**
     true if the file is a normal file
     */
-    bool isFile;
+    immutable(bool) isFile;
 
     /**
     true if is a symbolic link
@@ -28,12 +28,12 @@ immutable struct FileInfo
     /**
     string of the date modified
     */
-    string dateModifiedString;
+    immutable(string) dateModifiedString;
 
     /***
     the parent folder
     */
-    string containingFolder;
+    immutable(string) containingFolder;
 
     /**
     name of the icon to use on the left of the name
@@ -43,25 +43,25 @@ immutable struct FileInfo
     /**
     the filename with extension
     */
-    string fileName;
+    immutable(string) fileName;
 
     /**
     the filename with extension but lower string
     */
-    string fileNameLower;
+    immutable(string) fileNameLower;
 
     /**
     only the extension with the dot (ex: .png) 
     */
-    string extension;
+    immutable(string) extension;
 
     /**
     Complete full path of the file
     */
-    string fullPath;
+    immutable(string) fullPath;
 
     /**
     The size of the file, already converted as a human readable string
     */
-    string sizeString;
+    immutable(string) sizeString;
 }
