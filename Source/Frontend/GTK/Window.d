@@ -414,12 +414,14 @@ public:
         v.packStart(scroll, true, true, 0);
         v.packStart(h, false, true, 0);
 
-        showAll();
+        // Spawn all widgets
+        this.showAll();
 
         gdk.Threads.threadsAddTimeout(10, &threadIdleProcess, cast(void*) this);
 
         addOnDelete(delegate bool(Event event, Widget widget) {
             Logger.logInfo("Window started to close, stopping crawlers");
+            // this is the last chance to stop things before GTK really closes
             drillapi.stopCrawlingSync();
             return false;
         });
@@ -430,13 +432,13 @@ public:
             if (event.keyval == GdkKeysyms.GDK_Escape)
             {
                 Logger.logInfo("ESC pressed, window is closing");
-                drillapi.stopCrawlingSync();
                 this.close();
                 return true;
             }
             return false;
         });
 
+        // this is used so GTK will not complain about undocumented TreeView height
         treeview.setFixedHeightMode(true);
     }
 
