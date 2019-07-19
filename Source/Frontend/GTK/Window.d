@@ -53,7 +53,7 @@ import glib.GException;
 import FileInfo : FileInfo;
 import Utils : humanSize;
 import Logger : Logger;
-import Utils : openFile;
+import Utils : drill_open_file;
 import ApplicationInfo : ApplicationInfo;
 import API : drill_get_applications;
 
@@ -551,7 +551,7 @@ private:
             try
             {
 
-                openFile(chained);
+                drill_open_file(chained);
             }
             catch (Exception e)
             {
