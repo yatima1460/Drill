@@ -119,8 +119,8 @@ import std.datetime : SysTime;
 
 string _toDateString(SysTime time) @safe
 {
-    import datefmt : format;
-    return time.format("%d/%m/%Y %H:%M:%S");
+    import std.array : array, replace;
+    return time.toISOExtString().replace("T"," ").replace("-","/").split(".")[0];
 }
 alias toDateString = memoize!_toDateString;
 

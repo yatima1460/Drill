@@ -17,9 +17,6 @@
     "Logger.d",
     "ApplicationInfo.d"
   ],
-  "dependencies": {
-    "datefmt": "1.0.3"
-  },
   "dflags": [
     "-J=\"../../../\"",
     "-J=\"../../\""

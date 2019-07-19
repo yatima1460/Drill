@@ -15,7 +15,7 @@ import std.string : split, strip;
 import Logger : Logger;
 import Utils : humanSize, toDateString;
 import FileInfo : FileInfo;
-import API : DrillAPI;
+
 
 import std.functional : memoize;
 alias memoizedDirEntries = memoize!dirEntries;
@@ -178,9 +178,11 @@ private:
         assert(MOUNTPOINT.length != 0, "the mountpoint string can't be empty");
         assert(resultCallback != null, "the result callback can't be null");
 
+        import API : drill_get_mountpoints;
+
          // Every Crawler will have all the other mountpoints in its blocklist
         // In this way crawlers will not cross paths
-        string[] cp_tmp = DrillAPI.getMountPoints()[].filter!(x => x != MOUNTPOINT)
+        string[] cp_tmp = drill_get_mountpoints()[].filter!(x => x != MOUNTPOINT)
             .map!(x => "^" ~ x ~ "$")
             .array;
         Logger.logDebug("Adding these to the global blocklist: " ~ to!string(cp_tmp),this.toString());

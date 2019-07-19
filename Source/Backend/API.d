@@ -35,9 +35,10 @@ struct drill_data
 
 struct drill_context
 {
-    immutable(string) search_value;
+    string search_value;
     SList!Crawler threads;
 }
+
 
 /**
 A crawler is active when it's scanning something.
@@ -60,6 +61,7 @@ Returns: number of crawlers active
     return active;
 }
 
+
 /*
 Notifies the crawlers to stop and clears the crawlers array stored inside DrillAPI
 This function is non-blocking.
@@ -71,6 +73,7 @@ void drill_stop_crawling_async(drill_context context)
         crawler.stopAsync();
     context.threads.clear(); // TODO: if nothing has a reference to a thread does the thread get GC-ed?
 }
+
 
 /**
 This function will return only when all crawlers finished their jobs or were stopped
@@ -98,6 +101,7 @@ void drill_wait_for_crawlers(drill_context context)
     Logger.logInfo("All crawlers stopped.");
 }
 
+
 /**
 This function stops all the crawlers and will return only when all of them are stopped
 */
@@ -107,6 +111,7 @@ void drill_stop_crawling_sync(drill_context context)
         crawler.stopAsync();
     drill_wait_for_crawlers(context);
 }
+
 
 /**
 Starts the crawling, every crawler will filter on its own.
@@ -122,7 +127,7 @@ drill_context drill_start_crawling(drill_data data, immutable(string) search_val
 {
     drill_context c = {search_value};
     debug Logger.logWarning("user_object is null");
-    foreach (immutable(string) mountpoint; DrillAPI.getMountPoints())
+    foreach (immutable(string) mountpoint; drill_get_mountpoints())
     {
         Crawler crawler = new Crawler(mountpoint, data.BLOCK_LIST, data.PRIORITY_LIST_REGEX, result_callback, search_value,user_object);
         if (data.singlethread)
@@ -134,21 +139,20 @@ drill_context drill_start_crawling(drill_data data, immutable(string) search_val
     return c;
 }
 
+
 /*
 Loads Drill data to be used in any crawling
 */
 drill_data drill_load_data(immutable(string) assets_directory)
 {
     Logger.logDebug("DrillAPI " ~ DRILL_VERSION);
-    Logger.logDebug("Mount points found: "~to!string(DrillAPI.getMountPoints()));
+    Logger.logDebug("Mount points found: "~to!string(drill_get_mountpoints()));
     auto blockListsFullPath = buildPath(assets_directory,"BlockLists");
-
 
     Logger.logDebug("Assets Directory: " ~ assets_directory);
     Logger.logDebug("blockListsFullPath: " ~ blockListsFullPath);
 
     string[] BLOCK_LIST; 
-
     try
     {
         BLOCK_LIST = readListFiles(blockListsFullPath);
@@ -161,7 +165,6 @@ drill_data drill_load_data(immutable(string) assets_directory)
 
     string[] PRIORITY_LIST;
     Regex!char[] PRIORITY_LIST_REGEX;
-
     try
     {
         PRIORITY_LIST = readListFiles(buildPath(assets_directory,"PriorityLists"));
@@ -173,8 +176,7 @@ drill_data drill_load_data(immutable(string) assets_directory)
         Logger.logError("Error when trying to read priority lists, will default to an empty list");
     }
 
-    drill_data dd = 
-    {
+    drill_data dd = {
         assets_directory,
         cast(immutable(string[]))BLOCK_LIST,
         cast(immutable(string[]))PRIORITY_LIST,
@@ -184,137 +186,91 @@ drill_data drill_load_data(immutable(string) assets_directory)
 }
 
 
-
-
-class DrillAPI
+@system ApplicationInfo[] drill_get_applications()
 {
-
-    unittest
+    version(linux)
     {
-        DrillAPI drill = new DrillAPI("../../Assets");
-        assert(drill.DRILL_VERSION == readText("../../DRILL_VERSION"));
-        assert(drill.PRIORITY_LIST == readListFiles("../../Assets/PriorityLists"));
-        assert(drill.BLOCK_LIST == readListFiles("../../Assets/BlockLists"));
-        assert(drill.PRIORITY_LIST_REGEX.length != 0);
+        ApplicationInfo[] applications;
+        string[] desktopFiles = drill_get_desktop_files();
+        foreach (desktopFile; desktopFiles)
+        {
+            // ApplicationInfo ai;
+                import Utils : readDesktopFile;
+            // ai.name = getDesktopFileNameValue(desktopFile);
+            // ai.desktopFileFullPath = desktopFile;
+
+            // ai.exec = getDesktopFileExecValue(desktopFile);
+
+            applications ~= readDesktopFile(desktopFile);
+        }
+        return applications;
     }
-
-
-public:
-
-
-    // void startCrawler(immutable(string) mountpoint, immutable(string) search,
-    //         void delegate(immutable(FileInfo) result) resultFound)
-    // {
-
-    // }
-
-    // void startCrawler(immutable(string) mountpoint, immutable(string) search,
-    //         void delegate(immutable(FileInfo) result) resultFound)
-    // {
-
-
-
-    static @system ApplicationInfo[] getApplicationsInfo()
+    else
     {
-        version(linux)
-        {
-            ApplicationInfo[] applications;
-            string[] desktopFiles = getDesktopFilesList();
-            foreach (desktopFile; desktopFiles)
-            {
-                // ApplicationInfo ai;
-                 import Utils : readDesktopFile;
-                // ai.name = getDesktopFileNameValue(desktopFile);
-                // ai.desktopFileFullPath = desktopFile;
-
-                // ai.exec = getDesktopFileExecValue(desktopFile);
-
-                applications ~= readDesktopFile(desktopFile);
-            }
-            return applications;
-        }
-        else
-        {
-            return [];
-        }
-    }
-    //alias getApplicationsInfo = memoize!_getApplicationsInfo;
-
-
-    static @system string[] getDesktopFilesList()
-    {
-        version(linux)
-        {
-            immutable auto ls = executeShell("ls /usr/share/applications/*.desktop | grep -v _");
-            if (ls.status == 0)
-            {
-                // TODO: move to init
-                // Logger.logError("Can't retrieve applications, will return an empty list");
-                return ls.output.split("\n");
-            }
-        }
         return [];
     }
-    //alias getApplicationsList = memoize!_getDesktopFilesList;
-
-    /**
-    Returns the mount points of the current system
-
-    Returns: immutable array of full paths
-
-    It's not assured that every mount point is a physical disk
-    */
+}
 
 
-    static @system string[] getMountPoints()
+/**
+Returns the mount points of the current system
+It's not assured that every mount point is a physical disk
+
+Returns: immutable array of full paths
+*/
+@system immutable(string[]) drill_get_mountpoints()
+{
+    version (linux)
     {
-        version (linux)
+        // df catches network mounted drives like NFS
+        // so don't use lsblk here
+        immutable auto ls = executeShell("df -h --output=target");
+        if (ls.status != 0)
         {
-            // df catches network mounted drives like NFS
-            // so don't use lsblk here
-            immutable auto ls = executeShell("df -h --output=target");
-            if (ls.status != 0)
-            {
-                Logger.logError("Can't retrieve mount points, will just scan '/'");
-                return ["/"];
-            }
-            auto result = array(ls.output.split("\n").filter!(x => canFind(x, "/"))).idup;
-            //debug{logConsole("Mount points found: "~to!string(result));}
-            return cast(string[])result;
+            Logger.logError("Can't retrieve mount points, will just scan '/'");
+            return ["/"];
         }
-
-        version (OSX)
-        {
-            immutable auto ls = executeShell("df -h");
-            if (ls.status != 0)
-            {
-                Logger.logError("Can't retrieve mount points, will just scan '/'");
-                return ["/"];
-            }
-            immutable auto startColumn = indexOf(ls.output.split("\n")[0], 'M');
-            auto result = array(ls.output.split("\n").filter!(x => x.length > startColumn).map!(x => x[startColumn .. $]).filter!(x => canFind(x, "/"))).idup;
-            //debug{logConsole("Mount points found: "~result);}
-            return cast(string[])result;
-        }
-
-        version (Windows)
-        {
-            immutable auto ls = executeShell("wmic logicaldisk get caption");
-            if (ls.status != 0)
-            {
-                Logger.logError("Can't retrieve mount points, will just scan 'C:'");
-                return ["C:"];
-            }
-
-            auto result = array(map!(x => x[0 .. 2])(ls.output.split("\n").filter!(x => canFind(x, ":")))).idup;
-            //debug{logConsole("Mount points found: "~result);}
-            return cast(string[])result;
-        }
+        auto result = array(ls.output.split("\n").filter!(x => canFind(x, "/"))).idup;
+        //debug{logConsole("Mount points found: "~to!string(result));}
+        return result;
     }
-    import std.functional : memoize;
-    //alias getMountPoints = memoize!_getMountPoints;
+    version (OSX)
+    {
+        immutable auto ls = executeShell("df -h");
+        if (ls.status != 0)
+        {
+            Logger.logError("Can't retrieve mount points, will just scan '/'");
+            return ["/"];
+        }
+        immutable auto startColumn = indexOf(ls.output.split("\n")[0], 'M');
+        auto result = array(ls.output.split("\n").filter!(x => x.length > startColumn).map!(x => x[startColumn .. $]).filter!(x => canFind(x, "/"))).idup;
+        //debug{logConsole("Mount points found: "~result);}
+        return result;
+    }
+    version (Windows)
+    {
+        immutable auto ls = executeShell("wmic logicaldisk get caption");
+        if (ls.status != 0)
+        {
+            Logger.logError("Can't retrieve mount points, will just scan 'C:'");
+            return ["C:"];
+        }
+
+        auto result = array(map!(x => x[0 .. 2])(ls.output.split("\n").filter!(x => canFind(x, ":")))).idup;
+        //debug{logConsole("Mount points found: "~result);}
+        return result;
+    }
+}
 
 
-
-
+version(linux) @system string[] drill_get_desktop_files()
+{
+    //HACK: replace executeShell with a system call to get the list of files, executeShell is SLOW
+    immutable auto ls = executeShell("ls /usr/share/applications/*.desktop | grep -v _");
+    if (ls.status == 0)
+    {
+        Logger.logError("Can't retrieve applications, will return an empty list");
+        return ls.output.split("\n");
+    }
+    return [];
 }
