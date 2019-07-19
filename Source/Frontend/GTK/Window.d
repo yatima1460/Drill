@@ -49,12 +49,13 @@ import gtk.Widget;
 
 import glib.GException;
 
-import API : DrillAPI;
+
 import FileInfo : FileInfo;
 import Utils : humanSize;
 import Logger : Logger;
 import Utils : openFile;
 import ApplicationInfo : ApplicationInfo;
+import API : drill_get_applications;
 
 debug
 {
@@ -110,6 +111,9 @@ void resultFound(immutable(FileInfo) result, void* userObject)
    
     }
 
+
+    import API: drill_load_data, drill_active_crawlers_count, drill_stop_crawling_sync, drill_stop_crawling_async, drill_start_crawling;
+
 extern (C) static nothrow int threadIdleProcess(void* data)
 in(data != null, "data can't be null in GTK task")
 out(r; r == 0 || r == 1, "GTK task should return 0 or 1")
@@ -119,7 +123,7 @@ out(r; r == 0 || r == 1, "GTK task should return 0 or 1")
     {
         assert(data != null);
         DrillWindow mainWindow = cast(DrillWindow) data;
-        const ulong crawlers_count = mainWindow.drillapi.getActiveCrawlersCount();
+        const ulong crawlers_count = drill_active_crawlers_count(mainWindow.context);
         const icon_to_use = ["object-select", "emblem-synchronizing"];
         mainWindow.search_input.setIconFromIconName(GtkEntryIconPosition.PRIMARY,
                 icon_to_use[crawlers_count != 0]);
@@ -183,7 +187,6 @@ class DrillWindow : ApplicationWindow
     bool list_dirty;
 
 private:
-    DrillAPI drillapi;
 
     // Hashmap to associate icons to extension
     string[string] iconmap;
@@ -217,14 +220,18 @@ private:
 
     void appendAllApplications()
     {
-        ApplicationInfo[] applications = DrillAPI.getApplicationsInfo();
+        ApplicationInfo[] applications = drill_get_applications();
         foreach (ApplicationInfo app; applications)
         {
             import std.uni : toLower;
             appendApplication(cast(immutable(ApplicationInfo))app);
         }
     }
-  
+
+    import API : drill_data, drill_context;
+    
+    drill_data data;
+    drill_context context;
 
 public:
 
@@ -235,7 +242,7 @@ public:
         buffer = &buffer1;
 
         immutable(string) assetsFolder = buildPath(absolutePath(dirName(buildNormalizedPath(drillExecutableLocation))), "Assets");
-        drillapi = new DrillAPI(assetsFolder);
+        data = drill_load_data(assetsFolder);
 
         
         debug
@@ -303,15 +310,16 @@ public:
         }
         else
         {
+            import API : DRILL_GITHUB_URL, DRILL_AUTHOR_URL, DRILL_AUTHOR_NAME, DRILL_VERSION;
             this.github_notice = new Label("");
             this.github_notice.setSelectable(true);
             this.github_notice.setJustify(GtkJustification.CENTER);
             this.github_notice.setHalign(GtkAlign.CENTER);
             this.github_notice.setMarkup(
-                "<a href=\""~DrillAPI.GITHUB_URL~"\">Drill</a>"~
+                "<a href=\""~DRILL_GITHUB_URL~"\">Drill</a>"~
                 " is maintained by "~
-                "<a href=\""~DrillAPI.AUTHOR_URL~"\">"~DrillAPI.AUTHOR_NAME~"</a>"
-                 ~ " " ~ DrillAPI.DRILL_VERSION
+                "<a href=\""~DRILL_AUTHOR_URL~"\">"~DRILL_AUTHOR_NAME~"</a>"
+                 ~ " " ~ DRILL_VERSION
             );
             h.packStart(github_notice, true, true, 0);
         }
@@ -422,7 +430,7 @@ public:
         addOnDelete(delegate bool(Event event, Widget widget) {
             Logger.logInfo("Window started to close, stopping crawlers");
             // this is the last chance to stop things before GTK really closes
-            drillapi.stopCrawlingSync();
+            drill_stop_crawling_sync(context);
             return false;
         });
 
@@ -581,7 +589,7 @@ private:
     private void searchChanged(EditableIF ei)
     {
 
-        drillapi.stopCrawlingAsync();
+        drill_stop_crawling_async(context);
 
         buffer1 = DList!FileInfo();
         buffer2 = DList!FileInfo();
@@ -598,7 +606,7 @@ private:
         if (search_string.length != 0)
         {
             
-            ApplicationInfo[] applications = DrillAPI.getApplicationsInfo();
+            ApplicationInfo[] applications = drill_get_applications();
             foreach (ApplicationInfo application; applications)
             {
                 import std.uni : toLower;
@@ -610,7 +618,7 @@ private:
             
             //debug drillapi.setSinglethread(true);
             auto callback = (&resultFound);
-            drillapi.startCrawling(search_string, callback, cast(void*)this);
+            context = drill_start_crawling(data,search_string,callback,cast(void*)this);
         }
         else
         {
