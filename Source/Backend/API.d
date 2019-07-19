@@ -261,9 +261,9 @@ version(linux) @system string[] drill_get_desktop_files()
     //HACK: replace executeShell with a system call to get the list of files, executeShell is SLOW
     immutable auto ls = executeShell("ls /usr/share/applications/*.desktop | grep -v _");
     if (ls.status == 0)
-    {
-        Logger.logError("Can't retrieve applications, will return an empty list");
+    {   
         return ls.output.split("\n");
     }
+    Logger.logError("Can't retrieve applications, will return an empty list");
     return [];
 }
