@@ -16,13 +16,13 @@ import Crawler : Crawler;
 import FileInfo : FileInfo;
 import ApplicationInfo : ApplicationInfo;
 
-
-immutable(string) DRILL_VERSION = import("DRILL_VERSION");
-immutable(string) DRILL_BUILD_TIME = __TIMESTAMP__;
-immutable(string) DRILL_GITHUB_URL = "https://github.com/yatima1460/Drill";
-immutable(string) DRILL_WEBSITE_URL = "https://www.drill.santamorena.me";
-immutable(string) DRILL_AUTHOR_URL = "https://www.linkedin.com/in/yatima1460/";
 immutable(string) DRILL_AUTHOR_NAME = "Federico Santamorena";
+immutable(string) DRILL_GITHUB_URL  = "https://github.com/yatima1460/Drill";
+immutable(string) DRILL_VERSION     = import("DRILL_VERSION");
+immutable(string) DRILL_AUTHOR_URL  = "https://www.linkedin.com/in/yatima1460/";
+immutable(string) DRILL_WEBSITE_URL = "https://www.drill.santamorena.me";
+immutable(string) DRILL_BUILD_TIME  = __TIMESTAMP__;
+
 
 struct drill_data
 {
@@ -42,8 +42,8 @@ struct drill_context
 
 /**
 A crawler is active when it's scanning something.
-If a crawler cleanly finished its job it's not considered active.
-If a crawler crashes (should never happen) it's not considered active.
+If a crawler cleanly finished its job it's not considered active anymore.
+If a crawler crashes (should never happen, generally only for permission problems) it's not considered active.
 Minimum: 0
 Maximum: length of total number of mountpoints unless the user started the crawlers manually
 
@@ -67,7 +67,7 @@ Notifies the crawlers to stop and clears the crawlers array stored inside DrillA
 This function is non-blocking.
 If no crawling is currently underway this function will do nothing.
 */
-void drill_stop_crawling_async(drill_context context)
+@nogc void drill_stop_crawling_async(drill_context context)
 {
     foreach (Crawler crawler; context.threads)
         crawler.stopAsync();
