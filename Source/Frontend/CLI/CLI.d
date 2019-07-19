@@ -9,6 +9,10 @@ import FileInfo : FileInfo;
 import API : DrillAPI;
 import Crawler : Crawler;
 import std.path : buildPath;
+import API : drill_data, drill_context;
+import API : drill_load_data, drill_start_crawling;
+import API : DRILL_VERSION;
+import API : DRILL_GITHUB_URL;
 
 void resultsFoundWithDate(immutable(FileInfo) result, void* userObject)
 {
@@ -59,10 +63,8 @@ int main(string[] args)
     import std.path : dirName, buildNormalizedPath, absolutePath;
     import std.getopt : getopt, defaultGetoptPrinter, config;
 
+    drill_data data = drill_load_data(buildPath(absolutePath(dirName(buildNormalizedPath(args[0]))),"Assets"));
 
-    DrillAPI drill = new DrillAPI(buildPath(absolutePath(dirName(buildNormalizedPath(args[0]))),"Assets"));
-
-    //debug drill.setSinglethread(true);
     bool date = false;
     bool size = false;
 
@@ -73,44 +75,43 @@ int main(string[] args)
         "size|s", "Show results size", &size
     );
 
-    if(opt.helpWanted){
-        writeln("Drill CLI v"~DrillAPI.DRILL_VERSION~" - "~DrillAPI.GITHUB_URL);
+    if(opt.helpWanted) 
+    {
+        writeln("Drill CLI v"~DRILL_VERSION~" - "~DRILL_GITHUB_URL);
         writeln("Example use: drill-cli -ds \"foobar\"");
         defaultGetoptPrinter("Options:", opt.options);
         import core.stdc.stdlib : exit;
         exit(0);
     }
 
-    if (args.length == 1) // No search string
+    switch (args.length)
     {
-        writeln("Pass a string as an argument for Drill to search");
-        writeln("Example use: drill-cli -ds \"foobar\"");
-        defaultGetoptPrinter("Options:", opt.options);
-        import core.stdc.stdlib : exit;
-        exit(-1);
-    }
+        // What even is POSIX
+        case 0:
+            writeln("Your operating system does not pass the executable path as first argument");
+            exit(-2);
+            
+        // No search string
+        case 1:
+            writeln("Pass a string as an argument for Drill to search");
+            writeln("Example use: drill-cli -ds \"foobar\"");
+            defaultGetoptPrinter("Options:", opt.options);
+            import core.stdc.stdlib : exit;
+            exit(-1);
 
-    else if (args.length == 2){
-        //import std.functional : toDelegate;
-        auto selectedPrint = (date ?
+        // Search string provided
+        case 2:
+            auto selectedPrint = (date ?
                              (size ? &resultsFoundWithSizeAndDate : &resultsFoundWithDate)
                              :(size ? &resultsFoundWithSize : &resultsFoundBare));
-        drill.startCrawling(args[1],*&selectedPrint,cast(void*)&drill);
-    }
+            auto context = drill_start_crawling(data,args[1],*&selectedPrint,null);
+            break;
 
-    else{
-        writeln("Oops, you gave more arguments than expected.");
-        import core.stdc.stdlib : exit;
-        exit(-1);
+        // More unnecessary arguments
+        default:
+            writeln("Oops, you gave more arguments than expected.");
+            import core.stdc.stdlib : exit;
+            exit(-1);
     }
-    // import core.memory;
-    // GC.disable();
-
-    // std.concurrency.thisTid;
-    // auto application = new Application("me.santamorena.drill", GApplicationFlags.FLAGS_NONE);
-    // application.addOnActivate(delegate void(GioApplication app) {
-    //     new DrillWindow(application);
-    // });
-    // return application.run(args);
     return 0;
 }
