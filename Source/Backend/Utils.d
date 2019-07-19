@@ -25,10 +25,13 @@ string[] _cleanExecLine(immutable(string) exec) pure @safe
 alias cleanExecLine = memoize!_cleanExecLine;
 
 
-ApplicationInfo readDesktopFile(immutable(string) fullPath) @system
+immutable(ApplicationInfo) readDesktopFile(immutable(string) fullPath) @system
 {
     string[] desktopFileLines;
-    ApplicationInfo ai;
+   
+
+    string desktopFileDateModifiedString;
+
     try
     {
             import std.algorithm : filter;
@@ -36,7 +39,7 @@ ApplicationInfo readDesktopFile(immutable(string) fullPath) @system
     import std.array : array;
         desktopFileLines = readText(fullPath).split("\n");
         desktopFileLines = desktopFileLines.filter!(x => x.length != 0).array;
-        ai.desktopFileDateModifiedString = toDateString(DirEntry(fullPath).timeLastModified);
+        desktopFileDateModifiedString = toDateString(DirEntry(fullPath).timeLastModified);
     }
     catch (Exception e)
     {
@@ -44,28 +47,34 @@ ApplicationInfo readDesktopFile(immutable(string) fullPath) @system
     }
     
     
-    ai.desktopFileFullPath = fullPath;
+    string desktopFileFullPath = fullPath;
+    string exec;
+    string[] execProcess;
+    string name;
+    string icon;
    
     try
     {
+
+        
         foreach (line; desktopFileLines)
         {
             if (line.length < 5) continue;
             // ai.exec.length == 0 &&
             // is used so we only assign the first line found
         
-            if (ai.exec.length == 0 && canFind(line[0..5],"Exec="))
+            if (exec.length == 0 && canFind(line[0..5],"Exec="))
             {
-                ai.exec = line[5..$];
-                ai.execProcess = cleanExecLine(line[5..$]);
+                exec = line[5..$];
+                execProcess = cleanExecLine(line[5..$]);
             }
-            if (ai.name.length == 0 && canFind(line[0..5],"Name="))
+            if (name.length == 0 && canFind(line[0..5],"Name="))
             {
-                ai.name = line[5..$];
+                name = line[5..$];
             }
             if (canFind(line[0..5],"Icon="))
             {
-                ai.icon = line[5..$];
+                icon = line[5..$];
             }
             
         }
@@ -74,6 +83,15 @@ ApplicationInfo readDesktopFile(immutable(string) fullPath) @system
     {
         Logger.logError("Error parsing file: '" ~ fullPath~ "' "~e.msg);
     }
+
+    immutable(ApplicationInfo) ai = {
+        name,
+        desktopFileFullPath,
+        exec,
+        cast(immutable(string[]))execProcess,
+        icon,
+        cast(immutable(string))desktopFileDateModifiedString
+    };
     return ai;
 }
 //alias readDesktopFile = memoize!_readDesktopFile;
