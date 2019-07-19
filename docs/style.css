@@ -9,8 +9,18 @@ html {
   -webkit-text-size-adjust: 100%;
   /* 2 */ 
   margin: auto;
-  width:75%;
+  width:100%;
 }
+
+img {
+  -webkit-user-drag: none;
+  -khtml-user-drag: none;
+  -moz-user-drag: none;
+  -o-user-drag: none;
+  user-drag: none;
+
+}
+
 
 
 .main-content {
@@ -24,7 +34,7 @@ html {
   
   
 .screenshot {
-  max-width: 42%;
+  max-width: 32%;
   border: 0.1em solid grey;
   border-radius: 0.25em;
 }
@@ -167,6 +177,23 @@ a {
 
 }
 
+
+.telegram {
+  display: flex;
+  flex-direction: row;
+
+  
+
+  text-align: center;
+  justify-content:center;
+  align-content:center;
+  align-items: center;
+}
+
+.telegram div {
+  margin: 1em;
+}
+
 .title h1 {
   font-size: 3em;
 }
@@ -184,6 +211,7 @@ a {
   /* column | row */
   display: flex;
   flex-direction: column; 
+ 
  
  
   width: 15em;
