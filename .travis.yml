@@ -66,7 +66,7 @@ script:
   ## build CLI
   - cd Source/Frontend/CLI
   # - $DUB build --arch=x86_64
-  - $DUB build -b release --arch=x86_64 --compiler=dmd
+  - $DUB build -b release --arch=x86_64
   - cd ../../../
 
   ## build UI
@@ -74,7 +74,7 @@ script:
   ### Linux
   - if [ "$TRAVIS_OS_NAME" = "linux" ]; then cd Source/Frontend/GTK; fi
   # - if [ "$TRAVIS_OS_NAME" = "linux" ]; then dub build --arch=x86_64; fi
-  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then $DUB build -b release --arch=x86_64 --compiler=dmd; fi
+  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then $DUB build -b release --arch=x86_64; fi
   - if [ "$TRAVIS_OS_NAME" = "linux" ]; then cd ../../../; fi
 
   ### Windows
