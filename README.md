@@ -109,97 +109,33 @@ Second change is excluding some obvious folders while crawling like `Windows` an
 # Contributing
 Read the Issues and check the labels for high priority ones
 
+# TODOs
 
-TODOs will slowly get converted to Issues
-- Core Backend
-    - Open file or path
-        - ~~Linux X11~~
-            - ~~Open File~~
-            - Select file if contained folder
-            - Error on file open
-        - Linux Wayland
-            - Open File
-            - Select file if contained folder
-            - Error on file open
-        - Windows
-            - Open File
-            - Select file if contained folder
-            - Error on file open
-        - MacOS
-            - ~~Open File~~
-            - Select file if contained folder
-            - Error on file open
-    - ~~All comparisons need to be done in lower case strings~~
-    - ~~Priority lists specified in assets/prioritylists~~
-    - ~~Multi-token search (searching "a b" will find all files with "a" and "b" in the name)~~
+- Backend
+    - settings in .config/drill-search
     - /home/username needs to have higher priority over / crawler when /home isn't mounted on a secondary mountpoint
-    - Sorting by column
     - Commas in numbers strings
         - Correct separator based on current system internationalization
     - AM/PM time base
-        - Linux
-        - Windows
-        - MacOS
-    - Folders actual size
     - Icons image needs to be generic and in the backend
     - 1 Threadpool per mount point
         - 1 Threadpool PER DISK if possible
+        - NVM could benefit when multiple threads are run for the same disk?
     - Metadata searching and new tokens (mp3, etc...)
-    - Memoization/Cache
     - Percentage of crawling
-    - About dialog in GUI
-    - Remove the synchronizations using a concurrency list
-    - ~~Split Drill in DrillGTK and DrillCore~~
-    - Add documentation and comments
-    - Fix messy imports
-    - ~~Logging in debug mode~~
-    - NVM could benefit when multiple threads are run for the same disk?
     - No GC
-
-- Cli Frontend
-    - ~~More arguments~~
-    - ~~Better/bare printing~~
 
 - ncurses
 
-- GTK Frontend
-    - ~~Open file with double click~~
-    - ~~Add to UI list when new results found~~
-    - ~~AppImage~~
+- Frontend/GTK
     - Open containing folder with right click 
     - Alternate row colors
-    - ESC to close
     - Error messagebox if opening file fails
-    - ~~Icons near the file name~~
-    - ~~.deb~~
     - .rpm
     - Snap
     - Flatpak
-    - Drag and drop
+    - Drag and drop?
 
-- Windows
-    - Open file with double click
-    - Add to UI list when new results found
-    - Portable .exe
-        - Installer
-    - Open containing folder with right click 
-    - Alternate row colors
-    - ESC to close
-    - Error messagebox if opening file fails
-    - Icons near the file name
-    - Drag and drop
-
-- MacOS
-    - Open file with double click
-    - Add to UI list when new results found
-    - Portable executable
-        - Installer
-    - Open containing folder with right click 
-    - Alternate row colors
-    - ESC to close
-    - Error messagebox if opening file fails
-    - Icons near the file name
-    - Drag and drop
 
 ## Contributors
 
