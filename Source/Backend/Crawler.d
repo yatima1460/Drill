@@ -1,4 +1,4 @@
-module Crawler;
+
 
 import std.container : Array;
 import core.thread : Thread;
@@ -13,7 +13,7 @@ import std.regex : Regex, regex, RegexMatch, match;
 import std.string : split, strip;
 
 import Logger : Logger;
-import Utils : humanSize, toDateString;
+import Utils : size_to_human_readable, systime_to_string;
 import FileInfo : FileInfo;
 
 
@@ -138,13 +138,13 @@ private:
             this.MOUNTPOINT,
             currentFile.isDir(),
             !currentFile.isDir(),
-            toDateString(currentFile.timeLastModified()),
+            systime_to_string(currentFile.timeLastModified()),
             dirName(currentFile.name),
             baseName(currentFile.name),
             toLower(baseName(currentFile.name)),
             extension(currentFile.name),
             currentFile.name,
-            humanSize(currentFile.size)
+            size_to_human_readable(currentFile.size)
         };
         return f;
     }
@@ -178,11 +178,11 @@ private:
         assert(MOUNTPOINT.length != 0, "the mountpoint string can't be empty");
         assert(resultCallback != null, "the result callback can't be null");
 
-        import API : drill_get_mountpoints;
+        import Utils : get_mountpoints;
 
          // Every Crawler will have all the other mountpoints in its blocklist
         // In this way crawlers will not cross paths
-        string[] cp_tmp = drill_get_mountpoints()[].filter!(x => x != MOUNTPOINT)
+        string[] cp_tmp = get_mountpoints()[].filter!(x => x != MOUNTPOINT)
             .map!(x => "^" ~ x ~ "$")
             .array;
         Logger.logDebug("Adding these to the global blocklist: " ~ to!string(cp_tmp),this.toString());

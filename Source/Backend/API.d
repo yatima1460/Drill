@@ -1,9 +1,9 @@
-module API;
+
 
 import std.algorithm : canFind, filter, map;
 import std.container : Array, SList;
 import std.array : array, split;
-import std.process : executeShell;
+
 import std.string : indexOf;
 import std.regex: Regex, regex;
 import std.file : dirEntries, SpanMode, DirEntry, readText, FileException;
@@ -25,7 +25,7 @@ immutable(string) DRILL_WEBSITE_URL = "https://www.drill.santamorena.me";
 immutable(string) DRILL_BUILD_TIME  = __TIMESTAMP__;
 
 
-struct drill_data
+struct DrillData
 {
     immutable(string) ASSETS_DIRECTORY;
     immutable(string[]) BLOCK_LIST;
@@ -34,7 +34,7 @@ struct drill_data
     bool singlethread;
 }
 
-struct drill_context
+struct DrillContext
 {
     string search_value;
     SList!Crawler threads;
@@ -51,7 +51,7 @@ Maximum: length of total number of mountpoints unless the user started the crawl
 Returns: number of crawlers active
 
 */
-@nogc @safe immutable(uint) drill_active_crawlers_count(drill_context context)
+@nogc @safe immutable(uint) activeCrawlersCount(DrillContext context)
 {
     int active = 0;
     foreach (thread; context.threads)
@@ -65,7 +65,7 @@ Notifies the crawlers to stop and clears the crawlers array stored inside DrillA
 This function is non-blocking.
 If no crawling is currently underway this function will do nothing.
 */
-@nogc void drill_stop_crawling_async(drill_context context)
+@nogc void stopCrawlingAsync(DrillContext context)
 {
     foreach (Crawler crawler; context.threads)
         crawler.stopAsync();
@@ -77,9 +77,9 @@ If no crawling is currently underway this function will do nothing.
 This function will return only when all crawlers finished their jobs or were stopped
 This function does not stop the crawlers!!!
 */
-void drill_wait_for_crawlers(drill_context context)
+void waitForCrawlers(DrillContext context)
 {
-    Logger.logInfo("Waiting for "~to!string(drill_active_crawlers_count(context))~" crawlers to stop");
+    Logger.logInfo("Waiting for "~to!string(activeCrawlersCount(context))~" crawlers to stop");
     foreach (Crawler crawler; context.threads)
     {
         Logger.logInfo("Waiting for crawler "~to!string(crawler)~" to stop");
@@ -103,11 +103,11 @@ void drill_wait_for_crawlers(drill_context context)
 /**
 This function stops all the crawlers and will return only when all of them are stopped
 */
-void drill_stop_crawling_sync(drill_context context)
+void stopCrawlingSync(DrillContext context)
 {
     foreach (Crawler crawler; context.threads)
         crawler.stopAsync();
-    drill_wait_for_crawlers(context);
+    waitForCrawlers(context);
 }
 
 
@@ -121,13 +121,14 @@ Params:
     search = the search string, case insensitive, every word (split by space) will be searched in the file name
     resultFound = the delegate that will be called when a crawler will find a new result
 */
-drill_context drill_start_crawling(const(drill_data) data, immutable(string) search_value, immutable(void function(immutable(FileInfo) result, void* user_object)) result_callback, void* user_object)
+DrillContext startCrawling(const(DrillData) data, immutable(string) searchValue, immutable(void function(immutable(FileInfo) result, void* userObject)) resultCallback, void* userObject)
 {
-    drill_context c = {search_value};
+    import Utils : get_mountpoints;
+    DrillContext c = {searchValue};
     debug Logger.logWarning("user_object is null");
-    foreach (immutable(string) mountpoint; drill_get_mountpoints())
+    foreach (immutable(string) mountpoint; get_mountpoints())
     {
-        Crawler crawler = new Crawler(mountpoint, data.BLOCK_LIST, data.PRIORITY_LIST_REGEX, result_callback, search_value,user_object);
+        Crawler crawler = new Crawler(mountpoint, data.BLOCK_LIST, data.PRIORITY_LIST_REGEX, resultCallback, searchValue,userObject);
         if (data.singlethread)
             crawler.run();
         else
@@ -141,10 +142,11 @@ drill_context drill_start_crawling(const(drill_data) data, immutable(string) sea
 /*
 Loads Drill data to be used in any crawling
 */
-drill_data drill_load_data(immutable(string) assets_directory)
+DrillData loadData(immutable(string) assets_directory)
 {
+    import Utils : get_mountpoints;
     Logger.logDebug("DrillAPI " ~ DRILL_VERSION);
-    Logger.logDebug("Mount points found: "~to!string(drill_get_mountpoints()));
+    Logger.logDebug("Mount points found: "~to!string(get_mountpoints()));
     auto blockListsFullPath = buildPath(assets_directory,"BlockLists");
 
     Logger.logDebug("Assets Directory: " ~ assets_directory);
@@ -174,7 +176,7 @@ drill_data drill_load_data(immutable(string) assets_directory)
         Logger.logError("Error when trying to read priority lists, will default to an empty list");
     }
 
-    drill_data dd = {
+    DrillData dd = {
         assets_directory,
         cast(immutable(string[]))BLOCK_LIST,
         cast(immutable(string[]))PRIORITY_LIST,
@@ -183,88 +185,8 @@ drill_data drill_load_data(immutable(string) assets_directory)
     return dd;
 }
 
-/**
-Returns a list of installed applications with their data saved in the ApplicationInfo struct
-*/
-@system ApplicationInfo[] drill_get_applications()
-{
-    version(linux)
-    {
-        ApplicationInfo[] applications;
-        string[] desktopFiles = drill_get_desktop_files();
-        foreach (desktopFile; desktopFiles)
-        {
-            import Utils : readDesktopFile;
-            applications ~= readDesktopFile(desktopFile);
-        }
-        return applications;
-    }
-    else
-    {
-        return [];
-    }
-}
 
 
-/**
-Returns the mount points of the current system
-It's not assured that every mount point is a physical disk
-
-Returns: immutable array of full paths
-*/
-@system immutable(string[]) drill_get_mountpoints()
-{
-    version (linux)
-    {
-        // df catches network mounted drives like NFS
-        // so don't use lsblk here
-        immutable auto ls = executeShell("df -h --output=target");
-        if (ls.status != 0)
-        {
-            Logger.logError("Can't retrieve mount points, will just scan '/'");
-            return ["/"];
-        }
-        auto result = array(ls.output.split("\n").filter!(x => canFind(x, "/"))).idup;
-        //debug{logConsole("Mount points found: "~to!string(result));}
-        return result;
-    }
-    version (OSX)
-    {
-        immutable auto ls = executeShell("df -h");
-        if (ls.status != 0)
-        {
-            Logger.logError("Can't retrieve mount points, will just scan '/'");
-            return ["/"];
-        }
-        immutable auto startColumn = indexOf(ls.output.split("\n")[0], 'M');
-        auto result = array(ls.output.split("\n").filter!(x => x.length > startColumn).map!(x => x[startColumn .. $]).filter!(x => canFind(x, "/"))).idup;
-        //debug{logConsole("Mount points found: "~result);}
-        return result;
-    }
-    version (Windows)
-    {
-        immutable auto ls = executeShell("wmic logicaldisk get caption");
-        if (ls.status != 0)
-        {
-            Logger.logError("Can't retrieve mount points, will just scan 'C:'");
-            return ["C:"];
-        }
-
-        auto result = array(map!(x => x[0 .. 2])(ls.output.split("\n").filter!(x => canFind(x, ":")))).idup;
-        //debug{logConsole("Mount points found: "~result);}
-        return result;
-    }
-}
 
 
-version(linux) @system string[] drill_get_desktop_files()
-{
-    //HACK: replace executeShell with a system call to get the list of files, executeShell is SLOW
-    immutable auto ls = executeShell("ls /usr/share/applications/*.desktop | grep -v _");
-    if (ls.status == 0)
-    {   
-        return ls.output.split("\n");
-    }
-    Logger.logError("Can't retrieve applications, will return an empty list");
-    return [];
-}
+
