@@ -51,11 +51,11 @@ import glib.GException;
 
 
 import FileInfo : FileInfo;
-import Utils : humanSize;
+import Utils : size_to_human_readable;
 import Logger : Logger;
-import Utils : drill_open_file;
-import ApplicationInfo : ApplicationInfo;
-import API : drill_get_applications;
+import Utils : openFile;
+import ApplicationInfo : ApplicationInfo, getApplications;
+
 
 debug
 {
@@ -112,7 +112,7 @@ void resultFound(immutable(FileInfo) result, void* userObject)
     }
 
 
-    import API: drill_load_data, drill_active_crawlers_count, drill_stop_crawling_sync, drill_stop_crawling_async, drill_start_crawling;
+    import API: loadData, activeCrawlersCount, stopCrawlingSync, stopCrawlingAsync, startCrawling;
 
 extern (C) static nothrow int threadIdleProcess(void* data)
 in(data != null, "data can't be null in GTK task")
@@ -123,7 +123,7 @@ out(r; r == 0 || r == 1, "GTK task should return 0 or 1")
     {
         assert(data != null);
         DrillWindow mainWindow = cast(DrillWindow) data;
-        const ulong crawlers_count = drill_active_crawlers_count(mainWindow.context);
+        const ulong crawlers_count = activeCrawlersCount(mainWindow.context);
         const icon_to_use = ["object-select", "emblem-synchronizing"];
         mainWindow.search_input.setIconFromIconName(GtkEntryIconPosition.PRIMARY,
                 icon_to_use[crawlers_count != 0]);
@@ -220,7 +220,7 @@ private:
 
     void appendAllApplications()
     {
-        ApplicationInfo[] applications = drill_get_applications();
+        ApplicationInfo[] applications = getApplications();
         foreach (ApplicationInfo app; applications)
         {
             import std.uni : toLower;
@@ -228,10 +228,10 @@ private:
         }
     }
 
-    import API : drill_data, drill_context;
+    import API : DrillData, DrillContext;
     
-    drill_data data;
-    drill_context context;
+    DrillData data;
+    DrillContext context;
 
 public:
 
@@ -242,7 +242,7 @@ public:
         buffer = &buffer1;
 
         immutable(string) assetsFolder = buildPath(absolutePath(dirName(buildNormalizedPath(drillExecutableLocation))), "Assets");
-        data = drill_load_data(assetsFolder);
+        data = loadData(assetsFolder);
 
         
         debug
@@ -430,7 +430,7 @@ public:
         addOnDelete(delegate bool(Event event, Widget widget) {
             Logger.logInfo("Window started to close, stopping crawlers");
             // this is the last chance to stop things before GTK really closes
-            drill_stop_crawling_sync(context);
+            stopCrawlingSync(context);
             return false;
         });
 
@@ -551,7 +551,7 @@ private:
             try
             {
 
-                drill_open_file(chained);
+                openFile(chained);
             }
             catch (Exception e)
             {
@@ -589,7 +589,7 @@ private:
     private void searchChanged(EditableIF ei)
     {
 
-        drill_stop_crawling_async(context);
+        stopCrawlingAsync(context);
 
         buffer1 = DList!FileInfo();
         buffer2 = DList!FileInfo();
@@ -606,7 +606,7 @@ private:
         if (search_string.length != 0)
         {
             
-            ApplicationInfo[] applications = drill_get_applications();
+            ApplicationInfo[] applications = getApplications();
             foreach (ApplicationInfo application; applications)
             {
                 import std.uni : toLower;
@@ -618,7 +618,7 @@ private:
             
             //debug drillapi.setSinglethread(true);
             auto callback = (&resultFound);
-            context = drill_start_crawling(data,search_string,callback,cast(void*)this);
+            context = startCrawling(data,search_string,callback,cast(void*)this);
         }
         else
         {

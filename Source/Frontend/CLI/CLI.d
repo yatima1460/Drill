@@ -9,8 +9,8 @@ import std.stdio : writeln, readln;
 import FileInfo : FileInfo;
 import Crawler : Crawler;
 import std.path : buildPath;
-import API : drill_data, drill_context;
-import API : drill_load_data, drill_start_crawling;
+import API : DrillData, DrillContext;
+import API : loadData, startCrawling;
 import API : DRILL_VERSION, DRILL_GITHUB_URL;
 
 // TODO: capture Ctrl-C and close crawlers?
@@ -69,7 +69,7 @@ int main(string[] args)
     import std.path : dirName, buildNormalizedPath, absolutePath;
     import std.getopt : getopt, defaultGetoptPrinter, config;
 
-    drill_data data = drill_load_data(buildPath(absolutePath(dirName(buildNormalizedPath(args[0]))),"Assets"));
+    DrillData data = loadData(buildPath(absolutePath(dirName(buildNormalizedPath(args[0]))),"Assets"));
 
     bool date = false;
     bool size = false;
@@ -112,7 +112,7 @@ int main(string[] args)
             auto selectedPrint = (date ?
                              (size ? &resultsFoundWithSizeAndDate : &resultsFoundWithDate)
                              :(size ? &resultsFoundWithSize : &resultsFoundBare));
-            auto context = drill_start_crawling(data,args[1],*&selectedPrint,null);
+            auto context = startCrawling(data,args[1],*&selectedPrint,null);
             break;
 
         // More unnecessary arguments
