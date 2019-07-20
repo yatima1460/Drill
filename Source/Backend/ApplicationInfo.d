@@ -1,4 +1,4 @@
-module ApplicationInfo;
+
 
 
 /**
@@ -49,4 +49,28 @@ struct ApplicationInfo
     // {
 
     // }
+}
+
+
+/**
+Returns a list of installed applications with their data saved in the ApplicationInfo struct
+*/
+@system ApplicationInfo[] getApplications()
+{
+    version(linux)
+    {
+        ApplicationInfo[] applications;
+        import Utils : getDesktopFiles;
+        string[] desktopFiles = getDesktopFiles();
+        foreach (desktopFile; desktopFiles)
+        {
+            import Utils : readDesktopFile;
+            applications ~= readDesktopFile(desktopFile);
+        }
+        return applications;
+    }
+    else
+    {
+        return [];
+    }
 }

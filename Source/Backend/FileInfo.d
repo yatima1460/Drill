@@ -1,4 +1,4 @@
-module FileInfo;
+
 
 /**
 FileInfo is a struct filled by the information a crawler found about files matching the search
