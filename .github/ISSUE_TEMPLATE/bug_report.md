@@ -8,19 +8,10 @@ assignees: ''
 ---
 
 **Linux distro**
-Which version do you have?
+Which distro do you have?
 
 **Build Version**
-- Appimage?
-  - include release version you downloaded.
-  - if it's not the latest version try again with the latest release
-- Debug build? 
-  - include build config (x64-Cli, x64-GTK, etc)
-- Release build? 
-  - same as above
-
-**Other notes about build** 
-Anything else we may need to know about how it was built or run. 
+- Appimage? CLI? GTK? Which version?
 
 **Describe the bug**
 A clear and concise description of what the bug is.
