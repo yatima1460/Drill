@@ -1,18 +1,10 @@
 #!/bin/bash
  
-
-
-
 DRILL_VERSION=$(cat ../../DRILL_VERSION)
 
 mkdir Build
-FILES="../../Source/Frontend/GTK/Build/*
-../../Source/Frontend/CLI/Build/*
+FILES="../../Source/Frontend/*/Build/*
 "
-
-# ../../Source/Frontend/WinAPI/Build/*
-
-
 
 for f in $FILES
 do
@@ -20,10 +12,12 @@ do
 
   if [[ -d "$f" ]]; then
     echo "$f exists"
-    7z a -tzip "$f"-"$DRILL_VERSION".zip "$f"/*
+    7z a -tzip "$f"-"$DRILL_VERSION".zip "$f"/* &
     mv "$f"-$DRILL_VERSION.zip Build
   else
     echo "$f does not exist, skipping"
   fi
   
 done
+
+wait

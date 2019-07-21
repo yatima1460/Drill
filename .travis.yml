@@ -91,8 +91,8 @@ script:
   # build installers/packages
 
   # zip files
-  - cd Tools/PortableZip
-  - bash create_zip.bash
+  - cd Tools/zip
+  - bash create_zips.bash
   - cd ../../
 
   ## linux
@@ -145,7 +145,7 @@ deploy:
     # - Tools/rpm/Build/*.rpm
     # - Tools/Slackware/Build/*.tgz
     - Tools/AppImage/Build/*.AppImage
-    - Tools/PortableZip/Build/*.zip
+    - Tools/zip/Build/*.zip
 
   on:
     repo: yatima1460/Drill
