@@ -10,19 +10,24 @@ import std.file : dirEntries, SpanMode, DirEntry, readText, FileException;
 import std.path : buildPath;
 import std.conv: to;
 
-import Utils : readListFiles;
+import Utils : mergeAllTextFilesInDirectory;
 import Logger : Logger;
 import Crawler : Crawler;
 import FileInfo : FileInfo;
 import ApplicationInfo : ApplicationInfo;
 
 
-immutable(string) DRILL_AUTHOR_NAME = "Federico Santamorena";
-immutable(string) DRILL_GITHUB_URL  = "https://github.com/yatima1460/Drill";
-immutable(string) DRILL_VERSION     = import("DRILL_VERSION");
-immutable(string) DRILL_AUTHOR_URL  = "https://www.linkedin.com/in/yatima1460/";
-immutable(string) DRILL_WEBSITE_URL = "https://www.drill.santamorena.me";
-immutable(string) DRILL_BUILD_TIME  = __TIMESTAMP__;
+immutable(string) VERSION     = import("DRILL_VERSION");
+immutable(string) BUILD_TIME  = __TIMESTAMP__;
+
+immutable(string) AUTHOR_NAME = "Federico Santamorena";
+immutable(string) AUTHOR_URL  = "https://www.linkedin.com/in/yatima1460/";
+immutable(string) GITHUB_URL  = "https://github.com/yatima1460/Drill";
+immutable(string) WEBSITE_URL = "https://www.drill.santamorena.me";
+
+immutable(string) DEFAULT_BLOCK_LIST    = import("BlockLists.txt");
+immutable(string) DEFAULT_PRIORITY_LIST = import("PriorityLists.txt");
+
 
 
 struct DrillData
@@ -61,7 +66,7 @@ Returns: number of crawlers active
 
 
 /*
-Notifies the crawlers to stop and clears the crawlers array stored inside DrillAPI
+Notifies the crawlers to stop and clears the crawlers array stored inside DrillContext
 This function is non-blocking.
 If no crawling is currently underway this function will do nothing.
 */
@@ -145,7 +150,7 @@ Loads Drill data to be used in any crawling
 DrillData loadData(immutable(string) assets_directory)
 {
     import Utils : getMountpoints;
-    Logger.logDebug("DrillAPI " ~ DRILL_VERSION);
+    Logger.logDebug("DrillAPI " ~ VERSION);
     Logger.logDebug("Mount points found: "~to!string(getMountpoints()));
     auto blockListsFullPath = buildPath(assets_directory,"BlockLists");
 
@@ -155,7 +160,7 @@ DrillData loadData(immutable(string) assets_directory)
     string[] BLOCK_LIST; 
     try
     {
-        BLOCK_LIST = readListFiles(blockListsFullPath);
+        BLOCK_LIST = mergeAllTextFilesInDirectory(blockListsFullPath);
     }
     catch (FileException fe)
     {
@@ -167,7 +172,7 @@ DrillData loadData(immutable(string) assets_directory)
     Regex!char[] PRIORITY_LIST_REGEX;
     try
     {
-        PRIORITY_LIST = readListFiles(buildPath(assets_directory,"PriorityLists"));
+        PRIORITY_LIST = mergeAllTextFilesInDirectory(buildPath(assets_directory,"PriorityLists"));
         PRIORITY_LIST_REGEX = PRIORITY_LIST[].map!(x => regex(x)).array;
     }
     catch (FileException fe)

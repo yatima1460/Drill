@@ -51,7 +51,7 @@ import glib.GException;
 
 
 import FileInfo : FileInfo;
-import Utils : size_to_human_readable;
+import Utils : sizeToHumanReadable;
 import Logger : Logger;
 import Utils : openFile;
 import ApplicationInfo : ApplicationInfo, getApplications;
@@ -310,16 +310,16 @@ public:
         }
         else
         {
-            import API : DRILL_GITHUB_URL, DRILL_AUTHOR_URL, DRILL_AUTHOR_NAME, DRILL_VERSION;
+            import API : GITHUB_URL, AUTHOR_URL, AUTHOR_NAME, VERSION;
             this.github_notice = new Label("");
             this.github_notice.setSelectable(true);
             this.github_notice.setJustify(GtkJustification.CENTER);
             this.github_notice.setHalign(GtkAlign.CENTER);
             this.github_notice.setMarkup(
-                "<a href=\""~DRILL_GITHUB_URL~"\">Drill</a>"~
+                "<a href=\""~GITHUB_URL~"\">Drill</a>"~
                 " is maintained by "~
-                "<a href=\""~DRILL_AUTHOR_URL~"\">"~DRILL_AUTHOR_NAME~"</a>"
-                 ~ " " ~ DRILL_VERSION
+                "<a href=\""~AUTHOR_URL~"\">"~AUTHOR_NAME~"</a>"
+                 ~ " " ~ VERSION
             );
             h.packStart(github_notice, true, true, 0);
         }
