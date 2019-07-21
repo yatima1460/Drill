@@ -51,7 +51,7 @@ Maximum: length of total number of mountpoints unless the user started the crawl
 Returns: number of crawlers active
 
 */
-@nogc @safe immutable(uint) activeCrawlersCount(DrillContext context)
+@nogc @safe immutable(uint) activeCrawlersCount(ref DrillContext context)
 {
     int active = 0;
     foreach (thread; context.threads)
@@ -65,7 +65,7 @@ Notifies the crawlers to stop and clears the crawlers array stored inside DrillA
 This function is non-blocking.
 If no crawling is currently underway this function will do nothing.
 */
-@nogc void stopCrawlingAsync(DrillContext context)
+@nogc @system void stopCrawlingAsync(ref DrillContext context)
 {
     foreach (Crawler crawler; context.threads)
         crawler.stopAsync();
@@ -77,7 +77,7 @@ If no crawling is currently underway this function will do nothing.
 This function will return only when all crawlers finished their jobs or were stopped
 This function does not stop the crawlers!!!
 */
-void waitForCrawlers(DrillContext context)
+@system void waitForCrawlers(ref DrillContext context)
 {
     Logger.logInfo("Waiting for "~to!string(activeCrawlersCount(context))~" crawlers to stop");
     foreach (Crawler crawler; context.threads)
@@ -103,7 +103,7 @@ void waitForCrawlers(DrillContext context)
 /**
 This function stops all the crawlers and will return only when all of them are stopped
 */
-void stopCrawlingSync(DrillContext context)
+@system void stopCrawlingSync(ref DrillContext context)
 {
     foreach (Crawler crawler; context.threads)
         crawler.stopAsync();
@@ -121,12 +121,12 @@ Params:
     search = the search string, case insensitive, every word (split by space) will be searched in the file name
     resultFound = the delegate that will be called when a crawler will find a new result
 */
-DrillContext startCrawling(const(DrillData) data, immutable(string) searchValue, immutable(void function(immutable(FileInfo) result, void* userObject)) resultCallback, void* userObject)
+@system DrillContext startCrawling(const(DrillData) data, immutable(string) searchValue, immutable(void function(immutable(FileInfo) result, void* userObject)) resultCallback, void* userObject)
 {
-    import Utils : get_mountpoints;
+    import Utils : getMountpoints;
     DrillContext c = {searchValue};
     debug Logger.logWarning("user_object is null");
-    foreach (immutable(string) mountpoint; get_mountpoints())
+    foreach (immutable(string) mountpoint; getMountpoints())
     {
         Crawler crawler = new Crawler(mountpoint, data.BLOCK_LIST, data.PRIORITY_LIST_REGEX, resultCallback, searchValue,userObject);
         if (data.singlethread)
@@ -144,9 +144,9 @@ Loads Drill data to be used in any crawling
 */
 DrillData loadData(immutable(string) assets_directory)
 {
-    import Utils : get_mountpoints;
+    import Utils : getMountpoints;
     Logger.logDebug("DrillAPI " ~ DRILL_VERSION);
-    Logger.logDebug("Mount points found: "~to!string(get_mountpoints()));
+    Logger.logDebug("Mount points found: "~to!string(getMountpoints()));
     auto blockListsFullPath = buildPath(assets_directory,"BlockLists");
 
     Logger.logDebug("Assets Directory: " ~ assets_directory);
