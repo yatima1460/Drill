@@ -13,7 +13,7 @@ import std.regex : Regex, regex, RegexMatch, match;
 import std.string : split, strip;
 
 import Logger : Logger;
-import Utils : size_to_human_readable, systime_to_string;
+import Utils : sizeToHumanReadable, systime_to_string;
 import FileInfo : FileInfo;
 
 
@@ -214,7 +214,7 @@ private:
             toLower(baseName(currentFile.name)),
             extension(currentFile.name),
             currentFile.name,
-            size_to_human_readable(currentFile.size)
+            sizeToHumanReadable(currentFile.size)
         };
         return f;
     }

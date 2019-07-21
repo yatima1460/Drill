@@ -11,7 +11,7 @@ import Crawler : Crawler;
 import std.path : buildPath;
 import API : DrillData, DrillContext;
 import API : loadData, startCrawling;
-import API : DRILL_VERSION, DRILL_GITHUB_URL;
+import API : VERSION, GITHUB_URL;
 
 // TODO: capture Ctrl-C and close crawlers?
 
@@ -83,7 +83,7 @@ int main(string[] args)
 
     if(opt.helpWanted) 
     {
-        writeln("Drill CLI v"~DRILL_VERSION~" - "~DRILL_GITHUB_URL);
+        writeln("Drill CLI v"~VERSION~" - "~GITHUB_URL);
         writeln("Example use: drill-cli -ds \"foobar\"");
         defaultGetoptPrinter("Options:", opt.options);
         import core.stdc.stdlib : exit;
