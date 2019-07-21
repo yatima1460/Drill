@@ -1,6 +1,0 @@
-
-Neither a package description file, nor source/app.d was found in
-/home/yatima1460/Documents/Drill
-Please run DUB from the root directory of an existing package, or run
-"dub init --help" to get information on creating a new package.
-
