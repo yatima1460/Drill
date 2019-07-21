@@ -29,7 +29,7 @@ Opens a file using the current system implementation for file associations
 
 Returns: true if successful
 */
-bool openFile(immutable(string) fullpath) @system
+@system bool openFile(immutable(string) fullpath) 
 {
     import std.process : spawnProcess;
     import std.stdio : stdin, stdout, stderr;
@@ -45,6 +45,7 @@ bool openFile(immutable(string) fullpath) @system
             spawnProcess(["xdg-open", fullpath], null, Config.none, null);
         version (OSX)
             spawnProcess(["open", fullpath], null, Config.none, null);
+        // FIXME: if all three false it will return true even when it should be false
         return true;
     }
     catch (Exception e)
@@ -55,7 +56,7 @@ bool openFile(immutable(string) fullpath) @system
 }
 
 import std.datetime : SysTime;
-string _sysTimeToHumanReadable(SysTime time) @safe
+@safe string _sysTimeToHumanReadable(SysTime time)
 {
     import std.array : array, replace, split;
     return time.toISOExtString().replace("T", " ").replace("-", "/").split(".")[0];
@@ -120,7 +121,7 @@ Returns: immutable array of full paths
 }
 
 
-string _size_to_human_readable(ulong bytes) @safe
+@safe string _sizeToHumanReadable(ulong bytes)
 {
     string[] suffix = ["B", "KB", "MB", "GB", "TB"];
 
@@ -137,27 +138,19 @@ string _size_to_human_readable(ulong bytes) @safe
     import std.math : floor;
     return to!string(floor(dblBytes)) ~ " " ~ suffix[i];
 }
-alias size_to_human_readable = memoize!_size_to_human_readable;
+alias sizeToHumanReadable = memoize!_sizeToHumanReadable;
 
 
 
 
 
-string[] _cleanExecLine(immutable(string) exec) pure @safe
-{
-    import std.algorithm : filter;
-    import std.array : array, split;
 
-    return exec.split(" ")[].filter!(x => x[0 .. 1] != "%").array;
-}
-alias cleanExecLine = memoize!_cleanExecLine;
 
 
 
 
 import ApplicationInfo : ApplicationInfo;
-
-immutable(ApplicationInfo) readDesktopFile(immutable(string) fullPath) @system
+version(linux) immutable(ApplicationInfo) readDesktopFile(immutable(string) fullPath) @system
 {
     import Logger : Logger;
 
@@ -226,29 +219,37 @@ immutable(ApplicationInfo) readDesktopFile(immutable(string) fullPath) @system
     };
     return ai;
 }
-//alias readDesktopFile = memoize!_readDesktopFile;
+
+version(linux) string[] _cleanExecLine(immutable(string) exec) pure @safe
+{
+    import std.algorithm : filter;
+    import std.array : array, split;
+
+    return exec.split(" ")[].filter!(x => x[0 .. 1] != "%").array;
+}
+version(linux) alias cleanExecLine = memoize!_cleanExecLine;
 
 
-string[] readListFiles(immutable(string) path) @system
+
+string[] mergeAllTextFilesInDirectory(immutable(string) path) @system 
 {
     import std.file : dirEntries, SpanMode, DirEntry, readText, FileException;
 
     string[] temp_blocklist = [];
 
-    auto blocklists_file = dirEntries(DirEntry(path), SpanMode.shallow, true);
+    import std.algorithm : filter;
+    import std.string : endsWith;
+
+    auto blocklists_file = dirEntries(path, SpanMode.shallow, true).filter!(f => f.name.endsWith(".txt"));
 
     foreach (string partial_blocklist; blocklists_file)
     {
         import std.array : split;
-
         temp_blocklist ~= readText(partial_blocklist).split("\n");
     }
 
     // remove empty newlines
     import std.algorithm : filter;
-
     import std.array : array;
-
     return temp_blocklist.filter!(x => x.length != 0).array;
 }
-//alias readListFiles = memoize!_readListFiles;

@@ -19,7 +19,8 @@
   ],
   "dflags": [
     "-J=\"../../../\"",
-    "-J=\"../../\""
+    "-J=\"../../\"",
+    "-J=\"$PACKAGE_DIR\""
   ],
   "buildRequirements": [
     "allowWarnings"
@@ -31,7 +32,7 @@
     "debug" : {
       "buildOptions": [
       "debugMode",
-      "debugInfo",
+      "debugInfo"
       ]
     },
     "release": {
@@ -43,6 +44,11 @@
       ]
     }
   },
+  "preBuildCommands": [
+    "dmd $PACKAGE_DIR/../../Tools/ListsMerger.d",
+    "./ListsMerger $PACKAGE_DIR/../../Assets/BlockLists $PACKAGE_DIR",
+    "./ListsMerger $PACKAGE_DIR/../../Assets/PriorityLists $PACKAGE_DIR"
+  ],
   "targetPath": "Build/Drill-Core-$PLATFORM-$ARCH-$BUILD_TYPE",
   "toolchainRequirements": {
     "dmd": ">=2.086.0",
