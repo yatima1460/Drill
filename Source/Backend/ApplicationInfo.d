@@ -1,6 +1,3 @@
-
-
-
 /**
 Struct containing the data Drill found about installed applications
 */
