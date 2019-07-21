@@ -52,7 +52,7 @@ public:
         return globalLevel;
     } 
 
-    void logTrace(immutable(string) message, immutable(string) channel=__PRETTY_FUNCTION__) @system
+    void logTrace(immutable(string) message, immutable(string) channel=__PRETTY_FUNCTION__) @safe
     {
         debug
         {
@@ -60,7 +60,7 @@ public:
         }
     }
 
-    void logDebug(immutable(string) message, immutable(string) channel=__PRETTY_FUNCTION__) @system
+    void logDebug(immutable(string) message, immutable(string) channel=__PRETTY_FUNCTION__) @safe
     {
         debug
         {
@@ -68,29 +68,29 @@ public:
         }
     }
 
-    void logInfo(immutable(string) message, immutable(string) channel=__PRETTY_FUNCTION__) @system
+    void logInfo(immutable(string) message, immutable(string) channel=__PRETTY_FUNCTION__) @safe
     {
         log(LogLevel.Info,message,channel);
     }
 
-    void logWarning(immutable(string) message, immutable(string) channel=__PRETTY_FUNCTION__) @system
+    void logWarning(immutable(string) message, immutable(string) channel=__PRETTY_FUNCTION__) @safe
     {
         log(LogLevel.Warning,message,channel);
     }
 
-    void logError(immutable(string) message, immutable(string) channel=__PRETTY_FUNCTION__) @system
+    void logError(immutable(string) message, immutable(string) channel=__PRETTY_FUNCTION__) @safe
     {
         log(LogLevel.Error,message,channel);
     }
 
-    void logFatal(immutable(string) message, immutable(string) channel=__PRETTY_FUNCTION__) @system
+    void logFatal(immutable(string) message, immutable(string) channel=__PRETTY_FUNCTION__) @safe
     {
         log(LogLevel.Fatal,message,channel);
     }
 
     import std.conv : to;
 
-    void log(LogLevel level, immutable(string) message, immutable(string) channel) @system
+    void log(LogLevel level, immutable(string) message, immutable(string) channel) @safe
     {
         synchronized
         {
