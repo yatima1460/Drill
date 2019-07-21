@@ -1,0 +1,1 @@
+rpmlint is useful to install for the VSCode extension to manage .rpm files
