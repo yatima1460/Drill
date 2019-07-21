@@ -31,7 +31,8 @@ Tools/rpm/build
 *.log
 
 #Flatpak
-Tools/flatpak/.flatpak-builder
+.flatpak-builder
+
 
 
 *.o
