@@ -209,12 +209,11 @@
             "problemMatcher": []
         },
         {
-            "label": "Package .zip",
+            "label": "Package .zips",
             "type": "shell",
-            "command": "cd Tools/PortableZip && chmod +x ./create_zip.bash && ./create_zip.bash",
+            "command": "cd Tools/zip && chmod +x ./create_zips.bash && ./create_zips.bash",
             "dependsOn": [
-                "Build CLI Release",
-                "Build GTK Release"
+                "Build ALL",
             ],
             "group": "build",
             "presentation": {
@@ -222,6 +221,21 @@
                 "panel": "shared"
             },
             "problemMatcher": []
-        }
+        },
+        {
+            "label": "Package ALL",
+            "dependsOn": [
+                "Package .zips",
+                "Package GTK AppImage",
+                "Package GTK .deb",
+                "Package CLI .deb",
+            ],
+            "group": "build",
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared"
+            },
+            "problemMatcher": []
+        },
     ]
 }
