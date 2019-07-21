@@ -30,5 +30,8 @@ Tools/rpm/build
 *.tar.gz
 *.log
 
+#Flatpak
+Tools/flatpak/.flatpak-builder
+
 
 *.o
