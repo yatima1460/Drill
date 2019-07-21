@@ -8,8 +8,9 @@ DRILL_VERSION=$(cat ../../DRILL_VERSION)
 mkdir Build
 FILES="../../Source/Frontend/GTK/Build/*
 ../../Source/Frontend/CLI/Build/*
-../../Source/Frontend/WinAPI/Build/*
 "
+
+# ../../Source/Frontend/WinAPI/Build/*
 
 
 

@@ -1,0 +1,227 @@
+{
+    // See https://go.microsoft.com/fwlink/?LinkId=733558
+    // for the documentation about the tasks.json format
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Build GTK Debug",
+            "type": "shell",
+            "command": "cd Source/Frontend/GTK && dub build",
+            "group": "build",
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared"
+            },
+            "problemMatcher": [
+                "$dub-build"
+            ]
+        },
+        {
+            "label": "Build CLI Debug",
+            "type": "shell",
+            "command": "cd Source/Frontend/CLI && dub build",
+            "group": "build",
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared"
+            },
+            "problemMatcher": [
+                "$dub-build"
+            ]
+        },
+        {
+            "label": "Run CLI Debug",
+            "type": "shell",
+            "command": "cd Source/Frontend/CLI && dub",
+            "group": "build",
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared"
+            },
+            "problemMatcher": [
+                "$dub-build"
+            ]
+        },
+        {
+            "label": "Run GTK Debug",
+            "type": "shell",
+            "command": "cd Source/Frontend/GTK && dub",
+            "group": "build",
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared"
+            },
+            "problemMatcher": [
+                "$dub-build"
+            ]
+        },
+        {
+            "label": "Build GTK Release",
+            "type": "shell",
+            "command": "cd Source/Frontend/GTK && dub build -b release",
+            "group": "build",
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared"
+            },
+            "problemMatcher": [
+                "$dub-build"
+            ]
+        },
+        {
+            "label": "Build CLI Release",
+            "type": "shell",
+            "command": "cd Source/Frontend/CLI && dub build -b release",
+            "group": "build",
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared"
+            },
+            "problemMatcher": [
+                "$dub-build"
+            ]
+        },
+        {
+            "label": "Run CLI Release",
+            "type": "shell",
+            "command": "cd Source/Frontend/CLI && dub -b release",
+            "group": "build",
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared"
+            },
+            "problemMatcher": [
+                "$dub-build"
+            ]
+        },
+        {
+            "label": "Run GTK Release",
+            "type": "shell",
+            "command": "cd Source/Frontend/GTK && dub -b release",
+            "group": "build",
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared"
+            },
+            "problemMatcher": [
+                "$dub-build"
+            ]
+        },
+        {
+            "label": "Build ALL Release",
+            "dependsOn": [
+                "Build CLI Release",
+                "Build GTK Release"
+            ],
+            "group": "build",
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared"
+            },
+            "problemMatcher": [
+                "$dub-build"
+            ]
+        },
+        {
+            "label": "Build ALL Debug",
+            "dependsOn": [
+                "Build CLI Debug",
+                "Build GTK Release"
+            ],
+            "group": "build",
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared"
+            },
+            "problemMatcher": [
+                "$dub-build"
+            ]
+        },
+        {
+            "label": "Build ALL",
+            "dependsOn": [
+                "Build ALL Debug",
+                "Build ALL Release"
+            ],
+            "group": "build",
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared"
+            },
+            "problemMatcher": [
+                "$dub-build"
+            ]
+        },
+        {
+            "label": "Package GTK AppImage",
+            "type": "shell",
+            "command": "cd Tools/AppImage && chmod +x ./build_appimage_gtk.bash && ./build_appimage_gtk.bash",
+            "dependsOn": [
+                "Build GTK Release"
+            ],
+            "group": "build",
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Run GTK AppImage",
+            "type": "shell",
+            "command": "cd Tools/AppImage/Build && chmod +x ./$(ls) && ./$(ls)",
+            "dependsOn": [
+                "Package GTK AppImage"
+            ],
+            "group": "build",
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Package GTK .deb",
+            "type": "shell",
+            "command": "cd Tools/deb && chmod +x ./build_deb_gtk.bash && ./build_deb_gtk.bash",
+            "dependsOn": [
+                "Build GTK Release"
+            ],
+            "group": "build",
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Package CLI .deb",
+            "type": "shell",
+            "command": "cd Tools/deb && chmod +x ./build_deb_cli.bash && ./build_deb_cli.bash",
+            "dependsOn": [
+                "Build CLI Release"
+            ],
+            "group": "build",
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Package .zip",
+            "type": "shell",
+            "command": "cd Tools/PortableZip && chmod +x ./create_zip.bash && ./create_zip.bash",
+            "dependsOn": [
+                "Build CLI Release",
+                "Build GTK Release"
+            ],
+            "group": "build",
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared"
+            },
+            "problemMatcher": []
+        }
+    ]
+}
