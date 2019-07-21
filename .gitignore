@@ -26,7 +26,8 @@ Tools/deb/DEBFILE
 # RedHat
 *.rpm
 *.spec
-
+Tools/rpm/build
+*.tar.gz
 *.log
 
 
