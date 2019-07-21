@@ -1,4 +1,19 @@
-\documentclass{article}
+\documentclass[12pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[english]{babel}
+\usepackage{hyperref}
+\usepackage{listings}
+\usepackage[a4paper, total={6in, 8in}]{geometry}
+
+
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    filecolor=magenta,      
+    urlcolor=blue,
+}
+ 
+\urlstyle{same}
 \usepackage{graphicx}
 
 % TODO: why indexing is bad: updatedb, most recent files and so on
@@ -6,20 +21,29 @@
 % TODO: short file names
 % TODO: entropy filename
 
+\usepackage{array}
+\newenvironment{conditions}
+  {\par\vspace{\abovedisplayskip}\noindent\begin{tabular}{>{$}l<{$} @{${}={}$} l}}
+  {\end{tabular}\par\vspace{\belowdisplayskip}}
+
 \newcommand{\bigO}{\mathcal{O}}
 \begin{document}
 
 \title
 {
-    Drill 
-    \linebreak 
-    Heuristic approach to search files produced by humans inside 
-    tree-based filesystems
+    Drill \\
+    Heuristic approach to search files produced by humans inside tree-based filesystems
 }
-\author{Federico Santamorena}
+\author
+{
+    Federico Santamorena
+}
 \maketitle
 
+
+
 \begin{abstract}
+TODO
 % Nowadays the average user accumulates a vast majority of data, and if a file is needed it's starting to get cheaper to just search for it once in a while instaed of organizing that data.
 % Current solutions for PCs and smartphones generally use an indexing solution, first they scan all the files and then keep a database for subsequent searches.
 % This method has fallacies and I propose a heuristic crawling solution that beats any other classical search in terms of time and space complexity.
@@ -30,41 +54,67 @@
 
 
 \section{Acknowledgments}
-
+TODO
 
 \section{Introduction}
-Everyday we struggle with the vast majority of data we hoard, an interesting fact is that in a lot of cases the cost to organize that data is a lot more expensive than actually searching once in a while what we need inside it.
-Searching inside a file system with random files can be summarized in:
+Everyday we struggle with the vast majority of data we hoard, but in a lot of cases the cost to organize that data is a lot more expensive than actually searching once in a while what we really need inside it.
+In the modern age and subsequent decades the data produced will be so much we need a clever heuristic crawling system to instantly search the files we need.
+In this paper I will take for granted that when talking about file systems they will be tree-based.\\
+Searching inside a file system with random files, or more generally inside an unordered generic tree structure can be summarized in:
 
+\begin{samepage}
 \begin{equation}
     \label{equation_introduction}
-    \bigO(n)
+    \bigO(N_f)
 \end{equation}
+Where:
+\begin{conditions}
+   N_f & the number of files in the filesystem\\
+\end{conditions}
+\end{samepage}
 
-And the situation gets even worse if a user has multiple attached disks: 
-
+\begin{samepage}
+The situation gets even worse if a user has multiple attached disks: 
 \begin{equation}
     \label{equation_disks}
-    \bigO(n*k)
+    \bigO(N_A+N_B+N_C+...)
+    % \bigO(\sum_{i=1}^{N_D}i=N_{D_i})
 \end{equation}
+\centering{Or more generally:}
+\begin{equation}
+    \label{equation_disks}
+    % \bigO(N_A+N_B+N_C+...)
+    \bigO(\sum_{i=1}^{N_D}i=N_{D_i})
+\end{equation}
+Where:
+\begin{conditions}
+    N_D & the number of disks \\
+    N_{avg} & average number of files on each disk\\
+    K & being the number of disks attached.
+\end{conditions}
+\end{samepage}
 
-With $n$ being the average number of files and $k$ being the number of disks attached.
-We need a clever way to crawl that vast amount of data instead of wasting time organizing it and indexing it.
+We need a clever way to crawl that vast amount of data instead of wasting time organizing it and/or indexing it.
 
 \section{Materials and methods}
 
+TODO
+
 \subsection{Multi-threading}
-The first important step to weaken [\ref{equation_disks}] is to implement multi-threading.
+The first important step to weaken \ref{equation_disks} is to implement multi-threading.
 Right now (2019) an average desktop CPU has between 4-8 threads, it's fairly good to assume that the average user has a number of attached disks that is at max the number of threads his/her CPU can support.
-I was perplexed to find that classical tools like find and updatedb still don't use multithreading and have a [\ref{equation_disks}] worst case scenario, by implementing multi-threading and spawning at least 1 thread per physical disk we can have a $\bigO(n)$ time, with $n$ being the number of files an average user has on each disk.
-The formula can now be updated to:
+I was perplexed to find that classical tools like find and updatedb still don't use multithreading and have a \ref{equation_disks} worst case scenario, by implementing multi-threading and spawning at least 1 thread per physical disk we can return to a similar time of the previous \ref{equation_introduction} equation.
+The formula can now be reverted back to:
 
 \begin{equation}
     \label{equation_multithreading}
-    \bigO(n)
+    \bigO(max_{files}(A))
 \end{equation}
-
-
+Where:
+\begin{conditions}
+    A & being the array of disks attached \\
+    max_{files} & function returning the disk with the most files given an array
+\end{conditions}
 
 \subsection{Analysis of depth produced by humans}
 
@@ -72,8 +122,7 @@ The first important heuristic approach is to analyze how humans produce data, ho
 The average human stores files without nesting too many folders, even myself being a hoarder with a lot of random data in multiple disks I noticed a maximum depth of about 10 folders from the root of the filesystem.
 % A short script written in Python analyzing my big 4TB archive with random stuff will show an average depth of 10 folders:
 % The average folder has about 100 files.
-With $F$ being the average number of folders in a folder.
-With $D$ being the average depth humans store data.
+
 
 The formula can now be updated to:
 
@@ -81,7 +130,11 @@ The formula can now be updated to:
     \label{equation_depth_analysis}
     \bigO(F^D)
 \end{equation}
-
+Where:
+\begin{conditions}
+    F_{avg} & being the average number of folders in a folder. \\
+    D_{avg} & being the average depth humans store data.
+\end{conditions}
 
 
 \subsection{Crawling algorithms}
@@ -111,9 +164,7 @@ The first important step to weaken $\bigO(n)$ is to prevent th
 
 \subsection{Entropy of file name}
 
-
-
-
+TODO
 
 \subsection{Regex prioritization}
 
@@ -121,16 +172,26 @@ A simple analysis of human produced files like
 The first heuristic solution is to use a dicrionary 
 
 \subsubsection{Dictionary}
+
+TODO
+
 \subsubsection{Path-based}
 
-
-
-
+TODO
 
 
 
 
 \section{Results}
+
+The results will focus on the performance of various software and then compared to Drill.
+% The results will be mainly focused about benchmarking the crawling of a single disk, and how a single thread performans its operations, 
+Here we use \href{http://github.com/yatima1460/Fake-Filesystem-Generator}{a simple software} written in Python to generate a fake tree of nested folders with a random mix of files and folders on each layer, a random depth, and a file we need placed somewhere in this fake tree, we will test find, locate and Drill.
+
+\begin{lstlisting}
+./python3 fake_filesysten_generator.py name_of_the_hidden_file
+\end{lstlisting}
+
 
 \subsection{Other software}
 
@@ -140,11 +201,23 @@ The first heuristic solution is to use a dicrionary
 
 \subsection{Drill}
 
+The results are shown while implementing the various approaches:
+
+\subsubsection{Multithreading-only}
+
+
+\subsubsection{Adding blacklisting}
+
+\subsubsection{Adding prioritization}
+
+
 \section{Discussion}
 
 \section{Literature Cited}
 
-
+% TODO: shannon entropy
+% TODO: depth-first
+% TODO: breadth-first
 
 \section{Appendices}
 
