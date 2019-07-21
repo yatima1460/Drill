@@ -5,7 +5,7 @@ In this module go useful functions that are not strictly related to crawling
 import std.functional : memoize;
 
 
-version(linux) @system string[] getDesktopFiles()
+version(linux) @system string[] getDesktopFiles() 
 {
     import std.process : executeShell;
     import std.array : split;
@@ -31,7 +31,6 @@ Returns: true if successful
 */
 bool openFile(immutable(string) fullpath) @system
 {
-
     import std.process : spawnProcess;
     import std.stdio : stdin, stdout, stderr;
     import std.process : Config;
@@ -56,13 +55,12 @@ bool openFile(immutable(string) fullpath) @system
 }
 
 import std.datetime : SysTime;
-string _systime_to_string(SysTime time) @safe
+string _sysTimeToHumanReadable(SysTime time) @safe
 {
     import std.array : array, replace, split;
-
     return time.toISOExtString().replace("T", " ").replace("-", "/").split(".")[0];
 }
-alias systime_to_string = memoize!_systime_to_string;
+alias systime_to_string = memoize!_sysTimeToHumanReadable;
 
 
 /**
@@ -71,10 +69,11 @@ It's not assured that every mount point is a physical disk
 
 Returns: immutable array of full paths
 */
-@system immutable(string[]) get_mountpoints()
+@safe immutable(string[]) getMountpoints()
 {
     import std.process : executeShell;
     import Logger : Logger;
+
 
     version (linux)
     {
@@ -144,11 +143,6 @@ alias size_to_human_readable = memoize!_size_to_human_readable;
 
 
 
-
-
-
-
-
 string[] _cleanExecLine(immutable(string) exec) pure @safe
 {
     import std.algorithm : filter;
@@ -156,8 +150,10 @@ string[] _cleanExecLine(immutable(string) exec) pure @safe
 
     return exec.split(" ")[].filter!(x => x[0 .. 1] != "%").array;
 }
-
 alias cleanExecLine = memoize!_cleanExecLine;
+
+
+
 
 import ApplicationInfo : ApplicationInfo;
 

@@ -17,6 +17,72 @@ import Utils : size_to_human_readable, systime_to_string;
 import FileInfo : FileInfo;
 
 
+
+
+alias CrawlerCallback = void function(  immutable(FileInfo) result, void* userObject);
+
+struct CrawlerData
+{
+    string root;
+    string searchString;
+    string[] blockList;
+
+    Regex!char[] blockListRegex;
+    Regex!char[] priorityListRegex;
+
+    CrawlerCallback resultCallback;
+
+    void* userObject;
+}
+
+
+struct CrawlerContext
+{
+    Tid thread;
+    bool running;
+
+}
+
+import  std.concurrency;
+
+
+
+
+
+CrawlerContext startCrawler(CrawlerData data)
+in(data.resultCallback !is null)
+out(c;c.running)
+{
+    CrawlerContext c;
+    c.thread = spawn(&crawl, cast(immutable)data, cast(shared)c),
+    c.running = true;
+    return c;
+}
+
+
+
+
+
+
+
+
+
+
+void crawl(immutable(CrawlerData) data, shared CrawlerContext context)
+{
+    
+}
+
+
+
+
+
+
+//////////////////
+
+
+
+
 import std.functional : memoize;
 alias memoizedDirEntries = memoize!dirEntries;
 
@@ -26,6 +92,10 @@ DirEntry _memoizedDirEntry(immutable(string) fullPath)
 }
 
 alias memoizedDirEntry = memoize!_memoizedDirEntry;
+
+
+
+// auto composed = new Thread(&threadFunc).start();
 
 class Crawler : Thread
 {
@@ -178,11 +248,11 @@ private:
         assert(MOUNTPOINT.length != 0, "the mountpoint string can't be empty");
         assert(resultCallback != null, "the result callback can't be null");
 
-        import Utils : get_mountpoints;
+        import Utils : getMountpoints;
 
          // Every Crawler will have all the other mountpoints in its blocklist
         // In this way crawlers will not cross paths
-        string[] cp_tmp = get_mountpoints()[].filter!(x => x != MOUNTPOINT)
+        string[] cp_tmp = getMountpoints()[].filter!(x => x != MOUNTPOINT)
             .map!(x => "^" ~ x ~ "$")
             .array;
         Logger.logDebug("Adding these to the global blocklist: " ~ to!string(cp_tmp),this.toString());
