@@ -25,7 +25,7 @@ addons:
     packages:
       - desktop-file-utils
       - p7zip-full
-      # - alien
+      - ldc
 
   #osx
   homebrew:
@@ -65,16 +65,16 @@ script:
 
   ## build CLI
   - cd Source/Frontend/CLI
-  # - $DUB build --arch=x86_64
-  - $DUB build -b release --arch=x86_64
+  - if [ "$TRAVIS_OS_NAME" = "windows" ]; then $DUB build -b release --arch=x86_64 --compiler=dmd; fi
+  - if [ "$TRAVIS_OS_NAME" = "osx" ];     then $DUB build -b release --arch=x86_64 --compiler=dmd; fi
+  - if [ "$TRAVIS_OS_NAME" = "linux" ];   then $DUB build -b release --arch=x86_64 --compiler=ldc; fi
   - cd ../../../
 
   ## build UI
 
   ### Linux
   - if [ "$TRAVIS_OS_NAME" = "linux" ]; then cd Source/Frontend/GTK; fi
-  # - if [ "$TRAVIS_OS_NAME" = "linux" ]; then dub build --arch=x86_64; fi
-  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then $DUB build -b release --arch=x86_64; fi
+  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then $DUB build -b release --arch=x86_64 --compiler=ldc; fi
   - if [ "$TRAVIS_OS_NAME" = "linux" ]; then cd ../../../; fi
 
   ### Windows
@@ -113,11 +113,6 @@ script:
   # - if [ "$TRAVIS_OS_NAME" = "linux" ]; then bash build_rpm.bash; fi
   # - if [ "$TRAVIS_OS_NAME" = "linux" ]; then cd ../../; fi
 
-  ### Slackware
-  # - if [ "$TRAVIS_OS_NAME" = "linux" ]; then cd Tools/Slackware; fi
-  # - if [ "$TRAVIS_OS_NAME" = "linux" ]; then bash build_slackware.bash; fi
-  # - if [ "$TRAVIS_OS_NAME" = "linux" ]; then cd ../../; fi
-
   # - if [ "$TRAVIS_OS_NAME" = "linux" ]; then ; fi
   # - if [ "$TRAVIS_OS_NAME" = "linux" ]; then ; fi
   # - if [ "$TRAVIS_OS_NAME" = "linux" ]; then ; fi
@@ -143,7 +138,6 @@ deploy:
   file: 
     - Tools/deb/Build/*.deb
     # - Tools/rpm/Build/*.rpm
-    # - Tools/Slackware/Build/*.tgz
     - Tools/AppImage/Build/*.AppImage
     - Tools/zip/Build/*.zip
 
