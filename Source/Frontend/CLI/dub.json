@@ -44,6 +44,6 @@
   "toolchainRequirements": {
     "dmd": ">=2.086.0",
     "gdc": "no",
-    "ldc": "no"
+		"ldc": ">=1.15.0"
   }
 }
