@@ -15,6 +15,8 @@ language: bash
 before_install:
  - export TRAVIS_TAG="1.$TRAVIS_BUILD_NUMBER"
  - echo -n $TRAVIS_TAG > DRILL_VERSION
+ - if [ "$TRAVIS_OS_NAME" = "windows" ]; then choco install ldc; fi
+ - if [ "$TRAVIS_OS_NAME" = "windows" ]; then choco install dub; fi
 
 
 addons:
@@ -41,8 +43,8 @@ script:
   # install D
 
   ## linux
-  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then snap install --classic --channel=edge ldc2; fi
-  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then export DUB=dub; fi
+  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then sudo snap install --classic --channel=edge ldc2; fi
+
   # - if [ "$TRAVIS_OS_NAME" = "linux" ]; then wget http://downloads.dlang.org/releases/2.x/2.086.0/dmd.2.086.0.linux.tar.xz; fi
   # - if [ "$TRAVIS_OS_NAME" = "linux" ]; then 7z x dmd.2.086.0.linux.tar.xz; fi
   # - if [ "$TRAVIS_OS_NAME" = "linux" ]; then 7z x dmd.2.086.0.linux.tar; fi
@@ -51,9 +53,9 @@ script:
   # - if [ "$TRAVIS_OS_NAME" = "linux" ]; then chmod +x "$PWD"/dmd2/linux/bin64/dmd; fi
 
   ## windows
-  - if [ "$TRAVIS_OS_NAME" = "windows" ]; then wget http://downloads.dlang.org/releases/2.x/2.086.0/dmd.2.086.0.windows.7z; fi
-  - if [ "$TRAVIS_OS_NAME" = "windows" ]; then 7z x dmd.2.086.0.windows.7z; fi
-  - if [ "$TRAVIS_OS_NAME" = "windows" ]; then export DUB="$PWD"/dmd2/windows/bin/dub.exe; fi
+  # - if [ "$TRAVIS_OS_NAME" = "windows" ]; then wget http://downloads.dlang.org/releases/2.x/2.086.0/dmd.2.086.0.windows.7z; fi
+  # - if [ "$TRAVIS_OS_NAME" = "windows" ]; then 7z x dmd.2.086.0.windows.7z; fi
+  # - if [ "$TRAVIS_OS_NAME" = "windows" ]; then export DUB="$PWD"/dmd2/windows/bin/dub.exe; fi
 
   ## osx
   - if [ "$TRAVIS_OS_NAME" = "osx" ]; then wget http://downloads.dlang.org/releases/2.x/2.086.0/dmd.2.086.0.osx.tar.xz; fi
@@ -67,8 +69,8 @@ script:
 
   ## build CLI
   - cd Source/Frontend/CLI
-  - if [ "$TRAVIS_OS_NAME" = "windows" ]; then $DUB build -b release --arch=x86_64; fi
-  - if [ "$TRAVIS_OS_NAME" = "osx" ];     then $DUB build -b release --arch=x86_64; fi
+  - if [ "$TRAVIS_OS_NAME" = "windows" ]; then dub build -b release --arch=x86_64; fi
+  - if [ "$TRAVIS_OS_NAME" = "osx" ];     then dub build -b release --arch=x86_64; fi
   - if [ "$TRAVIS_OS_NAME" = "linux" ];   then $DUB build -b release --arch=x86_64 --compiler=ldc2; fi
   - cd ../../../
 
