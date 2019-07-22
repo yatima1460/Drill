@@ -25,7 +25,7 @@ addons:
     packages:
       - desktop-file-utils
       - p7zip-full
-      - ldc
+      - ldc2
 
   #osx
   homebrew:
