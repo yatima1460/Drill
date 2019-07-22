@@ -40,7 +40,7 @@
   "copyFiles": [
     "../../../Assets"
   ],
-  "targetPath": "Build/Drill-CLI-$PLATFORM-$ARCH-$BUILD_TYPE",
+  "targetPath": "Build/Drill-CLI-$PLATFORM_POSIX-$ARCH-$BUILD_TYPE",
   "toolchainRequirements": {
     "dmd": ">=2.086.0",
     "gdc": "no",
