@@ -12,6 +12,16 @@ enum LogLevel
     Fatal
 }
 
+immutable(string[]) logName =
+[
+    "Trace",
+    "Debug",
+    "Info",
+    "Error",
+    "Warning",
+    "Fatal"
+];
+
 
 
 final class Logger
@@ -47,12 +57,12 @@ static:
 
 public:
 
-    immutable(LogLevel) getLogLevel() pure @nogc @safe
+    immutable(LogLevel) getLogLevel() pure @nogc @safe nothrow 
     {
         return globalLevel;
     } 
 
-    void logTrace(immutable(string) message, immutable(string) channel=__PRETTY_FUNCTION__) @safe
+    void logTrace(immutable(string) message, immutable(string) channel=__PRETTY_FUNCTION__) nothrow 
     {
         debug
         {
@@ -60,7 +70,7 @@ public:
         }
     }
 
-    void logDebug(immutable(string) message, immutable(string) channel=__PRETTY_FUNCTION__) @safe
+    void logDebug(immutable(string) message, immutable(string) channel=__PRETTY_FUNCTION__) nothrow 
     {
         debug
         {
@@ -68,29 +78,29 @@ public:
         }
     }
 
-    void logInfo(immutable(string) message, immutable(string) channel=__PRETTY_FUNCTION__) @safe
+    void logInfo(immutable(string) message, immutable(string) channel=__PRETTY_FUNCTION__) nothrow 
     {
         log(LogLevel.Info,message,channel);
     }
 
-    void logWarning(immutable(string) message, immutable(string) channel=__PRETTY_FUNCTION__) @safe
+    void logWarning(immutable(string) message, immutable(string) channel=__PRETTY_FUNCTION__) nothrow 
     {
         log(LogLevel.Warning,message,channel);
     }
 
-    void logError(immutable(string) message, immutable(string) channel=__PRETTY_FUNCTION__) @safe
+    void logError(immutable(string) message, immutable(string) channel=__PRETTY_FUNCTION__)  nothrow 
     {
         log(LogLevel.Error,message,channel);
     }
 
-    void logFatal(immutable(string) message, immutable(string) channel=__PRETTY_FUNCTION__) @safe
+    void logFatal(immutable(string) message, immutable(string) channel=__PRETTY_FUNCTION__)  nothrow 
     {
         log(LogLevel.Fatal,message,channel);
     }
 
     import std.conv : to;
 
-    void log(LogLevel level, immutable(string) message, immutable(string) channel) @safe
+    void log(LogLevel level, immutable(string) message, immutable(string) channel) nothrow 
     {
         synchronized
         {
@@ -100,7 +110,9 @@ public:
                 auto currentTime = Clock.currTime();
                 auto timeString = currentTime.toISOExtString();
                 import std.stdio : writeln;
-                writeln("["~timeString~"]["~to!string(level)~"]["~channel~"] "~message);
+                import core.stdc.stdio : printf;
+                import std.string : toStringz;
+                printf(toStringz("["~timeString~"]["~logName[level]~"]["~channel~"] "~message));
             }
         }
     }

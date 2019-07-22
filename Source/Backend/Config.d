@@ -9,14 +9,23 @@ immutable(string) DEFAULT_PRIORITY_LIST = import("PriorityLists.txt");
 
 
 
-struct DrillConfig
+@safe @nogc pure struct DrillConfig
 {
     immutable(string) ASSETS_DIRECTORY;
+    invariant
+    {
+        assert(ASSETS_DIRECTORY !is null);
+        assert(ASSETS_DIRECTORY.length > 0);
+    }
     immutable(string[]) BLOCK_LIST;
     immutable(string[]) PRIORITY_LIST;
 
     import std.regex: Regex;
     const(Regex!char[]) PRIORITY_LIST_REGEX;
+    invariant
+    {
+        assert(PRIORITY_LIST_REGEX.length == PRIORITY_LIST.length);
+    }
     bool singlethread;
 }
 
@@ -71,8 +80,8 @@ DrillConfig loadData(immutable(string) assetsDirectory)
     import std.algorithm : canFind, filter, map;
     import std.array : array;
     
-    Logger.logDebug("DrillAPI " ~ VERSION);
-    Logger.logDebug("Mount points found: "~to!string(getMountpoints()));
+    //Logger.logDebug("DrillAPI " ~ VERSION);
+    //Logger.logDebug("Mount points found: "~to!string(getMountpoints()));
     auto blockListsFullPath = buildPath(assetsDirectory,"BlockLists");
 
     Logger.logDebug("Assets Directory: " ~ assetsDirectory);
@@ -106,7 +115,7 @@ DrillConfig loadData(immutable(string) assetsDirectory)
         Logger.logError(fe.toString());
         Logger.logError("Error when trying to read priority lists, will default to an empty list");
     }
-
+    // DrillConfig dd;
     DrillConfig dd = {
         assetsDirectory,
         cast(immutable(string[]))BLOCK_LIST,
