@@ -165,7 +165,7 @@ public:
 
     }
 
-    pure void stopAsync() @nogc
+    void stopAsync() @nogc
     {
         this.resultCallback = (&this.noop_resultFound).funcptr;
         this.running = false;

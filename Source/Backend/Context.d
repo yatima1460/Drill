@@ -22,12 +22,21 @@ This struct represents an active Drill search,
 it holds a pool of crawlers and the current state, 
 like the searched value
 */
-struct DrillContext
+@safe @nogc pure struct DrillContext
 {
-    import std.container : SList;
+    // import std.container : SList;
     string search_value;
+    invariant 
+    { 
+        assert(search_value !is null); 
+        assert(search_value.length > 0);
+    }
     import Crawler : Crawler;
-    SList!Crawler threads;
+    Crawler[] threads;
+    invariant
+    {
+        assert(threads.length >= 0 /* && threads.length <= getMountpoints().length*/);
+    }
 }
 
 
@@ -59,7 +68,7 @@ If no crawling is currently underway this function will do nothing.
     import Crawler : Crawler; 
     foreach (Crawler crawler; context.threads)
         crawler.stopAsync();
-    context.threads.clear(); // TODO: if nothing has a reference to a thread does the thread get GC-ed?
+    context.threads = []; // TODO: if nothing has a reference to a thread does the thread get GC-ed?
 }
 
 
@@ -104,7 +113,7 @@ This function stops all the crawlers and will return only when all of them are s
     waitForCrawlers(context);
 }
 
-
+import Utils : getMountpoints;
 /**
 Starts the crawling, every crawler will filter on its own.
 Use the resultFound callback as an event to know when a crawler finds a new result.
@@ -119,8 +128,12 @@ Params:
                                    immutable(string) searchValue, 
                                    immutable(void function(immutable(FileInfo) result, void* userObject)) resultCallback, 
                                    void* userObject)
+in (searchValue !is null)
+in (searchValue.length > 0)
+in (resultCallback !is null)
+out (c;c.threads.length == getMountpoints().length)
 {
-    import Utils : getMountpoints;
+    
     import Crawler : Crawler; 
     import Logger : Logger;
 
@@ -133,11 +146,22 @@ Params:
             crawler.run();
         else
             crawler.start();
-        c.threads.insertFront(crawler);
+        c.threads ~= crawler;
     }
     return c;
 }
 
+
+// /**
+// Starts the crawling using the default configs
+// Check the complete function for details
+// */
+// @system DrillContext startCrawling(immutable(string) searchValue, 
+//                                    immutable(void function(immutable(FileInfo) result, void* userObject)) resultCallback, 
+//                                    void* userObject)
+// {
+
+// }
 
 
 
