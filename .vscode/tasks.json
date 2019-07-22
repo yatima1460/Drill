@@ -126,7 +126,7 @@
             "label": "Build ALL Debug",
             "dependsOn": [
                 "Build CLI Debug",
-                "Build GTK Release"
+                "Build GTK Debug"
             ],
             "group": "build",
             "presentation": {
