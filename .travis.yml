@@ -25,7 +25,7 @@ addons:
     packages:
       - desktop-file-utils
       - p7zip-full
-      - ldc2
+      - dub
 
   #osx
   homebrew:
@@ -41,12 +41,14 @@ script:
   # install D
 
   ## linux
-  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then wget http://downloads.dlang.org/releases/2.x/2.086.0/dmd.2.086.0.linux.tar.xz; fi
-  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then 7z x dmd.2.086.0.linux.tar.xz; fi
-  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then 7z x dmd.2.086.0.linux.tar; fi
-  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then export DUB="$PWD"/dmd2/linux/bin64/dub; fi
-  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then chmod +x $DUB; fi
-  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then chmod +x "$PWD"/dmd2/linux/bin64/dmd; fi
+  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then snap install --classic --channel=edge ldc2; fi
+  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then export DUB=dub; fi
+  # - if [ "$TRAVIS_OS_NAME" = "linux" ]; then wget http://downloads.dlang.org/releases/2.x/2.086.0/dmd.2.086.0.linux.tar.xz; fi
+  # - if [ "$TRAVIS_OS_NAME" = "linux" ]; then 7z x dmd.2.086.0.linux.tar.xz; fi
+  # - if [ "$TRAVIS_OS_NAME" = "linux" ]; then 7z x dmd.2.086.0.linux.tar; fi
+  # - if [ "$TRAVIS_OS_NAME" = "linux" ]; then export DUB="$PWD"/dmd2/linux/bin64/dub; fi
+  # - if [ "$TRAVIS_OS_NAME" = "linux" ]; then chmod +x $DUB; fi
+  # - if [ "$TRAVIS_OS_NAME" = "linux" ]; then chmod +x "$PWD"/dmd2/linux/bin64/dmd; fi
 
   ## windows
   - if [ "$TRAVIS_OS_NAME" = "windows" ]; then wget http://downloads.dlang.org/releases/2.x/2.086.0/dmd.2.086.0.windows.7z; fi
