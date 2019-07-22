@@ -250,17 +250,11 @@ public:
         
         debug
         {
-            version (LDC)
-                this.setTitle("Drill - LLVM Edition (DEBUG VERSION)");
-            else
-                this.setTitle("Drill  (DEBUG VERSION)");
+            this.setTitle("Drill (DEBUG VERSION)");
         }
         else
         {
-            version (LDC)
-                this.setTitle("Drill - LLVM Edition");
-            else
-                this.setTitle("Drill");
+            this.setTitle("Drill");
         }
 
         // MenuBar mb = new MenuBar();
@@ -324,11 +318,14 @@ public:
             this.github_notice.setSelectable(true);
             this.github_notice.setJustify(GtkJustification.CENTER);
             this.github_notice.setHalign(GtkAlign.CENTER);
+            version (LDC) immutable(string) COMPILER = "LLVM";
+            version (DMD) immutable(string) COMPILER = "DMD";
+            version (GDC) immutable(string) COMPILER = "GDC";
             this.github_notice.setMarkup(
                 "<a href=\""~GITHUB_URL~"\">Drill</a>"~
                 " is maintained by "~
                 "<a href=\""~AUTHOR_URL~"\">"~AUTHOR_NAME~"</a>"
-                 ~ " " ~ VERSION
+                 ~ " v" ~ VERSION ~ "-" ~ COMPILER
             );
             h.packStart(github_notice, true, true, 0);
         }
