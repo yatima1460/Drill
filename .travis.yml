@@ -57,7 +57,7 @@ script:
   ## windows
   # - if [ "$TRAVIS_OS_NAME" = "windows" ]; then wget http://downloads.dlang.org/releases/2.x/2.086.0/dmd.2.086.0.windows.7z; fi
   # - if [ "$TRAVIS_OS_NAME" = "windows" ]; then 7z x dmd.2.086.0.windows.7z; fi
-  # - if [ "$TRAVIS_OS_NAME" = "windows" ]; then export DUB="$PWD"/dmd2/windows/bin/dub.exe; fi
+  # - if [ "$TRAVIS_OS_NAME" = "windows" ]; then move "$PWD"/dmd2/windows/bin/*.* $PWD; fi
 
   ## osx
   - if [ "$TRAVIS_OS_NAME" = "osx" ]; then wget http://downloads.dlang.org/releases/2.x/2.086.0/dmd.2.086.0.osx.tar.xz; fi
