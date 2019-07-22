@@ -67,14 +67,14 @@ script:
   - cd Source/Frontend/CLI
   - if [ "$TRAVIS_OS_NAME" = "windows" ]; then $DUB build -b release --arch=x86_64 --compiler=dmd; fi
   - if [ "$TRAVIS_OS_NAME" = "osx" ];     then $DUB build -b release --arch=x86_64 --compiler=dmd; fi
-  - if [ "$TRAVIS_OS_NAME" = "linux" ];   then $DUB build -b release --arch=x86_64 --compiler=ldc; fi
+  - if [ "$TRAVIS_OS_NAME" = "linux" ];   then $DUB build -b release --arch=x86_64 --compiler=ldc2; fi
   - cd ../../../
 
   ## build UI
 
   ### Linux
   - if [ "$TRAVIS_OS_NAME" = "linux" ]; then cd Source/Frontend/GTK; fi
-  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then $DUB build -b release --arch=x86_64 --compiler=ldc; fi
+  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then $DUB build -b release --arch=x86_64 --compiler=ldc2; fi
   - if [ "$TRAVIS_OS_NAME" = "linux" ]; then cd ../../../; fi
 
   ### Windows
