@@ -1,6 +1,4 @@
-function refreshenv
-{
-  powershell -NonInteractive - <<\EOF
+powershell -NonInteractive - <<\EOF
 Import-Module "$env:ChocolateyInstall\helpers\chocolateyProfile.psm1"
 Update-SessionEnvironment
 # Round brackets in variable names cause problems with bash
@@ -14,8 +12,4 @@ Get-ChildItem env:* | %{
   }
 } | Out-File -Encoding ascii $env:TEMP\refreshenv.sh
 EOF
-
-  source "$TEMP/refreshenv.sh"
-}
-
-alias RefreshEnv=refreshenv
+source "$TEMP/refreshenv.sh"
