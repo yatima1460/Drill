@@ -55,7 +55,8 @@ import Utils : sizeToHumanReadable;
 import Logger : Logger;
 import Utils : openFile;
 import ApplicationInfo : ApplicationInfo, getApplications;
-
+import Context : activeCrawlersCount, stopCrawlingSync, stopCrawlingAsync, startCrawling;
+import Config: loadData;
 
 debug
 {
@@ -112,7 +113,7 @@ void resultFound(immutable(FileInfo) result, void* userObject)
     }
 
 
-    import API: loadData, activeCrawlersCount, stopCrawlingSync, stopCrawlingAsync, startCrawling;
+   
 
 extern (C) static nothrow int threadIdleProcess(void* data)
 in(data != null, "data can't be null in GTK task")
@@ -228,9 +229,11 @@ private:
         }
     }
 
-    import API : DrillData, DrillContext;
     
-    DrillData data;
+    import Config : DrillConfig;
+    DrillConfig data;
+
+    import Context : DrillContext;
     DrillContext context;
 
 public:
@@ -310,7 +313,7 @@ public:
         }
         else
         {
-            import API : GITHUB_URL, AUTHOR_URL, AUTHOR_NAME, VERSION;
+            import Meta : GITHUB_URL, AUTHOR_URL, AUTHOR_NAME, VERSION;
             this.github_notice = new Label("");
             this.github_notice.setSelectable(true);
             this.github_notice.setJustify(GtkJustification.CENTER);

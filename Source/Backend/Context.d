@@ -1,47 +1,32 @@
 
 
-import std.algorithm : canFind, filter, map;
-import std.container : Array, SList;
-import std.array : array, split;
+// import std.algorithm : canFind, filter, map;
+// import std.container : Array, SList;
+// import std.array : array, split;
 
-import std.string : indexOf;
-import std.regex: Regex, regex;
-import std.file : dirEntries, SpanMode, DirEntry, readText, FileException;
-import std.path : buildPath;
-import std.conv: to;
+// import std.string : indexOf;
+// import std.regex: Regex, regex;
+// import std.file : dirEntries, SpanMode, DirEntry, readText, FileException;
+// import std.path : buildPath;
+// import std.conv: to;
 
-import Utils : mergeAllTextFilesInDirectory;
-import Logger : Logger;
-import Crawler : Crawler;
+// import Utils : mergeAllTextFilesInDirectory;
+// import Logger : Logger;
+// import Crawler : Crawler;
+// import FileInfo : FileInfo;
+// import ApplicationInfo : ApplicationInfo;
+import Config : DrillConfig;
 import FileInfo : FileInfo;
-import ApplicationInfo : ApplicationInfo;
-
-
-immutable(string) VERSION     = import("DRILL_VERSION");
-immutable(string) BUILD_TIME  = __TIMESTAMP__;
-
-immutable(string) AUTHOR_NAME = "Federico Santamorena";
-immutable(string) AUTHOR_URL  = "https://www.linkedin.com/in/yatima1460/";
-immutable(string) GITHUB_URL  = "https://github.com/yatima1460/Drill";
-immutable(string) WEBSITE_URL = "https://www.drill.santamorena.me";
-
-immutable(string) DEFAULT_BLOCK_LIST    = import("BlockLists.txt");
-immutable(string) DEFAULT_PRIORITY_LIST = import("PriorityLists.txt");
-
-
-
-struct DrillData
-{
-    immutable(string) ASSETS_DIRECTORY;
-    immutable(string[]) BLOCK_LIST;
-    immutable(string[]) PRIORITY_LIST;
-    const(Regex!char[]) PRIORITY_LIST_REGEX;
-    bool singlethread;
-}
-
+/**
+This struct represents an active Drill search, 
+it holds a pool of crawlers and the current state, 
+like the searched value
+*/
 struct DrillContext
 {
+    import std.container : SList;
     string search_value;
+    import Crawler : Crawler;
     SList!Crawler threads;
 }
 
@@ -54,7 +39,6 @@ Minimum: 0
 Maximum: length of total number of mountpoints unless the user started the crawlers manually
 
 Returns: number of crawlers active
-
 */
 @nogc @safe immutable(uint) activeCrawlersCount(ref DrillContext context)
 {
@@ -72,6 +56,7 @@ If no crawling is currently underway this function will do nothing.
 */
 @nogc @system void stopCrawlingAsync(ref DrillContext context)
 {
+    import Crawler : Crawler; 
     foreach (Crawler crawler; context.threads)
         crawler.stopAsync();
     context.threads.clear(); // TODO: if nothing has a reference to a thread does the thread get GC-ed?
@@ -84,6 +69,9 @@ This function does not stop the crawlers!!!
 */
 @system void waitForCrawlers(ref DrillContext context)
 {
+    import Crawler : Crawler; 
+    import Logger : Logger;
+    import std.conv: to;
     Logger.logInfo("Waiting for "~to!string(activeCrawlersCount(context))~" crawlers to stop");
     foreach (Crawler crawler; context.threads)
     {
@@ -110,6 +98,7 @@ This function stops all the crawlers and will return only when all of them are s
 */
 @system void stopCrawlingSync(ref DrillContext context)
 {
+    import Crawler : Crawler; 
     foreach (Crawler crawler; context.threads)
         crawler.stopAsync();
     waitForCrawlers(context);
@@ -126,15 +115,21 @@ Params:
     search = the search string, case insensitive, every word (split by space) will be searched in the file name
     resultFound = the delegate that will be called when a crawler will find a new result
 */
-@system DrillContext startCrawling(const(DrillData) data, immutable(string) searchValue, immutable(void function(immutable(FileInfo) result, void* userObject)) resultCallback, void* userObject)
+@system DrillContext startCrawling(const(DrillConfig) config, 
+                                   immutable(string) searchValue, 
+                                   immutable(void function(immutable(FileInfo) result, void* userObject)) resultCallback, 
+                                   void* userObject)
 {
     import Utils : getMountpoints;
+    import Crawler : Crawler; 
+    import Logger : Logger;
+
     DrillContext c = {searchValue};
     debug Logger.logWarning("user_object is null");
     foreach (immutable(string) mountpoint; getMountpoints())
     {
-        Crawler crawler = new Crawler(mountpoint, data.BLOCK_LIST, data.PRIORITY_LIST_REGEX, resultCallback, searchValue,userObject);
-        if (data.singlethread)
+        Crawler crawler = new Crawler(mountpoint, config.BLOCK_LIST, config.PRIORITY_LIST_REGEX, resultCallback, searchValue,userObject);
+        if (config.singlethread)
             crawler.run();
         else
             crawler.start();
@@ -144,51 +139,6 @@ Params:
 }
 
 
-/*
-Loads Drill data to be used in any crawling
-*/
-DrillData loadData(immutable(string) assets_directory)
-{
-    import Utils : getMountpoints;
-    Logger.logDebug("DrillAPI " ~ VERSION);
-    Logger.logDebug("Mount points found: "~to!string(getMountpoints()));
-    auto blockListsFullPath = buildPath(assets_directory,"BlockLists");
-
-    Logger.logDebug("Assets Directory: " ~ assets_directory);
-    Logger.logDebug("blockListsFullPath: " ~ blockListsFullPath);
-
-    string[] BLOCK_LIST; 
-    try
-    {
-        BLOCK_LIST = mergeAllTextFilesInDirectory(blockListsFullPath);
-    }
-    catch (FileException fe)
-    {
-        Logger.logError(fe.toString());
-        Logger.logError("Error when trying to load block lists, will default to an empty list");
-    }
-
-    string[] PRIORITY_LIST;
-    Regex!char[] PRIORITY_LIST_REGEX;
-    try
-    {
-        PRIORITY_LIST = mergeAllTextFilesInDirectory(buildPath(assets_directory,"PriorityLists"));
-        PRIORITY_LIST_REGEX = PRIORITY_LIST[].map!(x => regex(x)).array;
-    }
-    catch (FileException fe)
-    {
-        Logger.logError(fe.toString());
-        Logger.logError("Error when trying to read priority lists, will default to an empty list");
-    }
-
-    DrillData dd = {
-        assets_directory,
-        cast(immutable(string[]))BLOCK_LIST,
-        cast(immutable(string[]))PRIORITY_LIST,
-        PRIORITY_LIST_REGEX
-    };
-    return dd;
-}
 
 
 
