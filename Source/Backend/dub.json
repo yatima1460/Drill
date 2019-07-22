@@ -10,7 +10,9 @@
   "targetType": "library",
   "targetName": "drillcore",
   "sourceFiles": [
-    "API.d",
+    "Context.d",
+    "Config.d",
+    "Meta.d",
     "FileInfo.d",
     "Crawler.d",
     "Utils.d",
@@ -45,13 +47,14 @@
     }
   },
   "preBuildCommands": [
-    "dmd $PACKAGE_DIR/../../Tools/ListsMerger.d",
-    "./ListsMerger $PACKAGE_DIR/../../Assets/BlockLists $PACKAGE_DIR",
-    "./ListsMerger $PACKAGE_DIR/../../Assets/PriorityLists $PACKAGE_DIR"
+    "dmd $PACKAGE_DIR/../../Tools/ListsMerger.d -of=$PACKAGE_DIR/ListsMerger",
+    "$PACKAGE_DIR/ListsMerger $PACKAGE_DIR/../../Assets/BlockLists $PACKAGE_DIR",
+    "$PACKAGE_DIR/ListsMerger $PACKAGE_DIR/../../Assets/PriorityLists $PACKAGE_DIR"
   ],
   "targetPath": "Build/Drill-Core-$PLATFORM-$ARCH-$BUILD_TYPE",
   "toolchainRequirements": {
     "dmd": ">=2.086.0",
+
     "gdc": "no",
     "ldc": "no"
   }
