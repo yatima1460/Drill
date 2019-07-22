@@ -17,6 +17,7 @@ before_install:
  - echo -n $TRAVIS_TAG > DRILL_VERSION
  - if [ "$TRAVIS_OS_NAME" = "windows" ]; then choco install ldc; fi
  - if [ "$TRAVIS_OS_NAME" = "windows" ]; then choco install dub; fi
+ - if [ "$TRAVIS_OS_NAME" = "windows" ]; then cd Tools && . RefreshEnv.sh && RefreshEnv && cd ../; fi
 
 
 addons:
