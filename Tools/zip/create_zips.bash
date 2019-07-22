@@ -12,7 +12,7 @@ do
 
   if [[ -d "$f" ]]; then
     echo "$f exists"
-    7z a -tzip "$f"-"$DRILL_VERSION".zip "$f"/* &
+    7z a -tzip "$f"-"$DRILL_VERSION".zip "$f"/*
     mv "$f"-$DRILL_VERSION.zip Build
   else
     echo "$f does not exist, skipping"
@@ -20,4 +20,3 @@ do
   
 done
 
-wait
