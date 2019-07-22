@@ -17,7 +17,7 @@ before_script:
  - echo -n $TRAVIS_TAG > DRILL_VERSION
  - if [ "$TRAVIS_OS_NAME" = "windows" ]; then choco install ldc; fi
  - if [ "$TRAVIS_OS_NAME" = "windows" ]; then choco install dub; fi
- - if [ "$TRAVIS_OS_NAME" = "windows" ]; then cd Tools && bash RefreshEnv.sh && cd ../; fi
+ - if [ "$TRAVIS_OS_NAME" = "windows" ]; refreshenv; fi
 
 
 addons:
@@ -33,8 +33,8 @@ addons:
   homebrew:
     update: true
     packages:
-      #- dmd
-      #- dub
+      - dmd
+      - dub
       - p7zip
 
 
@@ -60,20 +60,20 @@ script:
   # - if [ "$TRAVIS_OS_NAME" = "windows" ]; then move "$PWD"/dmd2/windows/bin/*.* $PWD; fi
 
   ## osx
-  - if [ "$TRAVIS_OS_NAME" = "osx" ]; then wget http://downloads.dlang.org/releases/2.x/2.086.0/dmd.2.086.0.osx.tar.xz; fi
-  - if [ "$TRAVIS_OS_NAME" = "osx" ]; then 7z x dmd.2.086.0.osx.tar.xz; fi
-  - if [ "$TRAVIS_OS_NAME" = "osx" ]; then 7z x dmd.2.086.0.osx.tar; fi
-  - if [ "$TRAVIS_OS_NAME" = "osx" ]; then export DUB="$PWD"/dmd2/osx/bin/dub; fi
-  - if [ "$TRAVIS_OS_NAME" = "osx" ]; then chmod +x $DUB; fi
-  - if [ "$TRAVIS_OS_NAME" = "osx" ]; then chmod +x "$PWD"/dmd2/osx/bin/dmd; fi
+  # - if [ "$TRAVIS_OS_NAME" = "osx" ]; then wget http://downloads.dlang.org/releases/2.x/2.086.0/dmd.2.086.0.osx.tar.xz; fi
+  # - if [ "$TRAVIS_OS_NAME" = "osx" ]; then 7z x dmd.2.086.0.osx.tar.xz; fi
+  # - if [ "$TRAVIS_OS_NAME" = "osx" ]; then 7z x dmd.2.086.0.osx.tar; fi
+  # - if [ "$TRAVIS_OS_NAME" = "osx" ]; then export DUB="$PWD"/dmd2/osx/bin/dub; fi
+  # - if [ "$TRAVIS_OS_NAME" = "osx" ]; then chmod +x $DUB; fi
+  # - if [ "$TRAVIS_OS_NAME" = "osx" ]; then chmod +x "$PWD"/dmd2/osx/bin/dmd; fi
 
   # build
 
   ## build CLI
   - cd Source/Frontend/CLI
-  - if [ "$TRAVIS_OS_NAME" = "windows" ]; then dub  build -b release --arch=x86_64; fi
-  - if [ "$TRAVIS_OS_NAME" = "osx" ];     then $DUB build -b release --arch=x86_64; fi
-  - if [ "$TRAVIS_OS_NAME" = "linux" ];   then dub  build -b release --arch=x86_64 --compiler=ldc2; fi
+  - if [ "$TRAVIS_OS_NAME" = "windows" ]; then dub build -b release --arch=x86_64; fi
+  - if [ "$TRAVIS_OS_NAME" = "osx" ];     then dub build -b release --arch=x86_64; fi
+  - if [ "$TRAVIS_OS_NAME" = "linux" ];   then dub build -b release --arch=x86_64 --compiler=ldc2; fi
   - cd ../../../
 
   ## build UI
