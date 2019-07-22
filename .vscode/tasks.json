@@ -110,7 +110,7 @@
         {
             "label": "Run GTK Release LLVM",
             "type": "shell",
-            "command": "cd Source/Frontend/GTK && dub -b release --compiler=ldc",
+            "command": "cd Source/Frontend/GTK && dub -b release --compiler=ldc2",
             "group": "build",
             "presentation": {
                 "reveal": "always",
