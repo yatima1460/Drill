@@ -56,9 +56,9 @@
             ]
         },
         {
-            "label": "Build GTK Release",
+            "label": "Build GTK Release DMD",
             "type": "shell",
-            "command": "cd Source/Frontend/GTK && dub build -b release",
+            "command": "cd Source/Frontend/GTK && dub build -b release --compiler=dmd",
             "group": "build",
             "presentation": {
                 "reveal": "always",
@@ -69,9 +69,9 @@
             ]
         },
         {
-            "label": "Build CLI Release",
+            "label": "Build CLI Release DMD",
             "type": "shell",
-            "command": "cd Source/Frontend/CLI && dub build -b release",
+            "command": "cd Source/Frontend/CLI && dub build -b release --compiler=dmd",
             "group": "build",
             "presentation": {
                 "reveal": "always",
@@ -82,9 +82,9 @@
             ]
         },
         {
-            "label": "Run CLI Release",
+            "label": "Run CLI Release DMD",
             "type": "shell",
-            "command": "cd Source/Frontend/CLI && dub -b release",
+            "command": "cd Source/Frontend/CLI && dub -b release --compiler=dmd",
             "group": "build",
             "presentation": {
                 "reveal": "always",
@@ -95,9 +95,22 @@
             ]
         },
         {
-            "label": "Run GTK Release",
+            "label": "Run GTK Release DMD",
             "type": "shell",
-            "command": "cd Source/Frontend/GTK && dub -b release",
+            "command": "cd Source/Frontend/GTK && dub -b release --compiler=dmd",
+            "group": "build",
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared"
+            },
+            "problemMatcher": [
+                "$dub-build"
+            ]
+        },
+        {
+            "label": "Run GTK Release LLVM",
+            "type": "shell",
+            "command": "cd Source/Frontend/GTK && dub -b release --compiler=ldc",
             "group": "build",
             "presentation": {
                 "reveal": "always",
