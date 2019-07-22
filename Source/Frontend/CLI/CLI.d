@@ -9,9 +9,9 @@ import std.stdio : writeln, readln;
 import FileInfo : FileInfo;
 import Crawler : Crawler;
 import std.path : buildPath;
-import API : DrillData, DrillContext;
-import API : loadData, startCrawling;
-import API : VERSION, GITHUB_URL;
+import Config : DrillConfig, loadData;
+import Context : DrillContext, startCrawling;
+import Meta : VERSION, GITHUB_URL;
 
 // TODO: capture Ctrl-C and close crawlers?
 
@@ -69,7 +69,7 @@ int main(string[] args)
     import std.path : dirName, buildNormalizedPath, absolutePath;
     import std.getopt : getopt, defaultGetoptPrinter, config;
 
-    DrillData data = loadData(buildPath(absolutePath(dirName(buildNormalizedPath(args[0]))),"Assets"));
+    DrillConfig data = loadData(buildPath(absolutePath(dirName(buildNormalizedPath(args[0]))),"Assets"));
 
     bool date = false;
     bool size = false;
