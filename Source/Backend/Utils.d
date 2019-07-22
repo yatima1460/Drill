@@ -29,7 +29,7 @@ Opens a file using the current system implementation for file associations
 
 Returns: true if successful
 */
-@system bool openFile(immutable(string) fullpath) 
+nothrow @system bool openFile(immutable(string) fullpath) 
 {
     import std.process : spawnProcess;
     import std.stdio : stdin, stdout, stderr;
@@ -70,7 +70,7 @@ It's not assured that every mount point is a physical disk
 
 Returns: immutable array of full paths
 */
-@safe immutable(string[]) getMountpoints()
+@system immutable(string[]) getMountpoints()
 {
     import std.process : executeShell;
     import Logger : Logger;
@@ -224,8 +224,8 @@ version(linux) string[] _cleanExecLine(immutable(string) exec) pure @safe
 {
     import std.algorithm : filter;
     import std.array : array, split;
-
-    return exec.split(" ")[].filter!(x => x[0 .. 1] != "%").array;
+    
+    return exec.split(" ")[].filter!(x => x.length >= 1 && x[0 .. 1] != "%").array;
 }
 version(linux) alias cleanExecLine = memoize!_cleanExecLine;
 
