@@ -2,44 +2,57 @@ module WebView;
 
 import core.stdc.stdio : printf;
 
-import std.array : join;
-import std.stdio : writeln, readln;
-import std.path : buildPath;
-import std.path : dirName, buildNormalizedPath, absolutePath, buildPath;
+// import std.array : join;
+// import std.stdio : writeln, readln;
+// import std.path : buildPath;
+// import std.path : dirName, buildNormalizedPath, absolutePath, buildPath;
+// import Dhanos : getNewPlatformInstance;
 
-import API : DrillAPI;
 import FileInfo : FileInfo;
-
 import DhanosInterface : DhanosInterface;
-import Dhanos : getNewPlatformInstance;
 
-extern (C) int gdk_screen_width();
-extern (C) int gdk_screen_height();
 
+
+nothrow @nogc pure extern (C) int gdk_screen_width();
+nothrow @nogc pure extern (C) int gdk_screen_height();
+
+
+/**
+    JS Callback: Opens the Drill website when the user clicks on the logo
+*/
+nothrow extern(C) void jsOpenDrillWebsite(DhanosInterface dhanosInterface, immutable(string) value) 
+in (dhanosInterface !is null)
+in (value !is null)
+{
+    import Utils : openFile;
+    import Meta : WEBSITE_URL;
+    openFile(WEBSITE_URL);
+    dhanosInterface.close();
+}
 
 
 /**
     JS Callback: Closes Drill when the user presses ESC or Return when no input
 */
-void drill_exit(DhanosInterface d, immutable(string) value)
+extern(C) void jsExit(DhanosInterface dhanosInterface, immutable(string) value) 
+in (dhanosInterface !is null)
+in (value !is null)
 {
-    writeln("[Drill] drill_exit js callback");
-    d.close();
+    dhanosInterface.close();
 }
 
-/**
-    DrillAPI callback called when Drill finds a new result
-*/
-void resultFound(immutable(FileInfo) result, void* userObject)
-{
-     writeln("[Drill] resultFound START");
-    synchronized
-    {
-            writeln(result.fileName);
-    }
-    
 
-     writeln("[Drill] resultFound END");
+/**
+    Drill callback called when Drill finds a new result
+*/
+extern(C) void resultFound(immutable(FileInfo) result, void* userObject) 
+in (userObject !is null)
+{
+    // import std.stdio : writeln;
+    // synchronized
+    // {
+    //     writeln(result.fileName);
+    // }
     //list_dirty = true;
     //(cast(DList!FileInfo)*buffer).insertFront(result);
 }
@@ -47,42 +60,57 @@ void resultFound(immutable(FileInfo) result, void* userObject)
 /**
     JS Callback: called when the user inputs something
 */
-extern (D) void search(DhanosInterface d, immutable(string) value)
+extern(C) void jsSearch(DhanosInterface dhanosInterface, immutable(string) value) 
+in (dhanosInterface !is null)
+in (value !is null)
 {
-    assert(value !is null);
-    writeln("[Drill] search");
+    
+    import std.stdio : writeln;
+    //writeln("[Drill] search");
 
     // writeln("DHANOS_PTR");
-    writeln(value);
+    //writeln(value);
 
     if (value == "")
     {
-        writeln("[Drill] return to normal size");
-        d.setWindowSize(gdk_screen_width()/2,78);
+        //writeln("[Drill] return to normal size");
+        dhanosInterface.setWindowSize(gdk_screen_width()/2,78);
        
     }
     else
     {
-        writeln("[Drill] set bigger window size");
-        d.setWindowSize(gdk_screen_width()/2,200);
+       // writeln("[Drill] set bigger window size");
+        dhanosInterface.setWindowSize(gdk_screen_width()/2,200);
     }
 
-    auto drillapi = cast(DrillAPI)d.getUserObject();
+    import Context : DrillContext;
+    
 
-    assert(drillapi !is null);
+    //auto drillContext = cast(DrillContext)dhanosInterface.getUserObject();
 
-    writeln("[Drill] crawling stop");
-    drillapi.stopCrawlingAsync();
-        
+    // if old Drill search exists stop it
+    if (dhanosInterface.getUserObject() !is null)
+    {
+        DrillContext* context = cast(DrillContext*)dhanosInterface.getUserObject();
+        assert(context !is null);
+        //writeln("[Drill] crawling stop");
+        import Context : stopCrawlingAsync;
+        (*context).stopCrawlingAsync();
+    }
 
-    drillapi.startCrawling("%£da", &resultFound, cast(void*)drillapi);
+    // start a new Drill search
+    import Context : startCrawling;
+    import Config : loadData;
+    import std.file : thisExePath;
+    import std.path : dirName, buildNormalizedPath, absolutePath, buildPath;
+    auto assetsPath = buildPath(dirName(thisExePath()), "Assets");
+    auto config = loadData(assetsPath);
+    // auto context = startCrawling(config,"jojo", &resultFound, cast(void*)dhanosInterface);
+    // auto tc = new DrillContext();
+    // *tc = context;
+    // dhanosInterface.setUserObject(tc);
 
-
-    writeln("[Drill] search END");
-
-   
-    //d.close();   
-    // writeln("drill_exit end"); 
+    //writeln("[Drill] search END");
 }
 
 import ApplicationInfo : ApplicationInfo;
@@ -91,9 +119,11 @@ import ApplicationInfo : ApplicationInfo;
 /**
     JS Callback: called when the user presses Return and the input is not empty
 */
-void drill_return(DhanosInterface d, immutable(string) value)
+extern(C) void jsReturnPressed(DhanosInterface dhanosInterface, immutable(string) value) 
+in (dhanosInterface !is null)
+in (value !is null)
 {
-
+    import std.stdio : writeln;
     writeln("return pressed");
 }
 
@@ -125,21 +155,14 @@ void drill_return(DhanosInterface d, immutable(string) value)
 //     }
 // }
 
-/**
-    JS Callback: Opens the Drill website when the user clicks on the logo
-*/
-void open_drill_website(DhanosInterface d, immutable(string) value)
-{
-    writeln("open_drill_website");
-    import Utils : openFile;
-
-    openFile(DrillAPI.WEBSITE_URL);
-}
-
 
 int main(string[] args)
 {
-    writeln("Drill WebView v" ~ DrillAPI.DRILL_VERSION ~ " - " ~ DrillAPI.GITHUB_URL);
+    import std.stdio : writeln;
+    import std.path : dirName, buildNormalizedPath, absolutePath, buildPath;
+    import Meta : VERSION, GITHUB_URL;
+
+    writeln("Drill WebView v" ~ VERSION ~ " - " ~ GITHUB_URL);
     immutable(string) title = "Drill";
     immutable(string) dhanos_project_path = dirName(absolutePath(buildNormalizedPath(args[0])));
     immutable(string) url = buildPath("file:" ~ dhanos_project_path ~ "/drill.html");
@@ -149,23 +172,29 @@ int main(string[] args)
     // height = 100;
     immutable bool resizable = false;
 
+    import Dhanos : getNewPlatformInstance;
     DhanosInterface d = getNewPlatformInstance(title, url, width, height, resizable);
+    assert(d !is null);
+
+
+   
+
 
     //d.setWindowSize(gdk_screen_width() / 2, cast(int)(gdk_screen_height() * 0.1f));
 
     immutable(string) assetsFolder = buildPath(
             absolutePath(dirName(buildNormalizedPath(args[0]))), "Assets");
-    DrillAPI drillapi = new DrillAPI(assetsFolder);
+    
 
     d.setBorder(false);
     d.setAlwaysOnTop(true);
-    d.setUserObject(drillapi);
+    //d.setUserObject(drillapi);
 
     //d.setCallback("loaded", &dhanos_page_loaded);
-    d.setCallback("close", &drill_exit);
-    d.setCallback("search", &search);
-    d.setCallback("return", &drill_return);
-    d.setCallback("open_drill_website", &open_drill_website);
+    d.setCallback("close", &jsExit);
+    d.setCallback("search", &jsSearch);
+    d.setCallback("return", &jsReturnPressed);
+    d.setCallback("open_drill_website", &jsOpenDrillWebsite);
 
     d.mainLoop();
     return 0;
