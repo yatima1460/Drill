@@ -45,6 +45,14 @@
             "target": "./Source/Frontend/GTK/Build/Drill-GTK-linux-x86_64-debug/drill-search-gtk",
             "cwd": "${workspaceRoot}",
             "valuesFormatting": "parseText",
+        },
+        {
+            "name": "LLDB Drill-WebView-linux-x86_64-debug",
+            "type":"lldb-mi",
+            "request": "launch",
+            "target": "./Source/Frontend/GTK/Build/Drill-WebView-linux-x86_64-debug/drill-search-webview",
+            "cwd": "${workspaceRoot}",
+            "valuesFormatting": "parseText",
         }
     ]
 }
