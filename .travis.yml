@@ -28,8 +28,7 @@ addons:
     packages:
       - desktop-file-utils
       - p7zip-full
-      - dub
-
+      
   #osx
   homebrew:
     update: true
@@ -44,7 +43,8 @@ script:
   # install D
 
   ## linux
-  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then sudo snap install --classic --channel=edge ldc2; fi
+  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then sudo snap install ldc2 --classic --channel=edge; fi
+  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then sudo snap install dub --classic; fi
 
   # - if [ "$TRAVIS_OS_NAME" = "linux" ]; then wget http://downloads.dlang.org/releases/2.x/2.086.0/dmd.2.086.0.linux.tar.xz; fi
   # - if [ "$TRAVIS_OS_NAME" = "linux" ]; then 7z x dmd.2.086.0.linux.tar.xz; fi
