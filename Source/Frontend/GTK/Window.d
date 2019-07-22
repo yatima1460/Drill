@@ -250,11 +250,17 @@ public:
         
         debug
         {
-            this.setTitle("Drill (DEBUG VERSION)");
+            version (LDC)
+                this.setTitle("Drill - LLVM Edition (DEBUG VERSION)");
+            else
+                this.setTitle("Drill  (DEBUG VERSION)");
         }
         else
         {
-            this.setTitle("Drill");
+            version (LDC)
+                this.setTitle("Drill - LLVM Edition");
+            else
+                this.setTitle("Drill");
         }
 
         // MenuBar mb = new MenuBar();
