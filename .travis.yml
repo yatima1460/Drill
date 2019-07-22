@@ -142,10 +142,11 @@ deploy:
   api_key:
     secure: $GITHUB_TOKEN
   file: 
-    - Tools/deb/Build/*.deb
-    # - Tools/rpm/Build/*.rpm
-    - Tools/AppImage/Build/*.AppImage
     - Tools/zip/Build/*.zip
+    - Tools/deb/Build/*.deb
+    - Tools/AppImage/Build/*.AppImage
+  # - Tools/rpm/Build/*.rpm
+
 
   on:
     repo: yatima1460/Drill
