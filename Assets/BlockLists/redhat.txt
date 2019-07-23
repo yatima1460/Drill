@@ -5,3 +5,4 @@
 ^/run/pptp$
 ^/run/mdadm$
 ^/run/httpd$
+^/run/setroubleshoot$
