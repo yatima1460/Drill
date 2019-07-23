@@ -22,6 +22,14 @@
             "valuesFormatting": "parseText",
         },
         {
+            "name": "GDB Drill-GTK-linux-x86_64-release-debug",
+            "type": "gdb",
+            "request": "launch",
+            "target": "./Source/Frontend/GTK/Build/Drill-GTK-linux-x86_64-release-debug/drill-search-gtk",
+            "cwd": "${workspaceRoot}",
+            "valuesFormatting": "parseText",
+        },
+        {
             "name": "GDB Drill-WebView-linux-x86_64-debug",
             "type": "gdb",
             "request": "launch",

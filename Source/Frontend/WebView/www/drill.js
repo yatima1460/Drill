@@ -16,6 +16,26 @@ function addApplication(icon,name,exec,desktopFileDateModifiedString)
     "</div>";
 };
 
+
+function addFile(icon,name,path,fileDateModifiedString)
+{
+    console.log(name + " addFile");
+    let results = document.getElementById("results");
+
+    results.innerHTML += 
+    "<div class=result>"+
+    "<div class=icon>"+
+    "<img src=file:///usr/share/icons/hicolor/scalable/apps/"+icon+".svg>"
+    //"<img srcset=file:///usr/share/pixmaps/"+icon+".png>"+
+    +"</div>"+
+    "<div class=name>"+name+"</div>"+
+    "<div class=path>"+exec+"</div>"+
+    "<div class=date>"+desktopFileDateModifiedString+"</div>"+
+    "</div>";
+
+    console.log(name + " added");
+};
+
 window.onload = function() {
     
 
@@ -57,9 +77,9 @@ window.onload = function() {
 
       if(evt.keyCode  == 13)
         {
-            if (search.value.length == 0)
-                dhanos.close()
-            else 
+            // if (search.value.length == 0)
+            //     dhanos.close()
+            // else 
             dhanos.return();
         }
   };

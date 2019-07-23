@@ -20,7 +20,33 @@
     "Dhanos/Dhanos"
   ],
 
- 
+  "buildTypes": {
+		"debug": {
+			"buildOptions": [
+				"debugMode",
+				"debugInfo",
+				"stackStomping",
+				"alwaysStackFrame"
+			]
+		},
+		"release-debug": {
+			"buildOptions": [
+				"optimize",
+				"debugInfo",
+				"inline",
+				"stackStomping",
+				"alwaysStackFrame"
+			]
+		},
+		"release": {
+			"buildOptions": [
+				"optimize",
+				"inline",
+				"noBoundsCheck",
+				"releaseMode"
+			]
+		}
+	},
   "mainSourceFile": "DWebView.d",
   "dependencies": {
     "drill-core": {

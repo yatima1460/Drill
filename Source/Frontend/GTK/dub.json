@@ -22,19 +22,36 @@
 	"importPaths": [
 		"../../Backend"
 	],
-	"buildTypes": {
-		"release": {
-			"buildOptions": [
-				"releaseMode",
-				"optimize",
-				"noBoundsCheck",
-				"inline"
-			]
-		}
-	},
 	"copyFiles": [
 		"../../../Assets"
 	],
+	"buildTypes": {
+		"debug": {
+			"buildOptions": [
+				"debugMode",
+				"debugInfo",
+				"stackStomping",
+				"alwaysStackFrame"
+			]
+		},
+		"release-debug": {
+			"buildOptions": [
+				"optimize",
+				"debugInfo",
+				"inline",
+				"stackStomping",
+				"alwaysStackFrame"
+			]
+		},
+		"release": {
+			"buildOptions": [
+				"optimize",
+				"inline",
+				"noBoundsCheck",
+				"releaseMode"
+			]
+		}
+	},
 	"targetPath": "Build/Drill-GTK-$PLATFORM-$ARCH-$BUILD_TYPE",
 	"toolchainRequirements": {
 		"dmd": ">=2.086.0",

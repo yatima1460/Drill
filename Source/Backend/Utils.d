@@ -29,7 +29,7 @@ Opens a file using the current system implementation for file associations
 
 Returns: true if successful
 */
-nothrow @system bool openFile(in immutable(string) fullpath) 
+nothrow @safe bool openFile(in immutable(string) fullpath) 
 {
     import std.process : spawnProcess;
     import std.stdio : stdin, stdout, stderr;
