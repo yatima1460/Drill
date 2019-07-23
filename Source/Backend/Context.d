@@ -28,14 +28,20 @@ like the searched value
     string search_value;
     invariant 
     { 
-        assert(search_value !is null); 
-        assert(search_value.length > 0);
+        assert(search_value !is null, "Search value has become null in DrillContext"); 
+        assert(search_value.length > 0, "Search value has 0 length in DrillContext");
     }
     import Crawler : Crawler;
     Crawler[] threads;
     invariant
     {
-        assert(threads.length >= 0 /* && threads.length <= getMountpoints().length*/);
+        assert(threads.length >= 0 && threads.length <= getMountpoints().length, "Crawlers length is over mountpoints length");
+    }
+
+    ~this()
+    {
+        import std.stdio : writeln;
+        writeln("DrillContext de-allocated");
     }
 }
 
@@ -49,7 +55,7 @@ Maximum: length of total number of mountpoints unless the user started the crawl
 
 Returns: number of crawlers active
 */
-@nogc @safe immutable(uint) activeCrawlersCount(ref DrillContext context)
+@nogc @safe immutable(uint) activeCrawlersCount(in ref DrillContext context) 
 {
     int active = 0;
     foreach (thread; context.threads)
@@ -124,10 +130,10 @@ Params:
     search = the search string, case insensitive, every word (split by space) will be searched in the file name
     resultFound = the delegate that will be called when a crawler will find a new result
 */
-@system DrillContext startCrawling(const(DrillConfig) config, 
-                                   immutable(string) searchValue, 
-                                   immutable(void function(immutable(FileInfo) result, void* userObject)) resultCallback, 
-                                   void* userObject)
+@system  DrillContext* startCrawling(in const(DrillConfig) config, 
+                                   in immutable(string) searchValue, 
+                                   in immutable(void function(immutable(FileInfo) result, void* userObject)) resultCallback, 
+                                   in void* userObject)
 in (searchValue !is null)
 in (searchValue.length > 0)
 in (resultCallback !is null)
@@ -137,7 +143,8 @@ out (c;c.threads.length == getMountpoints().length)
     import Crawler : Crawler; 
     import Logger : Logger;
 
-    DrillContext c = {searchValue};
+    DrillContext* c = new DrillContext();
+    c.search_value = searchValue;
     debug Logger.logWarning("user_object is null");
     foreach (immutable(string) mountpoint; getMountpoints())
     {

@@ -62,7 +62,7 @@ public:
         return globalLevel;
     } 
 
-    void logTrace(immutable(string) message, immutable(string) channel=__PRETTY_FUNCTION__) nothrow 
+    void logTrace(immutable(string) message, immutable(string) channel=__PRETTY_FUNCTION__) nothrow @trusted
     {
         debug
         {
@@ -70,7 +70,7 @@ public:
         }
     }
 
-    void logDebug(immutable(string) message, immutable(string) channel=__PRETTY_FUNCTION__) nothrow 
+    void logDebug(immutable(string) message, immutable(string) channel=__PRETTY_FUNCTION__) nothrow @trusted
     {
         debug
         {
@@ -78,29 +78,29 @@ public:
         }
     }
 
-    void logInfo(immutable(string) message, immutable(string) channel=__PRETTY_FUNCTION__) nothrow 
+    void logInfo(immutable(string) message, immutable(string) channel=__PRETTY_FUNCTION__) nothrow @trusted
     {
         log(LogLevel.Info,message,channel);
     }
 
-    void logWarning(immutable(string) message, immutable(string) channel=__PRETTY_FUNCTION__) nothrow 
+    void logWarning(immutable(string) message, immutable(string) channel=__PRETTY_FUNCTION__) nothrow @trusted
     {
         log(LogLevel.Warning,message,channel);
     }
 
-    void logError(immutable(string) message, immutable(string) channel=__PRETTY_FUNCTION__)  nothrow 
+    void logError(immutable(string) message, immutable(string) channel=__PRETTY_FUNCTION__)  nothrow @trusted
     {
         log(LogLevel.Error,message,channel);
     }
 
-    void logFatal(immutable(string) message, immutable(string) channel=__PRETTY_FUNCTION__)  nothrow 
+    void logFatal(immutable(string) message, immutable(string) channel=__PRETTY_FUNCTION__)  nothrow @trusted
     {
         log(LogLevel.Fatal,message,channel);
     }
 
     import std.conv : to;
 
-    void log(LogLevel level, immutable(string) message, immutable(string) channel) nothrow 
+    void log(LogLevel level, immutable(string) message, immutable(string) channel) nothrow @trusted
     {
         synchronized
         {
@@ -112,7 +112,7 @@ public:
                 import std.stdio : writeln;
                 import core.stdc.stdio : printf;
                 import std.string : toStringz;
-                printf(toStringz("["~timeString~"]["~logName[level]~"]["~channel~"] "~message));
+                printf(toStringz("["~timeString~"]["~logName[level]~"]["~channel~"] "~message~"\n"));
             }
         }
     }
