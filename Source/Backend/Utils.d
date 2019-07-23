@@ -29,7 +29,7 @@ Opens a file using the current system implementation for file associations
 
 Returns: true if successful
 */
-nothrow @system bool openFile(immutable(string) fullpath) 
+nothrow @system bool openFile(in immutable(string) fullpath) 
 {
     import std.process : spawnProcess;
     import std.stdio : stdin, stdout, stderr;
@@ -56,7 +56,8 @@ nothrow @system bool openFile(immutable(string) fullpath)
 }
 
 import std.datetime : SysTime;
-@safe string _sysTimeToHumanReadable(SysTime time)
+@safe string _sysTimeToHumanReadable(in SysTime time)
+out (s; s.length != 0)
 {
     import std.array : array, replace, split;
     return time.toISOExtString().replace("T", " ").replace("-", "/").split(".")[0];
@@ -70,7 +71,8 @@ It's not assured that every mount point is a physical disk
 
 Returns: immutable array of full paths
 */
-@system immutable(string[]) getMountpoints()
+immutable(string[]) getMountpoints() @trusted
+out(m;m.length != 0)
 {
     import std.process : executeShell;
     import Logger : Logger;
@@ -121,21 +123,24 @@ Returns: immutable array of full paths
 }
 
 
-@safe string _sizeToHumanReadable(ulong bytes)
+@safe string _sizeToHumanReadable(in ulong bytes)
+out(m;m.length != 0)
 {
-    string[] suffix = ["B", "KB", "MB", "GB", "TB"];
+    string[] suffix = ["B", "KB", "MB", "GB", "TB","PB"];
 
     int i = 0;
     double dblBytes = bytes;
+    ulong tempBytes = bytes;
 
-    if (bytes > 1024)
+    if (tempBytes > 1024)
     {
-        for (i = 0; (bytes / 1024) > 0; i++, bytes /= 1024)
-            dblBytes = bytes / 1024.0;
+        for (i = 0; (tempBytes / 1024) > 0; i++, tempBytes /= 1024)
+            dblBytes = tempBytes / 1024.0;
     }
 
     import std.conv : to;
     import std.math : floor;
+    assert(i < suffix.length);
     return to!string(floor(dblBytes)) ~ " " ~ suffix[i];
 }
 alias sizeToHumanReadable = memoize!_sizeToHumanReadable;
