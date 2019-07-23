@@ -22,7 +22,8 @@
   "dflags": [
     "-J=\"../../../\"",
     "-J=\"../../\"",
-    "-J=\"$PACKAGE_DIR\""
+    "-J=\"$PACKAGE_DIR\"",
+    "-vgc"
   ],
   "buildRequirements": [
     "allowWarnings"
