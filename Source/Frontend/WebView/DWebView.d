@@ -20,7 +20,7 @@ nothrow @nogc pure extern (C) int gdk_screen_height();
 /**
     JS Callback: Opens the Drill website when the user clicks on the logo
 */
-nothrow extern(C) void jsOpenDrillWebsite(DhanosInterface dhanosInterface, immutable(string) value) 
+void jsOpenDrillWebsite(DhanosInterface dhanosInterface, immutable(string) value) 
 in (dhanosInterface !is null)
 in (value !is null)
 {
@@ -34,10 +34,20 @@ in (value !is null)
 /**
     JS Callback: Closes Drill when the user presses ESC or Return when no input
 */
-extern(C) void jsExit(DhanosInterface dhanosInterface, immutable(string) value) 
+void jsExit(DhanosInterface dhanosInterface, immutable(string) value) 
 in (dhanosInterface !is null)
 in (value !is null)
 {
+    import Context : DrillContext;
+
+    DrillContext* context = cast(DrillContext*)dhanosInterface.getUserObject();
+
+    // if at least one search has been made
+    if (context !is null)
+    {
+        import Context : stopCrawlingSync;
+        (*context).stopCrawlingSync();
+    }
     dhanosInterface.close();
 }
 
@@ -45,7 +55,7 @@ in (value !is null)
 /**
     Drill callback called when Drill finds a new result
 */
-extern(C) void resultFound(immutable(FileInfo) result, void* userObject) 
+void resultFound(immutable(FileInfo) result, void* userObject) 
 in (userObject !is null)
 {
     // import std.stdio : writeln;
@@ -60,7 +70,7 @@ in (userObject !is null)
 /**
     JS Callback: called when the user inputs something
 */
-extern(C) void jsSearch(DhanosInterface dhanosInterface, immutable(string) value) 
+void jsSearch(DhanosInterface dhanosInterface, immutable(string) value) 
 in (dhanosInterface !is null)
 in (value !is null)
 {
@@ -94,8 +104,8 @@ in (value !is null)
         DrillContext* context = cast(DrillContext*)dhanosInterface.getUserObject();
         assert(context !is null);
         //writeln("[Drill] crawling stop");
-        import Context : stopCrawlingAsync;
-        (*context).stopCrawlingAsync();
+        import Context : stopCrawlingSync;
+        (*context).stopCrawlingSync();
     }
 
     // start a new Drill search
@@ -105,12 +115,14 @@ in (value !is null)
     import std.path : dirName, buildNormalizedPath, absolutePath, buildPath;
     auto assetsPath = buildPath(dirName(thisExePath()), "Assets");
     auto config = loadData(assetsPath);
-    // auto context = startCrawling(config,"jojo", &resultFound, cast(void*)dhanosInterface);
-    // auto tc = new DrillContext();
-    // *tc = context;
-    // dhanosInterface.setUserObject(tc);
+    import Config : DrillConfig;
+    DrillContext* context = startCrawling(cast(const(DrillConfig))config,"jojo", &resultFound, cast(void*)dhanosInterface);
+    dhanosInterface.setUserObject(context);
 
-    //writeln("[Drill] search END");
+    // writeln("[Drill] search END");
+
+    //import core.memory;
+    //GC.collect();
 }
 
 import ApplicationInfo : ApplicationInfo;
@@ -119,7 +131,7 @@ import ApplicationInfo : ApplicationInfo;
 /**
     JS Callback: called when the user presses Return and the input is not empty
 */
-extern(C) void jsReturnPressed(DhanosInterface dhanosInterface, immutable(string) value) 
+void jsReturnPressed(DhanosInterface dhanosInterface, immutable(string) value) 
 in (dhanosInterface !is null)
 in (value !is null)
 {
@@ -158,6 +170,8 @@ in (value !is null)
 
 int main(string[] args)
 {
+    import core.memory;
+    GC.disable();
     import std.stdio : writeln;
     import std.path : dirName, buildNormalizedPath, absolutePath, buildPath;
     import Meta : VERSION, GITHUB_URL;
