@@ -1,5 +1,13 @@
 
 
+
+
+
+
+
+
+
+
 // import std.algorithm : canFind, filter, map;
 // import std.container : Array, SList;
 // import std.array : array, split;
@@ -17,6 +25,47 @@
 // import ApplicationInfo : ApplicationInfo;
 import Config : DrillConfig;
 import FileInfo : FileInfo;
+
+
+
+unittest 
+{
+    assert(false);
+    static void resultFound(immutable(FileInfo) result, shared(void*) userObject)
+    in(userObject !is null)
+    in(cast(int*) userObject !is null)
+    in(result.fileName !is null)
+    in(result.fullPath !is null)
+    in(result.dateModifiedString !is null)
+    in(result.fileName.length > 0)
+    in(result.fullPath.length > 0)
+    in(result.dateModifiedString.length > 0)
+    {
+        int* objInt = cast(int*)userObject;
+        assert(objInt !is null);
+        assert(*objInt == 42);
+      
+    }
+
+    int* i = new int();
+    *i = 42;
+
+    import std.file : thisExePath;
+    import std.path : dirName, buildNormalizedPath, absolutePath, buildPath;
+    auto assetsFolder = buildPath(dirName(thisExePath()), "Assets");
+
+    import Config : loadData;
+    DrillContext* context = startCrawling(loadData(assetsFolder),".",&resultFound,cast(shared(void*))i);
+
+}
+
+
+
+
+
+
+
+
 /**
 This struct represents an active Drill search, 
 it holds a pool of crawlers and the current state, 
@@ -37,12 +86,6 @@ like the searched value
     {
         assert(threads.length >= 0 && threads.length <= getMountpoints().length, "Crawlers length is over mountpoints length");
     }
-
-    ~this()
-    {
-        import std.stdio : writeln;
-        writeln("DrillContext de-allocated");
-    }
 }
 
 
@@ -55,7 +98,7 @@ Maximum: length of total number of mountpoints unless the user started the crawl
 
 Returns: number of crawlers active
 */
-@nogc @safe immutable(uint) activeCrawlersCount(in ref DrillContext context) 
+@safe @nogc immutable(uint) activeCrawlersCount(in ref DrillContext context) 
 {
     int active = 0;
     foreach (thread; context.threads)
@@ -123,8 +166,6 @@ import Utils : getMountpoints;
 /**
 Starts the crawling, every crawler will filter on its own.
 Use the resultFound callback as an event to know when a crawler finds a new result.
-You can call this without stopping the crawling, the old crawlers will get stopped automatically.
-If a crawling is already in progress the current one will get stopped asynchronously and a new one will start.
 
 Params:
     search = the search string, case insensitive, every word (split by space) will be searched in the file name
@@ -132,23 +173,23 @@ Params:
 */
 @system  DrillContext* startCrawling(in const(DrillConfig) config, 
                                    in immutable(string) searchValue, 
-                                   in immutable(void function(immutable(FileInfo) result, void* userObject)) resultCallback, 
-                                   in void* userObject)
+                                   in immutable(void function(immutable(FileInfo) result, shared(void*) userObject)) resultCallback, 
+                                   in shared(void*) userObject)
 in (searchValue !is null)
 in (searchValue.length > 0)
 in (resultCallback !is null)
+out (c;c !is null)
 out (c;c.threads.length == getMountpoints().length)
 {
-    
-    import Crawler : Crawler; 
-    import Logger : Logger;
-
     DrillContext* c = new DrillContext();
     c.search_value = searchValue;
+
+    import Logger : Logger;
     debug Logger.logWarning("user_object is null");
     foreach (immutable(string) mountpoint; getMountpoints())
     {
-        Crawler crawler = new Crawler(mountpoint, config.BLOCK_LIST, config.PRIORITY_LIST_REGEX, resultCallback, searchValue,userObject);
+        import Crawler : Crawler; 
+        Crawler crawler = new Crawler(mountpoint, config.BLOCK_LIST, config.PRIORITY_LIST_REGEX, resultCallback, searchValue, userObject);
         if (config.singlethread)
             crawler.run();
         else

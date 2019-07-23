@@ -21,22 +21,33 @@
       "path": "../../Backend"
     }
   },
-  "buildTypes": {
-    "debug" : {
-      "buildOptions": [
-      "debugMode",
-      "debugInfo"
-      ]
-    },
-    "release": {
-      "buildOptions": [
-        "releaseMode",
-        "optimize",
-        "noBoundsCheck",
-        "inline"
-      ]
-    }
-  },
+	"buildTypes": {
+		"debug": {
+			"buildOptions": [
+				"debugMode",
+				"debugInfo",
+				"stackStomping",
+				"alwaysStackFrame"
+			]
+		},
+		"release-debug": {
+			"buildOptions": [
+				"optimize",
+				"debugInfo",
+				"inline",
+				"stackStomping",
+				"alwaysStackFrame"
+			]
+		},
+		"release": {
+			"buildOptions": [
+				"optimize",
+				"inline",
+				"noBoundsCheck",
+				"releaseMode"
+			]
+		}
+	},
   "copyFiles": [
     "../../../Assets"
   ],
