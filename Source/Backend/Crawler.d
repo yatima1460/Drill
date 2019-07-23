@@ -117,18 +117,18 @@ private:
         long ignored_count;
     }
 
-      void* userObj;
+      const(void*) userObj;
 
 
 public:
 
     this(
-        immutable(string) MOUNTPOINT, 
-        immutable(string[]) BLOCK_LIST,
-        const(Regex!char[]) PRIORITY_LIST_REGEX,
-        void function(immutable(FileInfo) result, void* userObject) resultCallback, 
-        immutable(string) search,
-        void* userObj
+        in immutable(string) MOUNTPOINT, 
+        in immutable(string[]) BLOCK_LIST,
+        in const(Regex!char[]) PRIORITY_LIST_REGEX,
+        in void function(immutable(FileInfo) result, void* userObject) resultCallback, 
+        in immutable(string) search,
+        in const(void*) userObj
     )
     in (MOUNTPOINT != null)
     in (MOUNTPOINT.length != 0)
@@ -232,6 +232,12 @@ private:
         return true;
     }
 
+    ~this()
+   {
+      import std.stdio : writeln;
+      writeln("Crawler "~this.toString()~" de-allocated");
+   }
+
     public:
 
     /**
@@ -327,13 +333,13 @@ private:
                         //Logger.logDebug("Symlink ignored: " ~ currentDirectory.name,this.toString());
                         continue;
                     }
-                    if (!this.running) return;
+                   
                     if (isInRegexList(BLOCK_LIST_REGEX, currentFile.name))
                     {
                         //Logger.logDebug("Ignored: " ~ currentFile.name,this.toString());
                         continue;
                     }
-                    if (!this.running) return;
+                    
                     if (currentFile.isDir())
                     {
                         if (isInRegexList(this.PRIORITY_LIST_REGEX, currentFile.name))
@@ -347,7 +353,7 @@ private:
                             queue.insertBack(currentFile);
                         }
                     }
-                    if (!this.running) return;
+                    
                     if (isMatchingSearch(currentFile.name))
                     //if (canFind(currentFile.name, SEARCH_STRING))
                     {
@@ -384,7 +390,8 @@ private:
                          // Logger.logError(to!string(userObj),"RESULT CALLBACK");
                         
                         immutable(FileInfo) fi = buildFileInfo(currentFile);
-                        resultCallback(fi, userObj);
+           
+                        resultCallback(fi, cast(void*)userObj);
                         // }
 
                     }

@@ -234,7 +234,7 @@ private:
     DrillConfig data;
 
     import Context : DrillContext;
-    DrillContext context;
+    DrillContext* context;
 
 public:
 
