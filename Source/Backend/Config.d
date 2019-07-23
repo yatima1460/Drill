@@ -27,13 +27,6 @@ immutable(string) DEFAULT_PRIORITY_LIST = import("PriorityLists.txt");
         assert(PRIORITY_LIST_REGEX.length == PRIORITY_LIST.length);
     }
     bool singlethread;
-
-    
-    ~this()
-    {
-        import Logger : Logger;
-        Logger.logDebug("DrillConfig de-allocated");
-    }
 }
 
 

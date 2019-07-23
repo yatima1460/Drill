@@ -11,53 +11,72 @@ import core.stdc.stdio : printf;
 import FileInfo : FileInfo;
 import DhanosInterface : DhanosInterface;
 
-
-
-nothrow @nogc pure extern (C) int gdk_screen_width();
-nothrow @nogc pure extern (C) int gdk_screen_height();
-
+@safe @nogc nothrow pure extern (C) int gdk_screen_width();
+@safe @nogc nothrow pure extern (C) int gdk_screen_height();
 
 /**
     JS Callback: Opens the Drill website when the user clicks on the logo
 */
-void jsOpenDrillWebsite(DhanosInterface dhanosInterface, immutable(string) value) 
-in (dhanosInterface !is null)
-in (value !is null)
+nothrow void jsOpenDrillWebsite(ref DhanosInterface dhanosInterface, immutable(string) value)
+in(dhanosInterface !is null)
+in(value !is null)
 {
     import Utils : openFile;
     import Meta : WEBSITE_URL;
+
     openFile(WEBSITE_URL);
     dhanosInterface.close();
 }
 
-
 /**
     JS Callback: Closes Drill when the user presses ESC or Return when no input
 */
-void jsExit(DhanosInterface dhanosInterface, immutable(string) value) 
-in (dhanosInterface !is null)
-in (value !is null)
+void jsExit(ref DhanosInterface dhanosInterface, immutable(string) value)
+in(dhanosInterface !is null)
+in(value !is null)
 {
     import Context : DrillContext;
 
-    DrillContext* context = cast(DrillContext*)dhanosInterface.getUserObject();
+    DrillContext* context = cast(DrillContext*) dhanosInterface.getUserObject();
 
     // if at least one search has been made
     if (context !is null)
     {
         import Context : stopCrawlingSync;
+
         (*context).stopCrawlingSync();
     }
     dhanosInterface.close();
 }
 
-
 /**
     Drill callback called when Drill finds a new result
 */
-void resultFound(immutable(FileInfo) result, void* userObject) 
-in (userObject !is null)
+void resultFound(immutable(FileInfo) result, shared(void*) userObject)
+in(userObject !is null)
+in(result.fileName !is null)
+in(result.fileName.length > 0)
+in(result.fullPath !is null)
+in(result.fullPath.length > 0)
+in(result.dateModifiedString !is null)
+in(result.dateModifiedString.length > 0)
+in(cast(DhanosInterface*) userObject !is null)
 {
+    synchronized
+    {
+        shared(DhanosInterface*) d = cast(shared(DhanosInterface*)) userObject;
+
+        import std.string : format;
+
+        auto jsCommand = format("addApplication('%s','%s','%s','%s');", "icon",
+                result.fileName, result.fullPath, result.dateModifiedString);
+
+        import std.stdio : writeln;
+
+        writeln(jsCommand);
+        (cast(DhanosInterface*) d).runJavascript(jsCommand);
+    }
+
     // import std.stdio : writeln;
     // synchronized
     // {
@@ -70,12 +89,13 @@ in (userObject !is null)
 /**
     JS Callback: called when the user inputs something
 */
-void jsSearch(DhanosInterface dhanosInterface, immutable(string) value) 
-in (dhanosInterface !is null)
-in (value !is null)
+void jsSearch(ref DhanosInterface dhanosInterface, immutable(string) value)
+in(dhanosInterface !is null)
+in(value !is null)
 {
-    
+
     import std.stdio : writeln;
+
     //writeln("[Drill] search");
 
     // writeln("DHANOS_PTR");
@@ -84,27 +104,27 @@ in (value !is null)
     if (value == "")
     {
         //writeln("[Drill] return to normal size");
-        dhanosInterface.setWindowSize(gdk_screen_width()/2,78);
-       
+        dhanosInterface.setWindowSize(gdk_screen_width() / 2, 78);
+
     }
     else
     {
-       // writeln("[Drill] set bigger window size");
-        dhanosInterface.setWindowSize(gdk_screen_width()/2,200);
+        // writeln("[Drill] set bigger window size");
+        dhanosInterface.setWindowSize(gdk_screen_width() / 2, 200);
     }
 
     import Context : DrillContext;
-    
 
     //auto drillContext = cast(DrillContext)dhanosInterface.getUserObject();
 
     // if old Drill search exists stop it
     if (dhanosInterface.getUserObject() !is null)
     {
-        DrillContext* context = cast(DrillContext*)dhanosInterface.getUserObject();
+        DrillContext* context = cast(DrillContext*) dhanosInterface.getUserObject();
         assert(context !is null);
         //writeln("[Drill] crawling stop");
         import Context : stopCrawlingSync;
+
         (*context).stopCrawlingSync();
     }
 
@@ -113,10 +133,14 @@ in (value !is null)
     import Config : loadData;
     import std.file : thisExePath;
     import std.path : dirName, buildNormalizedPath, absolutePath, buildPath;
+
     auto assetsPath = buildPath(dirName(thisExePath()), "Assets");
     auto config = loadData(assetsPath);
     import Config : DrillConfig;
-    DrillContext* context = startCrawling(cast(const(DrillConfig))config,"jojo", &resultFound, cast(void*)dhanosInterface);
+
+    shared(DrillContext*) context = cast(shared(DrillContext*)) startCrawling(
+            cast(const(DrillConfig)) config, value, &resultFound,
+            cast(shared(void*)) dhanosInterface);
     dhanosInterface.setUserObject(context);
 
     // writeln("[Drill] search END");
@@ -127,18 +151,17 @@ in (value !is null)
 
 import ApplicationInfo : ApplicationInfo;
 
-
 /**
     JS Callback: called when the user presses Return and the input is not empty
 */
-void jsReturnPressed(DhanosInterface dhanosInterface, immutable(string) value) 
-in (dhanosInterface !is null)
-in (value !is null)
+void jsReturnPressed(ref DhanosInterface dhanosInterface, immutable(string) value)
+in(dhanosInterface !is null)
+in(value !is null)
 {
     import std.stdio : writeln;
+
     writeln("return pressed");
 }
-
 
 // /**
 //     JS Callback: called when the page loaded
@@ -167,10 +190,10 @@ in (value !is null)
 //     }
 // }
 
-
 int main(string[] args)
 {
     import core.memory;
+
     GC.disable();
     import std.stdio : writeln;
     import std.path : dirName, buildNormalizedPath, absolutePath, buildPath;
@@ -187,18 +210,14 @@ int main(string[] args)
     immutable bool resizable = false;
 
     import Dhanos : getNewPlatformInstance;
+
     DhanosInterface d = getNewPlatformInstance(title, url, width, height, resizable);
     assert(d !is null);
-
-
-   
-
 
     //d.setWindowSize(gdk_screen_width() / 2, cast(int)(gdk_screen_height() * 0.1f));
 
     immutable(string) assetsFolder = buildPath(
             absolutePath(dirName(buildNormalizedPath(args[0]))), "Assets");
-    
 
     d.setBorder(false);
     d.setAlwaysOnTop(true);

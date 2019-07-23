@@ -83,16 +83,6 @@ void crawl(immutable(CrawlerData) data, shared CrawlerContext context)
 
 
 
-import std.functional : memoize;
-alias memoizedDirEntries = memoize!dirEntries;
-
-DirEntry _memoizedDirEntry(immutable(string) fullPath)
-{
-    return DirEntry(fullPath);
-}
-
-alias memoizedDirEntry = memoize!_memoizedDirEntry;
-
 
 
 // auto composed = new Thread(&threadFunc).start();
@@ -110,14 +100,14 @@ private:
     
     shared(bool) running;
 
-    void function(  immutable(FileInfo) result, void* userObject) resultCallback;
+    void function(  immutable(FileInfo) result, shared(void*) userObject) resultCallback;
 
     debug
     {
         long ignored_count;
     }
 
-      const(void*) userObj;
+      shared(const(void*)) userObj;
 
 
 public:
@@ -126,9 +116,9 @@ public:
         in immutable(string) MOUNTPOINT, 
         in immutable(string[]) BLOCK_LIST,
         in const(Regex!char[]) PRIORITY_LIST_REGEX,
-        in void function(immutable(FileInfo) result, void* userObject) resultCallback, 
+        in void function(immutable(FileInfo) result, shared(void*) userObject) resultCallback, 
         in immutable(string) search,
-        in const(void*) userObj
+        in shared(void*) userObj
     )
     in (MOUNTPOINT != null)
     in (MOUNTPOINT.length != 0)
@@ -160,7 +150,7 @@ public:
         this.userObj = userObj;
     }
 
-    private void noop_resultFound(immutable(FileInfo) result,void*) @nogc const pure @safe
+    private void noop_resultFound(immutable(FileInfo) result,shared(void*)) @nogc const pure @safe
     {
 
     }
@@ -232,11 +222,11 @@ private:
         return true;
     }
 
-    ~this()
-   {
-      import std.stdio : writeln;
-      writeln("Crawler "~this.toString()~" de-allocated");
-   }
+//     ~this()
+//    {
+//       import std.stdio : writeln;
+//       writeln("Crawler "~this.toString()~" de-allocated");
+//    }
 
     public:
 
@@ -283,7 +273,7 @@ private:
         {
             try
             {
-                queue.insertBack(memoizedDirEntry(MOUNTPOINT));
+                queue.insertBack(DirEntry(MOUNTPOINT));
             }
             catch (Exception e)
             {
@@ -314,7 +304,7 @@ private:
             DirIterator files;
             try
             {
-                files = memoizedDirEntries(currentDirectory, SpanMode.shallow, true);
+                files = dirEntries(currentDirectory, SpanMode.shallow, true);
             }
             catch (Exception e)
             {
@@ -391,7 +381,7 @@ private:
                         
                         immutable(FileInfo) fi = buildFileInfo(currentFile);
            
-                        resultCallback(fi, cast(void*)userObj);
+                        resultCallback(fi, cast(shared(void*))userObj);
                         // }
 
                     }

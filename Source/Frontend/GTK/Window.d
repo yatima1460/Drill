@@ -84,56 +84,49 @@ else
     }
 }
 
-void resultFound(immutable(FileInfo) result, void* userObject)
-    {
-         //Logger.logError(to!string(userObject),"RESULT CALLBACK 2");
-        assert(userObject !is null);
-        if (userObject is null)
-            throw new Exception("window user object can't be null in resultFound");
-        //assert(userObject !is null, );
-
-        DrillWindow window = cast(DrillWindow)userObject;
-            //Logger.logError(to!string(window),"RESULT CALLBACK 3");
-        assert(window !is null);
-        if (window is null)
-            throw new Exception("userObject is not a DrillWindow GTK");
-            
-       // assert(window !is null, );
-
-        window.list_dirty = true;
-        auto bufferNotShared = cast(DList!FileInfo*)window.buffer;
-
-
+static void resultFound(immutable(FileInfo) result, shared(void*) userObject)
+in(userObject !is null)
+in(cast(DrillWindow) userObject !is null)
+in((cast(DrillWindow) userObject).buffer !is null)
+in(result.fileName !is null)
+in(result.fullPath !is null)
+in(result.dateModifiedString !is null)
+in(result.fileName.length > 0)
+in(result.fullPath.length > 0)
+in(result.dateModifiedString.length > 0)
+{
+    DrillWindow window = cast(DrillWindow)userObject;
+    window.list_dirty = true;
+    auto bufferNotShared = cast(DList!FileInfo*)window.buffer;
      (*bufferNotShared).insertFront(result);
-
-  
-            //*(cast(DList!FileInfo)window.buffer).insertFront(result);
-        
-   
-    }
+}
 
 
-   
+import std.exception : enforce;
 
 extern (C) static nothrow int threadIdleProcess(void* data)
-in(data != null, "data can't be null in GTK task")
+in(data !is null,"data can't be null in GTK task")
 out(r; r == 0 || r == 1, "GTK task should return 0 or 1")
 {
-
     try
     {
-        assert(data != null);
+        /+ 
+            rescheduling this function should always be the first line
+            so in the worst case scenario the next schedule may not trigger an exception
+        +/
+        gdk.Threads.threadsAddTimeout(100, &threadIdleProcess, data);
+
         DrillWindow mainWindow = cast(DrillWindow) data;
-        const ulong crawlers_count = activeCrawlersCount(mainWindow.context);
+        assert(mainWindow !is null);
+        assert(mainWindow.context !is null);
+        const ulong crawlers_count = activeCrawlersCount(*mainWindow.context);
+        
         const icon_to_use = ["object-select", "emblem-synchronizing"];
-        mainWindow.search_input.setIconFromIconName(GtkEntryIconPosition.PRIMARY,
-                icon_to_use[crawlers_count != 0]);
+        mainWindow.search_input.setIconFromIconName(GtkEntryIconPosition.PRIMARY, icon_to_use[crawlers_count != 0]);
 
         debug
         {
-
             mainWindow.threads_active.setText("Crawlers active: " ~ to!string(crawlers_count));
-
         }
         if (mainWindow.list_dirty)
         {
@@ -166,7 +159,7 @@ out(r; r == 0 || r == 1, "GTK task should return 0 or 1")
             }
             mainWindow.list_dirty = false;
         }
-        gdk.Threads.threadsAddTimeout(100, &threadIdleProcess, data);
+        
         if (!mainWindow.running)
         {
             return 0;
@@ -318,9 +311,10 @@ public:
             this.github_notice.setSelectable(true);
             this.github_notice.setJustify(GtkJustification.CENTER);
             this.github_notice.setHalign(GtkAlign.CENTER);
-            version (LDC) immutable(string) COMPILER = "LLVM";
-            version (DMD) immutable(string) COMPILER = "DMD";
-            version (GDC) immutable(string) COMPILER = "GDC";
+            import std.compiler : name, vendor, version_major, version_minor, D_major;
+            immutable(string) COMPILER_META = to!string(vendor)~" v"~to!string(version_major)~"."~to!string(version_minor)~" D version:"~to!string(D_major);
+            version (LDC) immutable(string) COMPILER = "LLVM "~COMPILER_META;
+            else immutable(string) COMPILER = name ~ " "~COMPILER_META;
             this.github_notice.setMarkup(
                 "<a href=\""~GITHUB_URL~"\">Drill</a>"~
                 " is maintained by "~
@@ -436,7 +430,10 @@ public:
         addOnDelete(delegate bool(Event event, Widget widget) {
             Logger.logInfo("Window started to close, stopping crawlers");
             // this is the last chance to stop things before GTK really closes
-            stopCrawlingSync(context);
+            
+            // if at least one search has been made check it is stopped now
+            if (context !is null)
+                stopCrawlingSync(*context);
             return false;
         });
 
@@ -595,7 +592,9 @@ private:
     private void searchChanged(EditableIF ei)
     {
 
-        stopCrawlingAsync(context);
+        // If there is another search in progress, stop it
+        if (context !is null)
+            stopCrawlingSync(*context);
 
         buffer1 = DList!FileInfo();
         buffer2 = DList!FileInfo();
@@ -624,7 +623,7 @@ private:
             
             //debug drillapi.setSinglethread(true);
             auto callback = (&resultFound);
-            context = startCrawling(data,search_string,callback,cast(void*)this);
+            context = startCrawling(data,search_string,callback,cast(shared(void*))this);
         }
         else
         {
