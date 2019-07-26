@@ -25,13 +25,13 @@
 // import ApplicationInfo : ApplicationInfo;
 import Config : DrillConfig;
 import FileInfo : FileInfo;
-
+import std.variant : Variant;
 
 
 unittest 
 {
     assert(false);
-    static void resultFound(immutable(FileInfo) result, shared(void*) userObject)
+    static void resultFound(immutable(FileInfo) result, Variant userObject)
     in(userObject !is null)
     in(cast(int*) userObject !is null)
     in(result.fileName !is null)
@@ -55,7 +55,7 @@ unittest
     auto assetsFolder = buildPath(dirName(thisExePath()), "Assets");
 
     import Config : loadData;
-    DrillContext* context = startCrawling(loadData(assetsFolder),".",&resultFound,cast(shared(void*))i);
+    DrillContext* context = startCrawling(loadData(assetsFolder),".",&resultFound,i);
 
 }
 
@@ -173,8 +173,8 @@ Params:
 */
 @system  DrillContext* startCrawling(in const(DrillConfig) config, 
                                    in immutable(string) searchValue, 
-                                   in immutable(void function(immutable(FileInfo) result, shared(void*) userObject)) resultCallback, 
-                                   in shared(void*) userObject)
+                                   in immutable(void function(immutable(FileInfo) result, Variant userObject)) resultCallback, 
+                                   in Variant userObject)
 in (searchValue !is null)
 in (searchValue.length > 0)
 in (resultCallback !is null)
@@ -204,13 +204,6 @@ out (c;c.threads.length == getMountpoints().length)
 // Starts the crawling using the default configs
 // Check the complete function for details
 // */
-// @system DrillContext startCrawling(immutable(string) searchValue, 
-//                                    immutable(void function(immutable(FileInfo) result, void* userObject)) resultCallback, 
-//                                    void* userObject)
-// {
-
-// }
-
 
 
 
