@@ -84,10 +84,7 @@ else
     }
 }
 
-static void resultFound(immutable(FileInfo) result, shared(void*) userObject)
-in(userObject !is null)
-in(cast(DrillWindow) userObject !is null)
-in((cast(DrillWindow) userObject).buffer !is null)
+static void resultFound(immutable(FileInfo) result, Variant userObject)
 in(result.fileName !is null)
 in(result.fullPath !is null)
 in(result.dateModifiedString !is null)
@@ -95,7 +92,7 @@ in(result.fileName.length > 0)
 in(result.fullPath.length > 0)
 in(result.dateModifiedString.length > 0)
 {
-    DrillWindow window = cast(DrillWindow)userObject;
+    DrillWindow window = userObject.get!(DrillWindow);
     window.list_dirty = true;
     auto bufferNotShared = cast(DList!FileInfo*)window.buffer;
      (*bufferNotShared).insertFront(result);
@@ -623,7 +620,7 @@ private:
             
             //debug drillapi.setSinglethread(true);
             auto callback = (&resultFound);
-            context = startCrawling(data,search_string,callback,cast(shared(void*))this);
+            context = startCrawling(data,search_string,callback,Variant(this));
         }
         else
         {
