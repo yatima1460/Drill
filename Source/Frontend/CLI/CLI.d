@@ -16,7 +16,7 @@ import Meta : VERSION, GITHUB_URL;
 // TODO: capture Ctrl-C and close crawlers?
 
 
-void resultsFoundWithDate(immutable(FileInfo) result, shared(void*) userObject)
+void resultsFoundWithDate(immutable(FileInfo) result, shared(Variant) userObject)
 {
     synchronized
     {
@@ -25,7 +25,7 @@ void resultsFoundWithDate(immutable(FileInfo) result, shared(void*) userObject)
 }
 
 
-void resultsFoundWithSize(immutable(FileInfo) result, shared(void*) userObject)
+void resultsFoundWithSize(immutable(FileInfo) result, shared(Variant) userObject)
 {
     synchronized
     {
@@ -34,7 +34,7 @@ void resultsFoundWithSize(immutable(FileInfo) result, shared(void*) userObject)
 }
 
 
-void resultsFoundWithSizeAndDate(immutable(FileInfo) result, shared(void*) userObject)
+void resultsFoundWithSizeAndDate(immutable(FileInfo) result, shared(Variant) userObject)
 {
     synchronized
     {
@@ -44,7 +44,7 @@ void resultsFoundWithSizeAndDate(immutable(FileInfo) result, shared(void*) userO
 
 
 
-void resultsFoundBare(immutable(FileInfo) result, shared(void*) userObject)
+void resultsFoundBare(immutable(FileInfo) result, shared(Variant) userObject)
 {
     synchronized
     {
