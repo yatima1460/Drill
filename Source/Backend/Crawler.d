@@ -19,7 +19,7 @@ import FileInfo : FileInfo;
 
 
 
-alias CrawlerCallback = void function(  immutable(FileInfo) result, void* userObject);
+alias CrawlerCallback = void function(  immutable(FileInfo) result, Variant userObject);
 
 struct CrawlerData
 {
@@ -32,7 +32,7 @@ struct CrawlerData
 
     CrawlerCallback resultCallback;
 
-    void* userObject;
+    Variant userObject;
 }
 
 
@@ -49,15 +49,15 @@ import  std.concurrency;
 
 
 
-CrawlerContext startCrawler(CrawlerData data)
-in(data.resultCallback !is null)
-out(c;c.running)
-{
-    CrawlerContext c;
-    c.thread = spawn(&crawl, cast(immutable)data, cast(shared)c),
-    c.running = true;
-    return c;
-}
+// ref CrawlerContext startCrawler(CrawlerData data)
+// in(data.resultCallback !is null)
+// out(c;c.running)
+// {
+//     CrawlerContext* c = new CrawlerContext();
+//     c.thread = spawn(&crawl, cast(immutable)data, cast(shared)c),
+//     c.running = true;
+//     return c;
+// }
 
 
 
@@ -100,14 +100,14 @@ private:
     
     shared(bool) running;
 
-    void function(  immutable(FileInfo) result, shared(void*) userObject) resultCallback;
+    void function(  immutable(FileInfo) result, Variant userObject) resultCallback;
 
     debug
     {
         long ignored_count;
     }
 
-      shared(const(void*)) userObj;
+      const(Variant) userObj;
 
 
 public:
@@ -116,9 +116,9 @@ public:
         in immutable(string) MOUNTPOINT, 
         in immutable(string[]) BLOCK_LIST,
         in const(Regex!char[]) PRIORITY_LIST_REGEX,
-        in void function(immutable(FileInfo) result, shared(void*) userObject) resultCallback, 
+        in void function(immutable(FileInfo) result, Variant userObject) resultCallback, 
         in immutable(string) search,
-        in shared(void*) userObj
+        in Variant userObj
     )
     in (MOUNTPOINT != null)
     in (MOUNTPOINT.length != 0)
@@ -150,7 +150,7 @@ public:
         this.userObj = userObj;
     }
 
-    private void noop_resultFound(immutable(FileInfo) result,shared(void*)) @nogc const pure @safe
+    private void noop_resultFound(immutable(FileInfo) result,Variant) const @safe
     {
 
     }
@@ -381,7 +381,7 @@ private:
                         
                         immutable(FileInfo) fi = buildFileInfo(currentFile);
            
-                        resultCallback(fi, cast(shared(void*))userObj);
+                        resultCallback(fi, userObj);
                         // }
 
                     }
