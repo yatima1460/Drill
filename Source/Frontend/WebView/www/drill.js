@@ -71,7 +71,7 @@ window.onload = function() {
       }
       if (isEscape) {
           console.log("The window will close");
-          dhanos.close();
+          window.external.close();
       }
 
 
