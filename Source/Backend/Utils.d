@@ -4,20 +4,34 @@ In this module go useful functions that are not strictly related to crawling
 */
 import std.functional : memoize;
 
+import std.typecons : Tuple;
+
+Tuple!(int,"status",string,"output") executeShellThreadSafe(immutable(string) str)
+{
+    synchronized
+    {
+        import std.process : executeShell;
+        return executeShell(str);
+    }
+}
+
 
 version(linux) @system string[] getDesktopFiles() 
 {
-    import std.process : executeShell;
-    import std.array : split;
-    import Logger : Logger;
-    //HACK: replace executeShell with a system call to get the list of files, executeShell is SLOW
-    immutable auto ls = executeShell("ls /usr/share/applications/*.desktop | grep -v _");
-    if (ls.status == 0)
-    {   
-        return ls.output.split("\n");
+    synchronized
+    {
+        
+        import std.array : split;
+        import Logger : Logger;
+        //HACK: replace executeShell with a system call to get the list of files, executeShell is SLOW
+        immutable auto ls = executeShellThreadSafe("ls /usr/share/applications/*.desktop | grep -v _");
+        if (ls.status == 0)
+        {   
+            return ls.output.split("\n");
+        }
+        Logger.logError("Can't retrieve applications, will return an empty list");
+        return [];
     }
-    Logger.logError("Can't retrieve applications, will return an empty list");
-    return [];
 }
 
 
@@ -29,29 +43,32 @@ Opens a file using the current system implementation for file associations
 
 Returns: true if successful
 */
-nothrow @safe bool openFile(in immutable(string) fullpath) 
+nothrow @safe bool openFile(in immutable(string) fullpath)
 {
-    import std.process : spawnProcess;
-    import std.stdio : stdin, stdout, stderr;
-    import std.process : Config;
-
-    import Logger : Logger;
-
-    try
+    synchronized
     {
-        version (Windows)
-            spawnProcess(["explorer", fullpath], null, Config.none, null);
-        version (linux)
-            spawnProcess(["xdg-open", fullpath], null, Config.none, null);
-        version (OSX)
-            spawnProcess(["open", fullpath], null, Config.none, null);
-        // FIXME: if all three false it will return true even when it should be false
-        return true;
-    }
-    catch (Exception e)
-    {
-        Logger.logError(e.msg);
-        return false;
+        import std.process : spawnProcess;
+        import std.stdio : stdin, stdout, stderr;
+        import std.process : Config;
+
+        import Logger : Logger;
+
+        try
+        {
+            version (Windows)
+                spawnProcess(["explorer", fullpath], null, Config.none, null);
+            version (linux)
+                spawnProcess(["xdg-open", fullpath], null, Config.none, null);
+            version (OSX)
+                spawnProcess(["open", fullpath], null, Config.none, null);
+            // FIXME: if all three false it will return true even when it should be false
+            return true;
+        }
+        catch (Exception e)
+        {
+            Logger.logError(e.msg);
+            return false;
+        }
     }
 }
 
@@ -72,53 +89,61 @@ It's not assured that every mount point is a physical disk
 Returns: immutable array of full paths
 */
 immutable(string[]) getMountpoints() @trusted
-out(m;m.length != 0)
+out(m; m.length != 0)
 {
     import std.process : executeShell;
     import Logger : Logger;
 
+    synchronized
+    {
+        version (linux)
+        {
+            // df catches network mounted drives like NFS
+            // so don't use lsblk here
 
-    version (linux)
-    {
-        // df catches network mounted drives like NFS
-        // so don't use lsblk here
-        immutable auto ls = executeShell("df -h --output=target");
-        if (ls.status != 0)
-        {
-            Logger.logError("Can't retrieve mount points, will just scan '/'");
-            return ["/"];
-        }
-        import std.array : array, split;
-        import std.algorithm : filter, canFind;
-        auto result = array(ls.output.split("\n").filter!(x => canFind(x, "/"))).idup;
-        //debug{logConsole("Mount points found: "~to!string(result));}
-        return result;
-    }
-    version (OSX)
-    {
-        immutable auto ls = executeShell("df -h");
-        if (ls.status != 0)
-        {
-            Logger.logError("Can't retrieve mount points, will just scan '/'");
-            return ["/"];
-        }
-        immutable auto startColumn = indexOf(ls.output.split("\n")[0], 'M');
-        auto result = array(ls.output.split("\n").filter!(x => x.length > startColumn).map!(x => x[startColumn .. $]).filter!(x => canFind(x, "/"))).idup;
-        //debug{logConsole("Mount points found: "~result);}
-        return result;
-    }
-    version (Windows)
-    {
-        immutable auto ls = executeShell("wmic logicaldisk get caption");
-        if (ls.status != 0)
-        {
-            Logger.logError("Can't retrieve mount points, will just scan 'C:'");
-            return ["C:"];
-        }
+            immutable auto ls = executeShellThreadSafe("df -h --output=target");
 
-        auto result = array(map!(x => x[0 .. 2])(ls.output.split("\n").filter!(x => canFind(x, ":")))).idup;
-        //debug{logConsole("Mount points found: "~result);}
-        return result;
+            if (ls.status != 0)
+            {
+                Logger.logError("Can't retrieve mount points, will just scan '/'");
+                return ["/"];
+            }
+            import std.array : array, split;
+            import std.algorithm : filter, canFind;
+
+            auto result = array(ls.output.split("\n").filter!(x => canFind(x, "/"))).idup;
+            //debug{logConsole("Mount points found: "~to!string(result));}
+            return result;
+        }
+        version (OSX)
+        {
+            immutable auto ls = executeShellThreadSafe("df -h");
+            if (ls.status != 0)
+            {
+                Logger.logError("Can't retrieve mount points, will just scan '/'");
+                return ["/"];
+            }
+            immutable auto startColumn = indexOf(ls.output.split("\n")[0], 'M');
+            auto result = array(ls.output.split("\n").filter!(x => x.length > startColumn)
+                    .map!(x => x[startColumn .. $])
+                    .filter!(x => canFind(x, "/"))).idup;
+            //debug{logConsole("Mount points found: "~result);}
+            return result;
+        }
+        version (Windows)
+        {
+            immutable auto ls = executeShellThreadSafe("wmic logicaldisk get caption");
+            if (ls.status != 0)
+            {
+                Logger.logError("Can't retrieve mount points, will just scan 'C:'");
+                return ["C:"];
+            }
+
+            auto result = array(map!(x => x[0 .. 2])(ls.output.split("\n")
+                    .filter!(x => canFind(x, ":")))).idup;
+            //debug{logConsole("Mount points found: "~result);}
+            return result;
+        }
     }
 }
 
