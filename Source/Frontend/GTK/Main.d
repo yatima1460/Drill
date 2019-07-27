@@ -104,10 +104,11 @@ alias gchar = char;
 
 extern (C) void gtk_init(int* argc, char*** argv);
 extern (C) GtkBuilder* gtk_builder_new();
-guint gtk_builder_add_from_file(GtkBuilder* builder, const gchar* filename, GError** error);
+
 
 extern (C)
 {
+    guint gtk_builder_add_from_file(GtkBuilder* builder, const gchar* filename, GError** error);
 
     struct GError
     {
