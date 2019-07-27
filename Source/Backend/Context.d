@@ -31,7 +31,7 @@ import std.variant : Variant;
 unittest 
 {
     assert(false);
-    static void resultFound(immutable(FileInfo) result, Variant userObject)
+    static void resultFound(immutable(FileInfo) result, ref Variant userObject)
     in(userObject !is null)
     in(cast(int*) userObject !is null)
     in(result.fileName !is null)
@@ -86,6 +86,7 @@ like the searched value
     {
         assert(threads.length >= 0 && threads.length <= getMountpoints().length, "Crawlers length is over mountpoints length");
     }
+    Variant userObject;
 }
 
 
@@ -173,7 +174,7 @@ Params:
 */
 @system  DrillContext* startCrawling(in const(DrillConfig) config, 
                                    in immutable(string) searchValue, 
-                                   in immutable(void function(immutable(FileInfo) result, Variant userObject)) resultCallback, 
+                                   in immutable(void function(immutable(FileInfo) result, Variant* userObject)) resultCallback, 
                                    in Variant userObject)
 in (searchValue !is null)
 in (searchValue.length > 0)
@@ -183,13 +184,14 @@ out (c;c.threads.length == getMountpoints().length)
 {
     DrillContext* c = new DrillContext();
     c.search_value = searchValue;
+    c.userObject = cast(Variant)userObject;
 
     import Logger : Logger;
     debug Logger.logWarning("user_object is null");
     foreach (immutable(string) mountpoint; getMountpoints())
     {
         import Crawler : Crawler; 
-        Crawler crawler = new Crawler(mountpoint, config.BLOCK_LIST, config.PRIORITY_LIST_REGEX, resultCallback, searchValue, userObject);
+        Crawler crawler = new Crawler(mountpoint, config.BLOCK_LIST, config.PRIORITY_LIST_REGEX, resultCallback, searchValue, &c.userObject);
         if (config.singlethread)
             crawler.run();
         else

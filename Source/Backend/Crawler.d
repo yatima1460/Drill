@@ -100,14 +100,14 @@ private:
     
     shared(bool) running;
 
-    void function(  immutable(FileInfo) result, Variant userObject) resultCallback;
+    void function(  immutable(FileInfo) result, Variant* userObject) resultCallback;
 
     debug
     {
         long ignored_count;
     }
 
-      const(Variant) userObj;
+       const(Variant*) userObj;
 
 
 public:
@@ -116,9 +116,9 @@ public:
         in immutable(string) MOUNTPOINT, 
         in immutable(string[]) BLOCK_LIST,
         in const(Regex!char[]) PRIORITY_LIST_REGEX,
-        in void function(immutable(FileInfo) result, Variant userObject) resultCallback, 
+        in void function(immutable(FileInfo) result, Variant* userObject) resultCallback, 
         in immutable(string) search,
-        in Variant userObj
+        in Variant* userObj
     )
     in (MOUNTPOINT != null)
     in (MOUNTPOINT.length != 0)
@@ -150,7 +150,7 @@ public:
         this.userObj = userObj;
     }
 
-    private void noop_resultFound(immutable(FileInfo) result,Variant) const @safe
+    private void noop_resultFound(immutable(FileInfo) result,Variant* v) const @safe
     {
 
     }
@@ -381,7 +381,8 @@ private:
                         
                         immutable(FileInfo) fi = buildFileInfo(currentFile);
            
-                        resultCallback(fi, userObj);
+                        assert(userObj !is null);
+                        resultCallback(fi, cast(Variant*)userObj);
                         // }
 
                     }
