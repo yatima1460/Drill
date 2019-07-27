@@ -89,25 +89,87 @@ extern (C) @trusted @nogc nothrow void gtk_window_set_keep_above(GtkWindow* w, b
 
 extern (C) struct GtkBuilder;
 
-extern (C) @trusted @nogc nothrow void window_destroy(GtkWidget* widget, void* arg)
+extern (C) @trusted @nogc nothrow void window_destroy(GtkWindow* widget, void* arg)
 in(widget != null)
-in(arg != null)
+in(arg == null)
 {
+    import core.stdc.stdio : printf;
+
+    printf("window destroy");
+
+    gtk_main_quit();
     //writeln("webview_destroy_cb");
-    bool* w = cast(bool*) arg;
-    *w = true;
+    // bool* w = cast(bool*) arg;
+    // *w = true;
     //writeln("destroy DONE");
 }
 
-alias guint = uint;
-alias gchar = char;
+immutable(int) GDK_KEY_Escape = 0xff1b;
 
-extern (C) void gtk_init(int* argc, char*** argv);
-extern (C) GtkBuilder* gtk_builder_new();
-
-
-extern (C)
+extern (C) @nogc @trusted nothrow
 {
+    alias gint8 = byte;
+    alias guint32 = uint;
+    alias gint = int;
+    alias guint = uint;
+    alias gchar = char;
+    alias guint16 = short;
+    alias guint8 = ubyte;
+
+    enum GdkEventType
+    {
+        GDK_NOTHING = -1,
+        GDK_DELETE = 0,
+        GDK_DESTROY = 1,
+        GDK_EXPOSE = 2,
+        GDK_MOTION_NOTIFY = 3,
+        GDK_BUTTON_PRESS = 4,
+        GDK_2BUTTON_PRESS = 5,
+        GDK_DOUBLE_BUTTON_PRESS = GDK_2BUTTON_PRESS,
+        GDK_3BUTTON_PRESS = 6,
+        GDK_TRIPLE_BUTTON_PRESS = GDK_3BUTTON_PRESS,
+        GDK_BUTTON_RELEASE = 7,
+        GDK_KEY_PRESS = 8,
+        GDK_KEY_RELEASE = 9,
+        GDK_ENTER_NOTIFY = 10,
+        GDK_LEAVE_NOTIFY = 11,
+        GDK_FOCUS_CHANGE = 12,
+        GDK_CONFIGURE = 13,
+        GDK_MAP = 14,
+        GDK_UNMAP = 15,
+        GDK_PROPERTY_NOTIFY = 16,
+        GDK_SELECTION_CLEAR = 17,
+        GDK_SELECTION_REQUEST = 18,
+        GDK_SELECTION_NOTIFY = 19,
+        GDK_PROXIMITY_IN = 20,
+        GDK_PROXIMITY_OUT = 21,
+        GDK_DRAG_ENTER = 22,
+        GDK_DRAG_LEAVE = 23,
+        GDK_DRAG_MOTION = 24,
+        GDK_DRAG_STATUS = 25,
+        GDK_DROP_START = 26,
+        GDK_DROP_FINISHED = 27,
+        GDK_CLIENT_EVENT = 28,
+        GDK_VISIBILITY_NOTIFY = 29,
+        GDK_SCROLL = 31,
+        GDK_WINDOW_STATE = 32,
+        GDK_SETTING = 33,
+        GDK_OWNER_CHANGE = 34,
+        GDK_GRAB_BROKEN = 35,
+        GDK_DAMAGE = 36,
+        GDK_TOUCH_BEGIN = 37,
+        GDK_TOUCH_UPDATE = 38,
+        GDK_TOUCH_END = 39,
+        GDK_TOUCH_CANCEL = 40,
+        GDK_TOUCHPAD_SWIPE = 41,
+        GDK_TOUCHPAD_PINCH = 42,
+        GDK_EVENT_LAST /* helper variable for decls */
+    }
+
+    struct GdkWindow;
+    void gtk_init(int* argc, char*** argv);
+    GtkBuilder* gtk_builder_new();
+
     guint gtk_builder_add_from_file(GtkBuilder* builder, const gchar* filename, GError** error);
 
     struct GError
@@ -119,6 +181,9 @@ extern (C)
 
     void g_printerr(const gchar* format, ...);
     void g_clear_error(GError** err);
+
+    struct GtkEditable;
+    gchar* gtk_editable_get_chars(GtkEditable* editable, gint start_pos, gint end_pos);
 
     GObject* gtk_builder_get_object(GtkBuilder* builder, const gchar* name);
 
@@ -133,92 +198,160 @@ extern (C)
 
     void gtk_main();
     void gtk_main_quit();
+
+    GtkApplication* gtk_application_new(const gchar* application_id, GApplicationFlags flags);
+
+    int g_application_run(GApplication* application, int argc, char** argv);
+
+    struct GApplication;
+
+    void g_object_unref(gpointer object);
 }
+
+extern (C) void gtk_search_changed(GtkEditable* widget, void* data)
+{
+    import std.stdio : writeln;
+
+    char* str = gtk_editable_get_chars(widget, 0, -1);
+
+    import std.string : fromStringz;
+
+    writeln(data);
+    writeln(fromStringz(str));
+}
+
+extern (C) struct GdkEventKey
+{
+    GdkEventType type;
+    GdkWindow* window;
+    gint8 send_event;
+    guint32 time;
+    guint state;
+    guint keyval;
+    gint length;
+    gchar* string;
+    guint16 hardware_keycode;
+    guint8 group;
+    bool is_modifier;
+};
+
+extern (C) bool check_escape(GtkWidget* widget, GdkEventKey* event, void* data)
+{
+    if (event.keyval == GDK_KEY_Escape)
+    {
+        gtk_main_quit();
+        return true;
+    }
+    return false;
+}
+
+import std.path : dirName, buildNormalizedPath, absolutePath, buildPath;
+
+import std.string : toStringz;
+
+import Context : startCrawling, DrillContext;
+import ApplicationInfo : ApplicationInfo, getApplications;
+
+extern (C) guint gtk_builder_add_from_string(GtkBuilder* builder,
+        const gchar* buffer, ulong length, GError** error);
+
+extern (C) struct GtkApplication;
+extern (C) enum GApplicationFlags
+{
+    G_APPLICATION_FLAGS_NONE
+}
+
+alias gpointer = void*;
+
+void create(GtkApplication* app, gpointer user_data)
+{
+        GError* error = null;
+
+    
+
+   
+        /* Initialize the .glade loader */
+    GtkBuilder* builder = gtk_builder_new();
+    assert(builder !is null);
+
+    /* Load the UI from file */
+    assert(builder !is null);
+    // assert(assetsFolder !is null);
+    assert(error is null);
+
+
+    import std.file : thisExePath;
+
+    //immutable(string) GLADE_FILE = import("ui.glade");
+    //if (gtk_builder_add_from_string(builder, toStringz(GLADE_FILE), GLADE_FILE.length, &error) == 0)
+    if (gtk_builder_add_from_file(builder, toStringz(buildPath(dirName(thisExePath),"Assets/ui.glade")), &error) == 0)
+    {
+        g_printerr("Error loading file: %s\n", error.message);
+        assert(error !is null);
+        g_clear_error(&error);
+        throw new Exception("glade file not found");
+    }
+
+        /* Get the main window object from the .glade file */
+    assert(builder !is null);
+    GObject* window = gtk_builder_get_object(builder, "window");
+    assert(window !is null);
+
+
+    gtk_window_set_application (cast(GtkWindow*)window, app);
+    gtk_widget_show_all (cast(GtkWidget*)window);
+}
+
+extern (C) void gtk_window_set_application (GtkWindow *self,
+GtkApplication* application);
 
 int main(string[] args)
 {
-    
-    GObject* window;
-    GObject* button;
-    GError* error = null;
+    int status;
+    GtkApplication* app;
+    app = gtk_application_new("me.santamorena.drill", GApplicationFlags.G_APPLICATION_FLAGS_NONE);
+    g_signal_connect(app, "activate", &create, cast(char*)toStringz(args[0]));
+    status = g_application_run(cast(GApplication*) app, 0, null);
+    g_object_unref(app);
 
-
-    // import core.runtime : CArgs;
-    // Cargs c;
-
-    int argc = 0;
-    char[] argv = new char[0];
-
-    gtk_init(&argc, null);
-
-    import std.path : dirName, buildNormalizedPath, absolutePath, buildPath;
-
-    auto assetsFolder = buildPath(absolutePath(dirName(buildNormalizedPath(args[0]))), "Assets");
-
-    import std.string : toStringz;
-
-
-
-    /* Construct a GtkBuilder instance and load our UI description */
-    GtkBuilder* builder = gtk_builder_new();
-    if (gtk_builder_add_from_file(builder, toStringz(buildPath(assetsFolder, "ui.glade")), &error) == 0)
-    {
-        g_printerr("Error loading file: %s\n", error.message);
-        g_clear_error(&error);
-        return 1;
-    }
-
-    /* Connect signal handlers to the constructed widgets. */
-    window = gtk_builder_get_object(builder, "window");
-    g_signal_connect(window, "destroy", &gtk_main_quit, null);
-
-    //   button = gtk_builder_get_object (builder, "button1");
-    //   g_signal_connect (button, "clicked", G_CALLBACK (print_hello), null);
-
-    //   button = gtk_builder_get_object (builder, "button2");
-    //   g_signal_connect (button, "clicked", G_CALLBACK (print_hello), null);
-
-    // button = gtk_builder_get_object(builder, "quit");
-    // g_signal_connect(button, "clicked", &gtk_main_quit, null);
-
-    gtk_main();
-
-    return 0;
-    // import core.stdc.stdio : printf;
-
-    // if (gtk_init_check(null, null) == false)
-    // {
-    //     printf("can't initialize GTK\n");
-    //     // throw new Exception("Can't initialize GTK");
-    //     return 1;
-    // }
-
-    // auto window = gtk_window_new(GtkWindowType.GTK_WINDOW_TOPLEVEL);
-    // assert(window !is null);
-
-    // debug gtk_window_set_title(window, "Drill (DEBUG VERSION)");
-    // else gtk_window_set_title(window, "Drill");
-    // gtk_window_set_default_size(window, 940, 540);
-    // gtk_window_set_resizable(window, true);
-    // gtk_window_set_position(window, GtkWindowPosition.GTK_WIN_POS_CENTER);
-
-    // gtk_widget_show_all(cast(GtkWidget*) window);
-
-    // bool should_exit = false;
-
-    // g_signal_connect_data(window, "destroy", &window_destroy, &should_exit,
-    //         null, GConnectFlags.G_CONNECT_AFTER);
-
-    // while (!should_exit)
-    // {
-    //     gtk_main_iteration_do(true);
-    // }
-
-    // return 0;
-
-    // Application application = new Application("me.santamorena.drill", GApplicationFlags.FLAGS_NONE);
-    // application.addOnActivate(delegate void(GioApplication app) {
-    //     new DrillWindow(args[0], application);
-    // });
-    // return application.run(args);
+    return status;
 }
+//     assert(args[0] !is null);
+
+
+//     ApplicationInfo[] ai = getApplications();
+//     // TODO: import core.runtime : CArgs;
+
+//     auto assetsFolder = buildPath(absolutePath(dirName(buildNormalizedPath(args[0]))), "Assets");
+
+//     /* Initialize GTK */
+//     gtk_init(null, null);
+
+//     GtkApplication* app = gtk_application_new("me.santamorena.drill");
+
+
+
+
+
+//     /* Event when window is closed using the [X]*/
+//     g_signal_connect(window, "destroy", &window_destroy, null);
+
+//     /* Event when something is typed in the search box */
+//     auto search_input = gtk_builder_get_object(builder, "search_input");
+//     assert(search_input !is null);
+//     g_signal_connect(search_input, "changed", &gtk_search_changed, null);
+
+//     /* Event when a key is pressed 
+//         Used to check Escape to close and Return to start the selected result
+//     */
+//     g_signal_connect(window, "key_press_event", &check_escape, null);
+
+//     //gtk_widget_show_all(cast(GtkWidget*)window);
+
+//     // Start the GTK loop
+//     writeln("GTK loop started");
+//     gtk_main();
+//     writeln("GTK loop ended");
+
+//     return 0;
+// }
