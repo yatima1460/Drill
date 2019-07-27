@@ -35,8 +35,8 @@ Author: Federico Santamorena
     <property name="default_width">960</property>
     <property name="default_height">540</property>
     <property name="icon_name">drill-search-gtk</property>
-    <property name="type_hint">utility</property>
     <property name="gravity">center</property>
+    <property name="title">Drill</property>
     <property name="has_resize_grip">True</property>
     <child type="titlebar">
       <placeholder/>
