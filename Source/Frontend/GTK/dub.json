@@ -10,11 +10,18 @@
 	"targetType": "executable",
 	"targetName": "drill-search-gtk",
 	"mainSourceFile": "Main.d",
-	"sourcePaths": [
-		"."
+	"libs-posix":
+	[
+		"gtk-3",
+		"gobject-2.0",
+		"glib-2.0"
+	
+	],
+	"sourceFiles": [
+		"Main.d"
 	],
 	"dependencies": {
-		"gtk-d:gtkd": "3.9.0",
+
 		"drill-core": {
 			"path": "../../Backend"
 		}

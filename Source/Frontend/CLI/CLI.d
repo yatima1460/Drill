@@ -15,7 +15,7 @@ import Meta : VERSION, GITHUB_URL;
 
 // TODO: capture Ctrl-C and close crawlers?
 
-
+import std.variant : Variant;
 void resultsFoundWithDate(immutable(FileInfo) result, shared(Variant) userObject)
 {
     synchronized
@@ -44,7 +44,7 @@ void resultsFoundWithSizeAndDate(immutable(FileInfo) result, shared(Variant) use
 
 
 
-void resultsFoundBare(immutable(FileInfo) result, shared(Variant) userObject)
+void resultsFoundBare(immutable(FileInfo) result, Variant userObject)
 {
     synchronized
     {

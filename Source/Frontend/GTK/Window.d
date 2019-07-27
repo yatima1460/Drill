@@ -84,7 +84,7 @@ else
     }
 }
 
-static void resultFound(immutable(FileInfo) result, Variant userObject)
+static void resultFound(immutable(FileInfo) result, Variant* userObject)
 in(result.fileName !is null)
 in(result.fullPath !is null)
 in(result.dateModifiedString !is null)
