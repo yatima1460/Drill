@@ -14,7 +14,8 @@
 	[
 		"gtk-3",
 		"gobject-2.0",
-		"glib-2.0"
+		"glib-2.0",
+		"gio-2.0"
 	
 	],
 	"sourceFiles": [
@@ -62,6 +63,9 @@
 	"copyFiles": [
 		"../../../Assets"
 	],
+	"dflags": [
+		"-J=\"../../../Assets\""
+	  ],
 	"targetPath": "Build/Drill-GTK-$PLATFORM-$ARCH-$BUILD_TYPE",
 	"toolchainRequirements": {
 		"dmd": ">=2.086.0",
