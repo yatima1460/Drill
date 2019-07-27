@@ -22,7 +22,7 @@ Author: Federico Santamorena
 
 -->
 <interface>
-  <requires lib="gtk+" version="3.0"/>
+  <requires lib="gtk+" version="3.20"/>
   <!-- interface-license-type gplv2 -->
   <!-- interface-name Drill -->
   <!-- interface-description Search files without indexing, but clever crawling -->
@@ -36,20 +36,23 @@ Author: Federico Santamorena
       <column type="gchararray"/>
       <!-- column-name path -->
       <column type="gchararray"/>
+      <!-- column-name size -->
+      <column type="gchararray"/>
       <!-- column-name date -->
       <column type="gchararray"/>
     </columns>
   </object>
-  <object class="GtkWindow" id="window">
+  <object class="GtkApplicationWindow" id="window">
     <property name="visible">True</property>
     <property name="can_focus">False</property>
-    <property name="border_width">0</property>
     <property name="title">Drill</property>
     <property name="window_position">center</property>
     <property name="default_width">960</property>
     <property name="default_height">540</property>
-    <property name="icon">icon.png</property>
+    <property name="icon_name">drill-search-gtk</property>
     <property name="gravity">center</property>
+    <property name="has_resize_grip">True</property>
+    <property name="show_menubar">False</property>
     <child type="titlebar">
       <placeholder/>
     </child>
@@ -64,9 +67,14 @@ Author: Federico Santamorena
             <property name="name">search_input</property>
             <property name="visible">True</property>
             <property name="can_focus">True</property>
+            <property name="has_focus">True</property>
+            <property name="is_focus">True</property>
             <property name="max_length">4096</property>
+            <property name="caps_lock_warning">False</property>
             <property name="primary_icon_stock">gtk-apply</property>
+            <property name="placeholder_text" translatable="yes">type here to search files and applications</property>
             <property name="show_emoji_icon">True</property>
+            <property name="enable_emoji_completion">True</property>
           </object>
           <packing>
             <property name="expand">False</property>
@@ -79,6 +87,7 @@ Author: Federico Santamorena
             <property name="name">scrolled_window</property>
             <property name="visible">True</property>
             <property name="can_focus">True</property>
+            <property name="vscrollbar_policy">always</property>
             <property name="shadow_type">in</property>
             <child>
               <object class="GtkTreeView" id="treeview">
@@ -88,9 +97,80 @@ Author: Federico Santamorena
                 <property name="hexpand">True</property>
                 <property name="vexpand">True</property>
                 <property name="model">liststore</property>
-                <property name="enable_grid_lines">horizontal</property>
+                <property name="headers_clickable">False</property>
+                <property name="expander_column">column_name</property>
+                <property name="rules_hint">True</property>
+                <property name="enable_search">False</property>
+                <property name="search_column">0</property>
+                <property name="fixed_height_mode">True</property>
+                <property name="show_expanders">False</property>
+                <property name="enable_grid_lines">both</property>
+                <property name="enable_tree_lines">True</property>
                 <child internal-child="selection">
-                  <object class="GtkTreeSelection"/>
+                  <object class="GtkTreeSelection" id="selected"/>
+                </child>
+                <child>
+                  <object class="GtkTreeViewColumn" id="column_name">
+                    <property name="resizable">True</property>
+                    <property name="sizing">fixed</property>
+                    <property name="title" translatable="yes">Name</property>
+                    <property name="expand">True</property>
+                    <child>
+                      <object class="GtkCellRendererPixbuf" id="cell_icon"/>
+                      <attributes>
+                        <attribute name="icon-name">0</attribute>
+                      </attributes>
+                    </child>
+                    <child>
+                      <object class="GtkCellRendererText" id="cell_name"/>
+                      <attributes>
+                        <attribute name="text">1</attribute>
+                      </attributes>
+                    </child>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkTreeViewColumn" id="column_path">
+                    <property name="resizable">True</property>
+                    <property name="sizing">fixed</property>
+                    <property name="fixed_width">0</property>
+                    <property name="title" translatable="yes">Path</property>
+                    <property name="expand">True</property>
+                    <child>
+                      <object class="GtkCellRendererText" id="cell_path"/>
+                      <attributes>
+                        <attribute name="text">2</attribute>
+                      </attributes>
+                    </child>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkTreeViewColumn" id="column_size">
+                    <property name="resizable">True</property>
+                    <property name="sizing">fixed</property>
+                    <property name="title" translatable="yes">Size</property>
+                    <property name="expand">True</property>
+                    <child>
+                      <object class="GtkCellRendererText" id="cell_size"/>
+                      <attributes>
+                        <attribute name="text">3</attribute>
+                      </attributes>
+                    </child>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkTreeViewColumn" id="column_date">
+                    <property name="resizable">True</property>
+                    <property name="sizing">fixed</property>
+                    <property name="title" translatable="yes">Date Modified</property>
+                    <property name="expand">True</property>
+                    <child>
+                      <object class="GtkCellRendererText" id="cell_date"/>
+                      <attributes>
+                        <attribute name="text">4</attribute>
+                      </attributes>
+                    </child>
+                  </object>
                 </child>
               </object>
             </child>

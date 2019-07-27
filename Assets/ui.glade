@@ -41,20 +41,11 @@ Author: Federico Santamorena
       <!-- column-name date -->
       <column type="gchararray"/>
     </columns>
-    <data>
-      <row>
-        <col id="0" translatable="yes">a</col>
-        <col id="1" translatable="yes">a</col>
-        <col id="2" translatable="yes">aaaaaa</col>
-        <col id="3" translatable="yes">aaaaaa</col>
-        <col id="4" translatable="yes">aaaaaa</col>
-      </row>
-    </data>
   </object>
   <object class="GtkApplicationWindow" id="window">
-    <property name="title">Drill</property>
     <property name="visible">True</property>
     <property name="can_focus">False</property>
+    <property name="title">Drill</property>
     <property name="window_position">center</property>
     <property name="default_width">960</property>
     <property name="default_height">540</property>
@@ -126,9 +117,15 @@ Author: Federico Santamorena
                     <property name="expand">True</property>
                     <child>
                       <object class="GtkCellRendererPixbuf" id="cell_icon"/>
+                      <attributes>
+                        <attribute name="icon-name">0</attribute>
+                      </attributes>
                     </child>
                     <child>
                       <object class="GtkCellRendererText" id="cell_name"/>
+                      <attributes>
+                        <attribute name="text">1</attribute>
+                      </attributes>
                     </child>
                   </object>
                 </child>
@@ -136,10 +133,14 @@ Author: Federico Santamorena
                   <object class="GtkTreeViewColumn" id="column_path">
                     <property name="resizable">True</property>
                     <property name="sizing">fixed</property>
+                    <property name="fixed_width">0</property>
                     <property name="title" translatable="yes">Path</property>
                     <property name="expand">True</property>
                     <child>
                       <object class="GtkCellRendererText" id="cell_path"/>
+                      <attributes>
+                        <attribute name="text">2</attribute>
+                      </attributes>
                     </child>
                   </object>
                 </child>
@@ -147,10 +148,14 @@ Author: Federico Santamorena
                   <object class="GtkTreeViewColumn" id="column_size">
                     <property name="resizable">True</property>
                     <property name="sizing">fixed</property>
+                    <property name="fixed_width">0</property>
                     <property name="title" translatable="yes">Size</property>
                     <property name="expand">True</property>
                     <child>
                       <object class="GtkCellRendererText" id="cell_size"/>
+                      <attributes>
+                        <attribute name="text">3</attribute>
+                      </attributes>
                     </child>
                   </object>
                 </child>
@@ -158,10 +163,14 @@ Author: Federico Santamorena
                   <object class="GtkTreeViewColumn" id="column_date">
                     <property name="resizable">True</property>
                     <property name="sizing">fixed</property>
+                    <property name="fixed_width">0</property>
                     <property name="title" translatable="yes">Date Modified</property>
                     <property name="expand">True</property>
                     <child>
                       <object class="GtkCellRendererText" id="cell_date"/>
+                      <attributes>
+                        <attribute name="text">4</attribute>
+                      </attributes>
                     </child>
                   </object>
                 </child>
