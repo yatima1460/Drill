@@ -278,7 +278,7 @@ void appendApplication(GtkListStore* store, ApplicationInfo app)
 
     /* Append a row and fill in some data */
     store.gtk_list_store_append(&iter);
-    store.gtk_list_store_set(&iter, 0, null, 1, toStringz("bbb"), -1);
+    store.gtk_list_store_set(&iter, 1, toStringz("bbb"), -1);
 
     // gtk_list_store_set (store, &iter, 4,toStringz("bbb"),-1);
     // gtk_list_store_set (store, &iter, 2,toStringz("aaa"),-1);
