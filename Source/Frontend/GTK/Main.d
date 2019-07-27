@@ -8,9 +8,6 @@ import std.path : baseName, dirName, extension, buildNormalizedPath, absolutePat
 // import gio.Application : GioApplication = Application;
 // import gtk.Application : GApplicationFlags;
 
-
-
-
 /+
     GTK
 +/
@@ -98,16 +95,12 @@ in(arg == null)
 {
     import core.stdc.stdio : printf;
 
-    
-
     gtk_main_quit();
     //writeln("webview_destroy_cb");
     // bool* w = cast(bool*) arg;
     // *w = true;
     //writeln("destroy DONE");
 }
-
-
 
 extern (C) @nogc @trusted nothrow
 {
@@ -266,12 +259,41 @@ extern (C) enum GApplicationFlags
     G_APPLICATION_FLAGS_NONE
 }
 
+extern (C) struct GtkListStore;
+extern (C) struct GtkTreeIter
+{
+    gint stamp;
+    gpointer user_data;
+    gpointer user_data2;
+    gpointer user_data3;
+};
+
+extern (C) void gtk_list_store_append(GtkListStore* list_store, GtkTreeIter* iter);
+
+extern (C) void gtk_list_store_set(GtkListStore* list_store, GtkTreeIter* iter, ...);
+
+void appendApplication(GtkListStore* store, ApplicationInfo app)
+{
+    GtkTreeIter iter;
+
+    /* Append a row and fill in some data */
+    store.gtk_list_store_append(&iter);
+    store.gtk_list_store_set(&iter, 0, null, 1, toStringz("bbb"), -1);
+
+    // gtk_list_store_set (store, &iter, 4,toStringz("bbb"),-1);
+    // gtk_list_store_set (store, &iter, 2,toStringz("aaa"),-1);
+    // gtk_list_store_set (store, &iter, 3,toStringz("bbb"),-1);
+}
+
+extern (C) void gtk_widget_queue_draw(GtkWidget*);
+
+extern(C) struct GtkTreeView;
 
 
-
-extern(C) void activate(GtkApplication* app, gpointer user_data)
-in (app !is null)
-in (user_data == null)
+extern (C) void gtk_tree_view_set_model(GtkTreeView*,GtkListStore*);
+extern (C) void activate(GtkApplication* app, gpointer user_data)
+in(app !is null)
+in(user_data == null)
 {
     GError* error = null;
 
@@ -283,33 +305,35 @@ in (user_data == null)
     assert(builder !is null);
     assert(error is null);
     import std.file : thisExePath;
+
     assert(thisExePath !is null);
-    if (gtk_builder_add_from_file(builder, toStringz(buildPath(dirName(thisExePath),"Assets/ui.glade")), &error) == 0)
+    if (builder.gtk_builder_add_from_file(toStringz(buildPath(dirName(thisExePath),
+            "Assets/ui.glade")), &error) == 0)
     {
         assert(error !is null);
         g_printerr("Error loading file: %s\n", error.message);
         assert(error !is null);
         g_clear_error(&error);
-        assert(false,"glade file not found");
+        assert(false, "glade file not found");
     }
 
     /* Get the main window object from the .glade file */
     assert(builder !is null);
-    GObject* window = gtk_builder_get_object(builder, "window");
+    GObject* window = builder.gtk_builder_get_object("window");
     assert(window !is null);
 
     /* Connect the GTK window to the application */
     assert(window !is null);
     assert(app !is null);
-    gtk_window_set_application (cast(GtkWindow*)window, app);
+    (cast(GtkWindow*) window).gtk_window_set_application(app);
 
     /* Event when the window is closed using the [X]*/
-    g_signal_connect(window, "destroy", &window_destroy, null);
+    window.g_signal_connect("destroy", &window_destroy, null);
 
     /* Event when something is typed in the search box */
-    auto search_input = gtk_builder_get_object(builder, "search_input");
+    auto search_input = builder.gtk_builder_get_object("search_input");
     assert(search_input !is null);
-    g_signal_connect(search_input, "changed", &gtk_search_changed, null);
+    search_input.g_signal_connect("changed", &gtk_search_changed, null);
 
     /* Event when a key is pressed:
         - Used to check Escape to close
@@ -317,27 +341,45 @@ in (user_data == null)
     */
     assert(window !is null);
     assert(&check_escape !is null);
-    g_signal_connect(window, "key_press_event", &check_escape, null);
+    window.g_signal_connect("key_press_event", &check_escape, null);
+
+    /*
+        Show a default list of apps
+    */
+    assert(builder !is null);
+    auto liststore = builder.gtk_builder_get_object("liststore");
+    assert(liststore !is null);
+    foreach (application; getApplications())
+    {
+        assert(liststore !is null);
+        (cast(GtkListStore*) liststore).appendApplication(application);
+    }
+    
+
+    auto treeview = gtk_builder_get_object(builder,"treeview");
+    (cast(GtkTreeView*)treeview).gtk_tree_view_set_model(cast(GtkListStore*)liststore);
+    //gtk_widget_queue_draw(cast(GtkWidget*)treeview);
 
     /* Destroy the builder */
     assert(builder !is null);
-    g_object_unref(builder);
+    builder.g_object_unref();
 
     /* Show the window */
     assert(window !is null);
-    gtk_widget_show_all (cast(GtkWidget*)window);
+    (cast(GtkWidget*) window).gtk_widget_show_all();
 
+    /* Start the main loop */
     gtk_main();
 }
 
-extern (C) void gtk_window_set_application (GtkWindow *self,
-GtkApplication* application);
+extern (C) void gtk_window_set_application(GtkWindow* self, GtkApplication* application);
 
 int main(string[] args)
 {
     int status;
 
-    GtkApplication* app = gtk_application_new("me.santamorena.drill", GApplicationFlags.G_APPLICATION_FLAGS_NONE);
+    GtkApplication* app = gtk_application_new("me.santamorena.drill",
+            GApplicationFlags.G_APPLICATION_FLAGS_NONE);
     g_signal_connect(app, "activate", &activate, null);
     status = g_application_run(cast(GApplication*) app, 0, null);
     g_object_unref(app);
@@ -345,7 +387,6 @@ int main(string[] args)
     return status;
 }
 //     assert(args[0] !is null);
-
 
 //     ApplicationInfo[] ai = getApplications();
 //     // TODO: import core.runtime : CArgs;
@@ -356,10 +397,6 @@ int main(string[] args)
 //     gtk_init(null, null);
 
 //     GtkApplication* app = gtk_application_new("me.santamorena.drill");
-
-
-
-
 
 //     /* Event when window is closed using the [X]*/
 //     g_signal_connect(window, "destroy", &window_destroy, null);
