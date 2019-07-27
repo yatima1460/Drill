@@ -71,39 +71,58 @@ extern (C) @nogc nothrow enum GtkWindowPosition
     GTK_WIN_POS_CENTER_ON_PARENT
 }
 
-extern (C) @nogc nothrow struct GtkWindow;
-extern (C) @trusted @nogc nothrow GtkWindow* GTK_WINDOW(GtkWidget*);
-extern (C) @trusted @nogc nothrow GtkWindow* gtk_window_new(GtkWindowType);
-extern (C) @trusted @nogc nothrow void gtk_window_set_gravity(GtkWindow*, GdkGravity);
-extern (C) @trusted @nogc nothrow void gtk_window_set_title(GtkWindow*, const char*);
-extern (C) @trusted @nogc nothrow void gtk_window_set_default_size(GtkWindow*, int, int);
-extern (C) @trusted @nogc nothrow void gtk_window_set_default_geometry(
-        GtkWindow* window, int width, int height);
-extern (C) @trusted @nogc nothrow void gtk_window_set_resizable(GtkWindow*, bool);
-extern (C) @trusted @nogc nothrow void gtk_window_set_decorated(GtkWindow*, bool);
-extern (C) @trusted @nogc nothrow void gtk_window_fullscreen(GtkWindow*);
-extern (C) @trusted @nogc nothrow void gtk_window_unfullscreen(GtkWindow*);
-extern (C) @trusted @nogc nothrow void gtk_window_set_position(GtkWindow*, GtkWindowPosition);
-extern (C) @trusted @nogc nothrow void gtk_window_move(GtkWindow* window, int x, int y);
-extern (C) @trusted @nogc nothrow void gtk_window_set_keep_above(GtkWindow* w, bool);
 
-extern (C) struct GtkBuilder;
 
-extern (C) @trusted @nogc nothrow void window_destroy(GtkWindow* widget, void* arg)
-in(widget != null)
-in(arg == null)
+
+extern (C) @trusted @nogc nothrow 
 {
-    import core.stdc.stdio : printf;
+    struct GtkWindow;
+    struct GtkBuilder;
 
-    gtk_main_quit();
-    //writeln("webview_destroy_cb");
-    // bool* w = cast(bool*) arg;
-    // *w = true;
-    //writeln("destroy DONE");
-}
 
-extern (C) @nogc @trusted nothrow
-{
+
+    void g_application_quit(GtkApplication*);
+
+
+    GtkWindow* GTK_WINDOW(GtkWidget*);
+    GtkWindow* gtk_window_new(GtkWindowType);
+    void gtk_window_set_gravity(GtkWindow*, GdkGravity);
+    void gtk_window_set_title(GtkWindow*, const char*);
+    void gtk_window_set_default_size(GtkWindow*, int, int);
+    void gtk_window_set_default_geometry( GtkWindow* window, int width, int height);
+    void gtk_window_set_resizable(GtkWindow*, bool);
+    void gtk_window_set_decorated(GtkWindow*, bool);
+    void gtk_window_fullscreen(GtkWindow*);
+    void gtk_window_unfullscreen(GtkWindow*);
+    void gtk_window_set_position(GtkWindow*, GtkWindowPosition);
+    void gtk_window_move(GtkWindow* window, int x, int y);
+    void gtk_window_set_keep_above(GtkWindow* w, bool);
+
+
+    void window_destroy(GtkWindow* window, gpointer data)
+    in(window != null)
+    in(data != null)
+    {
+        import core.stdc.stdio : printf;
+        auto app = cast(GtkApplication*)data;
+        assert(app !is null);
+        g_application_quit(app);
+    }
+
+    bool check_escape(GtkWidget* widget, GdkEventKey* event, gpointer data)
+    in(widget != null)
+    in(data != null)
+    {
+        if (event.keyval == GDK_KEY_Escape)
+        {
+            auto window = cast(GtkWindow*)widget;
+            assert(window !is null);
+            window_destroy(window, data);
+            return true;
+        }
+        return false;
+    }
+
     alias gpointer = void*;
     alias gint8 = byte;
     alias guint32 = uint;
@@ -233,15 +252,6 @@ extern (C) struct GdkEventKey
     bool is_modifier;
 };
 
-extern (C) bool check_escape(GtkWidget* widget, GdkEventKey* event, void* data)
-{
-    if (event.keyval == GDK_KEY_Escape)
-    {
-        gtk_main_quit();
-        return true;
-    }
-    return false;
-}
 
 import std.path : dirName, buildNormalizedPath, absolutePath, buildPath;
 
@@ -276,9 +286,16 @@ void appendApplication(GtkListStore* store, ApplicationInfo app)
 {
     GtkTreeIter iter;
 
+    
+
     /* Append a row and fill in some data */
     store.gtk_list_store_append(&iter);
-    store.gtk_list_store_set(&iter, 1, toStringz("bbb"), -1);
+    store.gtk_list_store_set(&iter, 
+        0, toStringz(app.icon),
+        1, toStringz(app.name),
+        2, toStringz(app.exec),
+        //3, toStringz("0"),
+        4, toStringz(app.desktopFileDateModifiedString), -1);
 
     // gtk_list_store_set (store, &iter, 4,toStringz("bbb"),-1);
     // gtk_list_store_set (store, &iter, 2,toStringz("aaa"),-1);
@@ -296,6 +313,7 @@ in(app !is null)
 in(user_data == null)
 {
     GError* error = null;
+    bool running = true;
 
     /* Initialize the .glade loader */
     GtkBuilder* builder = gtk_builder_new();
@@ -328,7 +346,7 @@ in(user_data == null)
     (cast(GtkWindow*) window).gtk_window_set_application(app);
 
     /* Event when the window is closed using the [X]*/
-    window.g_signal_connect("destroy", &window_destroy, null);
+    window.g_signal_connect("destroy", &window_destroy, app);
 
     /* Event when something is typed in the search box */
     auto search_input = builder.gtk_builder_get_object("search_input");
@@ -341,7 +359,7 @@ in(user_data == null)
     */
     assert(window !is null);
     assert(&check_escape !is null);
-    window.g_signal_connect("key_press_event", &check_escape, null);
+    window.g_signal_connect("key_press_event", &check_escape, app);
 
     /*
         Show a default list of apps
@@ -349,8 +367,10 @@ in(user_data == null)
     assert(builder !is null);
     auto liststore = builder.gtk_builder_get_object("liststore");
     assert(liststore !is null);
+   
     foreach (application; getApplications())
     {
+       
         assert(liststore !is null);
         (cast(GtkListStore*) liststore).appendApplication(application);
     }
@@ -369,7 +389,8 @@ in(user_data == null)
     (cast(GtkWidget*) window).gtk_widget_show_all();
 
     /* Start the main loop */
-    gtk_main();
+    // while (running)
+    //     gtk_main_iteration_do(true);
 }
 
 extern (C) void gtk_window_set_application(GtkWindow* self, GtkApplication* application);
