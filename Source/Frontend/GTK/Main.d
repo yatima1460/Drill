@@ -153,7 +153,7 @@ int main(string[] args)
 
     /* Construct a GtkBuilder instance and load our UI description */
     builder = gtk_builder_new();
-    if (gtk_builder_add_from_file(builder, "builder.ui", &error) == 0)
+    if (gtk_builder_add_from_file(builder, "Assets/drill.glade", &error) == 0)
     {
         g_printerr("Error loading file: %s\n", error.message);
         g_clear_error(&error);
