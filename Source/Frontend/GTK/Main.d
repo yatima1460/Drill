@@ -137,7 +137,7 @@ extern (C)
 
 int main(string[] args)
 {
-    GtkBuilder* builder;
+    
     GObject* window;
     GObject* button;
     GError* error = null;
@@ -151,9 +151,17 @@ int main(string[] args)
 
     gtk_init(&argc, null);
 
+    import std.path : dirName, buildNormalizedPath, absolutePath, buildPath;
+
+    auto assetsFolder = buildPath(absolutePath(dirName(buildNormalizedPath(args[0]))), "Assets");
+
+    import std.string : toStringz;
+
+
+
     /* Construct a GtkBuilder instance and load our UI description */
-    builder = gtk_builder_new();
-    if (gtk_builder_add_from_file(builder, "Assets/drill.glade", &error) == 0)
+    GtkBuilder* builder = gtk_builder_new();
+    if (gtk_builder_add_from_file(builder, toStringz(buildPath(assetsFolder, "ui.glade")), &error) == 0)
     {
         g_printerr("Error loading file: %s\n", error.message);
         g_clear_error(&error);
@@ -170,8 +178,8 @@ int main(string[] args)
     //   button = gtk_builder_get_object (builder, "button2");
     //   g_signal_connect (button, "clicked", G_CALLBACK (print_hello), null);
 
-    button = gtk_builder_get_object(builder, "quit");
-    g_signal_connect(button, "clicked", &gtk_main_quit, null);
+    // button = gtk_builder_get_object(builder, "quit");
+    // g_signal_connect(button, "clicked", &gtk_main_quit, null);
 
     gtk_main();
 
