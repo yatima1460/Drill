@@ -8,6 +8,9 @@ import std.path : baseName, dirName, extension, buildNormalizedPath, absolutePat
 // import gio.Application : GioApplication = Application;
 // import gtk.Application : GApplicationFlags;
 
+
+
+
 /+
     GTK
 +/
@@ -95,7 +98,7 @@ in(arg == null)
 {
     import core.stdc.stdio : printf;
 
-    printf("window destroy");
+    
 
     gtk_main_quit();
     //writeln("webview_destroy_cb");
@@ -104,10 +107,11 @@ in(arg == null)
     //writeln("destroy DONE");
 }
 
-immutable(int) GDK_KEY_Escape = 0xff1b;
+
 
 extern (C) @nogc @trusted nothrow
 {
+    alias gpointer = void*;
     alias gint8 = byte;
     alias guint32 = uint;
     alias gint = int;
@@ -115,6 +119,7 @@ extern (C) @nogc @trusted nothrow
     alias gchar = char;
     alias guint16 = short;
     alias guint8 = ubyte;
+    immutable(int) GDK_KEY_Escape = 0xff1b;
 
     enum GdkEventType
     {
@@ -261,7 +266,6 @@ extern (C) enum GApplicationFlags
     G_APPLICATION_FLAGS_NONE
 }
 
-alias gpointer = void*;
 
 
 
@@ -279,11 +283,10 @@ in (user_data == null)
     assert(builder !is null);
     assert(error is null);
     import std.file : thisExePath;
-
-    //immutable(string) GLADE_FILE = import("ui.glade");
-    //if (gtk_builder_add_from_string(builder, toStringz(GLADE_FILE), GLADE_FILE.length, &error) == 0)
+    assert(thisExePath !is null);
     if (gtk_builder_add_from_file(builder, toStringz(buildPath(dirName(thisExePath),"Assets/ui.glade")), &error) == 0)
     {
+        assert(error !is null);
         g_printerr("Error loading file: %s\n", error.message);
         assert(error !is null);
         g_clear_error(&error);
@@ -295,27 +298,36 @@ in (user_data == null)
     GObject* window = gtk_builder_get_object(builder, "window");
     assert(window !is null);
 
-    g_object_unref(builder);
-
-
+    /* Connect the GTK window to the application */
+    assert(window !is null);
+    assert(app !is null);
     gtk_window_set_application (cast(GtkWindow*)window, app);
 
+    /* Event when the window is closed using the [X]*/
+    g_signal_connect(window, "destroy", &window_destroy, null);
+
+    /* Event when something is typed in the search box */
+    auto search_input = gtk_builder_get_object(builder, "search_input");
+    assert(search_input !is null);
+    g_signal_connect(search_input, "changed", &gtk_search_changed, null);
+
+    /* Event when a key is pressed:
+        - Used to check Escape to close
+        - Return to start the selected result 
+    */
+    assert(window !is null);
+    assert(&check_escape !is null);
+    g_signal_connect(window, "key_press_event", &check_escape, null);
+
+    /* Destroy the builder */
+    assert(builder !is null);
+    g_object_unref(builder);
 
     /* Show the window */
     assert(window !is null);
     gtk_widget_show_all (cast(GtkWidget*)window);
 
-
-    // 
-
-    // /* Connect the GTK window to the application */
-    // assert(window !is null);
-    // assert(app !is null);
-    // 
-
-
-
-    //gtk_main();
+    gtk_main();
 }
 
 extern (C) void gtk_window_set_application (GtkWindow *self,
@@ -352,10 +364,7 @@ int main(string[] args)
 //     /* Event when window is closed using the [X]*/
 //     g_signal_connect(window, "destroy", &window_destroy, null);
 
-//     /* Event when something is typed in the search box */
-//     auto search_input = gtk_builder_get_object(builder, "search_input");
-//     assert(search_input !is null);
-//     g_signal_connect(search_input, "changed", &gtk_search_changed, null);
+//     
 
 //     /* Event when a key is pressed 
 //         Used to check Escape to close and Return to start the selected result
