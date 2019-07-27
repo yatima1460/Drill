@@ -39,10 +39,11 @@ Author: Federico Santamorena
       <column type="gchararray"/>
     </columns>
   </object>
-  <object id="window" class="GtkWindow">
+  <object class="GtkWindow" id="window">
     <property name="visible">True</property>
+    <property name="can_focus">False</property>
+    <property name="border_width">0</property>
     <property name="title">Drill</property>
-    <property name="border-width">0</property>
     <property name="window_position">center</property>
     <property name="default_width">960</property>
     <property name="default_height">540</property>
