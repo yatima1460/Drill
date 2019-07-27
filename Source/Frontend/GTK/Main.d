@@ -263,23 +263,21 @@ extern (C) enum GApplicationFlags
 
 alias gpointer = void*;
 
-void create(GtkApplication* app, gpointer user_data)
+
+
+extern(C) void activate(GtkApplication* app, gpointer user_data)
+in (app !is null)
+in (user_data == null)
 {
-        GError* error = null;
+    GError* error = null;
 
-    
-
-   
-        /* Initialize the .glade loader */
+    /* Initialize the .glade loader */
     GtkBuilder* builder = gtk_builder_new();
     assert(builder !is null);
 
     /* Load the UI from file */
     assert(builder !is null);
-    // assert(assetsFolder !is null);
     assert(error is null);
-
-
     import std.file : thisExePath;
 
     //immutable(string) GLADE_FILE = import("ui.glade");
@@ -289,17 +287,35 @@ void create(GtkApplication* app, gpointer user_data)
         g_printerr("Error loading file: %s\n", error.message);
         assert(error !is null);
         g_clear_error(&error);
-        throw new Exception("glade file not found");
+        assert(false,"glade file not found");
     }
 
-        /* Get the main window object from the .glade file */
+    /* Get the main window object from the .glade file */
     assert(builder !is null);
     GObject* window = gtk_builder_get_object(builder, "window");
     assert(window !is null);
 
+    g_object_unref(builder);
+
 
     gtk_window_set_application (cast(GtkWindow*)window, app);
+
+
+    /* Show the window */
+    assert(window !is null);
     gtk_widget_show_all (cast(GtkWidget*)window);
+
+
+    // 
+
+    // /* Connect the GTK window to the application */
+    // assert(window !is null);
+    // assert(app !is null);
+    // 
+
+
+
+    //gtk_main();
 }
 
 extern (C) void gtk_window_set_application (GtkWindow *self,
@@ -308,9 +324,9 @@ GtkApplication* application);
 int main(string[] args)
 {
     int status;
-    GtkApplication* app;
-    app = gtk_application_new("me.santamorena.drill", GApplicationFlags.G_APPLICATION_FLAGS_NONE);
-    g_signal_connect(app, "activate", &create, cast(char*)toStringz(args[0]));
+
+    GtkApplication* app = gtk_application_new("me.santamorena.drill", GApplicationFlags.G_APPLICATION_FLAGS_NONE);
+    g_signal_connect(app, "activate", &activate, null);
     status = g_application_run(cast(GApplication*) app, 0, null);
     g_object_unref(app);
 
