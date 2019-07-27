@@ -59,6 +59,9 @@
 			]
 		}
 	},
+	"copyFiles": [
+		"../../../Assets"
+	],
 	"targetPath": "Build/Drill-GTK-$PLATFORM-$ARCH-$BUILD_TYPE",
 	"toolchainRequirements": {
 		"dmd": ">=2.086.0",
