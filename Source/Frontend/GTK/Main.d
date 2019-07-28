@@ -296,7 +296,7 @@ extern (C) @nogc void g_async_queue_push(GAsyncQueue* queue, gpointer data);
 
 import FileInfo : FileInfo;
 
-void resultFound(immutable(FileInfo) result, void* userObject)
+void resultFound(FileInfo* result, void* userObject)
 in (userObject !is null)
 {
     import std.stdio : writeln;
@@ -309,12 +309,12 @@ in (userObject !is null)
 
     import core.memory;
 
-    void* f = GC.malloc(result.sizeof);
+    // void* f = GC.malloc(result.sizeof);
 
-    *cast(FileInfo*)f = result;
+    // *cast(FileInfo*)f = result;
     //*f = result;
 
-    tuple.queue.g_async_queue_push(f);
+    tuple.queue.g_async_queue_push(result);
     import ListStore : appendFileInfo;
 
     //writeln(result.fileName);
@@ -696,7 +696,7 @@ int main(string[] args)
     import core.memory;
     GC.disable();
     
-    int status;
+    
 
     
 
@@ -708,7 +708,7 @@ int main(string[] args)
     //GC.addRoot(&app);
     
     g_signal_connect(app, "activate", &activate, &drillGtkContext);
-    status = g_application_run(cast(GApplication*) app, 0, null);
+    int status = g_application_run(cast(GApplication*) app, 0, null);
 
     // g_object_unref(drillGtkContext.buffer1);
     // g_object_unref(drillGtkContext.buffer2);
