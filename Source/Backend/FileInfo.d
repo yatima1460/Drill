@@ -8,17 +8,17 @@ struct FileInfo
     /**
     The original mountpoint used by a crawler that found this file
     */
-    immutable(string) originalMountpoint;
+    string originalMountpoint;
 
     /**
     true if the file is a directory
     */
-    immutable(bool) isDirectory;
+    bool isDirectory;
 
     /**
     true if the file is a normal file
     */
-    immutable(bool) isFile;
+    bool isFile;
 
     /**
     true if is a symbolic link
@@ -28,12 +28,12 @@ struct FileInfo
     /**
     string of the date modified
     */
-    immutable(string) dateModifiedString;
+    string dateModifiedString;
 
     /***
     the parent folder
     */
-    immutable(string) containingFolder;
+    string containingFolder;
 
     /**
     name of the icon to use on the left of the name
@@ -43,25 +43,28 @@ struct FileInfo
     /**
     the filename with extension
     */
-    immutable(string) fileName;
+    string fileName;
 
     /**
     the filename with extension but lower string
     */
-    immutable(string) fileNameLower;
+    string fileNameLower;
 
     /**
-    only the extension with the dot (ex: .png) 
+    only the extension with the dot (ex: .png 
     */
-    immutable(string) extension;
+    string extension;
 
     /**
     Complete full path of the file
     */
-    immutable(string) fullPath;
+    string fullPath;
 
     /**
     The size of the file, already converted as a human readable string
     */
-    immutable(string) sizeString;
+    string sizeString;
+
+
+    
 }

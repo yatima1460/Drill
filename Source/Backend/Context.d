@@ -176,11 +176,11 @@ Params:
                                    in immutable(string) searchValue, 
                                    in immutable(void function(immutable(FileInfo) result, Variant* userObject)) resultCallback, 
                                    in Variant userObject)
-in (searchValue !is null)
-in (searchValue.length > 0)
-in (resultCallback !is null)
-out (c;c !is null)
-out (c;c.threads.length == getMountpoints().length)
+in (searchValue !is null, "the search string can't be null")
+in (searchValue.length > 0, "the search string can't be empty")
+in (resultCallback !is null, "the search callback can't be null")
+out (c;c !is null, "DrillContext can't be null after starting a search")
+out (c;c.threads.length == getMountpoints().length, "threads created number is wrong")
 {
     DrillContext* c = new DrillContext();
     c.search_value = searchValue;
