@@ -306,6 +306,10 @@ extern (C) void gtk_widget_queue_draw(GtkWidget*);
 
 extern(C) struct GtkTreeView;
 
+extern(C) struct GtkLabel;
+extern(C) void
+gtk_label_set_markup (GtkLabel *label,
+                      const gchar *str);
 
 extern (C) void gtk_tree_view_set_model(GtkTreeView*,GtkListStore*);
 extern (C) void activate(GtkApplication* app, gpointer user_data)
@@ -378,6 +382,10 @@ in(user_data == null)
 
     auto treeview = gtk_builder_get_object(builder,"treeview");
     (cast(GtkTreeView*)treeview).gtk_tree_view_set_model(cast(GtkListStore*)liststore);
+
+
+    auto credits = gtk_builder_get_object(builder,"credits");
+    (cast(GtkLabel*)credits).gtk_label_set_markup("owo");
     //gtk_widget_queue_draw(cast(GtkWidget*)treeview);
 
     /* Destroy the builder */
