@@ -293,7 +293,7 @@ in(widget !is null)
 in(data !is null)
 {
     import std.stdio : writeln;
-    import Context : DrillContext, startCrawling;
+    import Context : DrillContext, startCrawling, stopCrawlingSync;
     import Config : loadData;
     import std.file : thisExePath;
     import TreeView : clean;
@@ -302,8 +302,8 @@ in(data !is null)
     import core.stdc.stdio : printf;
     import ListStore : gtk_list_store_clear;
 
-    auto tuple = cast(DrillGtkContext*) data;
-    assert(tuple !is null);
+    DrillGtkContext* context = cast(DrillGtkContext*) data;
+    assert(context !is null);
 
     // Get input string in the search text field
     char* str = gtk_editable_get_chars(widget, 0, -1);
@@ -318,13 +318,10 @@ in(data !is null)
     assert(assetsPath !is null);
     auto drillConfig = loadData(to!string(assetsPath));
 
-
     // Clean the list
-    assert(tuple !is null);
-    assert(tuple.liststore !is null);
-    tuple.liststore.gtk_list_store_clear();
-    
-
+    assert(context !is null);
+    assert(context.liststore !is null);
+    context.liststore.gtk_list_store_clear();
     // assert(tuple.treeview !is null);
 
     // const(GtkTreeModel*) newStore = tuple.treeview.clean();
@@ -333,12 +330,28 @@ in(data !is null)
     // tuple.liststore = cast(GtkListStore*) newStore;
     // assert(tuple.liststore !is null);
 
-    // Start new crawling
-    tuple.context = startCrawling(drillConfig, to!string(str), &resultFound, Variant(tuple));
-    assert(tuple.context !is null);
+    const(string) searchString = to!string(str);
 
-    // writeln(data);
 
+    //TODO: delete the old one
+    context.queue = g_async_queue_new();
+
+    // If there is a Drill search going on
+    if (context.context !is null)
+    {
+        (*context.context).stopCrawlingSync();
+
+        context.context = null;
+    }
+
+    if (searchString.length > 0)
+    {
+        // Start new crawling
+        assert(context !is null);
+        assert(context.context is null);
+        context.context = startCrawling(drillConfig, searchString, &resultFound, Variant(context));
+        assert(context.context !is null);
+    }
 }
 
 import std.container.dlist : DList;
@@ -346,6 +359,8 @@ import std.container.dlist : DList;
 extern (C) gboolean check_async_queue(gpointer user_data)
 in(user_data !is null)
 {
+    import ListStore : appendFileInfo;
+
     DrillGtkContext* context = cast(DrillGtkContext*) user_data;
     assert(context !is null);
 
@@ -354,38 +369,44 @@ in(user_data !is null)
     assert(context.queue !is null);
     const(gpointer) queue_data = context.queue.g_async_queue_try_pop();
 
+    // If there is some data to add to the UI
     if (queue_data !is null)
     {
         FileInfo* fi = cast(FileInfo*) queue_data;
         assert(fi !is null);
 
-        import ListStore : appendFileInfo;
+        
 
         assert(context !is null);
         assert(context.liststore !is null);
         assert(fi !is null);
         context.liststore.appendFileInfo(fi);
     }
-    else
-    {
-        // TODO: No FileInfos to add, check if Drill is done and return false here
-    }
+    return context.running;
 
-    // if (queue_data != null)
-    // {
-    //     // We have data, do something with 'queue_data'
-    //     // and update GUI
 
-    // }
     // else
     // {
-    //     // no data, probably do nothing
-
+    //     if (!context.running)
+    //         return false;
+    //     // TODO: No FileInfos to add, check if Drill is done and return false here
     // }
 
-    // return true; // can be G_SOURCE_CONTINUE instead of TRUE
+    // // if (queue_data != null)
+    // // {
+    // //     // We have data, do something with 'queue_data'
+    // //     // and update GUI
 
-    return true;
+    // // }
+    // // else
+    // // {
+    // //     // no data, probably do nothing
+
+    // // }
+
+    // // return true; // can be G_SOURCE_CONTINUE instead of TRUE
+
+    // return true;
 }
 
 extern (C)
