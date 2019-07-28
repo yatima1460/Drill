@@ -385,7 +385,18 @@ in(user_data == null)
 
 
     auto credits = gtk_builder_get_object(builder,"credits");
-    (cast(GtkLabel*)credits).gtk_label_set_markup("owo");
+    import Meta : GITHUB_URL, AUTHOR_URL, AUTHOR_NAME, VERSION;
+   
+   import std.conv : to;
+    import std.compiler : name, vendor, version_major, version_minor, D_major;
+    immutable(string) COMPILER_META = to!string(vendor)~" v"~to!string(version_major)~"."~to!string(version_minor)~" D version:"~to!string(D_major);
+    version (LDC) immutable(string) COMPILER = "LLVM "~COMPILER_META;
+    else immutable(string) COMPILER = name ~ " "~COMPILER_META;
+
+    (cast(GtkLabel*)credits).gtk_label_set_markup(toStringz("<a href=\""~GITHUB_URL~"\">Drill</a>"~
+        " is maintained by "~
+        "<a href=\""~AUTHOR_URL~"\">"~AUTHOR_NAME~"</a>"
+            ~ " v" ~ VERSION ~ "-" ~ COMPILER));
     //gtk_widget_queue_draw(cast(GtkWidget*)treeview);
 
     /* Destroy the builder */
