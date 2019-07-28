@@ -1,7 +1,3 @@
-
-
-
-
 enum LogLevel
 {
     Trace,
@@ -12,17 +8,9 @@ enum LogLevel
     Fatal
 }
 
-immutable(string[]) logName =
-[
-    "Trace",
-    "Debug",
-    "Info",
-    "Error",
-    "Warning",
-    "Fatal"
+immutable(string[]) logName = [
+    "Trace", "Debug", "Info", "Error", "Warning", "Fatal"
 ];
-
-
 
 final class Logger
 {
@@ -57,71 +45,70 @@ static:
 
 public:
 
-    immutable(LogLevel) getLogLevel() pure @nogc @safe nothrow 
+    immutable(LogLevel) getLogLevel() pure @nogc @safe nothrow
     {
         return globalLevel;
-    } 
+    }
 
-    void logTrace(immutable(string) message, immutable(string) channel=__PRETTY_FUNCTION__) nothrow @trusted
+    void logTrace(immutable(string) message, immutable(string) channel = __PRETTY_FUNCTION__) nothrow @trusted
     {
         debug
         {
-            log(LogLevel.Trace,message,channel);
+            log(LogLevel.Trace, message, channel);
         }
     }
 
-    void logDebug(immutable(string) message, immutable(string) channel=__PRETTY_FUNCTION__) nothrow @trusted
+    void logDebug(immutable(string) message, immutable(string) channel = __PRETTY_FUNCTION__) nothrow @trusted
     {
         debug
         {
-            log(LogLevel.Debug,message,channel);
+            log(LogLevel.Debug, message, channel);
         }
     }
 
-    void logInfo(immutable(string) message, immutable(string) channel=__PRETTY_FUNCTION__) nothrow @trusted
+    void logInfo(immutable(string) message, immutable(string) channel = __PRETTY_FUNCTION__) nothrow @trusted
     {
-        log(LogLevel.Info,message,channel);
+        log(LogLevel.Info, message, channel);
     }
 
-    void logWarning(immutable(string) message, immutable(string) channel=__PRETTY_FUNCTION__) nothrow @trusted
+    void logWarning(immutable(string) message, immutable(string) channel = __PRETTY_FUNCTION__) nothrow @trusted
     {
-        log(LogLevel.Warning,message,channel);
+        log(LogLevel.Warning, message, channel);
     }
 
-    void logError(immutable(string) message, immutable(string) channel=__PRETTY_FUNCTION__)  nothrow @trusted
+    void logError(immutable(string) message, immutable(string) channel = __PRETTY_FUNCTION__) nothrow @trusted
     {
-        log(LogLevel.Error,message,channel);
+        log(LogLevel.Error, message, channel);
     }
 
-    void logFatal(immutable(string) message, immutable(string) channel=__PRETTY_FUNCTION__)  nothrow @trusted
+    void logFatal(immutable(string) message, immutable(string) channel = __PRETTY_FUNCTION__) nothrow @trusted
     {
-        log(LogLevel.Fatal,message,channel);
+        log(LogLevel.Fatal, message, channel);
     }
 
     import std.conv : to;
 
     void log(LogLevel level, immutable(string) message, immutable(string) channel) nothrow @trusted
     {
-        synchronized
+        debug
         {
-            if (level >= globalLevel)
+            synchronized
             {
-                import std.datetime.systime : Clock;
-                auto currentTime = Clock.currTime();
-                auto timeString = currentTime.toISOExtString();
-                import std.stdio : writeln;
-                import core.stdc.stdio : printf;
-                import std.string : toStringz;
-                printf(toStringz("["~timeString~"]["~logName[level]~"]["~channel~"] "~message~"\n"));
+                if (level >= globalLevel)
+                {
+                    import std.datetime.systime : Clock;
+
+                    auto currentTime = Clock.currTime();
+                    auto timeString = currentTime.toISOExtString();
+                    import std.stdio : writeln;
+                    import core.stdc.stdio : printf;
+                    import std.string : toStringz;
+
+                    printf(toStringz("["~timeString~"]["~logName[level]~"]["~channel~"] "~message~"\n"));
+                }
             }
         }
+
     }
 
-
-
-
 }
-
-
-
-
