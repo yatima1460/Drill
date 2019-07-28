@@ -4,11 +4,15 @@
 import ListStore : GtkListStore, gtk_list_store_new;
 import Types;
 
-extern(C) struct GtkTreeView;
+extern(C) @trusted @nogc nothrow
+{
+    struct GtkTreeView;
+    struct GtkTreeModel;
+    void gtk_tree_view_set_model(GtkTreeView*,GtkTreeModel *);
+    GtkTreeModel * gtk_tree_view_get_model (GtkTreeView *tree_view);
+}
 
-extern (C) struct GtkTreeModel;
-extern (C) void gtk_tree_view_set_model(GtkTreeView*,GtkTreeModel *);
-GtkTreeModel * gtk_tree_view_get_model (GtkTreeView *tree_view);
+
 
 
 GtkTreeModel* clean(GtkTreeView* treeview)
