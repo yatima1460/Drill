@@ -104,36 +104,9 @@ extern (C) @trusted @nogc nothrow
     void gtk_window_move(GtkWindow* window, int x, int y);
     void gtk_window_set_keep_above(GtkWindow* w, bool);
 
-    void window_destroy(GtkWindow* window, gpointer data)
-    in(window != null)
-    in(data != null)
-    {
-        import core.stdc.stdio : printf;
+   
 
-        printf("Window [X] pressed\n");
-
-        auto app = cast(GtkApplication*) data;
-        assert(app !is null);
-        g_application_quit(app);
-    }
-
-    bool check_escape(GtkWidget* widget, GdkEventKey* event, gpointer data)
-    in(widget != null)
-    in(data != null)
-    {
-        import core.stdc.stdio : printf;
-
-        if (event.keyval == GDK_KEY_Escape)
-        {
-            printf("Escape pressed\n");
-
-            auto app = cast(GtkApplication*) data;
-            assert(app !is null);
-            g_application_quit(app);
-            return true;
-        }
-        return false;
-    }
+  
 
     immutable(int) GDK_KEY_Escape = 0xff1b;
 
@@ -229,6 +202,61 @@ extern (C) @trusted @nogc nothrow
     void g_object_unref(gpointer object);
 }
 
+extern(C) void window_destroy(GtkWindow* window, gpointer data)
+in(window != null)
+in(data != null)
+{
+    import core.stdc.stdio : printf;
+    import Context : stopCrawlingSync;
+
+    DrillGtkContext* context = cast(DrillGtkContext*) data;
+    assert(context !is null);
+
+    // Last opportunity to stop crawlers
+    assert(context !is null);
+    if (context.context !is null)
+        (*context.context).stopCrawlingSync();
+
+    assert(context !is null);
+    context.running = false;
+
+    assert(context !is null);
+    assert(context.app !is null);
+    g_application_quit(context.app);
+}
+
+  extern(C) bool check_escape(GtkWidget* widget, GdkEventKey* event, gpointer data)
+    in(widget != null)
+    in(data != null)
+    {
+        import core.stdc.stdio : printf;
+        import Context : stopCrawlingSync;
+
+        DrillGtkContext* context = cast(DrillGtkContext*) data;
+        assert(context !is null);
+
+        if (event.keyval == GDK_KEY_Escape)
+        {
+            assert(context !is null);
+            
+
+            if (context.context !is null)
+            {
+                (*context.context).stopCrawlingSync();
+                context.context = null;
+            }
+          
+
+            context.running = false;
+
+            assert(context !is null);
+            assert(context.app !is null);
+            g_application_quit(context.app);
+            return true;
+        }
+        return false;
+    }
+
 extern (C) struct GdkEventKey
 {
     GdkEventType type;
@@ -262,9 +290,9 @@ extern (C) enum GApplicationFlags
 
 extern (C) void gtk_widget_queue_draw(GtkWidget*);
 
-extern (C) struct GtkLabel;
-extern (C) void gtk_label_set_markup(GtkLabel* label, const gchar* str);
-extern (C) void g_async_queue_push(GAsyncQueue* queue, gpointer data);
+extern (C) @nogc struct GtkLabel;
+extern (C) @nogc void gtk_label_set_markup(GtkLabel* label, const gchar* str);
+extern (C) @nogc void g_async_queue_push(GAsyncQueue* queue, gpointer data);
 
 import FileInfo : FileInfo;
 
@@ -409,7 +437,7 @@ in(user_data !is null)
     // return true;
 }
 
-extern (C)
+extern (C) @nogc @trusted nothrow
 {
     alias GSourceFunc = void*;
 
@@ -442,9 +470,14 @@ in(user_data != null)
     import std.file : thisExePath;
     import TreeView : gtk_tree_view_set_model;
     import TreeView : GtkTreeModel;
+    
 
     DrillGtkContext* context = cast(DrillGtkContext*) user_data;
     assert(context !is null);
+
+    assert(context !is null);
+    assert(app !is null);
+    context.app = app;
 
     GError* error = null;
 
@@ -465,7 +498,7 @@ in(user_data != null)
         g_clear_error(&error);
         assert(false, "glade file not found");
     }
-    builderFile.destroy();
+    // builderFile.destroy();
 
     // Get the main window object from the .glade file
     assert(context !is null);
@@ -493,7 +526,7 @@ in(user_data != null)
     assert(context.window !is null);
     assert(&window_destroy !is null);
     assert(app !is null);
-    context.window.g_signal_connect("destroy", &window_destroy, app);
+    context.window.g_signal_connect("destroy", &window_destroy, context);
 
     /* Event when a key is pressed:
         - Used to check Escape to close
@@ -503,7 +536,7 @@ in(user_data != null)
     assert(context.window !is null);
     assert(&check_escape !is null);
     assert(app !is null);
-    context.window.g_signal_connect("key_press_event", &check_escape, app);
+    context.window.g_signal_connect("key_press_event", &check_escape, context);
 
     // Load default empty list
     assert(context !is null);
@@ -643,10 +676,16 @@ struct DrillGtkContext
     GtkEntry* search_input;
     DrillContext* context;
     GtkLabel* credits;
+    GtkApplication* app;
+
+    invariant
+    {
+        assert(app !is null);
+    }
 }
 
 
-extern(C) void gtk_widget_destroy(GtkWidget*);
+extern(C) @nogc @trusted nothrow void gtk_widget_destroy(GtkWidget*);
 
 int main(string[] args)
 {
@@ -655,10 +694,12 @@ int main(string[] args)
 
     int status;
 
-    DrillGtkContext drillGtkContext;
+    
 
-    GtkApplication* app = gtk_application_new("me.santamorena.drill",
-            GApplicationFlags.G_APPLICATION_FLAGS_NONE);
+    GtkApplication* app = gtk_application_new("me.santamorena.drill", GApplicationFlags.G_APPLICATION_FLAGS_NONE);
+    assert(app !is null);
+    DrillGtkContext drillGtkContext;
+    
     g_signal_connect(app, "activate", &activate, &drillGtkContext);
     status = g_application_run(cast(GApplication*) app, 0, null);
 

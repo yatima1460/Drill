@@ -161,6 +161,8 @@ This function stops all the crawlers and will return only when all of them are s
     foreach (Crawler crawler; context.threads)
         crawler.stopAsync();
     waitForCrawlers(context);
+    import Logger : Logger;
+    Logger.logInfo("all crawlers stopped");
 }
 
 import Utils : getMountpoints;
