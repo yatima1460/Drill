@@ -239,8 +239,8 @@ in(context != null)
 
     // Last opportunity to stop crawlers
     assert(context !is null);
-    if (context.context !is null)
-        (*context.context).stopCrawlingSync();
+    if (context.drill !is null)
+        (*context.drill).stopCrawlingSync();
 
     assert(context !is null);
     context.running = false;
@@ -265,10 +265,10 @@ in(context != null)
             assert(context !is null);
             
 
-            if (context.context !is null)
+            if (context.drill !is null)
             {
-                (*context.context).stopCrawlingSync();
-                context.context = null;
+                (*context.drill).stopCrawlingSync();
+                context.drill = null;
             }
           
 
@@ -304,28 +304,17 @@ extern (C) struct GdkEventKey
 
 import FileInfo : FileInfo;
 
-void resultFound(immutable(FileInfo) result, void* data)
-in (data is null)
+
+void resultFound(immutable(FileInfo) result, gpointer data)
+// in (data is null)
+// in (context !is null, "context can't be null in resultFound")
+// in (context.queue !is null)
 {
-    import std.stdio : writeln;
-
-    // Tuple!(GtkTreeView*, "treeview", GAsyncQueue*, "queue")* tuple = userObject.get!(Tuple!(GtkTreeView*, "treeview", GAsyncQueue*, "queue")*);
-
-    //DrillGtkContext* context = cast(DrillGtkContext*)userObject;
-
-   //FileInfo* f = new FileInfo();
-
     import core.memory;
-
     void* f = GC.malloc(result.sizeof);
-
+    assert(f !is null);
     *cast(FileInfo*)f = result;
-    //*f = result;
-
     context.queue.g_async_queue_push(f);
-    import ListStore : appendFileInfo;
-
-    //writeln(result.fileName);
 }
 
 extern(C) void gtk_search_changed(GtkEditable* widget, gpointer data)
@@ -341,9 +330,6 @@ in(context !is null)
     import TreeView : GtkTreeModel;
     import core.stdc.stdio : printf;
     import ListStore : gtk_list_store_clear;
-
-    //  context = cast(DrillGtkContext*) data;
-    // assert(context !is null);
 
     // Get input string in the search text field
     char* str = gtk_editable_get_chars(widget, 0, -1);
@@ -362,6 +348,9 @@ in(context !is null)
     assert(context !is null);
     assert(context.liststore !is null);
     context.liststore.gtk_list_store_clear();
+
+
+
     // assert(tuple.treeview !is null);
 
     // const(GtkTreeModel*) newStore = tuple.treeview.clean();
@@ -373,24 +362,23 @@ in(context !is null)
     const(string) searchString = to!string(str);
 
 
-    //TODO: delete the old one
+    //TODO: delete the old queue
     context.queue = g_async_queue_new();
 
-    // If there is a Drill search going on
-    if (context.context !is null)
+    // If there is a Drill search going on stop it
+    if (context.drill !is null)
     {
-        (*context.context).stopCrawlingSync();
+        (*context.drill).stopCrawlingSync();
 
-        context.context = null;
+        context.drill = null;
     }
 
     if (searchString.length > 0)
     {
         // Start new crawling
-        assert(context !is null);
-        assert(context.context is null);
-        context.context = startCrawling(drillConfig, searchString, &resultFound, null);
-        assert(context.context !is null);
+        assert(context.drill is null);
+        context.drill = startCrawling(drillConfig, searchString, &resultFound, null);
+        assert(context.drill !is null);
     }
 }
 
@@ -402,10 +390,10 @@ in(context !is null)
     import ListStore : appendFileInfo;
 
     //DrillGtkContext* context = cast(DrillGtkContext*) user_data;
-    assert(context !is null);
+   
 
     // Get the next FileInfo in queue
-    assert(context !is null);
+    
     assert(context.queue !is null);
     const(gpointer) queue_data = context.queue.g_async_queue_try_pop();
 
@@ -417,7 +405,7 @@ in(context !is null)
 
         
 
-        assert(context !is null);
+       
         assert(context.liststore !is null);
         assert(fi !is null);
         context.liststore.appendFileInfo(fi);
@@ -473,11 +461,6 @@ in(context != null)
     import TreeView : gtk_tree_view_set_model;
     import TreeView : GtkTreeModel;
     
-
-    // DrillGtkContext* context = cast(DrillGtkContext*) user_data;
-    // assert(context !is null);
-
-    assert(context !is null);
     assert(app !is null);
     context.app = app;
 
@@ -500,7 +483,7 @@ in(context != null)
         g_clear_error(&error);
         assert(false, "glade file not found");
     }
-    // builderFile.destroy();
+    builderFile.destroy();
 
     // Get the main window object from the .glade file
     assert(context !is null);
@@ -676,7 +659,7 @@ struct DrillGtkContext
     shared(DList!FileInfo) buffer2;
     shared(DList!FileInfo)* buffer;
     GtkEntry* search_input;
-    DrillContext* context;
+    DrillContext* drill;
     GtkLabel* credits;
     GtkApplication* app;
 
@@ -696,35 +679,16 @@ DrillGtkContext* context;
 int main(string[] args)
 {
     import core.memory;
-    GC.disable();
+    // GC.disable();
     
-    int status;
-
     context = new DrillGtkContext();
+    GC.addRoot(context);
 
     GtkApplication* app = gtk_application_new("me.santamorena.drill", GApplicationFlags.G_APPLICATION_FLAGS_NONE);
     assert(app !is null);
-    //GC.addRoot(app);
 
-   
-    //GC.addRoot(&app);
-    
     g_signal_connect(app, "activate", &activate, null);
-    status = g_application_run(cast(GApplication*) app, 0, null);
-
-    // g_object_unref(drillGtkContext.buffer1);
-    // g_object_unref(drillGtkContext.buffer2);
-    // assert(drillGtkContext.liststore !is null);
-    // g_object_unref(drillGtkContext.liststore);
-    // assert(drillGtkContext.queue !is null);
-    // g_object_unref(drillGtkContext.queue);
-    // assert(drillGtkContext.search_input !is null);
-    // g_object_unref(drillGtkContext.search_input);
-    // assert(drillGtkContext.treeview !is null);
-    // g_object_unref(drillGtkContext.treeview);
-    //  assert(drillGtkContext.window !is null);
-    //g_object_unref(drillGtkContext.window);
-    // (cast(GtkWidget*)drillGtkContext.window).gtk_widget_destroy();
+    int status = g_application_run(cast(GApplication*) app, 0, null);
 
     assert(app !is null);
     g_object_unref(app);
