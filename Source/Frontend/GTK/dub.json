@@ -19,7 +19,11 @@
 	
 	],
 	"sourceFiles": [
-		"Main.d"
+		"Main.d",
+		"TreeView.d",
+		"ListStore.d",
+		"TreeIter.d",
+		"Types.d"
 	],
 	"dependencies": {
 

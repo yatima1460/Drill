@@ -76,6 +76,49 @@ struct ApplicationInfo
     // {
 
     // }
+
+    import std.algorithm : cmp;
+
+    /*
+    Checks if the exec process command line is the same
+    */
+    // bool opEquals(ref const ApplicationInfo b) const
+    // {
+    //     if (this is b) return true;
+    //     return cmp(this.exec,b.exec) == 0;
+    // }
+
+    /*
+    Returns the name of the application
+    */
+    string toString() const
+    {
+        return name;
+    }
+
+    /*
+    Starts the application in a new process
+    */
+    // void opCall() const
+    // {
+    //     import std.process : spawnProcess;
+    //     import std.process : Config;
+    //     spawnProcess(execProcess, null, Config.none, null);
+    // }
+
+    extern (D) size_t toHash() const nothrow @safe
+    {
+        return this.exec.hashOf();
+    }
+
+
+
+    int opCmp(ref const ApplicationInfo s) const
+    {
+        import std.algorithm : cmp;
+
+        return cmp(this.desktopFileDateModifiedString,s.desktopFileDateModifiedString);
+    }
 }
 
 /**
