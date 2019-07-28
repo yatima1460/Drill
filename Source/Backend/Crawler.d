@@ -19,7 +19,7 @@ import FileInfo : FileInfo;
 
 
 
-alias CrawlerCallback = void function(  immutable(FileInfo) result, Variant userObject);
+alias CrawlerCallback = void function(  immutable(FileInfo) result, void* userObject);
 
 struct CrawlerData
 {
@@ -100,7 +100,7 @@ private:
     
     shared(bool) running;
 
-    void function(  immutable(FileInfo) result, Variant* userObject) resultCallback;
+    void function(  FileInfo* result, void* userObject) resultCallback;
 
     debug
     {
@@ -116,7 +116,7 @@ public:
         in immutable(string) MOUNTPOINT, 
         in immutable(string[]) BLOCK_LIST,
         in const(Regex!char[]) PRIORITY_LIST_REGEX,
-        in void function(immutable(FileInfo) result, Variant* userObject) resultCallback, 
+        in void function(FileInfo* result, void* userObject) resultCallback, 
         in immutable(string) search,
         in void* userObj
     )
@@ -150,7 +150,7 @@ public:
         this.userObj = userObj;
     }
 
-    private void noop_resultFound(immutable(FileInfo) result,Variant* v) const @safe
+    private void noop_resultFound(FileInfo* result,void* v) const @safe
     {
 
     }
@@ -380,9 +380,10 @@ private:
                          // Logger.logError(to!string(userObj),"RESULT CALLBACK");
                         
                         immutable(FileInfo) fi = buildFileInfo(currentFile);
-           
+                        FileInfo* fiptr = new FileInfo();
+                        *fiptr = fi;
                         assert(userObj !is null);
-                        resultCallback(fi, cast(Variant*)userObj);
+                        resultCallback(fiptr, cast(void*)userObj);
                         // }
 
                     }

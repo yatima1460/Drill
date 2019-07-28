@@ -176,7 +176,7 @@ Params:
 */
 @system  DrillContext* startCrawling(in const(DrillConfig) config, 
                                    in immutable(string) searchValue, 
-                                   in immutable(void function(immutable(FileInfo) result, void* userObject)) resultCallback, 
+                                   in immutable(void function(FileInfo* result, void* userObject)) resultCallback, 
                                    in void* userObject)
 in (searchValue !is null, "the search string can't be null")
 in (searchValue.length > 0, "the search string can't be empty")
