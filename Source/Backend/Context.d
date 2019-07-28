@@ -86,7 +86,7 @@ like the searched value
     {
         assert(threads.length >= 0 && threads.length <= getMountpoints().length, "Crawlers length is over mountpoints length");
     }
-    Variant userObject;
+    void* userObject;
 }
 
 
@@ -176,8 +176,8 @@ Params:
 */
 @system  DrillContext* startCrawling(in const(DrillConfig) config, 
                                    in immutable(string) searchValue, 
-                                   in immutable(void function(immutable(FileInfo) result, Variant* userObject)) resultCallback, 
-                                   in Variant userObject)
+                                   in immutable(void function(immutable(FileInfo) result, void* userObject)) resultCallback, 
+                                   in void* userObject)
 in (searchValue !is null, "the search string can't be null")
 in (searchValue.length > 0, "the search string can't be empty")
 in (resultCallback !is null, "the search callback can't be null")
@@ -186,7 +186,7 @@ out (c;c.threads.length == getMountpoints().length, "threads created number is w
 {
     DrillContext* c = new DrillContext();
     c.search_value = searchValue;
-    c.userObject = cast(Variant)userObject;
+    c.userObject = cast(void*)userObject;
 
     import Logger : Logger;
     debug Logger.logWarning("user_object is null");

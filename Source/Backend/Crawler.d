@@ -107,7 +107,7 @@ private:
         long ignored_count;
     }
 
-       const(Variant*) userObj;
+       const(void*) userObj;
 
 
 public:
@@ -118,7 +118,7 @@ public:
         in const(Regex!char[]) PRIORITY_LIST_REGEX,
         in void function(immutable(FileInfo) result, Variant* userObject) resultCallback, 
         in immutable(string) search,
-        in Variant* userObj
+        in void* userObj
     )
     in (MOUNTPOINT != null)
     in (MOUNTPOINT.length != 0)
