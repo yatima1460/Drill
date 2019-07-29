@@ -299,29 +299,15 @@ import FileInfo : FileInfo;
 void resultFound(FileInfo* result, void* userObject)
 in (userObject !is null)
 {
-        import core.stdc.stdio : printf;
+    import core.stdc.stdio : printf;
     import ListStore : gtk_list_store_clear;
-
-    printf("resultFound result:%p userObject:%p\n",result,userObject);
+    synchronized
+    {
+        printf("resultFound result:%p userObject:%p\n",result,userObject);
+    }
     import std.stdio : writeln;
-
-    // Tuple!(GtkTreeView*, "treeview", GAsyncQueue*, "queue")* tuple = userObject.get!(Tuple!(GtkTreeView*, "treeview", GAsyncQueue*, "queue")*);
-
     DrillGtkContext* tuple = cast(DrillGtkContext*)userObject;
-
-   //FileInfo* f = new FileInfo();
-
-    import core.memory;
-
-    // void* f = GC.malloc(result.sizeof);
-
-    // *cast(FileInfo*)f = result;
-    //*f = result;
-
     tuple.queue.g_async_queue_push(result);
-    import ListStore : appendFileInfo;
-
-    //writeln(result.fileName);
 }
 
 extern(C) void gtk_search_changed(GtkEditable* widget, void* userObject)
@@ -708,7 +694,7 @@ extern(C) @nogc @trusted nothrow void gtk_widget_destroy(GtkWidget*);
 int main(string[] args)
 {
     import core.memory;
-    GC.disable();
+    //GC.disable();
     
     
 
