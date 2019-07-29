@@ -89,18 +89,26 @@ void crawl(immutable(CrawlerData) data, shared CrawlerContext context)
 
 class Crawler : Thread
 {
+    // debug
+    // {
+    //     ~this()
+    //     {
+    //         import core.stdc.stdio;
+    //         printf("Crawler destroyed\n");
+    //     }
+    // }
 
 private:
-    immutable(string) MOUNTPOINT;
-    immutable(string) SEARCH_STRING;
-    immutable(string[]) BLOCK_LIST;
+    const(string) MOUNTPOINT;
+    const(string) SEARCH_STRING;
+    const(string[]) BLOCK_LIST;
 
     Regex!char[] BLOCK_LIST_REGEX;
     const(Regex!char[]) PRIORITY_LIST_REGEX;
     
     shared(bool) running;
 
-    void function(  FileInfo* result, void* userObject) resultCallback;
+    void function(  immutable(FileInfo) result, void* userObject) resultCallback;
 
     debug
     {
@@ -113,10 +121,10 @@ private:
 public:
 
     this(
-        in immutable(string) MOUNTPOINT, 
-        in immutable(string[]) BLOCK_LIST,
+        in const(string) MOUNTPOINT, 
+        in const(string[]) BLOCK_LIST,
         in const(Regex!char[]) PRIORITY_LIST_REGEX,
-        in void function(FileInfo* result, void* userObject) resultCallback, 
+        in void function(immutable(FileInfo) result, void* userObject) resultCallback, 
         in immutable(string) search,
         in void* userObj
     )
@@ -150,7 +158,7 @@ public:
         this.userObj = userObj;
     }
 
-    private void noop_resultFound(FileInfo* result,void* v) const @safe
+    private void noop_resultFound(immutable(FileInfo) result,void* v) const
     {
 
     }
@@ -380,10 +388,11 @@ private:
                          // Logger.logError(to!string(userObj),"RESULT CALLBACK");
                         
                         immutable(FileInfo) fi = buildFileInfo(currentFile);
-                        FileInfo* fiptr = new FileInfo();
-                        *fiptr = fi;
+                        // FileInfo* fiptr = new FileInfo();
+                        // *fiptr = fi;
                         assert(userObj !is null);
-                        resultCallback(fiptr, cast(void*)userObj);
+                        // assert(fiptr !is null);
+                        resultCallback(fi, cast(void*)userObj);
                         // }
 
                     }

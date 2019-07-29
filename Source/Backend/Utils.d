@@ -43,7 +43,7 @@ Opens a file using the current system implementation for file associations
 
 Returns: true if successful
 */
-nothrow @safe bool openFile(in immutable(string) fullpath)
+ @safe bool openFile(in immutable(string) fullpath)
 {
     synchronized
     {
@@ -53,8 +53,8 @@ nothrow @safe bool openFile(in immutable(string) fullpath)
 
         import Logger : Logger;
 
-        try
-        {
+        // try
+        // {
             version (Windows)
                 spawnProcess(["explorer", fullpath], null, Config.none, null);
             version (linux)
@@ -63,12 +63,12 @@ nothrow @safe bool openFile(in immutable(string) fullpath)
                 spawnProcess(["open", fullpath], null, Config.none, null);
             // FIXME: if all three false it will return true even when it should be false
             return true;
-        }
-        catch (Exception e)
-        {
-            Logger.logError(e.msg);
-            return false;
-        }
+        // }
+        // catch (Exception e)
+        // {
+        //     Logger.logError(e.msg);
+        //     return false;
+        // }
     }
 }
 

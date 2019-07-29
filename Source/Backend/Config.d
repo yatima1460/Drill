@@ -11,17 +11,17 @@ immutable(string) DEFAULT_PRIORITY_LIST = import("PriorityLists.txt");
 
 @safe @nogc pure struct DrillConfig
 {
-    immutable(string) ASSETS_DIRECTORY;
+    string ASSETS_DIRECTORY;
     invariant
     {
         assert(ASSETS_DIRECTORY !is null);
         assert(ASSETS_DIRECTORY.length > 0);
     }
-    immutable(string[]) BLOCK_LIST;
-    immutable(string[]) PRIORITY_LIST;
+    string[] BLOCK_LIST;
+    string[] PRIORITY_LIST;
 
     import std.regex: Regex;
-    const(Regex!char[]) PRIORITY_LIST_REGEX;
+    Regex!char[] PRIORITY_LIST_REGEX;
     invariant
     {
         assert(PRIORITY_LIST_REGEX.length == PRIORITY_LIST.length);
@@ -118,8 +118,8 @@ DrillConfig loadData(immutable(string) assetsDirectory)
     // DrillConfig dd;
     DrillConfig dd = {
         assetsDirectory,
-        cast(immutable(string[]))BLOCK_LIST,
-        cast(immutable(string[]))PRIORITY_LIST,
+        BLOCK_LIST,
+        PRIORITY_LIST,
         PRIORITY_LIST_REGEX,
         false
     };
