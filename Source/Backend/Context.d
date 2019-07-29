@@ -184,6 +184,8 @@ in (resultCallback !is null, "the search callback can't be null")
 out (c;c !is null, "DrillContext can't be null after starting a search")
 out (c;c.threads.length == getMountpoints().length, "threads created number is wrong")
 {
+    import core.stdc.stdio : printf;
+    printf("startCrawling userObject:%p\n",userObject);
     DrillContext* c = new DrillContext();
     c.search_value = searchValue;
     c.userObject = cast(void*)userObject;
@@ -193,6 +195,7 @@ out (c;c.threads.length == getMountpoints().length, "threads created number is w
     foreach (immutable(string) mountpoint; getMountpoints())
     {
         import Crawler : Crawler; 
+        printf("startCrawling foreach loop userObject:%p\n",userObject);
         Crawler crawler = new Crawler(mountpoint, config.BLOCK_LIST, config.PRIORITY_LIST_REGEX, resultCallback, searchValue, &c.userObject);
         if (config.singlethread)
             crawler.run();
