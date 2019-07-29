@@ -296,26 +296,129 @@ extern (C) @nogc void g_async_queue_push(GAsyncQueue* queue, gpointer data);
 
 import FileInfo : FileInfo;
 
-void resultFound(FileInfo* result, void* userObject)
+void resultFound(immutable(FileInfo) result, void* userObject)
 in (userObject !is null)
 {
-    import core.stdc.stdio : printf;
-    import ListStore : gtk_list_store_clear;
+    DrillGtkContext* tuple = cast(DrillGtkContext*)userObject;
+    assert(tuple !is null);
+    assert(tuple.queue !is null);
+    import core.memory;
+
+    // FileInfo* memory = new FileInfo();
+    // //FileInfo* memory = cast(FileInfo*)GC.malloc(result.sizeof);
+
+    // *memory = *result;
+    import ListStore : appendFileInfo;
+
+   
+  
     synchronized
     {
-        printf("resultFound result:%p userObject:%p\n",result,userObject);
+    auto bufferNotShared = cast(DList!FileInfo*)tuple.buffer;
+     (*bufferNotShared).insertFront(result);
+    tuple.list_dirty = true;
+
     }
-    import std.stdio : writeln;
-    DrillGtkContext* tuple = cast(DrillGtkContext*)userObject;
-    tuple.queue.g_async_queue_push(result);
+
+
+        // appendFileInfo(tuple.liststore,result);
+    
+  
+    
+    
+    //g_async_queue_push(tuple.queue, result);
 }
 
-extern(C) void gtk_search_changed(GtkEditable* widget, void* userObject)
+extern(C) struct GtkTreePath;
+extern(C) struct GtkTreeViewColumn;
+
+extern(C) struct GtkTreeModel;
+
+extern(C) GtkTreeModel* gtk_tree_view_get_model(GtkTreeView*);
+
+extern(C) gboolean gtk_tree_model_get_iter(GtkTreeModel*,GtkTreeIter*,GtkTreePath*);
+
+extern(C) void gtk_tree_model_get(GtkTreeModel *, GtkTreeIter*,...);
+
+
+// extern (C) gtk_list_store_get_iter()
+
+extern(C) void row_activated(GtkTreeView *tree_view, GtkTreePath *path, GtkTreeViewColumn *column, gpointer userObject)
+in(tree_view !is null)
+in(path !is null)
+in(column !is null)
+in (userObject !is null)
+{
+   
+
+
+ DrillGtkContext* context = cast(DrillGtkContext*) userObject;
+    assert(context !is null);
+
+    GtkTreeIter iter;
+    //    gtk_list_store_get_iter(ti, tp);
+
+        GtkTreeModel *model = gtk_tree_view_get_model(tree_view);
+
+    char* cname;
+    char* cpath;
+
+   if (gtk_tree_model_get_iter(model, &iter, path)) 
+   {
+      gtk_tree_model_get (model, &iter, 1, &cname, 2, &cpath, -1);
+      // Here the variables int_data and str_data should be filled with
+      // relevant data
+   }
+
+        // immutable(string) path = this.liststore.getValueString(ti, Column.PATH);
+        // immutable(string) name = this.liststore.getValueString(ti, Column.NAME);
+        // immutable(string) type = this.liststore.getValueString(ti, Column.TYPE);
+        import std.string : fromStringz;
+      import std.path : chainPath;
+      import std.array : array, split;
+      import std.conv : to ;
+      import core.stdc.stdio;
+       // immutable(string) nameCell = to!string(fromStringz(cname));
+
+       // string[] splitted = split(nameCell,"/");
+
+        //immutable(string) name = splitted[0];
+
+         import Utils : openFile;
+
+       string chained = to!string(chainPath(fromStringz(cpath), fromStringz(cname)).array);
+        try
+        {
+           
+            openFile(chained);
+        }
+        catch (Exception e)
+        {
+
+              import std.process : spawnProcess;
+                import std.process : Config;
+                import Utils : cleanExecLine;
+              spawnProcess(cleanExecLine(to!string(fromStringz(cpath))), null, Config.none, null);
+           //  openFile(fromStringz());
+
+
+            // MessageDialog d = new MessageDialog(context.window, GtkDialogFlags.MODAL, MessageType.ERROR,
+            //         ButtonsType.OK, "Error opening file `" ~ chained ~ "`\n" ~ e.msg);
+            // d.run();
+            // d.destroy();
+             printf("error\n");
+        }
+
+import core.stdc.stdio;
+    printf("row_activated\n");
+}
+
+extern(C) void gtk_search_changed(in GtkEditable* widget, void* userObject)
 in(widget !is null)
 in(userObject !is null)
 {
     import std.stdio : writeln;
-    import Context : DrillContext, startCrawling, stopCrawlingSync;
+    import Context : DrillContext, startCrawling, stopCrawlingSync, stopCrawlingAsync;
     import Config : loadData;
     import std.file : thisExePath;
     import TreeView : clean;
@@ -329,30 +432,47 @@ in(userObject !is null)
     DrillGtkContext* context = cast(DrillGtkContext*) userObject;
     assert(context !is null);
 
+
+
+    // If there is a Drill search going on stop it
+    assert(context !is null);
+    
+    if (context.context !is null)
+    {
+        stopCrawlingAsync(*context.context);
+        //context.context.destroy();
+        context.context = null;
+    }
+
+    //context.list_dirty = true;
+
+    //context.list_dirty = true;
+
+    context.buffer1 = DList!FileInfo();
+    context.buffer2 = DList!FileInfo();
+    context.buffer = &context.buffer1;
+
     // Get input string in the search text field
-    char* str = gtk_editable_get_chars(widget, 0, -1);
+    char* str = gtk_editable_get_chars(cast(GtkEditable*)widget, 0, -1);
     assert(str !is null);
 
     // Log
-    printf("Search changed: %s\n", str);
+    //printf("Search changed: %s\n", str);
 
-    // Load config files
-    assert(thisExePath !is null);
-    auto assetsPath = toStringz(buildPath(dirName(thisExePath), "Assets"));
-    assert(assetsPath !is null);
-    auto drillConfig = loadData(to!string(assetsPath));
+
 
     // Clean the list
     assert(context !is null);
     assert(context.liststore !is null);
-    context.liststore.gtk_list_store_clear();
-    // assert(tuple.treeview !is null);
+    //context.liststore.gtk_list_store_clear();
 
-    // const(GtkTreeModel*) newStore = tuple.treeview.clean();
-    // assert(newStore !is null);
-    // g_object_unref(tuple.liststore);
-    // tuple.liststore = cast(GtkListStore*) newStore;
-    // assert(tuple.liststore !is null);
+    assert(context.treeview !is null);
+
+    const(GtkTreeModel*) newStore = context.treeview.clean();
+    assert(newStore !is null);
+    //g_object_unref(context.liststore);
+    context.liststore = cast(GtkListStore*) newStore;
+    assert(context.liststore !is null);
 
     const(string) searchString = to!string(str);
 
@@ -360,21 +480,14 @@ in(userObject !is null)
     //TODO: delete the old one
     context.queue = g_async_queue_new();
 
-    // If there is a Drill search going on
-    if (context.context !is null)
-    {
-        (*context.context).stopCrawlingSync();
-
-        context.context = null;
-    }
 
     if (searchString.length > 0)
     {
         // Start new crawling
         assert(context !is null);
         assert(context.context is null);
-        printf("gtk_search_changed context:%p\n",context);
-        context.context = startCrawling(drillConfig, searchString, &resultFound, context);
+        //printf("gtk_search_changed context:%p\n",context);
+        context.context = startCrawling(context.drillConfig, searchString, &resultFound, context);
         assert(context.context !is null);
     }
 }
@@ -384,54 +497,74 @@ import std.container.dlist : DList;
 extern (C) gboolean check_async_queue(gpointer user_data)
 in(user_data !is null)
 {
-    import ListStore : appendFileInfo;
 
+try
+    {
     DrillGtkContext* context = cast(DrillGtkContext*) user_data;
     assert(context !is null);
 
-    // Get the next FileInfo in queue
-    assert(context !is null);
-    assert(context.queue !is null);
-    const(gpointer) queue_data = context.queue.g_async_queue_try_pop();
 
-    // If there is some data to add to the UI
-    if (queue_data !is null)
+    import ListStore : appendFileInfo;
+
+
+    if (context.list_dirty)
     {
-        FileInfo* fi = cast(FileInfo*) queue_data;
-        assert(fi !is null);
+        assert(context.buffer != null);
+        assert(context.buffer == &context.buffer1
+                || context.buffer == &context.buffer2);
+        if (context.buffer == &context.buffer1)
+            context.buffer = &context.buffer2;
+        if (context.buffer == &context.buffer2)
+            context.buffer = &context.buffer1;
+        //context.buffer_mutex.lock_nothrow();
+        DList!FileInfo thread_local_buffer = cast(DList!FileInfo)*context.buffer;
+        foreach (FileInfo fi; thread_local_buffer)
+            context.liststore.appendFileInfo(fi);
+        // thread_local_buffer.clear();
+        *context.buffer = DList!FileInfo();
 
-        
 
-        assert(context !is null);
-        assert(context.liststore !is null);
-        assert(fi !is null);
-        context.liststore.appendFileInfo(fi);
+
+
+        context.list_dirty = false;
     }
-    return context.running;
 
+      if (!context.running)
+        {
+            return 0;
+        }
 
-    // else
-    // {
-    //     if (!context.running)
-    //         return false;
-    //     // TODO: No FileInfos to add, check if Drill is done and return false here
-    // }
+ }
+    catch (Throwable t)
+    {
 
-    // // if (queue_data != null)
-    // // {
-    // //     // We have data, do something with 'queue_data'
-    // //     // and update GUI
+        return 0;
+    }
+    return 1;
+//     import ListStore : appendFileInfo;
 
-    // // }
-    // // else
-    // // {
-    // //     // no data, probably do nothing
+//     
+//     
 
-    // // }
+//     // Get the next FileInfo in queue
+//     assert(context !is null);
+//     assert(context.queue !is null);
+//     const(gpointer) queue_data = context.queue.g_async_queue_try_pop();
 
-    // // return true; // can be G_SOURCE_CONTINUE instead of TRUE
+//     // If there is some data to add to the UI
+//     if (queue_data !is null)
+//     {
+//         FileInfo* fi = cast(FileInfo*) queue_data;
+//         assert(fi !is null);
 
-    // return true;
+//         assert(context !is null);
+//         assert(context.liststore !is null);
+//         assert(fi !is null);
+//         appendFileInfo(context.liststore,fi);
+//     }
+
+//     // If this function returns false GTK will stop queueing it
+//     return context.running;
 }
 
 extern (C) @nogc @trusted nothrow
@@ -548,6 +681,10 @@ in(userObject != null)
     context.liststore = cast(GtkListStore*) builder.gtk_builder_get_object("liststore");
     assert(context.liststore !is null);
 
+
+
+    
+
     // Create async queue for Drill threads to put their results into
     assert(context !is null);
     assert(context.queue is null);
@@ -564,6 +701,9 @@ in(userObject != null)
     assert(context.treeview is null);
     context.treeview = cast(GtkTreeView*) gtk_builder_get_object(builder, "treeview");
     assert(context.treeview !is null);
+
+
+    context.treeview.g_signal_connect("row-activated", &row_activated, context);
 
     // Set empty ListStore to the TreeView
     assert(context !is null);
@@ -667,6 +807,8 @@ in(userObject != null)
 
 extern (C) void gtk_window_set_application(GtkWindow* self, GtkApplication* application);
 
+import Config : DrillConfig;
+
 struct DrillGtkContext
 {
     GtkWindow* window;
@@ -681,6 +823,9 @@ struct DrillGtkContext
     DrillContext* context;
     GtkLabel* credits;
     GtkApplication* app;
+    DrillConfig drillConfig;
+
+    bool list_dirty = false;
 
     invariant
     {
@@ -705,6 +850,15 @@ int main(string[] args)
     //GC.addRoot(app);
 
     DrillGtkContext drillGtkContext;
+    import Config : loadData;
+
+    // Load config files
+    // assert(thisExePath !is null);
+    // auto assetsPath = toStringz();
+    // assert(assetsPath !is null);
+    
+    import std.file : thisExePath;
+    drillGtkContext.drillConfig = loadData(buildPath(dirName(thisExePath), "Assets"));
     //GC.addRoot(&app);
     
     g_signal_connect(app, "activate", &activate, &drillGtkContext);

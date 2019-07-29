@@ -43,7 +43,8 @@ void appendApplication(GtkListStore* store, const(ApplicationInfo) app)
     // gtk_list_store_set (store, &iter, 3,toStringz("bbb"),-1);
 }
 
-void appendFileInfo(GtkListStore* store, FileInfo* fileInfo)
+void appendFileInfo(GtkListStore* store, immutable(FileInfo) fileInfo)
+in (store !is null)
 {
     GtkTreeIter iter;
 

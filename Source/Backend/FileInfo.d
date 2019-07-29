@@ -66,5 +66,12 @@ struct FileInfo
     string sizeString;
 
 
-    
+    // debug
+    // {
+    //     ~this()
+    //     {
+    //         import core.stdc.stdio;
+    //         printf("FileInfo destroyed\n");
+    //     }
+    // }
 }
