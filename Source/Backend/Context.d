@@ -71,7 +71,7 @@ This struct represents an active Drill search,
 it holds a pool of crawlers and the current state, 
 like the searched value
 */
-@safe @nogc pure struct DrillContext
+@nogc pure struct DrillContext
 {
     // import std.container : SList;
     string search_value;
@@ -87,6 +87,15 @@ like the searched value
         assert(threads.length >= 0 && threads.length <= getMountpoints().length, "Crawlers length is over mountpoints length");
     }
     void* userObject;
+
+    // debug
+    // {
+    //     ~this()
+    //     {
+    //         import core.stdc.stdio;
+    //         printf("DrillContext destroyed\n");
+    //     }
+    // }
 }
 
 
@@ -176,7 +185,7 @@ Params:
 */
 @system  DrillContext* startCrawling(in const(DrillConfig) config, 
                                    in immutable(string) searchValue, 
-                                   in immutable(void function(FileInfo* result, void* userObject)) resultCallback, 
+                                   in immutable(void function(immutable(FileInfo) result, void* userObject)) resultCallback, 
                                    in void* userObject)
 in (searchValue !is null, "the search string can't be null")
 in (searchValue.length > 0, "the search string can't be empty")
@@ -185,7 +194,7 @@ out (c;c !is null, "DrillContext can't be null after starting a search")
 out (c;c.threads.length == getMountpoints().length, "threads created number is wrong")
 {
     import core.stdc.stdio : printf;
-    printf("startCrawling userObject:%p\n",userObject);
+    //printf("startCrawling userObject:%p\n",userObject);
     DrillContext* c = new DrillContext();
     c.search_value = searchValue;
     c.userObject = cast(void*)userObject;
@@ -195,7 +204,7 @@ out (c;c.threads.length == getMountpoints().length, "threads created number is w
     foreach (immutable(string) mountpoint; getMountpoints())
     {
         import Crawler : Crawler; 
-        printf("startCrawling foreach loop userObject:%p\n",userObject);
+        //printf("startCrawling foreach loop userObject:%p\n",userObject);
         Crawler crawler = new Crawler(mountpoint, config.BLOCK_LIST, config.PRIORITY_LIST_REGEX, resultCallback, searchValue, c.userObject);
         if (config.singlethread)
             crawler.run();
