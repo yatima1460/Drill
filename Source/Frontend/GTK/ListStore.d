@@ -45,11 +45,11 @@ void appendApplication(GtkListStore* store, const(ApplicationInfo) app)
 
 void appendFileInfo(GtkListStore* store, FileInfo* fileInfo)
 {
-    GtkTreeIter iter;
+    GtkTreeIter* iter = new GtkTreeIter();
 
     /* Append a row and fill in some data */
-    store.gtk_list_store_append(&iter);
-    store.gtk_list_store_set(&iter, 
+    store.gtk_list_store_append(iter);
+    store.gtk_list_store_set(iter, 
         0, toStringz("none"),
         1, toStringz(fileInfo.fileName),
         2, toStringz(fileInfo.containingFolder),
