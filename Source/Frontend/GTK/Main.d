@@ -299,6 +299,10 @@ import FileInfo : FileInfo;
 void resultFound(FileInfo* result, void* userObject)
 in (userObject !is null)
 {
+        import core.stdc.stdio : printf;
+    import ListStore : gtk_list_store_clear;
+
+    printf("resultFound result:%p userObject:%p\n",result,userObject);
     import std.stdio : writeln;
 
     // Tuple!(GtkTreeView*, "treeview", GAsyncQueue*, "queue")* tuple = userObject.get!(Tuple!(GtkTreeView*, "treeview", GAsyncQueue*, "queue")*);
@@ -320,9 +324,9 @@ in (userObject !is null)
     //writeln(result.fileName);
 }
 
-extern(C) void gtk_search_changed(GtkEditable* widget, void* data)
+extern(C) void gtk_search_changed(GtkEditable* widget, void* userObject)
 in(widget !is null)
-in(data !is null)
+in(userObject !is null)
 {
     import std.stdio : writeln;
     import Context : DrillContext, startCrawling, stopCrawlingSync;
@@ -334,7 +338,9 @@ in(data !is null)
     import core.stdc.stdio : printf;
     import ListStore : gtk_list_store_clear;
 
-    DrillGtkContext* context = cast(DrillGtkContext*) data;
+    
+
+    DrillGtkContext* context = cast(DrillGtkContext*) userObject;
     assert(context !is null);
 
     // Get input string in the search text field
@@ -381,6 +387,7 @@ in(data !is null)
         // Start new crawling
         assert(context !is null);
         assert(context.context is null);
+        printf("gtk_search_changed context:%p\n",context);
         context.context = startCrawling(drillConfig, searchString, &resultFound, context);
         assert(context.context !is null);
     }
@@ -467,16 +474,21 @@ struct DrillGtkBuffer
     }
 }
 
-extern (C) void activate(GtkApplication* app, gpointer user_data)
+extern (C) void activate(GtkApplication* app, gpointer userObject)
 in(app !is null)
-in(user_data != null)
+in(userObject != null)
 {
     import std.file : thisExePath;
     import TreeView : gtk_tree_view_set_model;
     import TreeView : GtkTreeModel;
+
+        import core.stdc.stdio : printf;
+    import ListStore : gtk_list_store_clear;
+
+    
     
 
-    DrillGtkContext* context = cast(DrillGtkContext*) user_data;
+    DrillGtkContext* context = cast(DrillGtkContext*) userObject;
     assert(context !is null);
 
     assert(context !is null);
@@ -536,6 +548,7 @@ in(user_data != null)
         - Used to check Escape to close
         - Return to start the selected result 
     */
+    printf("activate context:%p\n",context);
     assert(context !is null);
     assert(context.window !is null);
     assert(&check_escape !is null);
@@ -580,6 +593,7 @@ in(user_data != null)
     assert(context.search_input !is null);
 
     // Event when something is typed in the search box
+    
     assert(context !is null);
     assert(&gtk_search_changed !is null);
     assert(context.search_input !is null);
