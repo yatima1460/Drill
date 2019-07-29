@@ -196,7 +196,7 @@ out (c;c.threads.length == getMountpoints().length, "threads created number is w
     {
         import Crawler : Crawler; 
         printf("startCrawling foreach loop userObject:%p\n",userObject);
-        Crawler crawler = new Crawler(mountpoint, config.BLOCK_LIST, config.PRIORITY_LIST_REGEX, resultCallback, searchValue, &c.userObject);
+        Crawler crawler = new Crawler(mountpoint, config.BLOCK_LIST, config.PRIORITY_LIST_REGEX, resultCallback, searchValue, c.userObject);
         if (config.singlethread)
             crawler.run();
         else
