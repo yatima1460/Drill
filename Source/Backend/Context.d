@@ -147,6 +147,7 @@ This function does not stop the crawlers!!!
         import core.thread : ThreadException;
         try
         {
+            //FIXME: if for whatever reason the crawler is not started this will SEGFAULT
             crawler.join();
             Logger.logInfo("Crawler "~to!string(crawler)~" stopped");
         }
@@ -164,7 +165,7 @@ This function does not stop the crawlers!!!
 /**
 This function stops all the crawlers and will return only when all of them are stopped
 */
-@system void stopCrawlingSync(ref DrillContext context)
+@system void stopCrawlingSync(DrillContext context)
 {
     import Crawler : Crawler; 
     foreach (Crawler crawler; context.threads)
