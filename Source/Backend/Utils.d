@@ -148,36 +148,29 @@ out(m; m.length != 0)
 }
 
 
+
 @safe string _sizeToHumanReadable(in ulong bytes)
-out(m;m.length != 0)
+out(m; m.length != 0)
 {
-    string[] suffix = ["B", "KB", "MB", "GB", "TB","PB"];
-
-    int i = 0;
-    double dblBytes = bytes;
-    ulong tempBytes = bytes;
-
-    if (tempBytes > 1024)
+    immutable(string[]) sizes = ["B", "KB", "MB", "GB", "TB", "PB", "EB"];
+    double len = cast(double) bytes;
+    int order = 0;
+    
+    while (len >= 1024)
     {
-        for (i = 0; (tempBytes / 1024) > 0; i++, tempBytes /= 1024)
-            dblBytes = tempBytes / 1024.0;
+        order++;
+        len = len / 1024;
     }
 
-    import std.conv : to;
-    import std.math : floor;
-    assert(i < suffix.length);
-    return to!string(floor(dblBytes)) ~ " " ~ suffix[i];
+    import std.format : format;
+
+    if (order >= sizes.length)
+        return format("%#.2f", len) ~ " ?B";
+    else
+        return format("%#.2f", len) ~ " " ~ sizes[order];
 }
+
 alias sizeToHumanReadable = memoize!_sizeToHumanReadable;
-
-
-
-
-
-
-
-
-
 
 import ApplicationInfo : ApplicationInfo;
 version(linux) immutable(ApplicationInfo) readDesktopFile(immutable(string) fullPath) @system
