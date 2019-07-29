@@ -58,11 +58,6 @@
 			]
 		}
 	},
-  "preBuildCommands": [
-    "dmd $PACKAGE_DIR/../../Tools/ListsMerger.d -of=$PACKAGE_DIR/ListsMerger",
-    "$PACKAGE_DIR/ListsMerger $PACKAGE_DIR/../../Assets/BlockLists $PACKAGE_DIR",
-    "$PACKAGE_DIR/ListsMerger $PACKAGE_DIR/../../Assets/PriorityLists $PACKAGE_DIR"
-  ],
   "targetPath": "Build/Drill-Core-$PLATFORM-$ARCH-$BUILD_TYPE",
   "toolchainRequirements": {
     "dmd": ">=2.086.0",
