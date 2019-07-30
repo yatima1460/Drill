@@ -3,8 +3,8 @@
 
 
 
-immutable(string) DEFAULT_BLOCK_LIST    = import("BlockLists.txt");
-immutable(string) DEFAULT_PRIORITY_LIST = import("PriorityLists.txt");
+// immutable(string) DEFAULT_BLOCK_LIST    = import("BlockLists.txt");
+// immutable(string) DEFAULT_PRIORITY_LIST = import("PriorityLists.txt");
 
 
 
@@ -44,16 +44,16 @@ public string getConfigPath()
 }
 
 
-private void createDefaultConfigFiles()
-{
-    import std.path : buildPath;
-    import std.file : write; 
-    import std.array : join;
-    import std.path : baseName;
+// private void createDefaultConfigFiles()
+// {
+//     import std.path : buildPath;
+//     import std.file : write; 
+//     import std.array : join;
+//     import std.path : baseName;
 
-    write(buildPath(getConfigPath(),"BlockList.txt"), DEFAULT_BLOCK_LIST); 
-    write(buildPath(getConfigPath(),"PriorityList.txt"), DEFAULT_PRIORITY_LIST); 
-}
+//     write(buildPath(getConfigPath(),"BlockList.txt"), DEFAULT_BLOCK_LIST); 
+//     write(buildPath(getConfigPath(),"PriorityList.txt"), DEFAULT_PRIORITY_LIST); 
+// }
 
 
 

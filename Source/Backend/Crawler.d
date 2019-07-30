@@ -81,7 +81,17 @@ void crawl(immutable(CrawlerData) data, shared CrawlerContext context)
 //////////////////
 
 
-
+@safe bool _isInRegexList(const(Regex!char[]) list, immutable(string) value)
+in (value != null)
+{
+    foreach (ref regexrule; list)
+    {
+        RegexMatch!string mo = match(value, regexrule);
+        if (!mo.empty())
+            return true;
+    }
+    return false;
+}
 
 
 
@@ -89,14 +99,15 @@ void crawl(immutable(CrawlerData) data, shared CrawlerContext context)
 
 class Crawler : Thread
 {
-    // debug
-    // {
-    //     ~this()
-    //     {
-    //         import core.stdc.stdio;
-    //         printf("Crawler destroyed\n");
-    //     }
-    // }
+
+    debug
+    {
+        ~this()
+        {
+            import core.stdc.stdio;
+            printf("Crawler destroyed\n");
+        }
+    }
 
 private:
     const(string) MOUNTPOINT;
@@ -153,7 +164,7 @@ public:
         this.BLOCK_LIST = BLOCK_LIST;
 
 
-        
+        this.running = true;
 
         this.userObj = userObj;
     }
@@ -187,18 +198,9 @@ public:
 
 private:
 
-    bool isInRegexList(const(Regex!char[]) list, immutable(string) value) const @safe
-    in (value != null)
-    {
-        foreach (ref regexrule; list)
-        {
-            if (!this.running) return false;
-            RegexMatch!string mo = match(value, regexrule);
-            if (!mo.empty())
-                return true;
-        }
-        return false;
-    }
+    import std.functional : memoize;
+    
+    
 
     immutable(FileInfo) buildFileInfo(DirEntry currentFile) const
     {
@@ -245,9 +247,12 @@ private:
     */
     void run()
     {
+        if (running == false)
+            return;
+        alias isInRegexList = memoize!_isInRegexList;
         assert(SEARCH_STRING != null, "the search string can't be null");
         assert(SEARCH_STRING.length != 0,"the search string can't be empty");
-        assert(this.running == false, "the crawler is marked running when it isn't even run yet");
+        //assert(this.running == false, "the crawler is marked running when it isn't even run yet");
         assert(MOUNTPOINT  != null, "the mountpoint can't be null");
         assert(MOUNTPOINT.length != 0, "the mountpoint string can't be empty");
         assert(resultCallback != null, "the result callback can't be null");
@@ -267,7 +272,7 @@ private:
 
         Logger.logDebug("New crawler custom blocklist.length = " ~ to!string(BLOCK_LIST_REGEX.length),this.toString());
 
-        this.running = true;
+     
         Logger.logDebug("Started");
 
         import std.container.dlist : DList;
