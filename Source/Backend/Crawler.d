@@ -277,13 +277,13 @@ private:
 
         import std.container.dlist : DList;
         DList!DirEntry queue;
-        if (isInRegexList(BLOCK_LIST_REGEX,MOUNTPOINT))
-        {
-            this.running = false;
-            Logger.logDebug("Crawler mountpoint is in the blocklist, the crawler will stop.",this.toString());
-        }
-        else
-        {
+        // if (isInRegexList(BLOCK_LIST_REGEX,MOUNTPOINT))
+        // {
+        //     this.running = false;
+        //     Logger.logDebug("Crawler mountpoint is in the blocklist, the crawler will stop.",this.toString());
+        // }
+        // else
+        // {
             try
             {
                 queue.insertBack(DirEntry(MOUNTPOINT));
@@ -293,7 +293,7 @@ private:
                 Logger.logError(e.msg,this.toString());
                 this.running = false;
             }
-        }
+        // }
 
         while (!queue.empty() && running)
         {
