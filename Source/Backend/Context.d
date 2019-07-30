@@ -195,7 +195,7 @@ in (searchValue !is null, "the search string can't be null")
 in (searchValue.length > 0, "the search string can't be empty")
 in (resultCallback !is null, "the search callback can't be null")
 out (c;c !is null, "DrillContext can't be null after starting a search")
-out (c;c.threads.length == getMountpoints().length, "threads created number is wrong")
+out (c;c.threads.length <= getMountpoints().length, "threads created number is wrong")
 {
     import core.stdc.stdio : printf;
     //printf("startCrawling userObject:%p\n",userObject);
