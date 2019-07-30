@@ -88,7 +88,7 @@ It's not assured that every mount point is a physical disk
 
 Returns: immutable array of full paths
 */
-immutable(string[]) getMountpoints() @trusted
+string[] _getMountpoints() @trusted
 out(m; m.length != 0)
 {
     import std.process : executeShell;
@@ -101,7 +101,7 @@ out(m; m.length != 0)
             // df catches network mounted drives like NFS
             // so don't use lsblk here
 
-            immutable auto ls = executeShellThreadSafe("df -h --output=target");
+            immutable auto ls = executeShell("df -h --output=target");
 
             if (ls.status != 0)
             {
@@ -113,7 +113,7 @@ out(m; m.length != 0)
 
             auto result = array(ls.output.split("\n").filter!(x => canFind(x, "/"))).idup;
             //debug{logConsole("Mount points found: "~to!string(result));}
-            return result;
+            return cast(string[])result;
         }
         version (OSX)
         {
@@ -146,7 +146,7 @@ out(m; m.length != 0)
         }
     }
 }
-
+alias getMountpoints = memoize!_getMountpoints;
 
 
 @safe string _sizeToHumanReadable(in ulong bytes)

@@ -68,7 +68,7 @@ struct FileInfo
 
     // debug
     // {
-    //     ~this()
+    //     nothrow ~this()
     //     {
     //         import core.stdc.stdio;
     //         printf("FileInfo destroyed\n");

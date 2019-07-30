@@ -73,6 +73,8 @@ like the searched value
 */
 @nogc pure struct DrillContext
 {
+
+
     // import std.container : SList;
     string search_value;
     invariant 
@@ -88,14 +90,14 @@ like the searched value
     }
     void* userObject;
 
-    // debug
-    // {
-    //     ~this()
-    //     {
-    //         import core.stdc.stdio;
-    //         printf("DrillContext destroyed\n");
-    //     }
-    // }
+    debug
+    {
+        @nogc nothrow ~this()
+        {
+            import core.stdc.stdio;
+            printf("DrillContext destroyed\n");
+        }
+    }
 }
 
 
@@ -122,7 +124,7 @@ Notifies the crawlers to stop and clears the crawlers array stored inside DrillC
 This function is non-blocking.
 If no crawling is currently underway this function will do nothing.
 */
-@nogc @system void stopCrawlingAsync(ref DrillContext context)
+@nogc @system void stopCrawlingAsync(DrillContext context)
 {
     import Crawler : Crawler; 
     foreach (Crawler crawler; context.threads)
@@ -148,8 +150,9 @@ This function does not stop the crawlers!!!
         try
         {
             //FIXME: if for whatever reason the crawler is not started this will SEGFAULT
-            crawler.join();
+            crawler.join();     
             Logger.logInfo("Crawler "~to!string(crawler)~" stopped");
+            crawler.destroy();
         }
         catch(ThreadException e)
         {
