@@ -209,6 +209,16 @@ out (c;c.threads.length == getMountpoints().length, "threads created number is w
     {
         import Crawler : Crawler; 
         //printf("startCrawling foreach loop userObject:%p\n",userObject);
+        import Crawler : _isInRegexList;
+        import std.algorithm : sort, map, filter, canFind;
+        import std.array : array;
+        import std.regex : Regex, regex, RegexMatch, match;
+        if (_isInRegexList(config.BLOCK_LIST[].map!(x => regex(x)).array,mountpoint))
+        {
+            
+            Logger.logDebug("Crawler mountpoint is in the blocklist, the crawler will stop.",mountpoint);
+            continue;
+        }
         Crawler crawler = new Crawler(mountpoint, config.BLOCK_LIST, config.PRIORITY_LIST_REGEX, resultCallback, searchValue, c.userObject);
         if (config.singlethread)
             crawler.run();
