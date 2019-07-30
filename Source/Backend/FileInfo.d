@@ -5,10 +5,10 @@ FileInfo is a struct filled by the information a crawler found about files match
 */
 struct FileInfo
 {
-    /**
-    The original mountpoint used by a crawler that found this file
-    */
-    string originalMountpoint;
+    // /**
+    // The original mountpoint used by a crawler that found this file
+    // */
+    // string originalMountpoint;
 
     /**
     true if the file is a directory
@@ -51,7 +51,7 @@ struct FileInfo
     string fileNameLower;
 
     /**
-    only the extension with the dot (ex: .png 
+    only the extension with the dot (ex: .png)
     */
     string extension;
 

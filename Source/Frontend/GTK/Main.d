@@ -187,7 +187,7 @@ in(data != null)
     // Last opportunity to stop crawlers
     assert(context !is null);
     if (context.context !is null)
-        (*context.context).stopCrawlingSync();
+        context.context.threads.stopCrawlingSync();
 
     assert(context !is null);
     context.running = false;
@@ -213,7 +213,7 @@ in(data != null)
 
         if (context.context !is null)
         {
-            (*context.context).stopCrawlingSync();
+            context.context.threads.stopCrawlingSync();
             context.context = null;
         }
 
@@ -410,7 +410,7 @@ in(userObject !is null)
     assert(context !is null);
     if (context.context !is null)
     {
-        stopCrawlingAsync(*context.context);
+        stopCrawlingAsync(context.context.threads);
         context.context = null;
     }
 
