@@ -2,7 +2,7 @@
 /*
     All GTK binds needed to show the UI
 */
-extern (C) @trusted @nogc nothrow
+private extern (C) @trusted @nogc nothrow
 {
     void g_async_queue_unref(GAsyncQueue*);
 
@@ -274,7 +274,7 @@ extern (C) @nogc @trusted nothrow
     struct GtkTreePath;
     struct GtkTreeViewColumn;
     struct GtkTreeModel;
-    GtkTreeModel* gtk_tree_view_get_model(GtkTreeView*);
+    
     gboolean gtk_tree_model_get_iter(GtkTreeModel*, GtkTreeIter*, GtkTreePath*);
     void gtk_tree_model_get(GtkTreeModel*, GtkTreeIter*, ...);
 }
@@ -332,12 +332,15 @@ in(userObject !is null)
 
     GtkTreeIter iter;
     assert(tree_view !is null);
-    GtkTreeModel* model = gtk_tree_view_get_model(tree_view);
+    import TreeView : gtk_tree_view_get_model;
+
+    GtkTreeModel* model = cast(Main.GtkTreeModel*)gtk_tree_view_get_model(tree_view);
+    
     assert(model !is null);
     assert(path !is null);
-
     if (gtk_tree_model_get_iter(model, &iter, path))
     {
+        assert(model !is null);
         gtk_tree_model_get(model, &iter, 1, &cname, 2, &cpath, -1);
         assert(cname !is null);
         assert(cpath !is null);
@@ -373,6 +376,7 @@ extern (C) void gtk_search_changed(in GtkEditable* widget, void* userObject)
 in(widget !is null)
 in(userObject !is null)
 {
+    import std.datetime.systime : Clock;
     import std.stdio : writeln;
     import Context : DrillContext, startCrawling, stopCrawlingSync, stopCrawlingAsync;
     import Config : loadData;
@@ -383,14 +387,30 @@ in(userObject !is null)
     import core.stdc.stdio : printf;
     import ListStore : gtk_list_store_clear;
 
+   
+
     DrillGtkContext* context = cast(DrillGtkContext*) userObject;
     assert(context !is null);
+
+
+    //  auto currTime = Clock.currStdTime();
+    // import std.stdio : writeln;
+
+    // writeln(currTime, " ",context.oldTime);
+
+    // if ((currTime - context.oldTime) < 10_000_000L)
+    // {
+
+    //     return;
+    // }
+    // context.oldTime = currTime;
+    
 
     // If there is a Drill search going on stop it
     assert(context !is null);
     if (context.context !is null)
     {
-        stopCrawlingSync(*context.context);
+        stopCrawlingAsync(*context.context);
         context.context = null;
     }
 
@@ -453,6 +473,15 @@ in(user_data !is null)
     assert(context !is null);
     assert(context.queue !is null);
 
+    // debug
+    // {
+    //     import std.stdio : writeln;
+    //     import std.conv : to;
+    //     if (context.context)
+    //         writeln("Active threads: "~to!string(context.context.threads.length));
+    // }
+
+
 
     gpointer queue_data;
     
@@ -460,7 +489,7 @@ in(user_data !is null)
 
     // Add a maximum of ~20 elements at a time to prevent GTK from lagging
     uint frameCutoff = 20;
-    while(frameCutoff-- && (queue_data = g_async_queue_try_pop(context.queue)) != null)
+    while(frameCutoff > 0 && (queue_data = g_async_queue_try_pop(context.queue)) != null)
     {
         FileInfo* fi = cast(FileInfo*) queue_data;
         assert(fi !is null);
@@ -472,6 +501,8 @@ in(user_data !is null)
 
         import core.memory : GC;
         GC.removeRoot(fi);
+
+        frameCutoff--;
     }
 
     // Note: if this function returns false GTK will stop queueing it
@@ -702,6 +733,8 @@ struct DrillGtkContext
     GtkLabel* credits;
     GtkApplication* app;
     DrillConfig drillConfig;
+
+    long oldTime;
 
     bool list_dirty = false;
 

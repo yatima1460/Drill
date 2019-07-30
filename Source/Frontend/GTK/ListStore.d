@@ -22,7 +22,9 @@ void appendApplication(GtkListStore* store, const(ApplicationInfo) app)
 
     /* Append a row and fill in some data */
     store.gtk_list_store_append(&iter);
-    store.gtk_list_store_set(&iter, 0, toStringz(app.icon), 1, toStringz(app.name), 2, toStringz(app.exec), 4, toStringz(app.desktopFileDateModifiedString), -1);
+    store.gtk_list_store_set(&iter, 0, toStringz(app.icon), 1,
+            toStringz(app.name), 2, toStringz(app.exec), 4,
+            toStringz(app.desktopFileDateModifiedString), -1);
 }
 
 @trusted nothrow void appendFileInfo(GtkListStore* store, immutable(FileInfo) fileInfo)
@@ -30,7 +32,45 @@ in(store !is null)
 {
     GtkTreeIter iter;
 
-    auto icon = toStringz("none");
+    import std.process : executeShell;
+    import std.array : replace;
+
+    string icon = "none";
+
+    if (fileInfo.isDirectory)
+    {
+        icon = "folder";
+    }
+    // TODO: icons
+    // else
+    // {
+    //     try
+    //     {
+
+    //         synchronized
+    //         {
+    //             immutable auto iconMaybe = executeShell("grep '" ~ fileInfo.extension.replace(".",
+    //                     "") ~ "' /etc/mime.types");
+    //             if (iconMaybe.status == 0)
+    //             {
+
+    //                 icon = iconMaybe.output.replace("/", "-");
+
+    //             }
+    //             else
+    //             {
+    //                 icon = "none";
+    //             }
+    //         }
+
+    //     }
+    //     catch (Exception e)
+    //     {
+    //         icon = "none";
+    //     }
+
+    // }
+
     auto name = toStringz(fileInfo.fileName);
     auto parent = toStringz(fileInfo.containingFolder);
     auto size = toStringz(fileInfo.sizeString);
@@ -38,7 +78,7 @@ in(store !is null)
 
     /* Append a row and fill in some data */
     store.gtk_list_store_append(&iter);
-    store.gtk_list_store_set(&iter, 0, icon, 1, name, 2, parent, 3, size, 4, date, -1);
+    store.gtk_list_store_set(&iter, 0, toStringz(icon), 1, name, 2, parent, 3, size, 4, date, -1);
 
 }
 
