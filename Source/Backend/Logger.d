@@ -104,7 +104,7 @@ public:
                     import core.stdc.stdio : printf;
                     import std.string : toStringz;
 
-                    //printf(toStringz("["~timeString~"]["~logName[level]~"]["~channel~"] "~message~"\n"));
+                    printf(toStringz("["~timeString~"]["~logName[level]~"]["~channel~"] "~message~"\n"));
                 }
             }
         }
