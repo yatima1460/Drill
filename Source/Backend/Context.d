@@ -9,7 +9,7 @@ This struct represents an active Drill search,
 it holds a pool of crawlers and the current state, 
 like the searched value
 +/
-pure nothrow @nogc @safe struct DrillContext
+pure nothrow @nogc struct DrillContext
 {
 
     /++
@@ -24,7 +24,6 @@ pure nothrow @nogc @safe struct DrillContext
     
     /++
     A list of crawlers
-    TODO: remove ones that stopped/finished
     +/
     Crawler[] threads;
     invariant
@@ -37,14 +36,10 @@ pure nothrow @nogc @safe struct DrillContext
     +/
     void* userObject;
 
-    debug
-    {
-        @nogc @trusted nothrow ~this()
-        {
-            import core.stdc.stdio;
-            printf("DrillContext destroyed\n");
-        }
-    }
+    // ~this()
+    // {
+    //     stopCrawlingSync(threads);
+    // }
 }
 
 
@@ -171,6 +166,7 @@ out (c;c.threads.length <= getMountpoints().length, "threads created number is w
             continue;
         }
         Crawler crawler = new Crawler(mountpoint, config.BLOCK_LIST, config.PRIORITY_LIST_REGEX, resultCallback, searchValue, c.userObject);
+        crawler.isDaemon(false);
         if (config.singlethread)
             crawler.run();
         else
