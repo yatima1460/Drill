@@ -383,12 +383,16 @@ in(user_data !is null)
 
         assert(context.window !is null);
         gtk_window_set_title(context.window,toStringz("Drill - Found:"~foundResults));
+
+        debug gtk_window_set_title(context.window,toStringz("Drill (DEBUG VERSION) - Found:"~foundResults));
+        else gtk_window_set_title(context.window,toStringz("Drill - Found:"~foundResults));
        
     }
     else
     {
         assert(context.window !is null);
-        gtk_window_set_title(context.window,"Drill");
+        debug gtk_window_set_title(context.window,"Drill (DEBUG VERSION)");
+        else gtk_window_set_title(context.window,"Drill");
 
         assert(context.search_input !is null);
         gtk_entry_set_progress_fraction(context.search_input, 0.0);
