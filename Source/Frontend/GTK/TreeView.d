@@ -1,19 +1,7 @@
 
 
 
-import ListStore : GtkListStore, gtk_list_store_new;
-import Types;
-
-extern(C) @trusted @nogc nothrow
-{
-    struct GtkTreeView;
-    struct GtkTreeModel;
-    void gtk_tree_view_set_model(GtkTreeView* tree_view,GtkTreeModel * tree_model);
-    GtkTreeModel * gtk_tree_view_get_model(GtkTreeView *tree_view);
-}
-
-
-
+import GTKBinds;
 
 GtkTreeModel* clean(GtkTreeView* treeview)
 in (treeview !is null)

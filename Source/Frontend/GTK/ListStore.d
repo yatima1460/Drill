@@ -1,19 +1,13 @@
 import ApplicationInfo : ApplicationInfo;
 import std.string : toStringz;
-import TreeIter : GtkTreeIter;
-import Types;
+import GTKBinds;
 
 //TODO: merge ApplicationInfo and FileInfo into one data type?
 
 extern (C) @trusted @nogc pure nothrow
 {
 
-    struct GtkListStore;
-    void gtk_list_store_append(GtkListStore* list_store, GtkTreeIter* iter);
-    void gtk_list_store_set(GtkListStore* list_store, GtkTreeIter* iter, ...);
-    GtkListStore* gtk_list_store_new(gint n_columns, ...);
 
-    void gtk_list_store_clear(GtkListStore* list_store);
 }
 
 import FileInfo : FileInfo;

@@ -1,224 +1,35 @@
-import Types;
+import core.stdc.stdlib : free;
+import core.stdc.stdio : printf;
+import core.memory : GC;
 
+import std.container.dlist : DList;
+import std.file : thisExePath;
+import std.string : toStringz;
+import std.path : buildPath, dirName;
+import std.datetime.systime : Clock;
+import std.stdio : writeln;
+import std.conv : to;
 
+import ApplicationInfo : ApplicationInfo, getApplications;
+import Crawler : isFileNameMatchingSearchString;
+import Context : DrillContext, startCrawling, stopCrawlingSync, stopCrawlingAsync;
+import Config : loadData;
+
+import GTKBinds;
+import ListStore : appendApplication, appendFileInfo;
+import FileInfo : FileInfo;
+
+import std.experimental.logger;
 
 
 // TODO: pressing return should open the first result
 
 
 
-/*
-    All GTK binds needed to show the UI
-*/
-private extern (C) @trusted @nogc nothrow
-{
-    gint
-gtk_tree_model_iter_n_children (GtkTreeModel *tree_model,
-                                GtkTreeIter *iter);
-    gboolean
-g_idle_remove_by_data (gpointer data);
-    const(gchar *)	g_strerror ();
-    struct GtkDialog;
-    enum GtkButtonsType
-    {
-        GTK_BUTTONS_NONE,
-        GTK_BUTTONS_OK,
-        GTK_BUTTONS_CLOSE,
-        GTK_BUTTONS_CANCEL,
-        GTK_BUTTONS_YES_NO,
-        GTK_BUTTONS_OK_CANCEL
-    }
-    enum GtkMessageType
-    {
-        GTK_MESSAGE_INFO,
-        GTK_MESSAGE_WARNING,
-        GTK_MESSAGE_QUESTION,
-        GTK_MESSAGE_ERROR,
-        GTK_MESSAGE_OTHER
-    }
-    GtkWidget * gtk_message_dialog_new (GtkWindow *parent,
-                        GtkDialogFlags flags,
-                        GtkMessageType type,
-                        GtkButtonsType buttons,
-                        const gchar *message_format,
-                        ...);
-    gint gtk_dialog_run (GtkDialog *dialog);
-
-    void gtk_entry_set_progress_fraction (GtkEntry *entry, gdouble fraction);
-    void gtk_entry_set_progress_pulse_step (GtkEntry *entry, gdouble fraction);
-    void gtk_entry_progress_pulse (GtkEntry *entry);
-
-    void g_async_queue_unref(GAsyncQueue*);
-
-    struct GtkEntry;
-
-    int gtk_init_check(int* argc, char*** argv);
-    int gtk_main_iteration_do(int);
-    void* G_CALLBACK(void*);
-
-    enum GdkGravity
-    {
-        GDK_GRAVITY_NORTH_WEST,
-        GDK_GRAVITY_NORTH,
-        GDK_GRAVITY_NORTH_EAST,
-        GDK_GRAVITY_WEST,
-        GDK_GRAVITY_CENTER,
-        GDK_GRAVITY_EAST,
-        GDK_GRAVITY_SOUTH_WEST,
-        GDK_GRAVITY_SOUTH,
-        GDK_GRAVITY_SOUTH_EAST,
-        GDK_GRAVITY_STATIC
-    };
-
-    struct GObject;
-    enum GConnectFlags
-    {
-        G_CONNECT_AFTER,
-        G_CONNECT_SWAPPED
-    };
-    void g_signal_connect_data(void* instance, const char* detailed_signal, void* c_handler, void* data, void* destroy_data, GConnectFlags connect_flags);
-
-    int gdk_screen_width();
-    int gdk_screen_height();
-
-    struct GtkWidget;
-    GObject* G_OBJECT(GtkWidget*);
-    void gtk_widget_set_size_request(GtkWidget*, int, int);
-    void gtk_widget_show_all(GtkWidget*);
-
-    enum GtkWindowType
-    {
-        GTK_WINDOW_TOPLEVEL,
-        GTK_WINDOW_POPUP
-    };
-
-    enum GtkWindowPosition
-    {
-        GTK_WIN_POS_NONE,
-        GTK_WIN_POS_CENTER,
-        GTK_WIN_POS_MOUSE,
-        GTK_WIN_POS_CENTER_ALWAYS,
-        GTK_WIN_POS_CENTER_ON_PARENT
-    }
-
-    struct GtkWindow;
-    struct GtkBuilder;
-
-    void g_application_quit(GtkApplication*);
-
-    GtkWindow* GTK_WINDOW(GtkWidget*);
-    GtkWindow* gtk_window_new(GtkWindowType);
-    void gtk_window_set_gravity(GtkWindow*, GdkGravity);
-    void gtk_window_set_title(GtkWindow*, const char*);
-    void gtk_window_set_default_size(GtkWindow*, int, int);
-    void gtk_window_set_default_geometry(GtkWindow* window, int width, int height);
-    void gtk_window_set_resizable(GtkWindow*, bool);
-    void gtk_window_set_decorated(GtkWindow*, bool);
-    void gtk_window_fullscreen(GtkWindow*);
-    void gtk_window_unfullscreen(GtkWindow*);
-    void gtk_window_set_position(GtkWindow*, GtkWindowPosition);
-    void gtk_window_move(GtkWindow* window, int x, int y);
-    void gtk_window_set_keep_above(GtkWindow* w, bool);
-
-    immutable(int) GDK_KEY_Escape = 0xff1b;
-
-    enum GdkEventType
-    {
-        GDK_NOTHING = -1,
-        GDK_DELETE = 0,
-        GDK_DESTROY = 1,
-        GDK_EXPOSE = 2,
-        GDK_MOTION_NOTIFY = 3,
-        GDK_BUTTON_PRESS = 4,
-        GDK_2BUTTON_PRESS = 5,
-        GDK_DOUBLE_BUTTON_PRESS = GDK_2BUTTON_PRESS,
-        GDK_3BUTTON_PRESS = 6,
-        GDK_TRIPLE_BUTTON_PRESS = GDK_3BUTTON_PRESS,
-        GDK_BUTTON_RELEASE = 7,
-        GDK_KEY_PRESS = 8,
-        GDK_KEY_RELEASE = 9,
-        GDK_ENTER_NOTIFY = 10,
-        GDK_LEAVE_NOTIFY = 11,
-        GDK_FOCUS_CHANGE = 12,
-        GDK_CONFIGURE = 13,
-        GDK_MAP = 14,
-        GDK_UNMAP = 15,
-        GDK_PROPERTY_NOTIFY = 16,
-        GDK_SELECTION_CLEAR = 17,
-        GDK_SELECTION_REQUEST = 18,
-        GDK_SELECTION_NOTIFY = 19,
-        GDK_PROXIMITY_IN = 20,
-        GDK_PROXIMITY_OUT = 21,
-        GDK_DRAG_ENTER = 22,
-        GDK_DRAG_LEAVE = 23,
-        GDK_DRAG_MOTION = 24,
-        GDK_DRAG_STATUS = 25,
-        GDK_DROP_START = 26,
-        GDK_DROP_FINISHED = 27,
-        GDK_CLIENT_EVENT = 28,
-        GDK_VISIBILITY_NOTIFY = 29,
-        GDK_SCROLL = 31,
-        GDK_WINDOW_STATE = 32,
-        GDK_SETTING = 33,
-        GDK_OWNER_CHANGE = 34,
-        GDK_GRAB_BROKEN = 35,
-        GDK_DAMAGE = 36,
-        GDK_TOUCH_BEGIN = 37,
-        GDK_TOUCH_UPDATE = 38,
-        GDK_TOUCH_END = 39,
-        GDK_TOUCH_CANCEL = 40,
-        GDK_TOUCHPAD_SWIPE = 41,
-        GDK_TOUCHPAD_PINCH = 42,
-        GDK_EVENT_LAST /* helper variable for decls */
-    }
-
-    struct GdkWindow;
-    void gtk_init(int* argc, char*** argv);
-    GtkBuilder* gtk_builder_new();
-
-    guint gtk_builder_add_from_file(GtkBuilder* builder, const gchar* filename, GError** error);
-
-    struct GError
-    {
-        uint domain;
-        int code;
-        char* message;
-    };
-
-    void g_printerr(const gchar* format, ...);
-    void g_clear_error(GError** err);
-
-    struct GtkEditable;
-    gchar* gtk_editable_get_chars(GtkEditable* editable, gint start_pos, gint end_pos);
-
-    GObject* gtk_builder_get_object(GtkBuilder* builder, const gchar* name);
-
-    void g_signal_connect(void* instance, const char* detailed_signal, void* c_handler, void* data)
-    {
-        g_signal_connect_data(instance, detailed_signal, c_handler, data, null, GConnectFlags.G_CONNECT_AFTER);
-    }
-
-    void gtk_main();
-    void gtk_main_quit();
-
-    GtkApplication* gtk_application_new(const gchar* application_id, GApplicationFlags flags);
-
-    int g_application_run(GApplication* application, int argc, char** argv);
-
-    struct GApplication;
-
-    void g_object_unref(gpointer object);
-}
-
-
-
-import TreeIter : GtkTreeIter;
-import TreeView : GtkTreeView;
-import ListStore : GtkListStore;
-
-
-
-extern (C) void window_destroy(GtkWindow* window, gpointer data)
+/++
+    Callback called by GTK after the window is destroyed
++/
+extern(C) void window_destroy(GtkWindow* window, gpointer data)
 in(window != null)
 in(data != null)
 {
@@ -228,156 +39,56 @@ in(data != null)
     DrillGtkContext* context = cast(DrillGtkContext*) data;
     assert(context !is null);
 
-    closeApplication(context);
+    info("Window will be destroyed");
 
-  
-}
 
-/++
-    Closes the GTK application and stops the crawlers
 
-    Params:
-        context = the DrillGtkContext struct
-+/
-void closeApplication(DrillGtkContext* context)
-in(context != null)
-{
-    import Context : stopCrawlingAsync;
-
-    g_idle_remove_by_data(context);
-
-    // Last opportunity to stop crawlers
-    // Because we stop with Async the window will close instantly,
-    // good for usability reasons,
-    // But the process will linger a bit to close the crawlers
-    assert(context !is null);
     if (context.context !is null)
         context.context.threads.stopCrawlingAsync();
 
-    assert(context !is null);
-    context.running = false;
+    *context = DrillGtkContext();
 
     // assert(context !is null);
-    // assert(context.treeview !is null);
-    // gtk_widget_destroy(cast(GtkWidget*)context.treeview);
-    // context.treeview = null;
-
-    // assert(context !is null);
-    // assert(context.search_input !is null);
-    // gtk_widget_destroy(cast(GtkWidget*)context.search_input);
-    // context.search_input = null;
-
-    // assert(context !is null);
-    // assert(context.queue !is null);
-    // g_async_queue_unref(context.queue);
-    // context.queue = null;
-
-    // assert(context !is null);
-    // assert(context.window !is null);
-    // gtk_widget_destroy(cast(GtkWidget*)context.window);
-
-    assert(context !is null);
-    assert(context.app !is null);
-    g_application_quit(context.app);
+    // // assert(context.app !is null);
+    // if (context.app)
+    //     g_application_quit(context.app);
 }
 
-extern (C) bool check_escape(GtkWidget* widget, GdkEventKey* event, gpointer data)
+
+/++
+    Callback called by GTK when ESC is pressed
++/
+extern(C) bool check_escape(GtkWidget* widget, GdkEventKey* event, gpointer data)
 in(widget != null)
 in(data != null)
 {
-    import core.stdc.stdio : printf;
-    
-
     DrillGtkContext* context = cast(DrillGtkContext*) data;
     assert(context !is null);
 
+    info("ESC pressed");
+
     if (event.keyval == GDK_KEY_Escape)
     {
-        closeApplication(context);
+        // assert(context !is null);
+        // g_idle_remove_by_data(context);
+
+        assert(context !is null);
+        if (context.context !is null)
+            context.context.threads.stopCrawlingAsync();
+
+    // assert(context !is null);
+        assert (context.app);
+        g_application_quit(context.app);
+
+        return true;
     }
     return false;
 }
 
-
-
-
-
-
-extern (C) @nogc @trusted nothrow
-{
-
-    void gtk_widget_destroy(GtkWidget*);
-    void gtk_window_set_application(GtkWindow* self, GtkApplication* application);
-    alias GSourceFunc = void*;
-    struct GAsyncQueue;
-    guint g_idle_add(GSourceFunc func, gpointer data);
-    guint g_timeout_add(guint interval, GSourceFunc func, gpointer data);
-    
-    gpointer g_async_queue_try_pop(GAsyncQueue* queue);
-    GAsyncQueue* g_async_queue_new();
-
-    guint gtk_builder_add_from_string(GtkBuilder* builder, const gchar* buffer, ulong length, GError** error);
-
-    struct GdkEventKey
-    {
-        GdkEventType type;
-        GdkWindow* window;
-        gint8 send_event;
-        guint32 time;
-        guint state;
-        guint keyval;
-        gint length;
-        gchar* string;
-        guint16 hardware_keycode;
-        guint8 group;
-        bool is_modifier;
-    };
-
-    struct GtkApplication;
-    enum GApplicationFlags
-    {
-        G_APPLICATION_FLAGS_NONE
-    }
-    struct GtkLabel;
-    void gtk_label_set_markup(GtkLabel* label, const gchar* str);
-    void g_async_queue_push(GAsyncQueue* queue, gpointer data);
-    void gtk_widget_queue_draw(GtkWidget*);
-    struct GtkTreePath;
-    struct GtkTreeViewColumn;
-    struct GtkTreeModel;
-    
-    gboolean gtk_tree_model_get_iter(GtkTreeModel*, GtkTreeIter*, GtkTreePath*);
-    void gtk_tree_model_get(GtkTreeModel*, GtkTreeIter*, ...);
-}
-
-import FileInfo : FileInfo;
-
-void resultFound(const(FileInfo) result, void* userObject)
-in(userObject !is null)
-{
-    import core.memory;
-    import ListStore : appendFileInfo;
-    import core.memory : GC;
-
-    DrillGtkContext* tuple = cast(DrillGtkContext*) userObject;
-    assert(tuple !is null);
-    assert(tuple.queue !is null);
-
-    // The FileInfo pointer is entering C domain so
-    // we need to tell the GC to ignore it for now
-    FileInfo* f = new FileInfo();
-    GC.addRoot(f);
-    *f = result;
-
-    g_async_queue_push(tuple.queue, f);
-}
-
-
-
-
-// extern (C) gtk_list_store_get_iter()
-
-extern (C) void row_activated(GtkTreeView* tree_view, GtkTreePath* path, GtkTreeViewColumn* column, gpointer userObject)
+/++
+    Callback called by GTK when the user double clicks a row
++/
+extern(C) void row_activated(GtkTreeView* tree_view, GtkTreePath* path, GtkTreeViewColumn* column, gpointer userObject)
 in(tree_view !is null)
 in(path !is null)
 in(column !is null)
@@ -396,6 +107,8 @@ in(userObject !is null)
     DrillGtkContext* context = cast(DrillGtkContext*) userObject;
     assert(context !is null);
 
+    info("Row double-click");
+
     
 
     char* cname;
@@ -404,9 +117,9 @@ in(userObject !is null)
 
     GtkTreeIter iter;
     assert(tree_view !is null);
-    import TreeView : gtk_tree_view_get_model;
 
-    GtkTreeModel* model = cast(Main.GtkTreeModel*)gtk_tree_view_get_model(tree_view);
+
+    GtkTreeModel* model = gtk_tree_view_get_model(tree_view);
     
     assert(model !is null);
     assert(path !is null);
@@ -452,44 +165,63 @@ in(userObject !is null)
     }
 }
 
+/++
+    Closes the GTK application and stops the crawlers
+
+    Params:
+        context = the DrillGtkContext struct
++/
+void closeApplication(DrillGtkContext* context)
+in(context != null)
+{
+
+    assert(context !is null);
+    g_idle_remove_by_data(context);
+
+    // Last opportunity to stop crawlers
+    // Because we stop with Async the window will close instantly,
+    // good for usability reasons,
+    // But the process will linger a bit to close the crawlers
+    assert(context !is null);
+    if (context.context !is null)
+        context.context.threads.stopCrawlingAsync();
+
+    assert(context !is null);
+    context.running = false;
+
+    // assert(context !is null);
+    // assert(context.treeview !is null);
+    // gtk_widget_destroy(cast(GtkWidget*)context.treeview);
+    // context.treeview = null;
+
+    // assert(context !is null);
+    // assert(context.search_input !is null);
+    // gtk_widget_destroy(cast(GtkWidget*)context.search_input);
+    // context.search_input = null;
+
+    // assert(context !is null);
+    // assert(context.queue !is null);
+    // g_async_queue_unref(context.queue);
+    // context.queue = null;
+
+    // assert(context !is null);
+    // assert(context.window !is null);
+    // gtk_widget_destroy(cast(GtkWidget*)context.window);
+
+}
 
 
 
 
-
+/++
+    Callback called by GTK when the user types a new unicode character in the search bar
++/
 extern (C) void gtk_search_changed(in GtkEditable* widget, void* userObject)
 in(widget !is null)
 in(userObject !is null)
 {
-    import std.datetime.systime : Clock;
-    import std.stdio : writeln;
-    import Context : DrillContext, startCrawling, stopCrawlingSync, stopCrawlingAsync;
-    import Config : loadData;
-    import std.file : thisExePath;
-    import TreeView : clean;
-    import std.conv : to;
-    import TreeView : GtkTreeModel;
-    import core.stdc.stdio : printf;
-    import ListStore : gtk_list_store_clear;
-
-   
-
     DrillGtkContext* context = cast(DrillGtkContext*) userObject;
     assert(context !is null);
-
-   
-    //  auto currTime = Clock.currStdTime();
-    // import std.stdio : writeln;
-
-    // writeln(currTime, " ",context.oldTime);
-
-    // if ((currTime - context.oldTime) < 10_000_000L)
-    // {
-
-    //     return;
-    // }
-    // context.oldTime = currTime;
-    
 
     // If there is a Drill search going on stop it
     assert(context !is null);
@@ -504,14 +236,11 @@ in(userObject !is null)
         context.context = null;
     }
 
-
-
     // Get input string in the search text field
     assert(widget !is null);
     char* str = gtk_editable_get_chars(cast(GtkEditable*) widget, 0, -1);
     assert(str !is null);
     const(string) searchString = to!string(str);
-    import core.stdc.stdlib : free;
     free(str);
     str = null;
 
@@ -521,17 +250,14 @@ in(userObject !is null)
     //TODO: free old context.liststore here
     assert(context !is null);
     assert(context.treeview !is null);
+    import TreeView : clean;
     const(GtkTreeModel*) newStore = context.treeview.clean();
     assert(newStore !is null);
     context.liststore = cast(GtkListStore*) newStore;
     assert(context.liststore !is null);
-
-   
-
     
     g_async_queue_unref(context.queue);
     context.queue = g_async_queue_new();
-    
 
     // If the search box is not empty
     if (searchString.length > 0)
@@ -543,11 +269,9 @@ in(userObject !is null)
         assert(context.context !is null);
 
         // While the crawling started use the UI thread to find applications
-        import ApplicationInfo : ApplicationInfo;
         foreach (ApplicationInfo app; context.applications)
         {
-            import Crawler : isFileNameMatchingSearchString;
-            import ListStore : appendApplication;
+
 
             assert(app.name,"Tried to add an application with a null name");
             assert(app.name.length > 0,"Tried to add an application with an empty name");
@@ -561,34 +285,48 @@ in(userObject !is null)
     }
 }
 
-import std.container.dlist : DList;
 
+/++
+    Callback called by Drill when a new result is found
++/
+void resultFound(const(FileInfo) result, void* userObject)
+in(userObject !is null)
+{
+    DrillGtkContext* context = cast(DrillGtkContext*) userObject;
+    assert(context !is null);
+    
+    // The FileInfo pointer is entering C domain so
+    // we need to tell the GC to ignore it for now
+    FileInfo* f = new FileInfo();
+    GC.addRoot(f);
+    *f = result;
+
+
+    if(context.queue)
+        g_async_queue_push(context.queue, f);
+}
+
+
+/++
+    Callback called by GTK every few milliseconds to grab results from the queue
+    This is done because only the GTK thread can modify the UI
++/
 extern (C) gboolean check_async_queue(gpointer user_data)
 in(user_data !is null)
 {
-    import ListStore : appendFileInfo;
-
     DrillGtkContext* context = cast(DrillGtkContext*) user_data;
     assert(context !is null);
 
     // Get the next FileInfo in queue
     assert(context !is null);
-    assert(context.queue !is null);
-
-    // debug
-    // {
-    //     import std.stdio : writeln;
-    //     import std.conv : to;
-    //     if (context.context)
-    //         writeln("Active threads: "~to!string(context.context.threads.length));
-    // }
-
-
-
-    gpointer queue_data;
     
-    // If there is some data add it to the UI
+    if (!context.queue)
+        return false; 
+    
+    gpointer queue_data;
 
+
+    // If there is some data add it to the UI
     // Add a maximum of ~20 elements at a time to prevent GTK from lagging
     uint frameCutoff = 20;
     while(frameCutoff > 0 && (queue_data = g_async_queue_try_pop(context.queue)) != null)
@@ -614,27 +352,45 @@ in(user_data !is null)
     if (context.context)
     {
         assert(context !is null);
-        auto crawlersDoneCount = context.context.threads.length-activeCrawlersCount(context.context.threads);
-        assert(crawlersDoneCount >= 0);
-        double fraction = cast(double)crawlersDoneCount/cast(double)context.context.threads.length;
 
-        assert(context !is null);
-        assert(context.search_input !is null);
-        assert(fraction >= 0.0);
-        assert(fraction <= 1.0);
-        gtk_entry_set_progress_fraction(context.search_input, fraction);
+        if (context.context.threads.length != 0)
+        {
+            auto crawlersDoneCount = context.context.threads.length-activeCrawlersCount(context.context.threads);
+            assert(crawlersDoneCount >= 0);
+
+            double fraction = cast(double)crawlersDoneCount/cast(double)context.context.threads.length;
+
+            assert(context !is null);
+           
+            assert(fraction >= 0.0,to!string(cast(double)crawlersDoneCount) ~ "/" ~to!string(cast(double)context.context.threads.length)~ "="~to!string(fraction));
+            assert(fraction <= 1.0,to!string(cast(double)crawlersDoneCount) ~ "/" ~to!string(cast(double)context.context.threads.length)~ "="~to!string(fraction));
+            
+            assert(context.search_input !is null);
+            gtk_entry_set_progress_fraction(context.search_input, fraction);
+        }
+        else
+        {
+            assert(context.search_input !is null);
+            gtk_entry_set_progress_fraction(context.search_input, 0.0);
+        }
+        
         //void
         //gtk_entry_set_progress_pulse_step (context.search_input,0.1);
 
         import std.conv : to;
         import std.string : toStringz;
         immutable(string) foundResults = to!string(gtk_tree_model_iter_n_children(cast(GtkTreeModel*)context.liststore,null));
+
+        assert(context.window !is null);
         gtk_window_set_title(context.window,toStringz("Drill - Found:"~foundResults));
        
     }
     else
     {
+        assert(context.window !is null);
         gtk_window_set_title(context.window,"Drill");
+
+        assert(context.search_input !is null);
         gtk_entry_set_progress_fraction(context.search_input, 0.0);
     }
   
@@ -644,21 +400,23 @@ in(user_data !is null)
 }
 
 
+void addApplicationsToList(GtkListStore* liststore , ApplicationInfo[] applications)
+in (liststore !is null)
+{
+
+    foreach (application; applications)
+    {
+        assert(liststore !is null);
+        liststore.appendApplication(application);
+    }
+}
+
 
 extern (C) void activate(GtkApplication* app, gpointer userObject)
 in(app !is null)
 in(userObject != null)
 {
-    import std.file : thisExePath;
-    import TreeView : gtk_tree_view_set_model;
-    import TreeView : GtkTreeModel;
-    import core.stdc.stdio : printf;
-    import ListStore : gtk_list_store_clear;
-    import std.string : toStringz;
-    import ApplicationInfo : getApplications;
-    import std.path : buildPath;
-    import std.path : dirName;
-    import ListStore : appendApplication;
+
 
     DrillGtkContext* context = cast(DrillGtkContext*) userObject;
     assert(context !is null);
@@ -782,12 +540,9 @@ in(userObject != null)
 
     // Add default apps
     context.applications = getApplications();
-    foreach (application; context.applications)
-    {
-        assert(context !is null);
-        assert(context.liststore !is null);
-        context.liststore.appendApplication(application);
-    }
+    addApplicationsToList(context.liststore,context.applications);
+
+
 
     // Set bottom credits label
     import Meta : GITHUB_URL, AUTHOR_URL, AUTHOR_NAME, VERSION;
@@ -895,6 +650,7 @@ int main(string[] args)
     GtkApplication* app = gtk_application_new("me.santamorena.drill",
             GApplicationFlags.G_APPLICATION_FLAGS_NONE);
     assert(app !is null);
+    GC.addRoot(app);
 
     DrillGtkContext drillGtkContext;
     drillGtkContext.app = app;
