@@ -282,16 +282,22 @@ in (currentDirectory.isDir())
     // // // //     unless isDir() is checked
     // // // // */
 
-    // First we check if we can skip the directory straight away
-    if (shouldSkipDirectory(currentDirectory,blockListRegex))
-        return;
+
 
     // Then if the directory was not skipped we get a list of the shallow files inside
     // NOT RECURSIVELY, JUST THE FILES IMMEDIATELY INSIDE
     // If we fail to get the files we just stop this directory scanning
+
+    // NOTE: do not use IFs but use switches here in the hot path 
+    //       so we don't have CPU branching
     DirIterator files;
-    if (!tryGetShallowFiles(currentDirectory, files))
-        return;
+    final switch (tryGetShallowFiles(currentDirectory, files))
+    {
+        case false:
+            return;
+        case true:
+            break;
+    }
 
     // If we could get the files inside we start to scan all of them
     foreach (DirEntry currentFile; files)
@@ -301,45 +307,63 @@ in (currentDirectory.isDir())
 
         try
         {
-              if (currentFile.isSymlink())
-                    {
-                        trace("Symlink ignored: " ~ currentDirectory.name);
-                        continue;
-                    }
-
-            // TODO: remove this IF branch using a lookup table
-
-            // If the file is a directory we check its priority and then enqueue it
-            if (currentFile.isDir())
+            final switch (currentFile.isSymlink())
             {
-                // TODO: remove this IF branch using a lookup table
-                if (isInRegexList(priorityListRegex, currentFile.name))
-                {
-                    trace("High priority: "~currentFile.name);
-                    queue.insertFront(currentFile);
-                }
-                else
-                {
-                    //trace("Low priority: "~currentFile.name);
-                    queue.insertBack(currentFile);
-                }
+                case false:
+                    break;
+                case true:
+                    trace("Symlink ignored: " ~ currentDirectory.name);
+                    continue;
             }
             
-            // If the file matches the search we consider it a result
-            // we don't care if it's a normal file or a directory
-            if (isFileNameMatchingSearchString(searchString, baseName(currentFile.name)))
+
+            // If the file is a directory we check its priority and then enqueue it
+            final switch (currentFile.isDir())
             {
-                trace("Matching search"~currentFile.name);
-              
-                immutable(FileInfo) fi = buildFileInfo(currentFile);
-                //assert(userObject !is null);
-                assert(resultCallback !is null,"resultCallback can't be null before calling the callback");
-                (*resultCallback)(fi, cast(void*)userObject);
+                // The file is a directory
+                case true:
+                    // First we check if we can skip the directory straight away
+                    // In this way the queue does not get filled <=== that's the plan
+                    final switch(shouldSkipDirectory(currentFile,blockListRegex))
+                    {
+                        case false:
+                            if (isInRegexList(priorityListRegex, currentFile.name))
+                            {
+                                trace("High priority: "~currentFile.name);
+                                queue.insertFront(currentFile);
+                            }
+                            else
+                            {
+                                //trace("Low priority: "~currentFile.name);
+                                queue.insertBack(currentFile);
+                            }
+                            break;
+                        case true:
+                            continue;
+                    }
+                    goto case false;
+
+                // Switch fallthrough here, so directories are added too
+                case false:
+
+                    // If the file matches the search we consider it a result
+                    // we don't care if it's a normal file or a directory
+                    final switch(isFileNameMatchingSearchString(searchString, baseName(currentFile.name)))
+                    {
+                        // The file does not match the search
+                        case false:
+                            continue;
+
+                        // The file name matches the search string
+                        case true:
+                            trace("Matching search"~currentFile.name);
+                            immutable(FileInfo) fi = buildFileInfo(currentFile);
+                            //assert(userObject !is null);
+                            assert(resultCallback !is null,"resultCallback can't be null before calling the callback");
+                            (*resultCallback)(fi, cast(void*)userObject);
+                            break;
+                    }
             }
-            // else
-            // {
-            //     Logger.logTrace("Not matching file, skipped: "~currentFile.name);
-            // }
         }
         catch (Exception e)
         {
