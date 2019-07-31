@@ -223,13 +223,51 @@ in(data != null)
     DrillGtkContext* context = cast(DrillGtkContext*) data;
     assert(context !is null);
 
+    closeApplication(context);
+
+  
+}
+
+/++
+    Closes the GTK application and stops the crawlers
+
+    Params:
+        context = the DrillGtkContext struct
++/
+void closeApplication(DrillGtkContext* context)
+in(context != null)
+{
+    import Context : stopCrawlingAsync;
+
     // Last opportunity to stop crawlers
+    // Because we stop with Async the window will close instantly,
+    // good for usability reasons,
+    // But the process will linger a bit to close the crawlers
     assert(context !is null);
     if (context.context !is null)
-        context.context.threads.stopCrawlingSync();
+        context.context.threads.stopCrawlingAsync();
 
     assert(context !is null);
     context.running = false;
+
+    assert(context !is null);
+    assert(context.treeview !is null);
+    gtk_widget_destroy(cast(GtkWidget*)context.treeview);
+    context.treeview = null;
+
+    assert(context !is null);
+    assert(context.search_input !is null);
+    gtk_widget_destroy(cast(GtkWidget*)context.search_input);
+    context.search_input = null;
+
+    assert(context !is null);
+    assert(context.queue !is null);
+    g_async_queue_unref(context.queue);
+    context.queue = null;
+
+    assert(context !is null);
+    assert(context.window !is null);
+    gtk_widget_destroy(cast(GtkWidget*)context.window);
 
     assert(context !is null);
     assert(context.app !is null);
@@ -241,27 +279,14 @@ in(widget != null)
 in(data != null)
 {
     import core.stdc.stdio : printf;
-    import Context : stopCrawlingSync;
+    
 
     DrillGtkContext* context = cast(DrillGtkContext*) data;
     assert(context !is null);
 
     if (event.keyval == GDK_KEY_Escape)
     {
-        assert(context !is null);
-
-        if (context.context !is null)
-        {
-            context.context.threads.stopCrawlingSync();
-            context.context = null;
-        }
-
-        context.running = false;
-
-        assert(context !is null);
-        assert(context.app !is null);
-        g_application_quit(context.app);
-        return true;
+        closeApplication(context);
     }
     return false;
 }
@@ -479,9 +504,9 @@ in(userObject !is null)
     char* str = gtk_editable_get_chars(cast(GtkEditable*) widget, 0, -1);
     assert(str !is null);
     const(string) searchString = to!string(str);
-
-
-
+    import core.stdc.stdlib : free;
+    free(str);
+    str = null;
 
     // Clean the list
     assert(context !is null);
@@ -851,8 +876,8 @@ int main(string[] args)
     import Config : loadData;
     import std.file : thisExePath;
 
-    // import core.memory : GC;
-    // GC.disable();
+    import core.memory : GC;
+    GC.disable();
 
     GtkApplication* app = gtk_application_new("me.santamorena.drill",
             GApplicationFlags.G_APPLICATION_FLAGS_NONE);
@@ -868,6 +893,9 @@ int main(string[] args)
     assert(app !is null);
     g_signal_connect(app, "activate", &activate, &drillGtkContext);
     int status = g_application_run(cast(GApplication*) app, 0, null);
+
+
+    
 
     assert(app !is null);
     g_object_unref(app);

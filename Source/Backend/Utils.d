@@ -27,7 +27,7 @@ version(linux) @system string[] getDesktopFiles()
         
         import std.array : split;
         import Logger : Logger;
-        //HACK: replace executeShell with a system call to get the list of files, executeShell is SLOW
+        // TODO: replace executeShell with a system call to get the list of files, executeShell is SLOW
         immutable auto ls = executeShell("ls /usr/share/applications/*.desktop | grep -v _");
         if (ls.status == 0)
         {   
@@ -51,7 +51,7 @@ Returns: true if successful
 */
 nothrow @safe bool openFile(in immutable(string) fullpath)
 {
-    
+    // FIXME: return false when no file association
     import std.process : spawnProcess;
     import std.stdio : stdin, stdout, stderr;
     import std.process : Config;
@@ -108,7 +108,7 @@ out(m; m.length != 0)
     {
         version (linux)
         {
-            // TODO: read /proc/mounts
+            // TODO: read /proc/mounts instead of executing df
             // df catches network mounted drives like NFS
             // so don't use lsblk here
 
