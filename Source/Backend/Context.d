@@ -66,8 +66,9 @@ Notifies the crawlers to stop and clears the crawlers array stored inside DrillC
 This function is non-blocking.
 If no crawling is currently underway this function will do nothing.
 +/
-@system @nogc void stopCrawlingAsync(ref Crawler[] crawlers)
+@system void stopCrawlingAsync(ref Crawler[] crawlers)
 {
+    info("Requested to stop all crawlers asynchronously");
     import Crawler : Crawler; 
     foreach (Crawler crawler; crawlers)
         crawler.stopAsync();

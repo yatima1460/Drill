@@ -430,8 +430,9 @@ public:
 
     }
 
-    void stopAsync() @nogc
+    void stopAsync()
     {
+        infof("Crawler '%s' async stop requested",MOUNTPOINT);
         this.resultCallback = (&this.noop_resultFound).funcptr;
         this.running = false;
     }

@@ -20,7 +20,8 @@
                 "debugInfo",
                 "stackStomping",
                 "alwaysStackFrame"
-            ]
+            ],
+            "versions": ["StdLoggerDisableTrace"]
         },
         "release-debug": {
             "buildOptions": [
