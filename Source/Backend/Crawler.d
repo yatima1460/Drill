@@ -52,6 +52,26 @@ in (fileName.length > 0)
     return true;
 }
 
+unittest
+{
+    assert(isFileNameMatchingSearchString(".","."));
+    assert(isFileNameMatchingSearchString("a","a"));
+
+    assert(isFileNameMatchingSearchString("aaaa","aaaaa"));
+    assert(!isFileNameMatchingSearchString("aaaaa","aaaa"));
+
+    assert(isFileNameMatchingSearchString("jojo 39","JoJo's Bizarre Adventures Golden Wind 39.mkv"));
+    assert(!isFileNameMatchingSearchString("jojo 38","JoJo's Bizarre Adventures Golden Wind 39.mkv"));
+    assert(isFileNameMatchingSearchString("jojo 3","JoJo's Bizarre Adventures Golden Wind 39.mkv"));
+    assert(!isFileNameMatchingSearchString("jojo3","JoJo's Bizarre Adventures Golden Wind 39.mkv"));
+    assert(isFileNameMatchingSearchString("jojo","JoJo's Bizarre Adventures Golden Wind 39.mkv"));
+    assert(isFileNameMatchingSearchString("39","JoJo's Bizarre Adventures Golden Wind 39.mkv"));
+    assert(isFileNameMatchingSearchString("olde","JoJo's Bizarre Adventures Golden Wind 39.mkv"));
+    assert(isFileNameMatchingSearchString("JoJo's Bizarre Adventures Golden Wind 39.mkv","JoJo's Bizarre Adventures Golden Wind 39.mkv"));
+    assert(isFileNameMatchingSearchString(".mkv","JoJo's Bizarre Adventures Golden Wind 39.mkv"));
+}
+
+
 
 /++
     Check if the value is inside a regex list
@@ -117,6 +137,36 @@ in (value != null)
     return f;
 }
 
+unittest
+{
+    import std.file : thisExePath;
+    FileInfo f = buildFileInfo(DirEntry(thisExePath));
+    assert(f.thread == "");
+    assert(!f.isDirectory);
+    assert(f.isFile);
+    assert(f.dateModifiedString);
+    assert(canFind(f.containingFolder,"/Build/Drill-CLI-linux-x86_64-unittest-cov"));
+    assert(f.fileName == "drill-search-test-CLI");
+    assert(f.fileNameLower == "drill-search-test-cli");
+    assert(f.extension == "");
+    assert(canFind(f.fullPath,"/Build/Drill-CLI-linux-x86_64-unittest-cov/drill-search-test-CLI"),f.fullPath);
+    assert(!canFind(f.sizeString, "0 B"));
+}
+unittest
+{
+    FileInfo f = buildFileInfo(DirEntry("/"));
+    assert(f.thread == "");
+    assert(f.isDirectory);
+    assert(!f.isFile);
+    assert(f.dateModifiedString);
+    assert(canFind(f.containingFolder,"/"));
+    assert(f.fileName == "/");
+    assert(f.fileNameLower == "/");
+    assert(f.extension == "");
+    assert(canFind(f.fullPath,"/"),f.fullPath);
+    assert(!canFind(f.sizeString, "0 B"));
+
+}
 
 
 // struct CrawlerData
@@ -376,7 +426,7 @@ in (currentDirectory.isDir())
 
 
 // auto composed = new Thread(&threadFunc).start();
-
+// TODO: remove this OOP hell
 class Crawler : Thread
 {
 
@@ -481,6 +531,8 @@ public:
     NOTE: We don't really care about CPU time, Drill isn't CPU intensive but disk intensive,
     in this function it's not bad design that there are multiple IFs checking the same thing over and over again,
     but it's done to stop the crawling as soon as possible to have more time to crawl important files.
+
+    ^^^ Is this really true? Maybe slow RAM and CPU can slow down too much the DMA requests too?
     */
     void run()
     {
