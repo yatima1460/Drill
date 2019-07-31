@@ -22,10 +22,12 @@ import FileInfo : FileInfo;
 import std.experimental.logger;
 
 
+// TODO: apps sorted by date
 // TODO: pressing return should open the first result
-
-
-
+// TODO: icon on the left of the search
+// TODO: icons on filenames
+// TODO: show applications after search returns to 0 length
+// TODO: right click menu and update screenshot with it
 /++
     Callback called by GTK after the window is destroyed
 +/
@@ -65,10 +67,11 @@ in(data != null)
     DrillGtkContext* context = cast(DrillGtkContext*) data;
     assert(context !is null);
 
-    info("ESC pressed");
+    
 
     if (event.keyval == GDK_KEY_Escape)
     {
+        info("ESC pressed");
         // assert(context !is null);
         // g_idle_remove_by_data(context);
 
