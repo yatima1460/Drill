@@ -9,7 +9,7 @@ This struct represents an active Drill search,
 it holds a pool of crawlers and the current state, 
 like the searched value
 +/
-@nogc pure struct DrillContext
+pure nothrow @nogc @safe struct DrillContext
 {
 
     /++
@@ -39,7 +39,7 @@ like the searched value
 
     debug
     {
-        @nogc nothrow ~this()
+        @nogc @trusted nothrow ~this()
         {
             import core.stdc.stdio;
             printf("DrillContext destroyed\n");
@@ -57,7 +57,7 @@ Maximum: length of total number of mountpoints unless the user started the crawl
 
 Returns: number of crawlers active
 +/
-@safe @nogc immutable(uint) activeCrawlersCount(const Crawler[] crawlers) 
+pure nothrow @safe @nogc immutable(uint) activeCrawlersCount(const Crawler[] crawlers) 
 {
     int active = 0;
     foreach (thread; crawlers)
@@ -71,12 +71,13 @@ Notifies the crawlers to stop and clears the crawlers array stored inside DrillC
 This function is non-blocking.
 If no crawling is currently underway this function will do nothing.
 +/
-@nogc @system void stopCrawlingAsync(ref Crawler[] crawlers)
+@system @nogc void stopCrawlingAsync(ref Crawler[] crawlers)
 {
     import Crawler : Crawler; 
     foreach (Crawler crawler; crawlers)
         crawler.stopAsync();
-    crawlers = []; // TODO: if nothing has a reference to a thread does the thread get GC-ed?
+    crawlers = []; 
+    // FIXME: if nothing has a reference to a thread does the thread get GC-ed?
 }
 
 
@@ -128,7 +129,7 @@ This function stops all the crawlers and will return only when all of them are s
 }
 
 import Utils : getMountpoints;
-
+import Crawler : CrawlerCallback;
 /++
 Starts the crawling, every crawler will filter on its own.
 Use the resultFound callback as an event to know when a crawler finds a new result.
@@ -139,7 +140,7 @@ Params:
 +/
 @system  DrillContext* startCrawling(in const(DrillConfig) config, 
                                    in immutable(string) searchValue, 
-                                   in immutable(void function(immutable(FileInfo) result, void* userObject)) resultCallback, 
+                                   in CrawlerCallback resultCallback, 
                                    in void* userObject)
 in (searchValue !is null, "the search string can't be null")
 in (searchValue.length > 0, "the search string can't be empty")
@@ -159,11 +160,11 @@ out (c;c.threads.length <= getMountpoints().length, "threads created number is w
     {
         import Crawler : Crawler; 
         //printf("startCrawling foreach loop userObject:%p\n",userObject);
-        import Crawler : _isInRegexList;
+        import Crawler : isInRegexList;
         import std.algorithm : sort, map, filter, canFind;
         import std.array : array;
         import std.regex : Regex, regex, RegexMatch, match;
-        if (_isInRegexList(config.BLOCK_LIST[].map!(x => regex(x)).array,mountpoint))
+        if (isInRegexList(config.BLOCK_LIST[].map!(x => regex(x)).array,mountpoint))
         {
             
             Logger.logDebug("Crawler mountpoint is in the blocklist, the crawler will stop.",mountpoint);
