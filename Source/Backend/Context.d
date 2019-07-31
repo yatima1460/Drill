@@ -2,7 +2,7 @@ import Config : DrillConfig;
 import FileInfo : FileInfo;
 import std.variant : Variant;
 import Crawler : Crawler;
-
+import std.experimental.logger;
 
 /++
 This struct represents an active Drill search, 
@@ -83,28 +83,28 @@ This function does not stop the crawlers!!!
 @system void waitForCrawlers(ref Crawler[] crawlers)
 {
     import Crawler : Crawler; 
-    import Logger : Logger;
+    
     import std.conv: to;
-    Logger.logInfo("Waiting for "~to!string(activeCrawlersCount(crawlers))~" crawlers to stop");
+    info("Waiting for "~to!string(activeCrawlersCount(crawlers))~" crawlers to stop");
     foreach (Crawler crawler; crawlers)
     {
-        Logger.logInfo("Waiting for crawler "~to!string(crawler)~" to stop");
+        info("Waiting for crawler "~to!string(crawler)~" to stop");
         import core.thread : ThreadException;
         try
         {
             //FIXME: if for whatever reason the crawler is not started this will SEGFAULT
             crawler.join();     
-            Logger.logInfo("Crawler "~to!string(crawler)~" stopped");
+            info("Crawler "~to!string(crawler)~" stopped");
             crawler.destroy();
         }
         catch(ThreadException e)
         {
-            Logger.logError("Thread "~crawler.toString()~" crashed when joining");
-            Logger.logError(e.msg);
+            critical("Thread "~crawler.toString()~" crashed when joining");
+            critical(e.msg);
         }
         
     }
-    Logger.logInfo("All crawlers stopped.");
+    info("All crawlers stopped.");
 
     crawlers = [];
 }
@@ -119,8 +119,7 @@ This function stops all the crawlers and will return only when all of them are s
     foreach (Crawler crawler; crawlers)
         crawler.stopAsync();
     waitForCrawlers(crawlers);
-    import Logger : Logger;
-    Logger.logInfo("all crawlers stopped");
+    info("all crawlers stopped");
 }
 
 import Utils : getMountpoints;
@@ -149,8 +148,8 @@ out (c;c.threads.length <= getMountpoints().length, "threads created number is w
     c.searchValue = searchValue;
     c.userObject = cast(void*)userObject;
 
-    import Logger : Logger;
-    debug Logger.logWarning("user_object is null");
+    
+    warning("user_object is null");
     foreach (immutable(string) mountpoint; getMountpoints())
     {
         import Crawler : Crawler; 
@@ -159,14 +158,15 @@ out (c;c.threads.length <= getMountpoints().length, "threads created number is w
         import std.algorithm : sort, map, filter, canFind;
         import std.array : array;
         import std.regex : Regex, regex, RegexMatch, match;
-        if (isInRegexList(config.BLOCK_LIST[].map!(x => regex(x)).array,mountpoint))
+        if (isInRegexList(config.BLOCK_LIST[].map!(x => regex(x,"i")).array,mountpoint))
         {
             
-            Logger.logDebug("Crawler mountpoint is in the blocklist, the crawler will stop.",mountpoint);
+            info("Crawler mountpoint is in the blocklist, the crawler will stop.",mountpoint);
             continue;
         }
         Crawler crawler = new Crawler(mountpoint, config.BLOCK_LIST, config.PRIORITY_LIST_REGEX, resultCallback, searchValue, c.userObject);
         crawler.isDaemon(false);
+        crawler.name = mountpoint;
         if (config.singlethread)
             crawler.run();
         else

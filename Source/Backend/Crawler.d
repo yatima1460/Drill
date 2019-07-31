@@ -12,12 +12,14 @@ import std.uni : toLower;
 import std.regex : Regex, regex, RegexMatch, match;
 import std.string : split, strip;
 
-import Logger : Logger;
+import std.experimental.logger;
+
 import Utils : sizeToHumanReadable, systime_to_string;
 import FileInfo : FileInfo;
 
 import std.concurrency : spawn;
 import std.container.dlist : DList;
+
 
 
 alias CrawlerCallback = void function(  const(FileInfo) result, void* userObject);
@@ -64,7 +66,7 @@ in (fileName.length > 0)
     Complexity:
         O(list)
 +/
-nothrow @safe bool isInRegexList(const(Regex!char[]) list, const(string) value)
+bool isInRegexList(const(Regex!char[]) list, const(string) value)
 in (value != null)
 {
     foreach (ref regexrule; list)
@@ -79,6 +81,7 @@ in (value != null)
         }
         catch(Exception e)
         {
+            error(e.message);
             continue;
         }
     }
@@ -100,6 +103,7 @@ in (value != null)
 @safe FileInfo buildFileInfo(DirEntry currentFile)
 {
     FileInfo f = {
+        Thread.getThis.name,
         currentFile.isDir(),
         !currentFile.isDir(),
         systime_to_string(currentFile.timeLastModified()),
@@ -115,11 +119,6 @@ in (value != null)
 
 
 
-nothrow @safe bool isPriorityDirectory(DirEntry currentFile, const(Regex!char[]) priorityListRegex)
-in (currentFile.isDir())
-{
-    return isInRegexList(priorityListRegex, currentFile.name);
-}
 // struct CrawlerData
 // {
 //     string root;
@@ -210,13 +209,14 @@ in (currentFile.isDir())
 /++
     Given a file and a blocklist will determine if the file should be skipped or not
 +/
-nothrow @safe bool shouldSkipFile(DirEntry currentFile, const Regex!char[] blockListRegex)
+bool shouldSkipDirectory(DirEntry currentDirectory, const Regex!char[] blockListRegex)
+in (currentDirectory.isDir())
 {
     try
     {
-        if (currentFile.isSymlink())
+        if (currentDirectory.isSymlink())
         {
-            Logger.logTrace("Symlink ignored: " ~ currentFile.name);
+            trace("Symlink ignored: " ~ currentDirectory.name);
             return true;
         }
     }
@@ -225,9 +225,9 @@ nothrow @safe bool shouldSkipFile(DirEntry currentFile, const Regex!char[] block
         return true;
     }
 
-    if (isInRegexList(blockListRegex, currentFile.name))
+    if (isInRegexList(blockListRegex, currentDirectory.name))
     {
-        Logger.logTrace("Ignored: " ~ currentFile.name);
+        trace("Blacklisted: " ~ currentDirectory.name);
         return true;
     }
 
@@ -248,17 +248,19 @@ nothrow @safe bool shouldSkipFile(DirEntry currentFile, const Regex!char[] block
     Complexity:
         O(1)
 +/
-nothrow bool tryGetShallowFiles(DirEntry currentDirectory, out DirIterator iterator)
+bool tryGetShallowFiles(DirEntry currentDirectory, out DirIterator iterator)
 in (currentDirectory.isDir())
 {
     try
     {
+        //FIXME: is "true" as third argument needed here?
+        // Are some folders marked as symlink when they actually aren't on Windows?
         iterator = dirEntries(currentDirectory, SpanMode.shallow, true);
         return true;
     }
     catch (Exception e)
     {   
-        Logger.logError(e.msg);
+        error(e.msg);
         return false;
     }
 }
@@ -274,14 +276,14 @@ void crawlDirectory(DirEntry currentDirectory,
                     DList!DirEntry queue)
 in (currentDirectory.isDir())
 {
-    /*
-        NOTE:
-        A "File" in the more general term and in this function can be both a normal file and a directory
-        unless isDir() is checked
-    */
+    // // // // /*
+    // // // //     NOTE:
+    // // // //     A "File" in the more general term and in this function can be both a normal file and a directory
+    // // // //     unless isDir() is checked
+    // // // // */
 
     // First we check if we can skip the directory straight away
-    if (shouldSkipFile(currentDirectory,blockListRegex))
+    if (shouldSkipDirectory(currentDirectory,blockListRegex))
         return;
 
     // Then if the directory was not skipped we get a list of the shallow files inside
@@ -294,48 +296,54 @@ in (currentDirectory.isDir())
     // If we could get the files inside we start to scan all of them
     foreach (DirEntry currentFile; files)
     {
-        if (shouldSkipFile(currentFile,blockListRegex))
-            continue;
+        // if (shouldSkipDirectory(currentFile,blockListRegex))
+        //     continue;
 
         try
         {
+              if (currentFile.isSymlink())
+                    {
+                        trace("Symlink ignored: " ~ currentDirectory.name);
+                        continue;
+                    }
+
             // TODO: remove this IF branch using a lookup table
 
             // If the file is a directory we check its priority and then enqueue it
             if (currentFile.isDir())
             {
                 // TODO: remove this IF branch using a lookup table
-                if (isPriorityDirectory(currentFile, priorityListRegex))
+                if (isInRegexList(priorityListRegex, currentFile.name))
                 {
-                    Logger.logTrace("High priority: "~currentFile.name);
+                    trace("High priority: "~currentFile.name);
                     queue.insertFront(currentFile);
                 }
                 else
                 {
-                    Logger.logTrace("Low priority: "~currentFile.name);
+                    //trace("Low priority: "~currentFile.name);
                     queue.insertBack(currentFile);
                 }
             }
             
             // If the file matches the search we consider it a result
             // we don't care if it's a normal file or a directory
-            if (isFileNameMatchingSearchString(searchString, currentFile.name))
+            if (isFileNameMatchingSearchString(searchString, baseName(currentFile.name)))
             {
-                Logger.logTrace("Matching search"~currentFile.name);
+                trace("Matching search"~currentFile.name);
               
                 immutable(FileInfo) fi = buildFileInfo(currentFile);
-                assert(userObject !is null);
+                //assert(userObject !is null);
                 assert(resultCallback !is null,"resultCallback can't be null before calling the callback");
                 (*resultCallback)(fi, cast(void*)userObject);
             }
-            else
-            {
-                Logger.logTrace("Not matching file, skipped: "~currentFile.name);
-            }
+            // else
+            // {
+            //     Logger.logTrace("Not matching file, skipped: "~currentFile.name);
+            // }
         }
         catch (Exception e)
         {
-            Logger.logError(e.msg);
+            critical(e.msg);
         }
     }
 }
@@ -399,12 +407,12 @@ public:
         super(&run);
         this.MOUNTPOINT = MOUNTPOINT;
 
-        Logger.logDebug("Created",this.toString());
-        Logger.logDebug("Search term '" ~ search ~ "'",this.toString());
-        Logger.logDebug("Global blocklist.length = " ~ to!string(BLOCK_LIST.length),this.toString());
+        info("Created",this.toString());
+        info("Search term '" ~ search ~ "'",this.toString());
+        info("Global blocklist.length = " ~ to!string(BLOCK_LIST.length),this.toString());
 
        
-        Logger.logDebug("Global priority list length = " ~ to!string(PRIORITY_LIST_REGEX.length),this.toString());
+        info("Global priority list length = " ~ to!string(PRIORITY_LIST_REGEX.length),this.toString());
         this.PRIORITY_LIST_REGEX = PRIORITY_LIST_REGEX;
 
         this.SEARCH_STRING = search;
@@ -465,14 +473,14 @@ public:
          // Every Crawler will have all the other mountpoints in its blocklist
         // In this way crawlers will not cross paths
         string[] cp_tmp = getMountpoints()[].filter!(x => x != MOUNTPOINT).map!(x => "^" ~ x ~ "$").array;
-        Logger.logDebug("Adding these to the global blocklist: " ~ to!string(cp_tmp),this.toString());
+        info("Adding these to the global blocklist: " ~ to!string(cp_tmp),this.toString());
         Array!string crawler_exclusion_list = Array!string(BLOCK_LIST);
         crawler_exclusion_list ~= cp_tmp;
-        Regex!char[] exclusion_regexes = crawler_exclusion_list[].map!(x => regex(x)).array;
+        Regex!char[] exclusion_regexes = crawler_exclusion_list[].map!(x => regex(x,"i")).array;
         this.BLOCK_LIST_REGEX = exclusion_regexes;
 
-        Logger.logDebug("New crawler custom blocklist.length = " ~ to!string(BLOCK_LIST_REGEX.length),this.toString());
-        Logger.logDebug("Started");
+        info("New crawler custom blocklist.length = " ~ to!string(BLOCK_LIST_REGEX.length),this.toString());
+        info("Started");
 
         // Use the queue as a stack to scan using a breadth-first algorithm
         DList!DirEntry queue;
@@ -486,7 +494,7 @@ public:
         }
         catch (Exception e)
         {
-            Logger.logError(e.msg,this.toString());
+            error(e.msg,this.toString());
             this.running = false;
             return;
         }
@@ -498,12 +506,12 @@ public:
             DirEntry currentDirectory = queue.front();
             queue.removeFront();
 
-            Logger.logTrace("Directory: " ~ currentDirectory.name,this.toString());
+            //trace("Directory: " ~ currentDirectory.name,this.toString());
             crawlDirectory(currentDirectory,BLOCK_LIST_REGEX,PRIORITY_LIST_REGEX,SEARCH_STRING,&resultCallback, cast(void*)userObject,queue);
         }
 
         // If this line is reached it means the crawler finished all the entire mountpoint to scan
         this.running = false;
-        Logger.logDebug("Finished its job");
+        info("Finished its job");
     }
 }

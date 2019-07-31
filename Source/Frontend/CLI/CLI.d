@@ -1,4 +1,4 @@
-module Drill.CLI;
+
 
 import core.stdc.stdlib : exit;
 import core.stdc.stdio :printf;
@@ -16,7 +16,7 @@ import Meta : VERSION, GITHUB_URL;
 // TODO: capture Ctrl-C and close crawlers?
 
 import std.variant : Variant;
-void resultsFoundWithDate(immutable(FileInfo) result, shared(Variant) userObject)
+void resultsFoundWithDate(const(FileInfo) result,  void*  userObject)
 {
     synchronized
     {
@@ -25,7 +25,7 @@ void resultsFoundWithDate(immutable(FileInfo) result, shared(Variant) userObject
 }
 
 
-void resultsFoundWithSize(immutable(FileInfo) result, shared(Variant) userObject)
+void resultsFoundWithSize(const(FileInfo) result,  void*  userObject)
 {
     synchronized
     {
@@ -34,7 +34,7 @@ void resultsFoundWithSize(immutable(FileInfo) result, shared(Variant) userObject
 }
 
 
-void resultsFoundWithSizeAndDate(immutable(FileInfo) result, shared(Variant) userObject)
+void resultsFoundWithSizeAndDate(const(FileInfo) result, void* userObject)
 {
     synchronized
     {
@@ -44,7 +44,7 @@ void resultsFoundWithSizeAndDate(immutable(FileInfo) result, shared(Variant) use
 
 
 
-void resultsFoundBare(immutable(FileInfo) result, Variant userObject)
+void resultsFoundBare(const(FileInfo) result,  void*  userObject)
 {
     synchronized
     {

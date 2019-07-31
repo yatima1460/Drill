@@ -38,7 +38,7 @@ pure nothrow @trusted void appendApplication(GtkListStore* store, const(Applicat
         -1);
 }
 
-pure nothrow @trusted void appendFileInfo(GtkListStore* store, immutable(FileInfo) fileInfo)
+  @trusted void appendFileInfo(GtkListStore* store, immutable(FileInfo) fileInfo)
 in(store !is null)
 {
     GtkTreeIter iter;
@@ -83,8 +83,10 @@ in(store !is null)
     //     }
 
     // }
+    import core.thread : Thread;
 
     auto name = toStringz(fileInfo.fileName);
+    //auto parent = toStringz(fileInfo.thread ~ ":"~fileInfo.containingFolder);
     auto parent = toStringz(fileInfo.containingFolder);
     auto size = toStringz(fileInfo.sizeString);
     auto date = toStringz(fileInfo.dateModifiedString);
