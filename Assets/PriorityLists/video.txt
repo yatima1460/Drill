@@ -13,17 +13,9 @@ x264
 360p
 240p
 Season
-season
-bluray
 BluRay
-Bluray
 ddp5\.1
 Film
-film
-movies
 Movies
 Anime
-anime
 TV Series
-TV series
-tv series
