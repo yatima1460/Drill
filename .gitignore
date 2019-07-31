@@ -45,4 +45,4 @@ Tools/rpm/build
 
 *.o
 
-
+*.lst
