@@ -17,10 +17,10 @@ import Utils : sizeToHumanReadable, systime_to_string;
 import FileInfo : FileInfo;
 
 import std.concurrency : spawn;
+import std.container.dlist : DList;
 
 
-
-alias CrawlerCallback = void function(  immutable(FileInfo) result, void* userObject);
+alias CrawlerCallback = void function(  const(FileInfo) result, void* userObject);
 
 
 
@@ -50,6 +50,7 @@ in (fileName.length > 0)
     return true;
 }
 
+
 /++
     Check if the value is inside a regex list
 
@@ -63,14 +64,23 @@ in (fileName.length > 0)
     Complexity:
         O(list)
 +/
-@safe bool _isInRegexList(const(Regex!char[]) list, const(string) value)
+nothrow @safe bool isInRegexList(const(Regex!char[]) list, const(string) value)
 in (value != null)
 {
     foreach (ref regexrule; list)
     {
-        RegexMatch!string mo = match(value, regexrule);
-        if (!mo.empty())
-            return true;
+        try
+        {
+            RegexMatch!string mo = match(value, regexrule);
+            if (!mo.empty())
+            {
+                return true;
+            }
+        }
+        catch(Exception e)
+        {
+            continue;
+        }
     }
     return false;
 }
@@ -98,12 +108,18 @@ in (value != null)
         toLower(baseName(currentFile.name)),
         extension(currentFile.name),
         currentFile.name,
-        sizeToHumanReadable(currentFile.size)
+        !currentFile.isDir() ? sizeToHumanReadable(currentFile.size) : ""
     };
     return f;
 }
 
 
+
+nothrow @safe bool isPriorityDirectory(DirEntry currentFile, const(Regex!char[]) priorityListRegex)
+in (currentFile.isDir())
+{
+    return isInRegexList(priorityListRegex, currentFile.name);
+}
 // struct CrawlerData
 // {
 //     string root;
@@ -184,10 +200,144 @@ in (value != null)
 //////////////////
 
 
+// @safe bool shouldSkipDirectory(DirEntry currentDirectory, const Regex!char[] blockListRegex)
+// in (currentDirectory.isDir() == true)
+// {
+//     return isInRegexList(blockListRegex,currentDirectory.name) || currentDirectory.isSymlink();
+// }
 
-void crawlDirectory(DirEntry directory)
+
+/++
+    Given a file and a blocklist will determine if the file should be skipped or not
++/
+nothrow @safe bool shouldSkipFile(DirEntry currentFile, const Regex!char[] blockListRegex)
 {
-    
+    try
+    {
+        if (currentFile.isSymlink())
+        {
+            Logger.logTrace("Symlink ignored: " ~ currentFile.name);
+            return true;
+        }
+    }
+    catch (Exception e)
+    {
+        return true;
+    }
+
+    if (isInRegexList(blockListRegex, currentFile.name))
+    {
+        Logger.logTrace("Ignored: " ~ currentFile.name);
+        return true;
+    }
+
+    return false;
+}
+
+
+/++
+    Returns a lazy iterator for the files immediately inside a directory
+
+    Params:
+        currentDirectory = the directory to scan
+        iterator = the iterator output
+
+    Returns:
+        true if successful, false if the iterator returned is invalid
+
+    Complexity:
+        O(1)
++/
+nothrow bool tryGetShallowFiles(DirEntry currentDirectory, out DirIterator iterator)
+in (currentDirectory.isDir())
+{
+    try
+    {
+        iterator = dirEntries(currentDirectory, SpanMode.shallow, true);
+        return true;
+    }
+    catch (Exception e)
+    {   
+        Logger.logError(e.msg);
+        return false;
+    }
+}
+
+
+
+void crawlDirectory(DirEntry currentDirectory, 
+                    const Regex!char[] blockListRegex, 
+                    const Regex!char[] priorityListRegex, 
+                    const(string) searchString, 
+                    CrawlerCallback* resultCallback, 
+                    const(void*) userObject,
+                    DList!DirEntry queue)
+in (currentDirectory.isDir())
+{
+    /*
+        NOTE:
+        A "File" in the more general term and in this function can be both a normal file and a directory
+        unless isDir() is checked
+    */
+
+    // First we check if we can skip the directory straight away
+    if (shouldSkipFile(currentDirectory,blockListRegex))
+        return;
+
+    // Then if the directory was not skipped we get a list of the shallow files inside
+    // NOT RECURSIVELY, JUST THE FILES IMMEDIATELY INSIDE
+    // If we fail to get the files we just stop this directory scanning
+    DirIterator files;
+    if (!tryGetShallowFiles(currentDirectory, files))
+        return;
+
+    // If we could get the files inside we start to scan all of them
+    foreach (DirEntry currentFile; files)
+    {
+        if (shouldSkipFile(currentFile,blockListRegex))
+            continue;
+
+        try
+        {
+            // TODO: remove this IF branch using a lookup table
+
+            // If the file is a directory we check its priority and then enqueue it
+            if (currentFile.isDir())
+            {
+                // TODO: remove this IF branch using a lookup table
+                if (isPriorityDirectory(currentFile, priorityListRegex))
+                {
+                    Logger.logTrace("High priority: "~currentFile.name);
+                    queue.insertFront(currentFile);
+                }
+                else
+                {
+                    Logger.logTrace("Low priority: "~currentFile.name);
+                    queue.insertBack(currentFile);
+                }
+            }
+            
+            // If the file matches the search we consider it a result
+            // we don't care if it's a normal file or a directory
+            if (isFileNameMatchingSearchString(searchString, currentFile.name))
+            {
+                Logger.logTrace("Matching search"~currentFile.name);
+              
+                immutable(FileInfo) fi = buildFileInfo(currentFile);
+                assert(userObject !is null);
+                assert(resultCallback !is null,"resultCallback can't be null before calling the callback");
+                (*resultCallback)(fi, cast(void*)userObject);
+            }
+            else
+            {
+                Logger.logTrace("Not matching file, skipped: "~currentFile.name);
+            }
+        }
+        catch (Exception e)
+        {
+            Logger.logError(e.msg);
+        }
+    }
 }
 
 
@@ -217,14 +367,14 @@ private:
     
     shared(bool) running;
 
-    void function(  immutable(FileInfo) result, void* userObject) resultCallback;
+    CrawlerCallback resultCallback;
 
     debug
     {
         long ignored_count;
     }
 
-       const(void*) userObj;
+       const(void*) userObject;
 
 
 public:
@@ -233,9 +383,9 @@ public:
         in const(string) MOUNTPOINT, 
         in const(string[]) BLOCK_LIST,
         in const(Regex!char[]) PRIORITY_LIST_REGEX,
-        in void function(immutable(FileInfo) result, void* userObject) resultCallback, 
+        in CrawlerCallback resultCallback, 
         in immutable(string) search,
-        in void* userObj
+        in void* userObject
     )
     in (MOUNTPOINT != null)
     in (MOUNTPOINT.length != 0)
@@ -264,10 +414,10 @@ public:
 
         this.running = true;
 
-        this.userObj = userObj;
+        this.userObject = userObject;
     }
 
-    private void noop_resultFound(immutable(FileInfo) result,void* v) const
+    private void noop_resultFound(const(FileInfo) result,void* v) const
     {
 
     }
@@ -289,29 +439,10 @@ public:
         return "Crawler(" ~ MOUNTPOINT ~ ")";
     }
 
-    pure const @safe @nogc bool isCrawling()
+    pure nothrow const @safe @nogc bool isCrawling()
     {
         return this.running;
     }
-
-private:
-
-    import std.functional : memoize;
-    
-    
-
-   
-
-
-    
-
-//     ~this()
-//    {
-//       import std.stdio : writeln;
-//       writeln("Crawler "~this.toString()~" de-allocated");
-//    }
-
-    public:
 
     /**
     NOTE: We don't really care about CPU time, Drill isn't CPU intensive but disk intensive,
@@ -322,7 +453,6 @@ private:
     {
         if (running == false)
             return;
-        alias isInRegexList = memoize!_isInRegexList;
         assert(SEARCH_STRING != null, "the search string can't be null");
         assert(SEARCH_STRING.length != 0,"the search string can't be empty");
         //assert(this.running == false, "the crawler is marked running when it isn't even run yet");
@@ -344,9 +474,12 @@ private:
         Logger.logDebug("New crawler custom blocklist.length = " ~ to!string(BLOCK_LIST_REGEX.length),this.toString());
         Logger.logDebug("Started");
 
-        import std.container.dlist : DList;
+        // Use the queue as a stack to scan using a breadth-first algorithm
         DList!DirEntry queue;
 
+        // Try to insert the mountpoint in the queue as first element
+        // It could fail for permission or I/O reasons,
+        // and if it does we just terminate the crawler instantly
         try
         {
             queue.insertBack(DirEntry(MOUNTPOINT));
@@ -355,90 +488,21 @@ private:
         {
             Logger.logError(e.msg,this.toString());
             this.running = false;
+            return;
         }
 
-
+        // If the mountpoint root is ok we start to scan everything
         while (!queue.empty() && running)
         {
+            // Pop a directory from the queue
             DirEntry currentDirectory = queue.front();
             queue.removeFront();
 
-
-
             Logger.logTrace("Directory: " ~ currentDirectory.name,this.toString());
-
-
-            if (isInRegexList(BLOCK_LIST_REGEX,currentDirectory.name) || currentDirectory.isSymlink())
-            {
-                Logger.logTrace("Blocked: " ~ currentDirectory.name,this.toString());
-                continue;
-            }
-            
-            DirIterator files;
-            try
-            {
-                files = dirEntries(currentDirectory, SpanMode.shallow, true);
-            }
-            catch (Exception e)
-            {
-               
-                Logger.logError(e.msg,this.toString());
-                continue;
-            }
-
-            foreach (DirEntry currentFile; files)
-            {
-                if (!this.running) return;
-                try
-                {
-                    if (currentFile.isSymlink())
-                    {
-                        //Logger.logDebug("Symlink ignored: " ~ currentDirectory.name,this.toString());
-                        continue;
-                    }
-                   
-                    if (isInRegexList(BLOCK_LIST_REGEX, currentFile.name))
-                    {
-                        //Logger.logDebug("Ignored: " ~ currentFile.name,this.toString());
-                        continue;
-                    }
-                    
-                    if (currentFile.isDir())
-                    {
-                        if (isInRegexList(this.PRIORITY_LIST_REGEX, currentFile.name))
-                        {
-                            //Logger.logDebug("High priority: "~currentFile.name,this.toString());
-                            queue.insertFront(currentFile);
-                        }
-                        else
-                        {
-                            //Logger.logTrace("Low priority: "~currentFile.name,this.toString());
-                            queue.insertBack(currentFile);
-                        }
-                    }
-                    
-                    if (isFileNameMatchingSearchString(SEARCH_STRING, currentFile.name))
-                    {
-                        Logger.logTrace("Matching search"~currentFile.name,this.toString());
-                        if(resultCallback is null) throw new Exception("resultCallback can't be null before calling the callback");
-
-                        immutable(FileInfo) fi = buildFileInfo(currentFile);
-
-                        assert(userObj !is null);
-                        resultCallback(fi, cast(void*)userObj);
-                    }
-                    else
-                    {
-                        Logger.logTrace("Not matching file, skipped: "~currentFile.name,this.toString());
-                    }
-                }
-                catch (Exception e)
-                {
-                    Logger.logError(e.msg,this.toString());
-                }
-            }
+            crawlDirectory(currentDirectory,BLOCK_LIST_REGEX,PRIORITY_LIST_REGEX,SEARCH_STRING,&resultCallback, cast(void*)userObject,queue);
         }
 
+        // If this line is reached it means the crawler finished all the entire mountpoint to scan
         this.running = false;
         Logger.logDebug("Finished its job");
     }

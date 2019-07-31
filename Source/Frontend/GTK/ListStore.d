@@ -3,7 +3,9 @@ import std.string : toStringz;
 import TreeIter : GtkTreeIter;
 import Types;
 
-extern (C) @trusted @nogc nothrow
+//TODO: merge ApplicationInfo and FileInfo into one data type?
+
+extern (C) @trusted @nogc pure nothrow
 {
 
     struct GtkListStore;
@@ -16,21 +18,32 @@ extern (C) @trusted @nogc nothrow
 
 import FileInfo : FileInfo;
 
-void appendApplication(GtkListStore* store, const(ApplicationInfo) app)
+pure nothrow @trusted void appendApplication(GtkListStore* store, const(ApplicationInfo) app)
 {
     GtkTreeIter iter;
+
+    //iter.user_data3 = cast(void*)2;
+
+    // HACK: to specify if a row is an app, an hidden space in the size field is added
+    // tell me if you have a better idea, user_data in GtkTreeIter doesn't seem reliable
 
     /* Append a row and fill in some data */
     store.gtk_list_store_append(&iter);
-    store.gtk_list_store_set(&iter, 0, toStringz(app.icon), 1,
-            toStringz(app.name), 2, toStringz(app.exec), 4,
-            toStringz(app.desktopFileDateModifiedString), -1);
+    store.gtk_list_store_set(&iter,
+        0, toStringz(app.icon),
+        1, toStringz(app.name),
+        2, toStringz(app.exec),
+        3, toStringz(" "),
+        4, toStringz(app.desktopFileDateModifiedString), 
+        -1);
 }
 
-@trusted nothrow void appendFileInfo(GtkListStore* store, immutable(FileInfo) fileInfo)
+pure nothrow @trusted void appendFileInfo(GtkListStore* store, immutable(FileInfo) fileInfo)
 in(store !is null)
 {
     GtkTreeIter iter;
+
+    //iter.user_data3 = cast(void*)1;
 
     import std.process : executeShell;
     import std.array : replace;

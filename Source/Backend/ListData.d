@@ -1,7 +1,7 @@
 
-/*
+/++
     Basic data every result from Drill will have
-*/
++/
 struct ListData
 {
     string name;

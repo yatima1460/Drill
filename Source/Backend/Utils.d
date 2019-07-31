@@ -3,18 +3,22 @@
 In this module go useful functions that are not strictly related to crawling
 */
 import std.functional : memoize;
-
 import std.typecons : Tuple;
 
-Tuple!(int,"status",string,"output") executeShellThreadSafe(immutable(string) str)
-{
-    synchronized
-    {
-        import std.process : executeShell;
-        return executeShell(str);
-    }
-}
 
+
+
+
+// Tuple!(int,"status",string,"output") executeShellThreadSafe(immutable(string) str)
+// {
+//     synchronized
+//     {
+//         import std.process : executeShell;
+//         return executeShell(str);
+//     }
+// }
+
+import std.process : executeShell;
 
 version(linux) @system string[] getDesktopFiles() 
 {
@@ -24,10 +28,12 @@ version(linux) @system string[] getDesktopFiles()
         import std.array : split;
         import Logger : Logger;
         //HACK: replace executeShell with a system call to get the list of files, executeShell is SLOW
-        immutable auto ls = executeShellThreadSafe("ls /usr/share/applications/*.desktop | grep -v _");
+        immutable auto ls = executeShell("ls /usr/share/applications/*.desktop | grep -v _");
         if (ls.status == 0)
         {   
-            return ls.output.split("\n");
+            import std.algorithm : filter;
+            import std.array : array;
+            return ls.output.split("\n").filter!(x => x.length > 0).array;
         }
         Logger.logError("Can't retrieve applications, will return an empty list");
         return [];
@@ -43,32 +49,36 @@ Opens a file using the current system implementation for file associations
 
 Returns: true if successful
 */
- @safe bool openFile(in immutable(string) fullpath)
+nothrow @safe bool openFile(in immutable(string) fullpath)
 {
-    synchronized
+    
+    import std.process : spawnProcess;
+    import std.stdio : stdin, stdout, stderr;
+    import std.process : Config;
+    import Logger : Logger;
+
+    try
     {
-        import std.process : spawnProcess;
-        import std.stdio : stdin, stdout, stderr;
-        import std.process : Config;
-
-        import Logger : Logger;
-
-        // try
-        // {
-            version (Windows)
-                spawnProcess(["explorer", fullpath], null, Config.none, null);
-            version (linux)
-                spawnProcess(["xdg-open", fullpath], null, Config.none, null);
-            version (OSX)
-                spawnProcess(["open", fullpath], null, Config.none, null);
-            // FIXME: if all three false it will return true even when it should be false
+        version (Windows)
+        {
+            spawnProcess(["explorer", fullpath], null, Config.detached, null);
             return true;
-        // }
-        // catch (Exception e)
-        // {
-        //     Logger.logError(e.msg);
-        //     return false;
-        // }
+        }
+        version (linux)
+        {
+            spawnProcess(["xdg-open", fullpath], null, Config.detached, null);
+            return true;
+        }
+        version (OSX)
+        {
+            spawnProcess(["open", fullpath], null, Config.detached, null);
+            return true;
+        }
+    }
+    catch (Exception e)
+    {
+        Logger.logError(e.msg);
+        return false;
     }
 }
 
@@ -98,6 +108,7 @@ out(m; m.length != 0)
     {
         version (linux)
         {
+            // TODO: read /proc/mounts
             // df catches network mounted drives like NFS
             // so don't use lsblk here
 
@@ -174,6 +185,12 @@ alias sizeToHumanReadable = memoize!_sizeToHumanReadable;
 
 import ApplicationInfo : ApplicationInfo;
 version(linux) immutable(ApplicationInfo) readDesktopFile(immutable(string) fullPath) @system
+in (fullPath !is null)
+in (fullPath.length > 0,"fullPath to the desktop file can't be zero length")
+out (app;app.name !is null,"app name can't be null: "~fullPath)
+out (app;app.name.length > 0)
+// out (app;app.exec !is null,"app exec can't be null: "~fullPath)
+// out (app;app.exec.length > 0,"app exec can't be length 0: "~fullPath)
 {
     import Logger : Logger;
 
