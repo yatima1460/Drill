@@ -6,7 +6,7 @@
 // immutable(string) DEFAULT_BLOCK_LIST    = import("BlockLists.txt");
 // immutable(string) DEFAULT_PRIORITY_LIST = import("PriorityLists.txt");
 
-
+// TODO: load and save config in ~/.config
 
 
 @safe @nogc pure struct DrillConfig
@@ -71,7 +71,8 @@ DrillConfig loadData(immutable(string) assetsDirectory)
 {
     import std.path : buildPath;
     import std.conv: to;
-    import Logger : Logger;
+    import std.experimental.logger;
+
     import Utils : mergeAllTextFilesInDirectory;
     import std.file : dirEntries, SpanMode, DirEntry, readText, FileException;
     import Utils : getMountpoints;
@@ -84,8 +85,8 @@ DrillConfig loadData(immutable(string) assetsDirectory)
     //Logger.logDebug("Mount points found: "~to!string(getMountpoints()));
     auto blockListsFullPath = buildPath(assetsDirectory,"BlockLists");
 
-    Logger.logDebug("Assets Directory: " ~ assetsDirectory);
-    Logger.logDebug("blockListsFullPath: " ~ blockListsFullPath);
+    info("Assets Directory: " ~ assetsDirectory);
+    info("blockListsFullPath: " ~ blockListsFullPath);
 
     string[] BLOCK_LIST; 
     try
@@ -94,8 +95,8 @@ DrillConfig loadData(immutable(string) assetsDirectory)
     }
     catch (FileException fe)
     {
-        Logger.logError(fe.toString());
-        Logger.logError("Error when trying to load block lists, will default to an empty list");
+        error(fe.message);
+        error("Error when trying to load block lists, will default to an empty list");
     }
 
     string[] PRIORITY_LIST;
@@ -112,8 +113,8 @@ DrillConfig loadData(immutable(string) assetsDirectory)
     }
     catch (FileException fe)
     {
-        Logger.logError(fe.toString());
-        Logger.logError("Error when trying to read priority lists, will default to an empty list");
+        error(fe.message);
+        error("Error when trying to read priority lists, will default to an empty list");
     }
     // DrillConfig dd;
     DrillConfig dd = {

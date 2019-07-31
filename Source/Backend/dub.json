@@ -9,6 +9,8 @@
   "homepage": "https://github.com/yatima1460/Drill",
   "targetType": "library",
   "targetName": "drillcore",
+ 
+ 
   "sourceFiles": [
     "Context.d",
     "Config.d",
@@ -16,15 +18,16 @@
     "FileInfo.d",
     "Crawler.d",
     "Utils.d",
-    "Logger.d",
     "ApplicationInfo.d"
   ],
   "dflags": [
     "-J=\"../../../\"",
     "-J=\"../../\"",
     "-J=\"$PACKAGE_DIR\"",
-    "-vgc"
+    "-vgc",
+    "-version=StdLoggerDisableTrace"
   ],
+
   "buildRequirements": [
     "allowWarnings"
   ],

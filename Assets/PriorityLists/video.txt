@@ -3,8 +3,11 @@
 2160p
 480p
 h264
+H264
+h265
 h265
 hevc
+HEVC
 x265
 x264
 360p
@@ -19,3 +22,8 @@ Film
 film
 movies
 Movies
+Anime
+anime
+TV Series
+TV series
+tv series

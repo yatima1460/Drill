@@ -6,3 +6,4 @@
 ^/run/mdadm$
 ^/run/httpd$
 ^/run/setroubleshoot$
+^/run/media$

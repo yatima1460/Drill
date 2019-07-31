@@ -33,3 +33,4 @@ lost\+found
 ^/media/apt
 ^/run/samba/ncalrpc
 ^/run/gdm3$
+^/home/(.[^\/]+)/gems

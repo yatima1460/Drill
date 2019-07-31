@@ -51,26 +51,31 @@ If you want a version that doesn't require sudo and can be configurable download
 
 ## Build
 
+### IMPORTANT
+
+- If you omit `-b release` a slower debug version with infinite logs (NOT recommended) will be created
+- Note: `-b release-debug` is somewhat in between a debug and a release version, it's compiled with fast code but it has debug checks enabled and some logs
+
 ### All OSes
 
 - Install DMD
     - on Linux download the .deb, don't install it from apt,
       be sure GDC doesn't get installed as backend compiler
-- cd CLI / cd GTK / cd WinAPI etc..
-- dub build -b release
+- Build a configuration, check the possible ones inside `dub.json`:
+    - `dub build -b release -c CLI`
+    - `dub build -b release -c GTK` 
+    - etc...
+- Output will be inside `./Build`
 
 ### Windows Visual Studio
 
 - Install DMD
 - Install Visual Studio 2017
 - Install VisualD
-- cd CLI / cd WinAPI
 - dub generate visuald
 - Open the project & Build Solution
 
-### Remember
 
-If you omit `-b release` a slower debug version with various logs (not recommended) will be created
 
 ### Debugging
 

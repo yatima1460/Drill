@@ -4,7 +4,7 @@ In this module go useful functions that are not strictly related to crawling
 */
 import std.functional : memoize;
 import std.typecons : Tuple;
-
+import std.experimental.logger;
 
 
 
@@ -26,7 +26,7 @@ version(linux) @system string[] getDesktopFiles()
     {
         
         import std.array : split;
-        import Logger : Logger;
+     
         // TODO: replace executeShell with a system call to get the list of files, executeShell is SLOW
         immutable auto ls = executeShell("ls /usr/share/applications/*.desktop | grep -v _");
         if (ls.status == 0)
@@ -35,7 +35,7 @@ version(linux) @system string[] getDesktopFiles()
             import std.array : array;
             return ls.output.split("\n").filter!(x => x.length > 0).array;
         }
-        Logger.logError("Can't retrieve applications, will return an empty list");
+        error("Can't retrieve applications, will return an empty list");
         return [];
     }
 }
@@ -49,13 +49,13 @@ Opens a file using the current system implementation for file associations
 
 Returns: true if successful
 */
-nothrow @safe bool openFile(in immutable(string) fullpath)
+@safe bool openFile(in immutable(string) fullpath)
 {
     // FIXME: return false when no file association
     import std.process : spawnProcess;
     import std.stdio : stdin, stdout, stderr;
     import std.process : Config;
-    import Logger : Logger;
+
 
     try
     {
@@ -77,7 +77,7 @@ nothrow @safe bool openFile(in immutable(string) fullpath)
     }
     catch (Exception e)
     {
-        Logger.logError(e.msg);
+        error(e.msg);
         return false;
     }
 }
@@ -102,7 +102,7 @@ string[] _getMountpoints() @trusted
 out(m; m.length != 0)
 {
     import std.process : executeShell;
-    import Logger : Logger;
+   
 
     synchronized
     {
@@ -116,7 +116,7 @@ out(m; m.length != 0)
 
             if (ls.status != 0)
             {
-                Logger.logError("Can't retrieve mount points, will just scan '/'");
+                critical("Can't retrieve mount points, will just scan '/'");
                 return ["/"];
             }
             import std.array : array, split;
@@ -192,7 +192,7 @@ out (app;app.name.length > 0)
 // out (app;app.exec !is null,"app exec can't be null: "~fullPath)
 // out (app;app.exec.length > 0,"app exec can't be length 0: "~fullPath)
 {
-    import Logger : Logger;
+    
 
     string[] desktopFileLines;
 
@@ -211,7 +211,7 @@ out (app;app.name.length > 0)
     }
     catch (Exception e)
     {
-        Logger.logError("Error reading file: '" ~ fullPath ~ "' " ~ e.msg);
+        error("Error reading file: '" ~ fullPath ~ "' " ~ e.msg);
     }
 
     string desktopFileFullPath = fullPath;
@@ -250,7 +250,7 @@ out (app;app.name.length > 0)
     }
     catch (Exception e)
     {
-        Logger.logError("Error parsing file: '" ~ fullPath ~ "' " ~ e.msg);
+        error("Error parsing file: '" ~ fullPath ~ "' " ~ e.msg);
     }
 
     immutable(ApplicationInfo) ai = {

@@ -12,6 +12,11 @@ import Types;
 */
 private extern (C) @trusted @nogc nothrow
 {
+    gint
+gtk_tree_model_iter_n_children (GtkTreeModel *tree_model,
+                                GtkTreeIter *iter);
+    gboolean
+g_idle_remove_by_data (gpointer data);
     const(gchar *)	g_strerror ();
     struct GtkDialog;
     enum GtkButtonsType
@@ -239,6 +244,8 @@ in(context != null)
 {
     import Context : stopCrawlingAsync;
 
+    g_idle_remove_by_data(context);
+
     // Last opportunity to stop crawlers
     // Because we stop with Async the window will close instantly,
     // good for usability reasons,
@@ -250,24 +257,24 @@ in(context != null)
     assert(context !is null);
     context.running = false;
 
-    assert(context !is null);
-    assert(context.treeview !is null);
-    gtk_widget_destroy(cast(GtkWidget*)context.treeview);
-    context.treeview = null;
+    // assert(context !is null);
+    // assert(context.treeview !is null);
+    // gtk_widget_destroy(cast(GtkWidget*)context.treeview);
+    // context.treeview = null;
 
-    assert(context !is null);
-    assert(context.search_input !is null);
-    gtk_widget_destroy(cast(GtkWidget*)context.search_input);
-    context.search_input = null;
+    // assert(context !is null);
+    // assert(context.search_input !is null);
+    // gtk_widget_destroy(cast(GtkWidget*)context.search_input);
+    // context.search_input = null;
 
-    assert(context !is null);
-    assert(context.queue !is null);
-    g_async_queue_unref(context.queue);
-    context.queue = null;
+    // assert(context !is null);
+    // assert(context.queue !is null);
+    // g_async_queue_unref(context.queue);
+    // context.queue = null;
 
-    assert(context !is null);
-    assert(context.window !is null);
-    gtk_widget_destroy(cast(GtkWidget*)context.window);
+    // assert(context !is null);
+    // assert(context.window !is null);
+    // gtk_widget_destroy(cast(GtkWidget*)context.window);
 
     assert(context !is null);
     assert(context.app !is null);
@@ -618,10 +625,16 @@ in(user_data !is null)
         gtk_entry_set_progress_fraction(context.search_input, fraction);
         //void
         //gtk_entry_set_progress_pulse_step (context.search_input,0.1);
+
+        import std.conv : to;
+        import std.string : toStringz;
+        immutable(string) foundResults = to!string(gtk_tree_model_iter_n_children(cast(GtkTreeModel*)context.liststore,null));
+        gtk_window_set_title(context.window,toStringz("Drill - Found:"~foundResults));
        
     }
     else
     {
+        gtk_window_set_title(context.window,"Drill");
         gtk_entry_set_progress_fraction(context.search_input, 0.0);
     }
   
