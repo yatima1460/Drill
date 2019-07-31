@@ -1,9 +1,9 @@
-\/Desktop$
-\/Downloads$
-\/Pictures$
-\/Documents$
-\/Videos$
-\/Music$
+Desktop$
+Downloads$
+Pictures$
+Documents$
+Videos$
+Music$
 books
 Books
 January
