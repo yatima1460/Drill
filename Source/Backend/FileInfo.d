@@ -32,7 +32,7 @@ struct FileInfo
     string dateModifiedString;
 
     /***
-    the parent folder
+    the parent folder path
     */
     string containingFolder;
 
