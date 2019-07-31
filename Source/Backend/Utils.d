@@ -109,6 +109,7 @@ out(m; m.length != 0)
         version (linux)
         {
             // TODO: read /proc/mounts instead of executing df
+            // TODO: remove memoization
             // df catches network mounted drives like NFS
             // so don't use lsblk here
 
