@@ -29,19 +29,20 @@
     bool singlethread;
 }
 
-
+version (linux)
+    {
 /**
 Returns the path where the config data is stored
 */
 public string getConfigPath()
 {
-    version (linux)
-    {
+    
         import std.path : expandTilde;
         return expandTilde("~/.config/drill-search");
-    } 
+    
 
 }
+} 
 
 
 // private void createDefaultConfigFiles()

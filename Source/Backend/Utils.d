@@ -129,32 +129,36 @@ out(m; m.length != 0)
         }
         version (OSX)
         {
-            immutable auto ls = executeShellThreadSafe("df -h");
+            immutable auto ls = executeShell("df -h");
             if (ls.status != 0)
             {
-                Logger.logError("Can't retrieve mount points, will just scan '/'");
+                critical("Can't retrieve mount points, will just scan '/'");
                 return ["/"];
             }
+            import std.string : indexOf;
+            import std.array : array, split;
+            import std.algorithm : map, canFind, filter;
             immutable auto startColumn = indexOf(ls.output.split("\n")[0], 'M');
             auto result = array(ls.output.split("\n").filter!(x => x.length > startColumn)
                     .map!(x => x[startColumn .. $])
                     .filter!(x => canFind(x, "/"))).idup;
             //debug{logConsole("Mount points found: "~result);}
-            return result;
+            return cast(string[])result;
         }
         version (Windows)
         {
-            immutable auto ls = executeShellThreadSafe("wmic logicaldisk get caption");
+            immutable auto ls = executeShell("wmic logicaldisk get caption");
             if (ls.status != 0)
             {
-                Logger.logError("Can't retrieve mount points, will just scan 'C:'");
+                critical("Can't retrieve mount points, will just scan 'C:'");
                 return ["C:"];
             }
-
+            import std.array : array, split;
+            import std.algorithm : map, canFind, filter;
             auto result = array(map!(x => x[0 .. 2])(ls.output.split("\n")
                     .filter!(x => canFind(x, ":")))).idup;
             //debug{logConsole("Mount points found: "~result);}
-            return result;
+            return cast(string[])result;
         }
     }
 }
