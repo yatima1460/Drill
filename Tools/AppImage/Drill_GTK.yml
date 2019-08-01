@@ -1,9 +1,0 @@
-app: Drill
-
-script:
-  - cp -r ../../../../Source/Frontend/GTK/Build/Drill-GTK-linux-x86_64-release/* usr
-  - mv usr/drill-search-gtk usr/drill-search-gtk.elf
-  - chmod +x usr/drill-search-gtk.elf
-  - cp ../../drill-search-gtk.desktop .
-  - cp ../../drill-search-gtk.svg .
-  - cp ../../drill-search-gtk.bash usr
