@@ -82,10 +82,14 @@ def installD(compiler="dmd"):
         os.system("wget -c http://downloads.dlang.org/releases/2.x/2.086.0/dmd.2.086.0.linux.tar.xz")
         os.system("7z x -aos dmd.2.086.0.linux.tar.xz")
         os.system("7z x -aos dmd.2.086.0.linux.tar")
+        print("dub/dmd extracted")
         dub = "dmd2/linux/bin64/dub"
+        print("dub location is: ", dub)
         os.system("chmod +x "+dub)
+        print("dub set as executable")
         os.system("chmod +x dmd2/linux/bin64/dmd")
-        return dub
+        print("dmd set as executable")
+        return "./"+dub
         # if compiler == "ldc2":
         #     NotImplementedError()
         #     os.system("curl -fsS https://dlang.org/install.sh | bash -s ldc")
@@ -100,21 +104,25 @@ def installD(compiler="dmd"):
         dub = "dmd2/osx/bin/dub"
         os.system("chmod +x "+dub)
         os.system("chmod +x \"$PWD\"/dmd2/osx/bin/dmd")
-        return dub
+        return "./"+dub
     elif platform == "win32":
     # Windows...
         os.system("wget http://downloads.dlang.org/releases/2.x/2.086.0/dmd.2.086.0.windows.7z")
         os.system("7z x dmd.2.086.0.windows.7z")
         os.system("move \"$PWD\"/dmd2/windows/bin/*.* $PWD")
+        return "dub.exe"
     else:
         NotImplementedError("Your OS is not supported.")
         
 
 def buildCLI(dub):
+    
     os.system(dub+" build -b release --compiler=dmd -c CLI --force")
     assert(os.path.exists("Build/Drill-CLI-linux-x86_64-release/drill-search-cli"))
+    print("buildCLI",dub," done")
 
 def buildUI(dub):
+    
     if platform == "linux" or platform == "linux2":
         os.system(dub+" build -b release --compiler=dmd -c GTK --force")
         assert(os.path.exists("Build/Drill-GTK-linux-x86_64-release/drill-search-gtk"))
@@ -126,6 +134,7 @@ def buildUI(dub):
         NotImplementedError()
     else:
         NotImplementedError()
+    print("buildUI",dub," done")
 
 def createZips():
     '''
@@ -135,6 +144,7 @@ def createZips():
         zip_name = filename+"-"+DRILL_VERSION+".zip"
         os.system("7z a -tzip Output/"+zip_name+" ./Build/"+filename+"/*")
         assert(os.path.exists("Output/"+zip_name))
+    print(".zips created")
 
 def packageDeb():
 
@@ -163,6 +173,7 @@ def packageDeb():
         os.system("dpkg-deb --build DEBFILE/CLI/")
         os.system("mv DEBFILE/CLI.deb Output/Drill-CLI-linux-x86_64-release-"+DRILL_VERSION+".deb")
         assert(os.path.exists("Output/Drill-CLI-linux-x86_64-release-"+DRILL_VERSION+".deb"))
+        print("CLI .deb done")
 
     def packageGTKDeb():
         global GTK_DESKTOP_FILE
@@ -197,6 +208,7 @@ def packageDeb():
         os.system("dpkg-deb --build DEBFILE/GTK/")
         os.system("mv DEBFILE/GTK.deb Output/Drill-GTK-linux-x86_64-release-"+DRILL_VERSION+".deb")
         assert(os.path.exists("Output/Drill-GTK-linux-x86_64-release-"+DRILL_VERSION+".deb"))
+        print("GTK .deb done")
 
     packageCLIDeb()
     packageGTKDeb()
@@ -209,7 +221,6 @@ def packageAppImage():
     appimage_dir = "Drill"
     os.system("mkdir -p "+appimage_dir+"/usr")
 
-    
     # create desktop file
     desktop_file = appimage_dir+"/drill-search-gtk.desktop"
     with open(desktop_file, "w") as text_file:
@@ -237,7 +248,6 @@ script:
  - mv ../drill-search-gtk.desktop .
  - mv ../drill-search-gtk.svg .
  - cp -r ../../Build/Drill-GTK-linux-x86_64-release/* usr/bin
-
 '''
 #  - mv ../drill-search-gtk ./usr/drill-search-gtk
 #  - mv ../drill-search-gtk.bash ./usr/bin/drill-search-gtk
@@ -246,6 +256,7 @@ script:
     os.system("bash -ex ./pkg2appimage APP_IMAGE_SCRIPT.yml")
     os.system("mv out/*.AppImage Output/Drill-GTK-linux-x86_64-release-"+DRILL_VERSION+".AppImage")
     assert(os.path.exists("Output/Drill-GTK-linux-x86_64-release-"+DRILL_VERSION+".AppImage"))
+    print("AppImage done.")
 
 def packagePortables():
     if platform == "linux" or platform == "linux2":
@@ -256,19 +267,12 @@ def packageInstallers():
         packageDeb()
 
 if __name__ == "__main__":
-    print("Drill builder started")
     dub = installD()
-    print("D installed, dub location: ",dub)
     buildCLI(dub)
-    print("CLI built")
     buildUI(dub)
-    print("UI built")
     createZips()
-    print(".zips created")
     packagePortables()
-    print("Portables created")
     packageInstallers()
-    print("Installers created")
     print("All builds done.")
         
 
