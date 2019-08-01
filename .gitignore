@@ -19,9 +19,10 @@ dub.selections.json
 /APP_IMAGE_SCRIPT.yml
 functions.sh
 pkg2appimage
+/drill-search-gtk.desktop
 
-
-
+# Generic log files
+*.log
 
 # pre-build
 # Source/Backend/BlockLists.txt
