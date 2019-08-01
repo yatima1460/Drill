@@ -106,6 +106,8 @@ struct ApplicationInfo
     //     spawnProcess(execProcess, null, Config.none, null);
     // }
 
+version(linux)
+{
     extern (D) size_t toHash() const nothrow @safe
     {
         return this.exec.hashOf();
@@ -119,6 +121,8 @@ struct ApplicationInfo
 
         return cmp(this.desktopFileDateModifiedString,s.desktopFileDateModifiedString);
     }
+}
+
 }
 
 import std.algorithm : filter;
