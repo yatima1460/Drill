@@ -87,8 +87,11 @@ def installD(compiler="dmd"):
         print("dub location is: ", dub)
         os.system("chmod +x "+dub)
         print("dub set as executable")
+        os.system("./"+dub+" --version")
         os.system("chmod +x dmd2/linux/bin64/dmd")
         print("dmd set as executable")
+        os.system("./"+dub+" --version")
+        os.system("./dmd2/linux/bin64/dmd --version")
         return "./"+dub
         # if compiler == "ldc2":
         #     NotImplementedError()
@@ -116,15 +119,14 @@ def installD(compiler="dmd"):
         
 
 def buildCLI(dub):
-    
-    os.system(dub+" build -b release --compiler=dmd -c CLI --force")
+    os.system(dub+" build -b release -c CLI --force")
     assert(os.path.exists("Build/Drill-CLI-linux-x86_64-release/drill-search-cli"))
     print("buildCLI",dub," done")
 
 def buildUI(dub):
     
     if platform == "linux" or platform == "linux2":
-        os.system(dub+" build -b release --compiler=dmd -c GTK --force")
+        os.system(dub+" build -b release -c GTK --force")
         assert(os.path.exists("Build/Drill-GTK-linux-x86_64-release/drill-search-gtk"))
     elif platform == "darwin":
     # OS X
