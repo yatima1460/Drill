@@ -27,24 +27,10 @@ addons:
 script:
   - python .travis.py
 
-  # install D
-
   ## linux
   # - if [ "$TRAVIS_OS_NAME" = "linux" ]; then sudo snap install ldc2 --classic --channel=edge; fi
   # - if [ "$TRAVIS_OS_NAME" = "linux" ]; then sudo snap install dmd --classic; fi
   # - if [ "$TRAVIS_OS_NAME" = "linux" ]; then sudo snap install dub --classic; fi
-
-
-  ### deb
-  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then cd Tools/deb; fi
-  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then bash build_deb_cli.bash; fi
-  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then bash build_deb_gtk.bash; fi
-  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then cd ../../; fi
-
-  ### AppImage
-  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then cd Tools/AppImage; fi
-  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then bash build_appimage_gtk.bash; fi
-  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then cd ../../; fi
 
 before_deploy:
  - git config --local user.name "Federico Santamorena"
