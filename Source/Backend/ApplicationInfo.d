@@ -4,9 +4,9 @@ Struct containing the data Drill found about installed applications
 struct ApplicationInfo
 {
 
-    /*
+    /++
     Name of the installed application
-    */
+    +/
     immutable(string) name;
     invariant
     {
@@ -106,6 +106,8 @@ struct ApplicationInfo
     //     spawnProcess(execProcess, null, Config.none, null);
     // }
 
+version(linux)
+{
     extern (D) size_t toHash() const nothrow @safe
     {
         return this.exec.hashOf();
@@ -121,6 +123,11 @@ struct ApplicationInfo
     }
 }
 
+}
+
+import std.algorithm : filter;
+
+
 /**
 Returns a list of installed applications with their data saved in the ApplicationInfo struct
 */
@@ -135,8 +142,9 @@ Returns a list of installed applications with their data saved in the Applicatio
         foreach (desktopFile; desktopFiles)
         {
             import Utils : readDesktopFile;
-
-            applications ~= readDesktopFile(desktopFile);
+            auto app = readDesktopFile(desktopFile);
+            if (app.exec !is null && app.exec.length > 0)
+                applications ~= app;
         }
         return applications;
     }

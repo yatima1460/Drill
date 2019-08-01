@@ -3,18 +3,22 @@
 In this module go useful functions that are not strictly related to crawling
 */
 import std.functional : memoize;
-
 import std.typecons : Tuple;
+import std.experimental.logger;
 
-Tuple!(int,"status",string,"output") executeShellThreadSafe(immutable(string) str)
-{
-    synchronized
-    {
-        import std.process : executeShell;
-        return executeShell(str);
-    }
-}
 
+
+
+// Tuple!(int,"status",string,"output") executeShellThreadSafe(immutable(string) str)
+// {
+//     synchronized
+//     {
+//         import std.process : executeShell;
+//         return executeShell(str);
+//     }
+// }
+
+import std.process : executeShell;
 
 version(linux) @system string[] getDesktopFiles() 
 {
@@ -22,14 +26,16 @@ version(linux) @system string[] getDesktopFiles()
     {
         
         import std.array : split;
-        import Logger : Logger;
-        //HACK: replace executeShell with a system call to get the list of files, executeShell is SLOW
-        immutable auto ls = executeShellThreadSafe("ls /usr/share/applications/*.desktop | grep -v _");
+     
+        // TODO: replace executeShell with a system call to get the list of files, executeShell is SLOW
+        immutable auto ls = executeShell("ls /usr/share/applications/*.desktop | grep -v _");
         if (ls.status == 0)
         {   
-            return ls.output.split("\n");
+            import std.algorithm : filter;
+            import std.array : array;
+            return ls.output.split("\n").filter!(x => x.length > 0).array;
         }
-        Logger.logError("Can't retrieve applications, will return an empty list");
+        error("Can't retrieve applications, will return an empty list");
         return [];
     }
 }
@@ -43,32 +49,36 @@ Opens a file using the current system implementation for file associations
 
 Returns: true if successful
 */
-nothrow @safe bool openFile(in immutable(string) fullpath)
+@safe bool openFile(in immutable(string) fullpath)
 {
-    synchronized
+    // FIXME: return false when no file association
+    import std.process : spawnProcess;
+    import std.stdio : stdin, stdout, stderr;
+    import std.process : Config;
+
+
+    try
     {
-        import std.process : spawnProcess;
-        import std.stdio : stdin, stdout, stderr;
-        import std.process : Config;
-
-        import Logger : Logger;
-
-        try
+        version (Windows)
         {
-            version (Windows)
-                spawnProcess(["explorer", fullpath], null, Config.none, null);
-            version (linux)
-                spawnProcess(["xdg-open", fullpath], null, Config.none, null);
-            version (OSX)
-                spawnProcess(["open", fullpath], null, Config.none, null);
-            // FIXME: if all three false it will return true even when it should be false
+            spawnProcess(["explorer", fullpath], null, Config.detached, null);
             return true;
         }
-        catch (Exception e)
+        version (linux)
         {
-            Logger.logError(e.msg);
-            return false;
+            spawnProcess(["xdg-open", fullpath], null, Config.detached, null);
+            return true;
         }
+        version (OSX)
+        {
+            spawnProcess(["open", fullpath], null, Config.detached, null);
+            return true;
+        }
+    }
+    catch (Exception e)
+    {
+        error(e.msg);
+        return false;
     }
 }
 
@@ -88,24 +98,26 @@ It's not assured that every mount point is a physical disk
 
 Returns: immutable array of full paths
 */
-immutable(string[]) getMountpoints() @trusted
+string[] _getMountpoints() @trusted
 out(m; m.length != 0)
 {
     import std.process : executeShell;
-    import Logger : Logger;
+   
 
     synchronized
     {
         version (linux)
         {
+            // TODO: read /proc/mounts instead of executing df
+            // TODO: remove memoization
             // df catches network mounted drives like NFS
             // so don't use lsblk here
 
-            immutable auto ls = executeShellThreadSafe("df -h --output=target");
+            immutable auto ls = executeShell("df -h --output=target");
 
             if (ls.status != 0)
             {
-                Logger.logError("Can't retrieve mount points, will just scan '/'");
+                critical("Can't retrieve mount points, will just scan '/'");
                 return ["/"];
             }
             import std.array : array, split;
@@ -113,76 +125,79 @@ out(m; m.length != 0)
 
             auto result = array(ls.output.split("\n").filter!(x => canFind(x, "/"))).idup;
             //debug{logConsole("Mount points found: "~to!string(result));}
-            return result;
+            return cast(string[])result;
         }
         version (OSX)
         {
-            immutable auto ls = executeShellThreadSafe("df -h");
+            immutable auto ls = executeShell("df -h");
             if (ls.status != 0)
             {
-                Logger.logError("Can't retrieve mount points, will just scan '/'");
+                critical("Can't retrieve mount points, will just scan '/'");
                 return ["/"];
             }
+            import std.string : indexOf;
+            import std.array : array, split;
+            import std.algorithm : map, canFind, filter;
             immutable auto startColumn = indexOf(ls.output.split("\n")[0], 'M');
             auto result = array(ls.output.split("\n").filter!(x => x.length > startColumn)
                     .map!(x => x[startColumn .. $])
                     .filter!(x => canFind(x, "/"))).idup;
             //debug{logConsole("Mount points found: "~result);}
-            return result;
+            return cast(string[])result;
         }
         version (Windows)
         {
-            immutable auto ls = executeShellThreadSafe("wmic logicaldisk get caption");
+            immutable auto ls = executeShell("wmic logicaldisk get caption");
             if (ls.status != 0)
             {
-                Logger.logError("Can't retrieve mount points, will just scan 'C:'");
+                critical("Can't retrieve mount points, will just scan 'C:'");
                 return ["C:"];
             }
-
+            import std.array : array, split;
+            import std.algorithm : map, canFind, filter;
             auto result = array(map!(x => x[0 .. 2])(ls.output.split("\n")
                     .filter!(x => canFind(x, ":")))).idup;
             //debug{logConsole("Mount points found: "~result);}
-            return result;
+            return cast(string[])result;
         }
     }
 }
+alias getMountpoints = memoize!_getMountpoints;
 
 
 @safe string _sizeToHumanReadable(in ulong bytes)
-out(m;m.length != 0)
+out(m; m.length != 0)
 {
-    string[] suffix = ["B", "KB", "MB", "GB", "TB","PB"];
-
-    int i = 0;
-    double dblBytes = bytes;
-    ulong tempBytes = bytes;
-
-    if (tempBytes > 1024)
+    immutable(string[]) sizes = ["B", "KB", "MB", "GB", "TB", "PB", "EB"];
+    double len = cast(double) bytes;
+    int order = 0;
+    
+    while (len >= 1024)
     {
-        for (i = 0; (tempBytes / 1024) > 0; i++, tempBytes /= 1024)
-            dblBytes = tempBytes / 1024.0;
+        order++;
+        len = len / 1024;
     }
 
-    import std.conv : to;
-    import std.math : floor;
-    assert(i < suffix.length);
-    return to!string(floor(dblBytes)) ~ " " ~ suffix[i];
+    import std.format : format;
+
+    if (order >= sizes.length)
+        return format("%#.2f", len) ~ " ?B";
+    else
+        return format("%#.2f", len) ~ " " ~ sizes[order];
 }
+
 alias sizeToHumanReadable = memoize!_sizeToHumanReadable;
-
-
-
-
-
-
-
-
-
 
 import ApplicationInfo : ApplicationInfo;
 version(linux) immutable(ApplicationInfo) readDesktopFile(immutable(string) fullPath) @system
+in (fullPath !is null)
+in (fullPath.length > 0,"fullPath to the desktop file can't be zero length")
+out (app;app.name !is null,"app name can't be null: "~fullPath)
+out (app;app.name.length > 0)
+// out (app;app.exec !is null,"app exec can't be null: "~fullPath)
+// out (app;app.exec.length > 0,"app exec can't be length 0: "~fullPath)
 {
-    import Logger : Logger;
+    
 
     string[] desktopFileLines;
 
@@ -201,7 +216,7 @@ version(linux) immutable(ApplicationInfo) readDesktopFile(immutable(string) full
     }
     catch (Exception e)
     {
-        Logger.logError("Error reading file: '" ~ fullPath ~ "' " ~ e.msg);
+        error("Error reading file: '" ~ fullPath ~ "' " ~ e.msg);
     }
 
     string desktopFileFullPath = fullPath;
@@ -240,7 +255,7 @@ version(linux) immutable(ApplicationInfo) readDesktopFile(immutable(string) full
     }
     catch (Exception e)
     {
-        Logger.logError("Error parsing file: '" ~ fullPath ~ "' " ~ e.msg);
+        error("Error parsing file: '" ~ fullPath ~ "' " ~ e.msg);
     }
 
     immutable(ApplicationInfo) ai = {

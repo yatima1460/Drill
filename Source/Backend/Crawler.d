@@ -12,38 +12,186 @@ import std.uni : toLower;
 import std.regex : Regex, regex, RegexMatch, match;
 import std.string : split, strip;
 
-import Logger : Logger;
+import std.experimental.logger;
+
 import Utils : sizeToHumanReadable, systime_to_string;
 import FileInfo : FileInfo;
 
+import std.concurrency : spawn;
+import std.container.dlist : DList;
 
 
 
-alias CrawlerCallback = void function(  immutable(FileInfo) result, void* userObject);
+alias CrawlerCallback = void function(  const(FileInfo) result, void* userObject);
 
-struct CrawlerData
+
+
+/++
+    Params:
+        searchString = the search string the user wrote in a Drill frontend
+        fileName = the complete file name without a fullpath, only the file name after the slash
+
+    Returns:
+        true if the file matches the search input
+
+    Complexity:
+        O(searchString*fileName)
++/
+pure @safe bool isFileNameMatchingSearchString(const(string) searchString, const(string) fileName) 
+in (searchString != null)
+in (searchString.length > 0)
+in (fileName != null)
+in (fileName.length > 0)
 {
-    string root;
-    string searchString;
-    string[] blockList;
+    if (fileName.length < searchString.length) return false;
+    const string[] searchTokens = toLower(strip(searchString)).split(" ");
+    const string fileNameLower = toLower(baseName(fileName));
+    foreach (token; searchTokens)
+        if (!canFind(fileNameLower, token))
+            return false;
+    return true;
+}
 
-    Regex!char[] blockListRegex;
-    Regex!char[] priorityListRegex;
+unittest
+{
+    assert(isFileNameMatchingSearchString(".","."));
+    assert(isFileNameMatchingSearchString("a","a"));
 
-    CrawlerCallback resultCallback;
+    assert(isFileNameMatchingSearchString("aaaa","aaaaa"));
+    assert(!isFileNameMatchingSearchString("aaaaa","aaaa"));
 
-    Variant userObject;
+    assert(isFileNameMatchingSearchString("jojo 39","JoJo's Bizarre Adventures Golden Wind 39.mkv"));
+    assert(!isFileNameMatchingSearchString("jojo 38","JoJo's Bizarre Adventures Golden Wind 39.mkv"));
+    assert(isFileNameMatchingSearchString("jojo 3","JoJo's Bizarre Adventures Golden Wind 39.mkv"));
+    assert(!isFileNameMatchingSearchString("jojo3","JoJo's Bizarre Adventures Golden Wind 39.mkv"));
+    assert(isFileNameMatchingSearchString("jojo","JoJo's Bizarre Adventures Golden Wind 39.mkv"));
+    assert(isFileNameMatchingSearchString("39","JoJo's Bizarre Adventures Golden Wind 39.mkv"));
+    assert(isFileNameMatchingSearchString("olde","JoJo's Bizarre Adventures Golden Wind 39.mkv"));
+    assert(isFileNameMatchingSearchString("JoJo's Bizarre Adventures Golden Wind 39.mkv","JoJo's Bizarre Adventures Golden Wind 39.mkv"));
+    assert(isFileNameMatchingSearchString(".mkv","JoJo's Bizarre Adventures Golden Wind 39.mkv"));
 }
 
 
-struct CrawlerContext
+
+/++
+    Check if the value is inside a regex list
+
+    Params:
+        list = compiled Regex list
+        value = value to search inside
+
+    Returns:
+        true if the value matches at least one Regex rule
+
+    Complexity:
+        O(list)
++/
+bool isInRegexList(const(Regex!char[]) list, const(string) value)
+in (value != null)
 {
-    Tid thread;
-    bool running;
+    foreach (ref regexrule; list)
+    {
+        try
+        {
+            RegexMatch!string mo = match(value, regexrule);
+            if (!mo.empty())
+            {
+                return true;
+            }
+        }
+        catch(Exception e)
+        {
+            error(e.message);
+            continue;
+        }
+    }
+    return false;
+}
+
+/++
+    Builds a fileinfo struct given a DirEntry as input
+
+    Params:
+        currentFile = the file to convert to the Drill FileInfo format
+
+    Returns:
+        the struct FileInfo with more human readable data inside about the file
+
+    Complexity:
+        O(currentFile.name)
++/
+@safe FileInfo buildFileInfo(DirEntry currentFile)
+{
+    FileInfo f = {
+        Thread.getThis.name,
+        currentFile.isDir(),
+        !currentFile.isDir(),
+        systime_to_string(currentFile.timeLastModified()),
+        dirName(currentFile.name),
+        baseName(currentFile.name),
+        toLower(baseName(currentFile.name)),
+        extension(currentFile.name),
+        currentFile.name,
+        !currentFile.isDir() ? sizeToHumanReadable(currentFile.size) : ""
+    };
+    return f;
+}
+
+unittest
+{
+    import std.file : thisExePath;
+    FileInfo f = buildFileInfo(DirEntry(thisExePath));
+    assert(f.thread == "");
+    assert(!f.isDirectory);
+    assert(f.isFile);
+    assert(f.dateModifiedString);
+    assert(canFind(f.containingFolder,"/Build/Drill-CLI-linux-x86_64-unittest-cov"));
+    assert(f.fileName == "drill-search-test-CLI");
+    assert(f.fileNameLower == "drill-search-test-cli");
+    assert(f.extension == "");
+    assert(canFind(f.fullPath,"/Build/Drill-CLI-linux-x86_64-unittest-cov/drill-search-test-CLI"),f.fullPath);
+    assert(!canFind(f.sizeString, "0 B"));
+}
+unittest
+{
+    FileInfo f = buildFileInfo(DirEntry("/"));
+    assert(f.thread == "");
+    assert(f.isDirectory);
+    assert(!f.isFile);
+    assert(f.dateModifiedString);
+    assert(canFind(f.containingFolder,"/"));
+    assert(f.fileName == "/");
+    assert(f.fileNameLower == "/");
+    assert(f.extension == "");
+    assert(canFind(f.fullPath,"/"),f.fullPath);
+    assert(!canFind(f.sizeString, "0 B"));
 
 }
 
-import  std.concurrency;
+
+// struct CrawlerData
+// {
+//     string root;
+//     string searchString;
+//     string[] blockList;
+
+//     Regex!char[] blockListRegex;
+//     Regex!char[] priorityListRegex;
+
+//     CrawlerCallback resultCallback;
+
+//     Variant userObject;
+// }
+
+
+// struct CrawlerContext
+// {
+//     Tid thread;
+//     bool running;
+
+// }
+
+// import  std.concurrency;
 
 
 
@@ -68,57 +216,258 @@ import  std.concurrency;
 
 
 
-void crawl(immutable(CrawlerData) data, shared CrawlerContext context)
-{
+
+
+// static void crawl(Tid ownerTid)//immutable(CrawlerData) data, shared CrawlerContext context)
+// {
+
+
+//     receive((int i){
+//         //auto received = text("Received the number ", i);
+
+//         // Send a message back to the owner thread
+//         // indicating success.
+//         send(ownerTid, true);
+//     });
     
-}
+// }
 
 
+// Tid startCrawler()
+// {
 
+
+//     auto childTid = spawn(&crawl, thisTid);
+
+//     send(childTid, 42);
+
+//     return childTid;
+// }
 
 
 
 //////////////////
 
 
+// @safe bool shouldSkipDirectory(DirEntry currentDirectory, const Regex!char[] blockListRegex)
+// in (currentDirectory.isDir() == true)
+// {
+//     return isInRegexList(blockListRegex,currentDirectory.name) || currentDirectory.isSymlink();
+// }
+
+
+/++
+    Given a file and a blocklist will determine if the file should be skipped or not
++/
+bool shouldSkipDirectory(DirEntry currentDirectory, const Regex!char[] blockListRegex)
+in (currentDirectory.isDir())
+{
+    try
+    {
+        if (currentDirectory.isSymlink())
+        {
+            trace("Symlink ignored: " ~ currentDirectory.name);
+            return true;
+        }
+    }
+    catch (Exception e)
+    {
+        return true;
+    }
+
+    if (isInRegexList(blockListRegex, currentDirectory.name))
+    {
+        trace("Blacklisted: " ~ currentDirectory.name);
+        return true;
+    }
+
+    return false;
+}
+
+
+/++
+    Returns a lazy iterator for the files immediately inside a directory
+
+    Params:
+        currentDirectory = the directory to scan
+        iterator = the iterator output
+
+    Returns:
+        true if successful, false if the iterator returned is invalid
+
+    Complexity:
+        O(1)
++/
+bool tryGetShallowFiles(DirEntry currentDirectory, out DirIterator iterator)
+in (currentDirectory.isDir())
+{
+    try
+    {
+        //FIXME: is "true" as third argument needed here?
+        // Are some folders marked as symlink when they actually aren't on Windows?
+        iterator = dirEntries(currentDirectory, SpanMode.shallow, true);
+        return true;
+    }
+    catch (Exception e)
+    {   
+        error(e.msg);
+        return false;
+    }
+}
+
+
+
+void crawlDirectory(DirEntry currentDirectory, 
+                    const Regex!char[] blockListRegex, 
+                    const Regex!char[] priorityListRegex, 
+                    const(string) searchString, 
+                    CrawlerCallback* resultCallback, 
+                    const(void*) userObject,
+                    DList!DirEntry queue)
+in (currentDirectory.isDir())
+{
+    // // // // /*
+    // // // //     NOTE:
+    // // // //     A "File" in the more general term and in this function can be both a normal file and a directory
+    // // // //     unless isDir() is checked
+    // // // // */
+
+
+
+    // Then if the directory was not skipped we get a list of the shallow files inside
+    // NOT RECURSIVELY, JUST THE FILES IMMEDIATELY INSIDE
+    // If we fail to get the files we just stop this directory scanning
+
+    // NOTE: do not use IFs but use switches here in the hot path 
+    //       so we don't have CPU branching
+    DirIterator files;
+    final switch (tryGetShallowFiles(currentDirectory, files))
+    {
+        case false:
+            return;
+        case true:
+            break;
+    }
+
+    // If we could get the files inside we start to scan all of them
+    foreach (DirEntry currentFile; files)
+    {
+        // if (shouldSkipDirectory(currentFile,blockListRegex))
+        //     continue;
+
+        try
+        {
+            final switch (currentFile.isSymlink())
+            {
+                case false:
+                    break;
+                case true:
+                    trace("Symlink ignored: " ~ currentDirectory.name);
+                    continue;
+            }
+            
+
+            // If the file is a directory we check its priority and then enqueue it
+            final switch (currentFile.isDir())
+            {
+                // The file is a directory
+                case true:
+                    // First we check if we can skip the directory straight away
+                    // In this way the queue does not get filled <=== that's the plan
+                    final switch(shouldSkipDirectory(currentFile,blockListRegex))
+                    {
+                        case false:
+                            if (isInRegexList(priorityListRegex, currentFile.name))
+                            {
+                                trace("High priority: "~currentFile.name);
+                                queue.insertFront(currentFile);
+                            }
+                            else
+                            {
+                                //trace("Low priority: "~currentFile.name);
+                                queue.insertBack(currentFile);
+                            }
+                            break;
+                        case true:
+                            continue;
+                    }
+                    goto case false;
+
+                // Switch fallthrough here, so directories are added too
+                case false:
+
+                    // If the file matches the search we consider it a result
+                    // we don't care if it's a normal file or a directory
+                    final switch(isFileNameMatchingSearchString(searchString, baseName(currentFile.name)))
+                    {
+                        // The file does not match the search
+                        case false:
+                            continue;
+
+                        // The file name matches the search string
+                        case true:
+                            trace("Matching search"~currentFile.name);
+                            immutable(FileInfo) fi = buildFileInfo(currentFile);
+                            //assert(userObject !is null);
+                            assert(resultCallback !is null,"resultCallback can't be null before calling the callback");
+                            (*resultCallback)(fi, cast(void*)userObject);
+                            break;
+                    }
+            }
+        }
+        catch (Exception e)
+        {
+            critical(e.msg);
+        }
+    }
+}
 
 
 
 
 // auto composed = new Thread(&threadFunc).start();
-
+// TODO: remove this OOP hell
 class Crawler : Thread
 {
 
+    debug
+    {
+        ~this()
+        {
+            import core.stdc.stdio;
+            printf("Crawler destroyed\n");
+        }
+    }
+
 private:
-    immutable(string) MOUNTPOINT;
-    immutable(string) SEARCH_STRING;
-    immutable(string[]) BLOCK_LIST;
+    const(string) MOUNTPOINT;
+    const(string) SEARCH_STRING;
+    const(string[]) BLOCK_LIST;
 
     Regex!char[] BLOCK_LIST_REGEX;
     const(Regex!char[]) PRIORITY_LIST_REGEX;
     
     shared(bool) running;
 
-    void function(  FileInfo* result, void* userObject) resultCallback;
+    CrawlerCallback resultCallback;
 
     debug
     {
         long ignored_count;
     }
 
-       const(void*) userObj;
+       const(void*) userObject;
 
 
 public:
 
     this(
-        in immutable(string) MOUNTPOINT, 
-        in immutable(string[]) BLOCK_LIST,
+        in const(string) MOUNTPOINT, 
+        in const(string[]) BLOCK_LIST,
         in const(Regex!char[]) PRIORITY_LIST_REGEX,
-        in void function(FileInfo* result, void* userObject) resultCallback, 
+        in CrawlerCallback resultCallback, 
         in immutable(string) search,
-        in void* userObj
+        in void* userObject
     )
     in (MOUNTPOINT != null)
     in (MOUNTPOINT.length != 0)
@@ -132,12 +481,12 @@ public:
         super(&run);
         this.MOUNTPOINT = MOUNTPOINT;
 
-        Logger.logDebug("Created",this.toString());
-        Logger.logDebug("Search term '" ~ search ~ "'",this.toString());
-        Logger.logDebug("Global blocklist.length = " ~ to!string(BLOCK_LIST.length),this.toString());
+        info("Created",this.toString());
+        info("Search term '" ~ search ~ "'",this.toString());
+        info("Global blocklist.length = " ~ to!string(BLOCK_LIST.length),this.toString());
 
        
-        Logger.logDebug("Global priority list length = " ~ to!string(PRIORITY_LIST_REGEX.length),this.toString());
+        info("Global priority list length = " ~ to!string(PRIORITY_LIST_REGEX.length),this.toString());
         this.PRIORITY_LIST_REGEX = PRIORITY_LIST_REGEX;
 
         this.SEARCH_STRING = search;
@@ -145,18 +494,19 @@ public:
         this.BLOCK_LIST = BLOCK_LIST;
 
 
-        
+        this.running = true;
 
-        this.userObj = userObj;
+        this.userObject = userObject;
     }
 
-    private void noop_resultFound(FileInfo* result,void* v) const @safe
+    private void noop_resultFound(const(FileInfo) result,void* v) const
     {
 
     }
 
-    void stopAsync() @nogc
+    void stopAsync()
     {
+        infof("Crawler '%s' async stop requested",MOUNTPOINT);
         this.resultCallback = (&this.noop_resultFound).funcptr;
         this.running = false;
     }
@@ -172,74 +522,25 @@ public:
         return "Crawler(" ~ MOUNTPOINT ~ ")";
     }
 
-    pure const @safe @nogc bool isCrawling()
+    pure nothrow const @safe @nogc bool isCrawling()
     {
         return this.running;
     }
-
-private:
-
-    bool isInRegexList(const(Regex!char[]) list, immutable(string) value) const @safe
-    in (value != null)
-    {
-        foreach (ref regexrule; list)
-        {
-            if (!this.running) return false;
-            RegexMatch!string mo = match(value, regexrule);
-            if (!mo.empty())
-                return true;
-        }
-        return false;
-    }
-
-    immutable(FileInfo) buildFileInfo(DirEntry currentFile) const
-    {
-        FileInfo f = {
-            this.MOUNTPOINT,
-            currentFile.isDir(),
-            !currentFile.isDir(),
-            systime_to_string(currentFile.timeLastModified()),
-            dirName(currentFile.name),
-            baseName(currentFile.name),
-            toLower(baseName(currentFile.name)),
-            extension(currentFile.name),
-            currentFile.name,
-            sizeToHumanReadable(currentFile.size)
-        };
-        return f;
-    }
-
-
-    bool isMatchingSearch(string filename) const pure @safe
-    in (filename != null)
-    {
-        //FIXME: filter and remove empty strings (if the user writes "a   b")
-        const string[] searchTokens = toLower(strip(SEARCH_STRING)).split(" ");
-        const string fileNameLower = toLower(baseName(filename));
-        foreach (token; searchTokens)
-            if (!canFind(fileNameLower, token))
-                return false;
-        return true;
-    }
-
-//     ~this()
-//    {
-//       import std.stdio : writeln;
-//       writeln("Crawler "~this.toString()~" de-allocated");
-//    }
-
-    public:
 
     /**
     NOTE: We don't really care about CPU time, Drill isn't CPU intensive but disk intensive,
     in this function it's not bad design that there are multiple IFs checking the same thing over and over again,
     but it's done to stop the crawling as soon as possible to have more time to crawl important files.
+
+    ^^^ Is this really true? Maybe slow RAM and CPU can slow down too much the DMA requests too?
     */
     void run()
     {
+        if (running == false)
+            return;
         assert(SEARCH_STRING != null, "the search string can't be null");
         assert(SEARCH_STRING.length != 0,"the search string can't be empty");
-        assert(this.running == false, "the crawler is marked running when it isn't even run yet");
+        //assert(this.running == false, "the crawler is marked running when it isn't even run yet");
         assert(MOUNTPOINT  != null, "the mountpoint can't be null");
         assert(MOUNTPOINT.length != 0, "the mountpoint string can't be empty");
         assert(resultCallback != null, "the result callback can't be null");
@@ -248,158 +549,46 @@ private:
 
          // Every Crawler will have all the other mountpoints in its blocklist
         // In this way crawlers will not cross paths
-        string[] cp_tmp = getMountpoints()[].filter!(x => x != MOUNTPOINT)
-            .map!(x => "^" ~ x ~ "$")
-            .array;
-        Logger.logDebug("Adding these to the global blocklist: " ~ to!string(cp_tmp),this.toString());
+        string[] cp_tmp = getMountpoints()[].filter!(x => x != MOUNTPOINT).map!(x => "^" ~ x ~ "$").array;
+        info("Adding these to the global blocklist: " ~ to!string(cp_tmp),this.toString());
         Array!string crawler_exclusion_list = Array!string(BLOCK_LIST);
         crawler_exclusion_list ~= cp_tmp;
-        Regex!char[] exclusion_regexes = crawler_exclusion_list[].map!(x => regex(x)).array;
+        Regex!char[] exclusion_regexes = crawler_exclusion_list[].map!(x => regex(x,"i")).array;
         this.BLOCK_LIST_REGEX = exclusion_regexes;
 
-        Logger.logDebug("New crawler custom blocklist.length = " ~ to!string(BLOCK_LIST_REGEX.length),this.toString());
+        info("New crawler custom blocklist.length = " ~ to!string(BLOCK_LIST_REGEX.length),this.toString());
+        info("Started");
 
-        this.running = true;
-        Logger.logDebug("Started");
-
-        import std.container.dlist : DList;
+        // Use the queue as a stack to scan using a breadth-first algorithm
         DList!DirEntry queue;
-        if (isInRegexList(BLOCK_LIST_REGEX,MOUNTPOINT))
+
+        // Try to insert the mountpoint in the queue as first element
+        // It could fail for permission or I/O reasons,
+        // and if it does we just terminate the crawler instantly
+        try
         {
-            this.running = false;
-            Logger.logDebug("Crawler mountpoint is in the blocklist, the crawler will stop.",this.toString());
+            queue.insertBack(DirEntry(MOUNTPOINT));
         }
-        else
+        catch (Exception e)
         {
-            try
-            {
-                queue.insertBack(DirEntry(MOUNTPOINT));
-            }
-            catch (Exception e)
-            {
-                Logger.logError(e.msg,this.toString());
-                this.running = false;
-            }
+            error(e.msg,this.toString());
+            this.running = false;
+            return;
         }
 
+        // If the mountpoint root is ok we start to scan everything
         while (!queue.empty() && running)
         {
+            // Pop a directory from the queue
             DirEntry currentDirectory = queue.front();
             queue.removeFront();
-            //Logger.logDebug("Directory: " ~ currentDirectory.name,this.toString());
 
-
-            if (isInRegexList(BLOCK_LIST_REGEX,currentDirectory.name))
-            {
-                //Logger.logDebug("Blocked: " ~ currentDirectory.name,this.toString());
-                continue;
-            }
-
-            if (currentDirectory.isSymlink())
-            {
-                //Logger.logDebug("Symlink ignored: " ~ currentDirectory.name,this.toString());
-                continue;
-            }
-            
-            DirIterator files;
-            try
-            {
-                files = dirEntries(currentDirectory, SpanMode.shallow, true);
-            }
-            catch (Exception e)
-            {
-               
-                Logger.logError(e.msg,this.toString());
-                continue;
-            }
-
-            foreach (DirEntry currentFile; files)
-            {
-                if (!this.running) return;
-                try
-                {
-                    if (currentFile.isSymlink())
-                    {
-                        //Logger.logDebug("Symlink ignored: " ~ currentDirectory.name,this.toString());
-                        continue;
-                    }
-                   
-                    if (isInRegexList(BLOCK_LIST_REGEX, currentFile.name))
-                    {
-                        //Logger.logDebug("Ignored: " ~ currentFile.name,this.toString());
-                        continue;
-                    }
-                    
-                    if (currentFile.isDir())
-                    {
-                        if (isInRegexList(this.PRIORITY_LIST_REGEX, currentFile.name))
-                        {
-                            //Logger.logDebug("High priority: "~currentFile.name,this.toString());
-                            queue.insertFront(currentFile);
-                        }
-                        else
-                        {
-                            //Logger.logTrace("Low priority: "~currentFile.name,this.toString());
-                            queue.insertBack(currentFile);
-                        }
-                    }
-                    
-                    if (isMatchingSearch(currentFile.name))
-                    //if (canFind(currentFile.name, SEARCH_STRING))
-                    {
-                      
-
-                        Logger.logTrace("Matching search"~currentFile.name,this.toString());
-           // auto composed = new Thread(resultCallback,buildFileInfo(currentFile)).start();
-                        // try
-                        // {
-                        //     class ResultThread : Thread
-                        //     {
-                        //         DirEntry resultFile;
-
-                        //         this(DirEntry resultFile)
-                        //         {
-                        //             super(&run);
-                        //             this.resultFile = resultFile;
-                        //         }
-
-                        //     private:
-                        //         void run()
-                        //         {
-                        //             // Derived thread running.
-                        //             resultCallback(buildFileInfo(this.resultFile));
-                        //         }
-                        //     }
-
-                        //     auto derived = new ResultThread(currentFile).start();
-                        // }
-                        // catch (Exception e)
-                        // {
-                      
-                          if(resultCallback is null) throw new Exception("resultCallback can't be null before calling the callback");
-                         // Logger.logError(to!string(userObj),"RESULT CALLBACK");
-                        
-                        immutable(FileInfo) fi = buildFileInfo(currentFile);
-                        FileInfo* fiptr = new FileInfo();
-                        *fiptr = fi;
-                        assert(userObj !is null);
-                        resultCallback(fiptr, cast(void*)userObj);
-                        // }
-
-                    }
-                    else
-                    {
-                        Logger.logTrace("Not matching file, skipped: "~currentFile.name,this.toString());
-                    }
-                }
-                catch (Exception e)
-                {
-                    Logger.logError(e.msg,this.toString());
-                }
-            }
+            //trace("Directory: " ~ currentDirectory.name,this.toString());
+            crawlDirectory(currentDirectory,BLOCK_LIST_REGEX,PRIORITY_LIST_REGEX,SEARCH_STRING,&resultCallback, cast(void*)userObject,queue);
         }
 
+        // If this line is reached it means the crawler finished all the entire mountpoint to scan
         this.running = false;
-        Logger.logDebug("Finished its job");
+        info("Finished its job");
     }
 }

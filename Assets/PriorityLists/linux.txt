@@ -1,10 +1,11 @@
 ^/home$
-^/home\/(.[^\/]+)$
 ^/home\/(.[^\/]+)\/Downloads$
 ^/home\/(.[^\/]+)\/Pictures$
-
+^/home\/(.[^\/]+)\/Videos$
+^/home\/(.[^\/]+)\/Documents$
+^/home\/(.[^\/]+)\/Desktop$
+^/home\/(.[^\/]+)\/Music$
 ^/media\/(.[^\/]+)$
-^/media\/(.[^\/]+)\/(.[^\/]+)$
 ^/media\/(.[^\/]+)\/(.[^\/]+)\/Users$
 ^/media\/(.[^\/]+)\/(.[^\/]+)\/Users\/(.[^\/]+)$
 ^/media\/(.[^\/]+)\/(.[^\/]+)\/Windows.old$

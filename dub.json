@@ -1,0 +1,88 @@
+{
+    "name": "drill-search",
+    "version": "2.0.0",
+    "authors": [
+        "Federico Santamorena"
+    ],
+    "description": "Search files without indexing, but clever crawling.",
+    "copyright": "Copyright © 2019, Federico Santamorena",
+    "license": "GPL-2.0",
+    "homepage": "https://github.com/yatima1460/Drill",
+    "dflags": [
+        "-J=."
+    ],
+    "copyFiles": [
+        "Assets"
+    ],
+    "buildTypes": {
+        "debug": {
+            "buildOptions": [
+                "debugMode",
+                "debugInfo",
+                "stackStomping",
+                "alwaysStackFrame"
+            ],
+            "versions": ["StdLoggerDisableTrace"]
+        },
+        "release-debug": {
+            "buildOptions": [
+                "optimize",
+                "debugInfo",
+                "inline",
+                "stackStomping",
+                "alwaysStackFrame"
+            ],
+            "versions": ["StdLoggerDisableTrace"]
+        },
+        "release": {
+            "buildOptions": [
+                "optimize",
+                "inline",
+                "noBoundsCheck",
+                "releaseMode"
+            ],
+            "versions": ["StdLoggerDisableTrace","StdLoggerDisableInfo","StdLoggerDisableWarning"]
+        }
+    },
+    "configurations": [
+        {
+            "name": "CLI",
+            "targetType": "executable",
+            "targetName": "drill-search-cli",
+            "sourcePaths": [
+                "Source/Backend/",
+                "Source/Frontend/CLI/"
+            ],
+            "importPaths": [
+                "Source/Backend"
+            ],
+            "targetPath": "Build/Drill-CLI-$PLATFORM-$ARCH-$BUILD_TYPE",
+            "mainSourceFile": "Source/Frontend/CLI/CLI.d"
+        },
+        {
+            "name": "GTK",
+            "targetType": "executable",
+            "targetName": "drill-search-gtk",
+            "sourcePaths": [
+                "Source/Backend/",
+                "Source/Frontend/GTK/"
+            ],
+            "importPaths": [
+                "Source/Backend"
+            ],
+            "libs-posix": [
+                "gtk-3",
+                "gobject-2.0",
+                "glib-2.0",
+                "gio-2.0"
+            ],
+            "targetPath": "Build/Drill-GTK-$PLATFORM-$ARCH-$BUILD_TYPE",
+            "mainSourceFile": "Source/Frontend/GTK/Main.d"
+        }
+    ],
+    "toolchainRequirements": {
+        "dmd": ">=2.086.0",
+        "gdc": "no",
+        "ldc": ">=1.15.0"
+    }
+}

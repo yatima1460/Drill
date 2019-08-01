@@ -3,25 +3,25 @@
 
 
 
-immutable(string) DEFAULT_BLOCK_LIST    = import("BlockLists.txt");
-immutable(string) DEFAULT_PRIORITY_LIST = import("PriorityLists.txt");
+// immutable(string) DEFAULT_BLOCK_LIST    = import("BlockLists.txt");
+// immutable(string) DEFAULT_PRIORITY_LIST = import("PriorityLists.txt");
 
-
+// TODO: load and save config in ~/.config
 
 
 @safe @nogc pure struct DrillConfig
 {
-    immutable(string) ASSETS_DIRECTORY;
+    string ASSETS_DIRECTORY;
     invariant
     {
         assert(ASSETS_DIRECTORY !is null);
         assert(ASSETS_DIRECTORY.length > 0);
     }
-    immutable(string[]) BLOCK_LIST;
-    immutable(string[]) PRIORITY_LIST;
+    string[] BLOCK_LIST;
+    string[] PRIORITY_LIST;
 
     import std.regex: Regex;
-    const(Regex!char[]) PRIORITY_LIST_REGEX;
+    Regex!char[] PRIORITY_LIST_REGEX;
     invariant
     {
         assert(PRIORITY_LIST_REGEX.length == PRIORITY_LIST.length);
@@ -29,31 +29,32 @@ immutable(string) DEFAULT_PRIORITY_LIST = import("PriorityLists.txt");
     bool singlethread;
 }
 
-
+version (linux)
+    {
 /**
 Returns the path where the config data is stored
 */
 public string getConfigPath()
 {
-    version (linux)
-    {
+    
         import std.path : expandTilde;
         return expandTilde("~/.config/drill-search");
-    } 
+    
 
 }
+} 
 
 
-private void createDefaultConfigFiles()
-{
-    import std.path : buildPath;
-    import std.file : write; 
-    import std.array : join;
-    import std.path : baseName;
+// private void createDefaultConfigFiles()
+// {
+//     import std.path : buildPath;
+//     import std.file : write; 
+//     import std.array : join;
+//     import std.path : baseName;
 
-    write(buildPath(getConfigPath(),"BlockList.txt"), DEFAULT_BLOCK_LIST); 
-    write(buildPath(getConfigPath(),"PriorityList.txt"), DEFAULT_PRIORITY_LIST); 
-}
+//     write(buildPath(getConfigPath(),"BlockList.txt"), DEFAULT_BLOCK_LIST); 
+//     write(buildPath(getConfigPath(),"PriorityList.txt"), DEFAULT_PRIORITY_LIST); 
+// }
 
 
 
@@ -71,7 +72,8 @@ DrillConfig loadData(immutable(string) assetsDirectory)
 {
     import std.path : buildPath;
     import std.conv: to;
-    import Logger : Logger;
+    import std.experimental.logger;
+
     import Utils : mergeAllTextFilesInDirectory;
     import std.file : dirEntries, SpanMode, DirEntry, readText, FileException;
     import Utils : getMountpoints;
@@ -84,8 +86,8 @@ DrillConfig loadData(immutable(string) assetsDirectory)
     //Logger.logDebug("Mount points found: "~to!string(getMountpoints()));
     auto blockListsFullPath = buildPath(assetsDirectory,"BlockLists");
 
-    Logger.logDebug("Assets Directory: " ~ assetsDirectory);
-    Logger.logDebug("blockListsFullPath: " ~ blockListsFullPath);
+    info("Assets Directory: " ~ assetsDirectory);
+    info("blockListsFullPath: " ~ blockListsFullPath);
 
     string[] BLOCK_LIST; 
     try
@@ -94,8 +96,8 @@ DrillConfig loadData(immutable(string) assetsDirectory)
     }
     catch (FileException fe)
     {
-        Logger.logError(fe.toString());
-        Logger.logError("Error when trying to load block lists, will default to an empty list");
+        error(fe.message);
+        error("Error when trying to load block lists, will default to an empty list");
     }
 
     string[] PRIORITY_LIST;
@@ -112,14 +114,14 @@ DrillConfig loadData(immutable(string) assetsDirectory)
     }
     catch (FileException fe)
     {
-        Logger.logError(fe.toString());
-        Logger.logError("Error when trying to read priority lists, will default to an empty list");
+        error(fe.message);
+        error("Error when trying to read priority lists, will default to an empty list");
     }
     // DrillConfig dd;
     DrillConfig dd = {
         assetsDirectory,
-        cast(immutable(string[]))BLOCK_LIST,
-        cast(immutable(string[]))PRIORITY_LIST,
+        BLOCK_LIST,
+        PRIORITY_LIST,
         PRIORITY_LIST_REGEX,
         false
     };
