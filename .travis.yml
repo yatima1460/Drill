@@ -49,13 +49,14 @@ script:
 before_deploy:
  - git config --local user.name "Federico Santamorena"
  - git config --local user.email "federico@santamorena.me"
+ - export DRILL_VERSION=$(python -c "import sys, json; f = open('dub.json'); print(json.load(f)['version']); f.close()") 
 
 deploy:
   provider: releases
   skip_cleanup: true
   draft: false
   prerelease: true
-  name: $TRAVIS_TAG
+  name: $DRILL_VERSION
   body: $TRAVIS_COMMIT_MESSAGE
   target_commitish: $TRAVIS_COMMIT
   file_glob: true
