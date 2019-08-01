@@ -26,7 +26,6 @@ import std.experimental.logger;
 // TODO: pressing return should open the first result
 // TODO: icon on the left of the search
 // TODO: icons on filenames
-// TODO: show applications after search returns to 0 length
 // TODO: right click menu and update screenshot with it
 /++
     Callback called by GTK after the window is destroyed
@@ -281,9 +280,19 @@ in(userObject !is null)
             if (isFileNameMatchingSearchString(searchString, app.name))
             {
                 assert(context !is null);
-                assert(context.treeview !is null);
+                assert(context.liststore !is null);
                 appendApplication(context.liststore,app);
             }
+        }
+    }
+    else
+    {
+        // Add default apps when search is empty
+        foreach (ApplicationInfo app; context.applications)
+        {
+            assert(context !is null);
+            assert(context.liststore !is null);
+            appendApplication(context.liststore,app);
         }
     }
 }
