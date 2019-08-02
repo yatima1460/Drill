@@ -1,0 +1,10 @@
+.github/*
+docs/*
+.editorconfig
+.gitignore
+.travisignore
+CHANGELOG
+LICENSE
+README.md
+CNAME
+*.md
