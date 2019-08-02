@@ -16,7 +16,7 @@ addons:
     update: true
     packages:
       - libgcc1
-      - libgio-2.0
+      - libgio-2-0
       - libgtk-3-0
       - desktop-file-utils
       - p7zip-full
