@@ -27,6 +27,8 @@ import std.experimental.logger;
 // TODO: icon on the left of the search
 // TODO: icons on filenames
 // TODO: right click menu and update screenshot with it
+// TODO: code coverage
+
 /++
     Callback called by GTK after the window is destroyed
 +/
