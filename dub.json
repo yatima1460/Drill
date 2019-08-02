@@ -53,9 +53,6 @@
                 "Source/Backend/",
                 "Source/Frontend/CLI/"
             ],
-            "importPaths": [
-                "Source/Backend"
-            ],
             "targetPath": "Build/Drill-CLI-$PLATFORM-$ARCH-$BUILD_TYPE",
             "mainSourceFile": "Source/Frontend/CLI/CLI.d"
         },
@@ -66,9 +63,6 @@
             "sourcePaths": [
                 "Source/Backend/",
                 "Source/Frontend/GTK/"
-            ],
-            "importPaths": [
-                "Source/Backend"
             ],
             "libs-posix": [
                 "gtk-3",
