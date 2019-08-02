@@ -205,7 +205,7 @@ def packageDeb():
         # install binary redirect for /usr/bin and set it executable
         shell("mkdir -p DEBFILE/CLI/usr/bin")
         with open("DEBFILE/CLI/usr/bin/"+DEB_PACKAGE_NAME, "w") as text_file:
-            text_file.write("#!/bin/bash\n/opt/"+DEB_PACKAGE_NAME+"/"+DEB_PACKAGE_NAME+ "\"\$@\"")
+            text_file.write("#!/bin/bash\n/opt/"+DEB_PACKAGE_NAME+"/"+DEB_PACKAGE_NAME+ " \"$@\"")
         shell("chmod +x DEBFILE/CLI/usr/bin/"+DEB_PACKAGE_NAME)
         # install in /opt
         shell("mkdir -p DEBFILE/CLI/opt/")
