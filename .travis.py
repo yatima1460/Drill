@@ -4,7 +4,7 @@
 # The first argument in input is the version number that 
 # will be used in the format major.minor
 
-
+# TODO: name-version-architecture.ext
 
 
 from subprocess import call, check_output
@@ -43,7 +43,7 @@ Description: Search files without indexing, but clever crawling
 
 GTK_CONTROL_FILE = '''Package: drill-search-gtk
 Section: utils
-Depends: libgtk-3-0 (>= 3.22.0),libgcc1
+Depends: libgtk-3-0 (>= 3.22.0),libgio-2.0,libgcc1
 Priority: optional
 Architecture: amd64
 Maintainer: Federico Santamorena <federico@santamorena.me>
@@ -165,10 +165,10 @@ def packageDeb():
         os.system("chmod +x DEBFILE/CLI/usr/bin/"+DEB_PACKAGE_NAME)
         # install in /opt
         os.system("mkdir -p DEBFILE/CLI/opt/")
-        os.system("cp -r "+BUILD_DIR+"DEBFILE/CLI/opt/"+DEB_PACKAGE_NAME)
+        os.system("cp -r "+BUILD_DIR+" DEBFILE/CLI/opt/"+DEB_PACKAGE_NAME)
         os.system("chmod +x DEBFILE/CLI/opt/"+DEB_PACKAGE_NAME+"/"+DEB_PACKAGE_NAME)
         # make .deb metadata
-        os.system("mkdir DEBFILE/CLI/DEBIAN")
+        os.system("mkdir -p DEBFILE/CLI/DEBIAN")
         with open("DEBFILE/CLI/DEBIAN/control", "w") as text_file:
             text_file.write(CLI_CONTROL_FILE+"\nVersion: "+DRILL_VERSION+"\n")
         # build the .deb file
@@ -191,10 +191,10 @@ def packageDeb():
         os.system("chmod +x DEBFILE/GTK/usr/bin/"+DEB_PACKAGE_NAME)
         # install in /opt
         os.system("mkdir -p DEBFILE/GTK/opt/")
-        os.system("cp -r "+BUILD_DIR+"DEBFILE/GTK/opt/"+DEB_PACKAGE_NAME)
+        os.system("cp -r "+BUILD_DIR+" DEBFILE/GTK/opt/"+DEB_PACKAGE_NAME)
         os.system("chmod +x DEBFILE/GTK/opt/"+DEB_PACKAGE_NAME+"/"+DEB_PACKAGE_NAME)
         # make .deb metadata
-        os.system("mkdir DEBFILE/GTK/DEBIAN")
+        os.system("mkdir -p DEBFILE/GTK/DEBIAN")
         with open("DEBFILE/GTK/DEBIAN/control", "w") as text_file:
             text_file.write(GTK_CONTROL_FILE+"\nVersion: "+DRILL_VERSION+"\n")
         # add desktop file

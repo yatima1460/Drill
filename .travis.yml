@@ -15,6 +15,9 @@ addons:
   apt:
     update: true
     packages:
+      - libgcc1
+      - libgio-2.0
+      - libgtk-3-0
       - desktop-file-utils
       - p7zip-full
 
@@ -23,6 +26,7 @@ addons:
     update: true
     packages:
       - p7zip
+      - gtk+3
 
 script:
   - python .travis.py
