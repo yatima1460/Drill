@@ -61,9 +61,11 @@ If you want a version that doesn't require sudo and can be configurable download
 - Install DMD
     - on Linux download the .deb, don't install it from apt,
       be sure GDC doesn't get installed as backend compiler
+    - https://dlang.org/download.html#dmd
 - Build a configuration, check the possible ones inside `dub.json`:
     - `dub build -b release -c CLI`
     - `dub build -b release -c GTK` 
+        - requires libgtk-3-dev
     - etc...
 - Output will be inside `./Build`
 
