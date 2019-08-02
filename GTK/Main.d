@@ -22,12 +22,12 @@ import FileInfo : FileInfo;
 import std.experimental.logger;
 
 
-// TODO: apps sorted by date
-// TODO: pressing return should open the first result
-// TODO: icon on the left of the search
 // TODO: icons on filenames
 // TODO: right click menu and update screenshot with it
+// TODO: pressing return should open the first result
+// TODO: apps sorted by date
 // TODO: code coverage
+// TODO: modern round icon
 
 /++
     Callback called by GTK after the window is destroyed
