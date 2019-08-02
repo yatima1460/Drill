@@ -18,12 +18,45 @@ from glob import glob
 from sys import platform, argv
 import os
 
+import sys
 
 import json
 
 with open('dub.json') as json_file:
     data = json.load(json_file)
     DRILL_VERSION = data["version"]
+
+
+RPM_SPEC_FILE = '''
+Name:       drill-search-cli
+Version:    1
+Release:    1
+Summary:    Search files without indexing, but clever crawling
+License:    GPL-2
+Source:     drill-search-cli
+
+%description
+I was stressed on Linux because I couldn't find the files I needed, file searchers based on system indexing (updatedb) are prone to breaking and hard to configure for the average user, so did an all nighter and started this.
+Drill is a modern file searcher for Linux that tries to fix the old problem of slow searching and indexing. Nowadays even some SSDs are used for storage and every PC has nearly a minimum of 8GB of RAM and quad-core; knowing this it's time to design a future-proof file searcher that doesn't care about weak systems and uses the full multithreaded power in a clever way to find your files in the fastest possible way.
+Heuristics: The first change was the algorithm, a lot of file searchers use depth-first algorithms, this is a very stupid choice and everyone that implemented it is a moron, why? You see, normal humans don't create nested folders too much and you will probably get lost inside "black hole folders" or artificial archives (created by software); a breadth-first algorithm that scans your hard disks by depth has a higher chance to find the files you need. Second change is excluding some obvious folders while crawling like Windows and node_modules, the average user doesn't care about .dlls and all the system files, and generally even devs too don't care, and if you need to find a system file you already know what you are doing and you should not use a UI tool.
+Clever multithreading: The second change is clever multithreading, I've never seen a file searcher that starts a thread per disk and it's 2019. The limitation for file searchers is 99% of the time just the disk speed, not the CPU or RAM, then why everyone just scans the disks sequentially????
+Use your goddamn RAM: The third change is caching everything, I don't care about your RAM, I will use even 8GB of your RAM if this provides me a faster way to find your files, unused RAM is wasted RAM, even truer the more time passes.
+
+%prep
+%setup -q
+
+%source
+
+
+%build
+dub -b build
+
+%install
+# install -m 755 drill-search-cli %{buildroot}/drill-search-cli
+
+%files
+/Build/Drill-CLI-linux-x86_64-release/drill-search-cli
+'''
 
 
 CLI_CONTROL_FILE = '''Package: drill-search-cli
@@ -75,8 +108,10 @@ Keywords=Search;FileSearch;File Search;Find;Search;
 def shell(string):
     
     exit_code = os.system(string)
-    print("\n[.travis.py] "+string)
-    assert(exit_code == 0)
+    #print("\n[.travis.py] "+string)
+    if exit_code != 0:
+        sys.stderr.write("\nERROR: Command '"+string+"' exited with code "+str(exit_code)+"\n")
+        exit(exit_code)
 
 def installD(compiler="dmd"):
     '''
@@ -273,9 +308,15 @@ def packagePortables():
     if platform == "linux" or platform == "linux2":
         packageAppImage()
 
+def packageRpm():
+    with open("drill-search-gtk.spec", "w") as text_file:
+        text_file.write(RPM_SPEC_FILE)
+    shell("rpmbuild -ba drill-search-gtk.spec")
+
 def packageInstallers():
     if platform == "linux" or platform == "linux2":
         packageDeb()
+        packageRpm()
 
 if __name__ == "__main__":
     dub = installD()
