@@ -26,6 +26,8 @@ with open('dub.json') as json_file:
     data = json.load(json_file)
     DRILL_VERSION = data["version"]
 
+SOURCE_URL = "https://github.com/yatima1460/Drill/archive/"+DRILL_VERSION+".tar.gz"
+
 
 RPM_SPEC_FILE = '''
 Name:       drill-search-cli
@@ -317,10 +319,41 @@ def packageRpm():
         text_file.write(RPM_SPEC_FILE)
     shell("rpmbuild -ba drill-search-gtk.spec")
 
+
+def packageSnap():
+    shell("sudo snap install --classic snapcraft")
+    shell("mkdir -p mysnaps/drill-search-gtk/snap")
+    os.chdir("mysnaps")
+    shell("snapcraft init")
+    SNAP_FILE = '''name: drill-search-gtk # you probably want to 'snapcraft register <name>'
+version: '0.1' # just for humans, typically '1.2+git' or '1.3.2'
+summary: Single-line elevator pitch for your amazing snap # 79 char long summary
+description: |
+  This is my-snap's description. You have a paragraph or two to tell the
+  most important story about your snap. Keep it under 100 words though,
+  we live in tweetspace and your description wants to look good in the snap
+  store.
+
+grade: devel # must be 'stable' to release into 'candidate' and 'stable' channels
+confinement: devmode # use 'strict' once you have the right plugs and slots
+parts:
+  gtk:
+    source: '''+SOURCE_URL+'''
+    plugin: autotools
+'''
+
+    shell("snapcraft")
+
+
+    os.chdir("../")
+
+
+
 def packageInstallers():
     if platform == "linux" or platform == "linux2":
         packageDeb()
         # packageRpm()
+        # packageSnap()
 
 if __name__ == "__main__":
     dub = installD()
