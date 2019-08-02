@@ -4,6 +4,11 @@
 extern (C) pure nothrow @trusted @nogc
 {
 
+    guint
+gtk_builder_add_from_string (GtkBuilder *builder,
+                             const gchar *buffer,
+                             gsize length,
+                             GError **error);
     alias gdouble = double;
     alias gpointer = void*;
     alias gboolean = bool;
@@ -14,6 +19,7 @@ extern (C) pure nothrow @trusted @nogc
     alias gchar = char;
     alias guint16 = short;
     alias guint8 = ubyte;
+    alias gsize = ulong;
 
     void gtk_widget_destroy(GtkWidget*);
     void gtk_window_set_application(GtkWindow* self, GtkApplication* application);
@@ -25,8 +31,6 @@ extern (C) pure nothrow @trusted @nogc
     gpointer g_async_queue_try_pop(GAsyncQueue* queue);
     GAsyncQueue* g_async_queue_new();
 
-    guint gtk_builder_add_from_string(GtkBuilder* builder, const gchar* buffer,
-            ulong length, GError** error);
 
     struct GdkEventKey
     {

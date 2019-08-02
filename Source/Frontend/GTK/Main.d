@@ -450,15 +450,38 @@ in(userObject != null)
     assert(error is null);
     assert(thisExePath !is null);
 
-    immutable(char)* builderFile = toStringz(buildPath(dirName(thisExePath), "Assets/ui.glade"));
-    if (builder.gtk_builder_add_from_file(builderFile, &error) == 0)
+    // debug version loads the UI file from the .glade
+    // release version actually compiles it inside the executable
+    //
+    // this is done because otherwise --force would be needed to update
+    // the compiling of the .glade file and would just slow down the
+    // debug version UI tests
+    debug
     {
-        assert(error !is null);
-        g_printerr("Error loading file: %s\n", error.message);
-        assert(error !is null);
-        g_clear_error(&error);
-        assert(false, "glade file not found");
+        immutable(char)* builderFile = toStringz(buildPath(dirName(thisExePath), "Assets/ui.glade"));
+        if (builder.gtk_builder_add_from_file(builderFile, &error) == 0)
+        {
+            assert(error !is null);
+            g_printerr("Error loading file: %s\n", error.message);
+            assert(error !is null);
+            g_clear_error(&error);
+            assert(false, "glade file not found");
+        }
+     
     }
+    else
+    {
+        const(char[]) builderFile = import("Assets/ui.glade");
+        if (builder.gtk_builder_add_from_string(&builderFile[0], builderFile.length, &error) == 0)
+        {
+            assert(error !is null);
+            g_printerr("Error loading file: %s\n", error.message);
+            assert(error !is null);
+            g_clear_error(&error);
+            assert(false, "glade file not found");
+        }
+    }
+
     // builderFile.destroy();
 
     // Get the main window object from the .glade file
