@@ -59,8 +59,7 @@
                 "Core/FileInfo.d",
                 "Core/ListData.d",
                 "Core/Meta.d",
-                "Core/Utils.d",
-                "CLI/CLI.d"
+                "Core/Utils.d"
             ]
         },
         
