@@ -53,8 +53,7 @@
                 "Source/Backend/",
                 "Source/Frontend/CLI/"
             ],
-            "targetPath": "Build/Drill-CLI-$PLATFORM-$ARCH-$BUILD_TYPE",
-            "mainSourceFile": "Source/Frontend/CLI/CLI.d"
+            "targetPath": "Build/Drill-CLI-$PLATFORM-$ARCH-$BUILD_TYPE"
         },
         {
             "name": "GTK",
@@ -68,8 +67,7 @@
                 "gtk-3",
                 "gio-2.0"
             ],
-            "targetPath": "Build/Drill-GTK-$PLATFORM-$ARCH-$BUILD_TYPE",
-            "mainSourceFile": "Source/Frontend/GTK/Main.d"
+            "targetPath": "Build/Drill-GTK-$PLATFORM-$ARCH-$BUILD_TYPE"
         }
     ],
     "toolchainRequirements": {
