@@ -24,6 +24,9 @@ pkg2appimage
 # Generic log files
 *.log
 
+#.rpm
+/drill-search-gtk.spec
+
 # pre-build
 # Source/Backend/BlockLists.txt
 # Source/Backend/PriorityLists.txt
