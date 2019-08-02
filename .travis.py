@@ -122,7 +122,10 @@ def installD(compiler="dmd"):
 
 def buildCLI(dub):
     os.system(dub+" build -b release -c CLI --force --verbose")
-    assert(os.path.exists("Build/Drill-CLI-linux-x86_64-release/drill-search-cli"))
+    if platform == "win32":
+        assert(os.path.exists("Build/Drill-CLI-linux-x86_64-release/drill-search-cli.exe"))
+    else:
+        assert(os.path.exists("Build/Drill-CLI-linux-x86_64-release/drill-search-cli"))
     print("buildCLI",dub," done")
 
 def buildUI(dub):
@@ -135,6 +138,7 @@ def buildUI(dub):
         NotImplementedError()
     elif platform == "win32":
     # Windows...
+        #remember it will end in .exe
         NotImplementedError()
     else:
         NotImplementedError()
