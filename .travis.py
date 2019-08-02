@@ -6,6 +6,8 @@
 
 # TODO: name-version-architecture.ext
 
+DMD_VERSION = "2.087.0"
+
 
 from subprocess import call, check_output
 from argparse import ArgumentParser
@@ -79,9 +81,9 @@ def installD(compiler="dmd"):
 
     if platform == "linux" or platform == "linux2":
         # if compiler == "dmd":
-        os.system("wget -c http://downloads.dlang.org/releases/2.x/2.086.0/dmd.2.086.0.linux.tar.xz")
-        os.system("7z x -aos dmd.2.086.0.linux.tar.xz")
-        os.system("7z x -aos dmd.2.086.0.linux.tar")
+        os.system("wget -c http://downloads.dlang.org/releases/2.x/"+DMD_VERSION+"/dmd."+DMD_VERSION+".linux.tar.xz")
+        os.system("7z x -aos dmd."+DMD_VERSION+".linux.tar.xz")
+        os.system("7z x -aos dmd."+DMD_VERSION+".linux.tar")
         print("dub/dmd extracted")
         dub = "dmd2/linux/bin64/dub"
         print("dub location is: ", dub)
@@ -101,17 +103,17 @@ def installD(compiler="dmd"):
         
     elif platform == "darwin":
     # OS X
-        os.system("wget http://downloads.dlang.org/releases/2.x/2.086.0/dmd.2.086.0.osx.tar.xz")
-        os.system("7z -aoa x dmd.2.086.0.osx.tar.xz")
-        os.system("7z -aoa x dmd.2.086.0.osx.tar")
+        os.system("wget http://downloads.dlang.org/releases/2.x/"+DMD_VERSION+"/dmd."+DMD_VERSION+".osx.tar.xz")
+        os.system("7z -aoa x dmd."+DMD_VERSION+".osx.tar.xz")
+        os.system("7z -aoa x dmd."+DMD_VERSION+".osx.tar")
         dub = "dmd2/osx/bin/dub"
         os.system("chmod +x "+dub)
         os.system("chmod +x \"$PWD\"/dmd2/osx/bin/dmd")
         return "./"+dub
     elif platform == "win32":
     # Windows...
-        os.system("wget http://downloads.dlang.org/releases/2.x/2.086.0/dmd.2.086.0.windows.7z")
-        os.system("7z x dmd.2.086.0.windows.7z")
+        os.system("wget http://downloads.dlang.org/releases/2.x/"+DMD_VERSION+"/dmd."+DMD_VERSION+".windows.7z")
+        os.system("7z x dmd."+DMD_VERSION+".windows.7z")
         os.system("ls")
         os.system("ls dmd2")
         os.system("ls dmd2/windows")
