@@ -217,7 +217,9 @@ def packageDeb():
         shell("dpkg-deb --build DEBFILE/CLI/")
         shell("mv DEBFILE/CLI.deb Output/Drill-CLI-linux-x86_64-release-"+DRILL_VERSION+".deb")
         assert(os.path.exists("Output/Drill-CLI-linux-x86_64-release-"+DRILL_VERSION+".deb"))
-        shell("sudo dpkg -i Output/Drill-CLI-linux-x86_64-release-"+DRILL_VERSION+".deb")
+        if 'TRAVIS_OS' in os.environ:
+            print("Travis OS detected, trying to install the CLI .deb")
+            shell("sudo dpkg -i Output/Drill-CLI-linux-x86_64-release-"+DRILL_VERSION+".deb")
         print("CLI .deb done")
 
     def packageGTKDeb():
@@ -253,7 +255,9 @@ def packageDeb():
         shell("dpkg-deb --build DEBFILE/GTK/")
         shell("mv DEBFILE/GTK.deb Output/Drill-GTK-linux-x86_64-release-"+DRILL_VERSION+".deb")
         assert(os.path.exists("Output/Drill-GTK-linux-x86_64-release-"+DRILL_VERSION+".deb"))
-        shell("sudo dpkg -i Output/Drill-GTK-linux-x86_64-release-"+DRILL_VERSION+".deb")
+        if 'TRAVIS_OS' in os.environ:
+            print("Travis OS detected, trying to install the GTK .deb")
+            shell("sudo dpkg -i Output/Drill-GTK-linux-x86_64-release-"+DRILL_VERSION+".deb")
         print("GTK .deb done")
 
     packageCLIDeb()
