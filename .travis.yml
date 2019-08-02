@@ -23,7 +23,7 @@ matrix:
 install: pip3 install --upgrade pip  # all three OSes agree about 'pip3'
 # 'python' points to Python 2.7 on macOS but points to Python 3.7 on Linux and Windows
 # 'python3' is a 'command not found' error on Windows but 'py' works on Windows only
-script: python3 .travis.py || python .travis.py
+script: python3 .travis.py 1 || python .travis.py 1
 
 
 
