@@ -1,8 +1,3 @@
-branches:
-  only:
-  - master
-
-
 
 # Discussed at https://travis-ci.community/t/python-support-on-windows/241/18
 language: python            # this works for Linux but is an error on macOS or Windows

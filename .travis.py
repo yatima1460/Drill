@@ -45,7 +45,7 @@ Description: Search files without indexing, but clever crawling
 
 GTK_CONTROL_FILE = '''Package: drill-search-gtk
 Section: utils
-Depends: libgtk-3-0 (>= 3.22.0),libgcc1
+Depends: libgtk-3-0 (>= 3.16.0),libgcc1
 Priority: optional
 Architecture: amd64
 Maintainer: Federico Santamorena <federico@santamorena.me>
@@ -72,6 +72,12 @@ Categories=Utility;
 Keywords=Search;FileSearch;File Search;Find;Search;
 '''
 
+def shell(string):
+    
+    exit_code = os.system(string)
+    print("\n[.travis.py] "+string)
+    assert(exit_code == 0)
+
 def installD(compiler="dmd"):
     '''
     Installs D and returns dub location
@@ -81,39 +87,39 @@ def installD(compiler="dmd"):
 
     if platform == "linux" or platform == "linux2":
         # if compiler == "dmd":
-        os.system("wget -c http://downloads.dlang.org/releases/2.x/"+DMD_VERSION+"/dmd."+DMD_VERSION+".linux.tar.xz")
-        os.system("7z x -aos dmd."+DMD_VERSION+".linux.tar.xz")
-        os.system("7z x -aos dmd."+DMD_VERSION+".linux.tar")
+        shell("wget -c http://downloads.dlang.org/releases/2.x/"+DMD_VERSION+"/dmd."+DMD_VERSION+".linux.tar.xz")
+        shell("7z x -aos dmd."+DMD_VERSION+".linux.tar.xz")
+        shell("7z x -aos dmd."+DMD_VERSION+".linux.tar")
         print("dub/dmd extracted")
         dub = "dmd2/linux/bin64/dub"
         print("dub location is: ", dub)
-        os.system("chmod +x "+dub)
+        shell("chmod +x "+dub)
         print("dub set as executable")
-        os.system("./"+dub+" --version")
-        os.system("chmod +x dmd2/linux/bin64/dmd")
+        shell("./"+dub+" --version")
+        shell("chmod +x dmd2/linux/bin64/dmd")
         print("dmd set as executable")
-        os.system("./"+dub+" --version")
-        os.system("./dmd2/linux/bin64/dmd --version")
+        shell("./"+dub+" --version")
+        shell("./dmd2/linux/bin64/dmd --version")
         return "./"+dub
         # if compiler == "ldc2":
         #     NotImplementedError()
-        #     os.system("curl -fsS https://dlang.org/install.sh | bash -s ldc")
-        #     os.system("source ~/dlang/ldc-1.16.0/activate")
+        #     shell("curl -fsS https://dlang.org/install.sh | bash -s ldc")
+        #     shell("source ~/dlang/ldc-1.16.0/activate")
         #     return "dub"
         
     elif platform == "darwin":
     # OS X
-        os.system("wget http://downloads.dlang.org/releases/2.x/"+DMD_VERSION+"/dmd."+DMD_VERSION+".osx.tar.xz")
-        os.system("7z -aoa x dmd."+DMD_VERSION+".osx.tar.xz")
-        os.system("7z -aoa x dmd."+DMD_VERSION+".osx.tar")
+        shell("wget http://downloads.dlang.org/releases/2.x/"+DMD_VERSION+"/dmd."+DMD_VERSION+".osx.tar.xz")
+        shell("7z -aoa x dmd."+DMD_VERSION+".osx.tar.xz")
+        shell("7z -aoa x dmd."+DMD_VERSION+".osx.tar")
         dub = "dmd2/osx/bin/dub"
-        os.system("chmod +x "+dub)
-        os.system("chmod +x \"$PWD\"/dmd2/osx/bin/dmd")
+        shell("chmod +x "+dub)
+        shell("chmod +x \"$PWD\"/dmd2/osx/bin/dmd")
         return dub
     elif platform == "win32":
     # Windows...
-        os.system("wget http://downloads.dlang.org/releases/2.x/"+DMD_VERSION+"/dmd."+DMD_VERSION+".windows.7z")
-        os.system("7z x dmd."+DMD_VERSION+".windows.7z")
+        shell("wget http://downloads.dlang.org/releases/2.x/"+DMD_VERSION+"/dmd."+DMD_VERSION+".windows.7z")
+        shell("7z x dmd."+DMD_VERSION+".windows.7z")
         cwd = os.getcwd()
         return cwd+"/dmd2/windows/bin/dub.exe"
     else:
@@ -121,13 +127,13 @@ def installD(compiler="dmd"):
         
 
 def buildCLI(dub):
-    os.system(dub+" build -b release -c CLI --force --verbose")
+    shell(dub+" build -b release -c CLI --force --verbose")
     print("buildCLI",dub," done")
 
 def buildUI(dub):
     
     if platform == "linux" or platform == "linux2":
-        os.system(dub+" build -b release -c GTK --force --verbose")
+        shell(dub+" build -b release -c GTK --force --verbose")
     elif platform == "darwin":
     # OS X
         NotImplementedError()
@@ -145,7 +151,7 @@ def createZips():
     '''
     for filename in os.listdir('Build'):
         zip_name = filename+"-"+DRILL_VERSION+".zip"
-        os.system("7z a -tzip Output/"+zip_name+" ./Build/"+filename+"/*")
+        shell("7z a -tzip Output/"+zip_name+" ./Build/"+filename+"/*")
         assert(os.path.exists("Output/"+zip_name))
     print(".zips created")
 
@@ -160,23 +166,23 @@ def packageDeb():
         
 
         # install binary redirect for /usr/bin and set it executable
-        os.system("mkdir -p DEBFILE/CLI/usr/bin")
+        shell("mkdir -p DEBFILE/CLI/usr/bin")
         with open("DEBFILE/CLI/usr/bin/"+DEB_PACKAGE_NAME, "w") as text_file:
             text_file.write("#!/bin/bash\n/opt/"+DEB_PACKAGE_NAME+"/"+DEB_PACKAGE_NAME+ "\"\$@\"")
-        os.system("chmod +x DEBFILE/CLI/usr/bin/"+DEB_PACKAGE_NAME)
+        shell("chmod +x DEBFILE/CLI/usr/bin/"+DEB_PACKAGE_NAME)
         # install in /opt
-        os.system("mkdir -p DEBFILE/CLI/opt/")
-        os.system("cp -r "+BUILD_DIR+" DEBFILE/CLI/opt/"+DEB_PACKAGE_NAME)
-        os.system("chmod +x DEBFILE/CLI/opt/"+DEB_PACKAGE_NAME+"/"+DEB_PACKAGE_NAME)
+        shell("mkdir -p DEBFILE/CLI/opt/")
+        shell("cp -r "+BUILD_DIR+" DEBFILE/CLI/opt/"+DEB_PACKAGE_NAME)
+        shell("chmod +x DEBFILE/CLI/opt/"+DEB_PACKAGE_NAME+"/"+DEB_PACKAGE_NAME)
         # make .deb metadata
-        os.system("mkdir -p DEBFILE/CLI/DEBIAN")
+        shell("mkdir -p DEBFILE/CLI/DEBIAN")
         with open("DEBFILE/CLI/DEBIAN/control", "w") as text_file:
             text_file.write(CLI_CONTROL_FILE+"\nVersion: "+DRILL_VERSION+"\n")
         # build the .deb file
-        os.system("dpkg-deb --build DEBFILE/CLI/")
-        os.system("mv DEBFILE/CLI.deb Output/Drill-CLI-linux-x86_64-release-"+DRILL_VERSION+".deb")
+        shell("dpkg-deb --build DEBFILE/CLI/")
+        shell("mv DEBFILE/CLI.deb Output/Drill-CLI-linux-x86_64-release-"+DRILL_VERSION+".deb")
         assert(os.path.exists("Output/Drill-CLI-linux-x86_64-release-"+DRILL_VERSION+".deb"))
-        os.system("sudo dpkg -i Output/Drill-CLI-linux-x86_64-release-"+DRILL_VERSION+".deb")
+        shell("sudo dpkg -i Output/Drill-CLI-linux-x86_64-release-"+DRILL_VERSION+".deb")
         print("CLI .deb done")
 
     def packageGTKDeb():
@@ -187,32 +193,32 @@ def packageDeb():
         BUILD_DIR = "Build/"+GTK_BUILD_DIR
         assert(os.path.exists(BUILD_DIR+"/"+DEB_PACKAGE_NAME))
         # install binary redirect for /usr/bin and set it executable
-        os.system("mkdir -p DEBFILE/GTK/usr/bin")
+        shell("mkdir -p DEBFILE/GTK/usr/bin")
         with open("DEBFILE/GTK/usr/bin/"+DEB_PACKAGE_NAME, "w") as text_file:
             text_file.write("#!/bin/bash\n/opt/"+DEB_PACKAGE_NAME+"/"+DEB_PACKAGE_NAME)
-        os.system("chmod +x DEBFILE/GTK/usr/bin/"+DEB_PACKAGE_NAME)
+        shell("chmod +x DEBFILE/GTK/usr/bin/"+DEB_PACKAGE_NAME)
         # install in /opt
-        os.system("mkdir -p DEBFILE/GTK/opt/")
-        os.system("cp -r "+BUILD_DIR+" DEBFILE/GTK/opt/"+DEB_PACKAGE_NAME)
-        os.system("chmod +x DEBFILE/GTK/opt/"+DEB_PACKAGE_NAME+"/"+DEB_PACKAGE_NAME)
+        shell("mkdir -p DEBFILE/GTK/opt/")
+        shell("cp -r "+BUILD_DIR+" DEBFILE/GTK/opt/"+DEB_PACKAGE_NAME)
+        shell("chmod +x DEBFILE/GTK/opt/"+DEB_PACKAGE_NAME+"/"+DEB_PACKAGE_NAME)
         # make .deb metadata
-        os.system("mkdir -p DEBFILE/GTK/DEBIAN")
+        shell("mkdir -p DEBFILE/GTK/DEBIAN")
         with open("DEBFILE/GTK/DEBIAN/control", "w") as text_file:
             text_file.write(GTK_CONTROL_FILE+"\nVersion: "+DRILL_VERSION+"\n")
         # add desktop file
-        os.system("mkdir -p DEBFILE/GTK/usr/share/applications")
+        shell("mkdir -p DEBFILE/GTK/usr/share/applications")
         desktop_file = "DEBFILE/GTK/usr/share/applications/drill-search-gtk.desktop"
         with open(desktop_file, "w") as text_file:
             text_file.write(GTK_DESKTOP_FILE)
-        os.system("desktop-file-validate "+desktop_file)
+        shell("desktop-file-validate "+desktop_file)
         # add icon
-        os.system("mkdir -p DEBFILE/GTK/usr/share/pixmaps")
-        os.system("cp Assets/icon.svg DEBFILE/GTK/usr/share/pixmaps/drill-search-gtk.svg")
+        shell("mkdir -p DEBFILE/GTK/usr/share/pixmaps")
+        shell("cp Assets/icon.svg DEBFILE/GTK/usr/share/pixmaps/drill-search-gtk.svg")
         # build the .deb file
-        os.system("dpkg-deb --build DEBFILE/GTK/")
-        os.system("mv DEBFILE/GTK.deb Output/Drill-GTK-linux-x86_64-release-"+DRILL_VERSION+".deb")
+        shell("dpkg-deb --build DEBFILE/GTK/")
+        shell("mv DEBFILE/GTK.deb Output/Drill-GTK-linux-x86_64-release-"+DRILL_VERSION+".deb")
         assert(os.path.exists("Output/Drill-GTK-linux-x86_64-release-"+DRILL_VERSION+".deb"))
-        os.system("sudo dpkg -i Output/Drill-GTK-linux-x86_64-release-"+DRILL_VERSION+".deb")
+        shell("sudo dpkg -i Output/Drill-GTK-linux-x86_64-release-"+DRILL_VERSION+".deb")
         print("GTK .deb done")
 
     packageCLIDeb()
@@ -221,28 +227,28 @@ def packageDeb():
 
 def packageAppImage():
     global GTK_DESKTOP_FILE
-    os.system("wget -c https://raw.githubusercontent.com/probonopd/AppImages/master/pkg2appimage")
+    shell("wget -c https://raw.githubusercontent.com/probonopd/AppImages/master/pkg2appimage")
 
     appimage_dir = "Drill"
-    os.system("mkdir -p "+appimage_dir+"/usr")
+    shell("mkdir -p "+appimage_dir+"/usr")
 
     # create desktop file
     desktop_file = appimage_dir+"/drill-search-gtk.desktop"
     with open(desktop_file, "w") as text_file:
         text_file.write(GTK_DESKTOP_FILE)
-    os.system("desktop-file-validate "+desktop_file)
+    shell("desktop-file-validate "+desktop_file)
     print("AppImage .desktop created.")
 
     with open(appimage_dir+"/drill-search-gtk.bash", "w") as text_file:
         text_file.write("#!/bin/bash\n./drill-search-gtk.elf")
 
     # add icon
-    os.system("cp Assets/icon.svg "+appimage_dir+"/drill-search-gtk.svg")
+    shell("cp Assets/icon.svg "+appimage_dir+"/drill-search-gtk.svg")
     print("AppImage icon copied.")
 
     # copy files
-    # os.system("cp -r Build/Drill-GTK-linux-x86_64-release/* "+appimage_dir)
-    # os.system("chmod +x "+appimage_dir+"/drill-search-gtk")
+    # shell("cp -r Build/Drill-GTK-linux-x86_64-release/* "+appimage_dir)
+    # shell("chmod +x "+appimage_dir+"/drill-search-gtk")
     # print("AppImage files copied.")
     
     #create appimage
@@ -258,8 +264,8 @@ script:
 #  - mv ../drill-search-gtk.bash ./usr/bin/drill-search-gtk
     with open("APP_IMAGE_SCRIPT.yml", "w") as text_file:
             text_file.write(APP_IMAGE_SCRIPT)
-    os.system("bash -ex ./pkg2appimage APP_IMAGE_SCRIPT.yml")
-    os.system("mv out/*.AppImage Output/Drill-GTK-linux-x86_64-release-"+DRILL_VERSION+".AppImage")
+    shell("bash -ex ./pkg2appimage APP_IMAGE_SCRIPT.yml")
+    shell("mv out/*.AppImage Output/Drill-GTK-linux-x86_64-release-"+DRILL_VERSION+".AppImage")
     assert(os.path.exists("Output/Drill-GTK-linux-x86_64-release-"+DRILL_VERSION+".AppImage"))
     print("AppImage done.")
 
