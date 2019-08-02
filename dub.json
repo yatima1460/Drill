@@ -49,18 +49,18 @@
             "name": "CLI",
             "targetType": "executable",
             "targetName": "drill-search-cli",
-            "mainSourceFile":"Source/Frontend/CLI/CLI.d",
+            "mainSourceFile":"CLI/CLI.d",
             "targetPath": "Build/Drill-CLI-$PLATFORM-$ARCH-$BUILD_TYPE",
             "sourceFiles": [
-                "Source/Backend/ApplicationInfo.d",
-                "Source/Backend/Config.d",
-                "Source/Backend/Context.d",
-                "Source/Backend/Crawler.d",
-                "Source/Backend/FileInfo.d",
-                "Source/Backend/ListData.d",
-                "Source/Backend/Meta.d",
-                "Source/Backend/Utils.d",
-                "Source/Frontend/CLI/CLI.d"
+                "Core/ApplicationInfo.d",
+                "Core/Config.d",
+                "Core/Context.d",
+                "Core/Crawler.d",
+                "Core/FileInfo.d",
+                "Core/ListData.d",
+                "Core/Meta.d",
+                "Core/Utils.d",
+                "CLI/CLI.d"
             ]
         },
         
@@ -69,23 +69,23 @@
             "targetType": "executable",
             "targetName": "drill-search-gtk",
             "sourceFiles": [
-                "Source/Backend/ApplicationInfo.d",
-                "Source/Backend/Config.d",
-                "Source/Backend/Context.d",
-                "Source/Backend/Crawler.d",
-                "Source/Backend/FileInfo.d",
-                "Source/Backend/ListData.d",
-                "Source/Backend/Meta.d",
-                "Source/Backend/Utils.d",
-                "Source/Frontend/GTK/GTKBinds.d",
-                "Source/Frontend/GTK/ListStore.d",
-                "Source/Frontend/GTK/TreeView.d"
+                "Core/ApplicationInfo.d",
+                "Core/Config.d",
+                "Core/Context.d",
+                "Core/Crawler.d",
+                "Core/FileInfo.d",
+                "Core/ListData.d",
+                "Core/Meta.d",
+                "Core/Utils.d",
+                "GTK/GTKBinds.d",
+                "GTK/ListStore.d",
+                "GTK/TreeView.d"
             ],
             "libs-posix": [
                 "gtk-3",
                 "gio-2.0"
             ],
-            "mainSourceFile":"Source/Frontend/GTK/Main.d",
+            "mainSourceFile":"GTK/Main.d",
             "targetPath": "Build/Drill-GTK-$PLATFORM-$ARCH-$BUILD_TYPE"
         }
     ],
