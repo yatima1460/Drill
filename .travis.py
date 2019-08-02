@@ -109,17 +109,13 @@ def installD(compiler="dmd"):
         dub = "dmd2/osx/bin/dub"
         os.system("chmod +x "+dub)
         os.system("chmod +x \"$PWD\"/dmd2/osx/bin/dmd")
-        return "./"+dub
+        return dub
     elif platform == "win32":
     # Windows...
         os.system("wget http://downloads.dlang.org/releases/2.x/"+DMD_VERSION+"/dmd."+DMD_VERSION+".windows.7z")
         os.system("7z x dmd."+DMD_VERSION+".windows.7z")
-        os.system("ls")
-        os.system("ls dmd2")
-        os.system("ls dmd2/windows")
-        os.system("ls dmd2/windows/bin/")
-        os.system("move dmd2/windows/bin/*.* $PWD")
-        return "dub"
+        cwd = os.getcwd()
+        return cwd+"/dmd2/windows/bin/dub.exe"
     else:
         NotImplementedError("Your OS is not supported.")
         
