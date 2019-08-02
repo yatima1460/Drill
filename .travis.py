@@ -102,7 +102,7 @@ def installD(compiler="dmd"):
     elif platform == "darwin":
     # OS X
         os.system("wget http://downloads.dlang.org/releases/2.x/2.086.0/dmd.2.086.0.osx.tar.xz")
-        os.system("7z x dmd.2.086.0.osx.tar.xz")
+        os.system("7z -aoa x dmd.2.086.0.osx.tar.xz")
         os.system("7z -aoa x dmd.2.086.0.osx.tar")
         dub = "dmd2/osx/bin/dub"
         os.system("chmod +x "+dub)
@@ -112,8 +112,8 @@ def installD(compiler="dmd"):
     # Windows...
         os.system("wget http://downloads.dlang.org/releases/2.x/2.086.0/dmd.2.086.0.windows.7z")
         os.system("7z x dmd.2.086.0.windows.7z")
-        os.system("move \"$PWD\"/dmd2/windows/bin/*.* $PWD")
-        return "dub"
+        #os.system("move dmd2/windows/bin/*.* $PWD")
+        return "dmd2/windows/bin/dub.exe"
     else:
         NotImplementedError("Your OS is not supported.")
         
