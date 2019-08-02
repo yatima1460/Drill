@@ -45,7 +45,7 @@ Description: Search files without indexing, but clever crawling
 
 GTK_CONTROL_FILE = '''Package: drill-search-gtk
 Section: utils
-Depends: libgtk-3-0 (>= 3.22.0),libgio-2.0,libgcc1
+Depends: libgtk-3-0 (>= 3.22.0),libgcc1
 Priority: optional
 Architecture: amd64
 Maintainer: Federico Santamorena <federico@santamorena.me>
@@ -176,6 +176,7 @@ def packageDeb():
         os.system("dpkg-deb --build DEBFILE/CLI/")
         os.system("mv DEBFILE/CLI.deb Output/Drill-CLI-linux-x86_64-release-"+DRILL_VERSION+".deb")
         assert(os.path.exists("Output/Drill-CLI-linux-x86_64-release-"+DRILL_VERSION+".deb"))
+        os.system("sudo dpkg -i Output/Drill-CLI-linux-x86_64-release-"+DRILL_VERSION+".deb")
         print("CLI .deb done")
 
     def packageGTKDeb():
@@ -211,6 +212,7 @@ def packageDeb():
         os.system("dpkg-deb --build DEBFILE/GTK/")
         os.system("mv DEBFILE/GTK.deb Output/Drill-GTK-linux-x86_64-release-"+DRILL_VERSION+".deb")
         assert(os.path.exists("Output/Drill-GTK-linux-x86_64-release-"+DRILL_VERSION+".deb"))
+        os.system("sudo dpkg -i Output/Drill-GTK-linux-x86_64-release-"+DRILL_VERSION+".deb")
         print("GTK .deb done")
 
     packageCLIDeb()
