@@ -117,7 +117,7 @@ def installD(compiler="dmd"):
         os.system("ls dmd2/windows")
         os.system("ls dmd2/windows/bin/")
         #os.system("move dmd2/windows/bin/*.* $PWD")
-        return "./dmd2/windows/bin/dub.exe"
+        return "dmd2/windows/bin/dub.exe"
     else:
         NotImplementedError("Your OS is not supported.")
         
