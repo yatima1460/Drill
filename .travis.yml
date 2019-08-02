@@ -61,7 +61,6 @@ before_deploy:
  - git config --local user.name "Federico Santamorena"
  - git config --local user.email "federico@santamorena.me"
  - export DRILL_VERSION=$(python -c "import sys, json; f = open('dub.json'); print(json.load(f)['version']); f.close()") 
- - git tag $DRILL_VERSION
 
 deploy:
   provider: releases
@@ -78,6 +77,7 @@ deploy:
     - Output/*.*
   on:
     repo: yatima1460/Drill
+    tags: true
 
 notifications:
   email:
