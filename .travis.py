@@ -112,8 +112,12 @@ def installD(compiler="dmd"):
     # Windows...
         os.system("wget http://downloads.dlang.org/releases/2.x/2.086.0/dmd.2.086.0.windows.7z")
         os.system("7z x dmd.2.086.0.windows.7z")
+        os.system("ls")
+        os.system("ls dmd2")
+        os.system("ls dmd2/windows")
+        os.system("ls dmd2/windows/bin/")
         #os.system("move dmd2/windows/bin/*.* $PWD")
-        return "dmd2/windows/bin/dub.exe"
+        return "./dmd2/windows/bin/dub.exe"
     else:
         NotImplementedError("Your OS is not supported.")
         
