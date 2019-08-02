@@ -316,7 +316,7 @@ def packageRpm():
 def packageInstallers():
     if platform == "linux" or platform == "linux2":
         packageDeb()
-        packageRpm()
+        # packageRpm()
 
 if __name__ == "__main__":
     dub = installD()
