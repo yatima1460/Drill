@@ -122,17 +122,12 @@ def installD(compiler="dmd"):
 
 def buildCLI(dub):
     os.system(dub+" build -b release -c CLI --force --verbose")
-    if platform == "win32":
-        assert(os.path.exists("Build/Drill-CLI-linux-x86_64-release/drill-search-cli.exe"))
-    else:
-        assert(os.path.exists("Build/Drill-CLI-linux-x86_64-release/drill-search-cli"))
     print("buildCLI",dub," done")
 
 def buildUI(dub):
     
     if platform == "linux" or platform == "linux2":
         os.system(dub+" build -b release -c GTK --force --verbose")
-        assert(os.path.exists("Build/Drill-GTK-linux-x86_64-release/drill-search-gtk"))
     elif platform == "darwin":
     # OS X
         NotImplementedError()
