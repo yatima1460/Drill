@@ -1,4 +1,4 @@
-
+# D
 .dub
 dub.selections.json
 
@@ -6,76 +6,5 @@ dub.selections.json
 /Build
 /Output
 
-# .deb
-/DEBFILE
-
-# Travis
-/dmd2
-/dmd*.tar
-/dmd*.tar.xz
-
-# AppImage
-/Drill
-/APP_IMAGE_SCRIPT.yml
-functions.sh
-pkg2appimage
-/drill-search-gtk.desktop
-
 # Generic log files
 *.log
-
-#.rpm
-/drill-search-gtk.spec
-
-# pre-build
-# Source/Backend/BlockLists.txt
-# Source/Backend/PriorityLists.txt
-# Source/Backend/ListsMerger
-
-
-# Binaries
-# Build
-# Output
-# *.a
-# drill-ui
-# drill-cli
-
-# # D
-# dub.selections.json
-# .dub
-# *.def
-
-# #AppImage
-# *.AppImage
-# Tools/AppImage/Drill/
-# pkg2appimage*
-
-# #.deb
-# Tools/deb/DEBFILE
-# *.deb
-
-# # Windows
-# *.lib
-# *.exe
-# .vs
-
-# # RedHat
-# *.rpm
-# *.spec
-# Tools/rpm/build
-# *.tar.gz
-# *.log
-
-# #Flatpak
-# .flatpak-builder
-
-
-
-# *.o
-
-# *.lst
-
-
-# /dmd2
-# *.tar
-# *.tar.xz
