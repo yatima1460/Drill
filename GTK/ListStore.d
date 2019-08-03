@@ -32,7 +32,39 @@ pure nothrow @trusted void appendApplication(GtkListStore* store, const(Applicat
         -1);
 }
 
-  @trusted void appendFileInfo(GtkListStore* store, immutable(FileInfo) fileInfo)
+
+
+
+
+nothrow const(string) getGTKIconNameFromExtension(const(string) extension)
+{
+    import std.process : executeShell;
+        import std.array : array, replace, split;
+    string icon = null;
+    try
+    {
+       
+        auto iconMaybe = executeShell("grep '" ~ "' /etc/mime.types");
+        if (iconMaybe.status == 0)
+        {
+
+            icon = iconMaybe.output.replace("/", "-");
+
+        }
+        else
+        {
+            icon = "text-x-generic";
+        }
+       
+    }
+    catch (Exception e)
+    {
+        icon = "text-x-generic";
+    }
+     return icon;
+}
+
+@trusted void appendFileInfo(GtkListStore* store, immutable(FileInfo) fileInfo, string[string] GTKIcons)
 in(store !is null)
 {
     GtkTreeIter iter;
@@ -42,12 +74,18 @@ in(store !is null)
     import std.process : executeShell;
     import std.array : replace;
 
-    string icon = "none";
+    string icon = null;
 
     if (fileInfo.isDirectory)
     {
         icon = "folder";
     }
+    else
+    {
+        icon = GTKIcons.get(fileInfo.extension.replace(".", ""),"null");
+       // icon = getGTKIconNameFromExtension(fileInfo.extension.replace(".", ""));
+    }
+   
     // TODO: icons
     // else
     // {
@@ -56,8 +94,7 @@ in(store !is null)
 
     //         synchronized
     //         {
-    //             immutable auto iconMaybe = executeShell("grep '" ~ fileInfo.extension.replace(".",
-    //                     "") ~ "' /etc/mime.types");
+    //             immutable auto iconMaybe = executeShell("grep '" ~ fileInfo.extension.replace(".", "") ~ "' /etc/mime.types");
     //             if (iconMaybe.status == 0)
     //             {
 
