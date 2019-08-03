@@ -11,7 +11,7 @@ import std.stdio : writeln;
 import std.conv : to;
 
 import ApplicationInfo : ApplicationInfo, getApplications;
-import Crawler : isFileNameMatchingSearchString;
+
 import Context : DrillContext, startCrawling, stopCrawlingSync, stopCrawlingAsync;
 import Config : loadData;
 
@@ -272,14 +272,18 @@ in(userObject !is null)
         context.context = startCrawling(context.drillConfig, searchString, &resultFound, context);
         assert(context.context !is null);
 
+        import std.algorithm : canFind;
+
+        // HACK: this should be asked somehow to the Core part
+        if (!searchString.canFind("content:"))
         // While the crawling started use the UI thread to find applications
         foreach (ApplicationInfo app; context.applications)
         {
 
-
+            import Context : isTokenizedStringMatchingString;
             assert(app.name,"Tried to add an application with a null name");
             assert(app.name.length > 0,"Tried to add an application with an empty name");
-            if (isFileNameMatchingSearchString(searchString, app.name))
+            if (isTokenizedStringMatchingString(searchString, app.name))
             {
                 assert(context !is null);
                 assert(context.liststore !is null);
@@ -351,7 +355,7 @@ in(user_data !is null)
         assert(context !is null);
         assert(context.liststore !is null);
         assert(fi !is null);
-        appendFileInfo(context.liststore,*fi,context.GTKIcons);
+        appendFileInfo(context.liststore,*fi,context.mime);
         //gtk_entry_set_progress_pulse_step (context.search_input,0.001);
         //gtk_entry_progress_pulse (context.search_input);
 
@@ -676,7 +680,7 @@ struct DrillGtkContext
     GtkApplication* app;
     DrillConfig drillConfig;
 
-    string[string] GTKIcons;
+    string[string] mime;
 
     long oldTime;
 
@@ -689,53 +693,7 @@ struct DrillGtkContext
 }
 
 
-char[] cleanLines(char[] x)
-{
-    import std.algorithm : canFind;
-    import std.array : replace;
-    char[] s = x;
-    while (s.canFind("  ")) 
-        s = s.replace("  "," ");
-    return s;
-}
 
-// TODO: do this at compile time?
-string[string] loadGTKIcons()
-{
-        import std.algorithm, std.stdio, std.string;
-    auto file = File(buildPath(dirName(thisExePath),"Assets/mime.types")); 
-    import std.array : array;
-    char[][] lines = file.byLine()
-                        .filter!(x => !x.canFind("#"))
-                        .map!strip
-                        .map!(x => x.replace("/","-"))
-                        .map!(x => x.replace("\t"," "))
-                        .map!cleanLines
-                        // .map!(x =>  x.split(" "))
-                        .array
-                        ;            // Read lines
-                        //   .map!split           // Split into words
-                        //   .map!(a => a.length) // Count words per line
-                        //   .sum();              // Total word count
-
-    string[string] icons;
-
-
-    
-    // icons = lines.map!(x => x.split(" ").filter!(x => x.length > 0)).array;
-
-  
-    foreach(line; lines)
-    {
-        auto splitted = line.split(" ");
-        if (splitted.length == 0) continue;
-        for(int i = 1; i < splitted.length; i++)
-        {
-            icons[to!string(splitted[i])] = to!string(splitted[0]);
-        }
-    }
-    return icons;
-}
 
 int main(string[] args)
 {
@@ -756,9 +714,10 @@ int main(string[] args)
     DrillGtkContext drillGtkContext;
     drillGtkContext.app = app;
 
-    drillGtkContext.GTKIcons = loadGTKIcons();
+    import Config : loadMime;
+    drillGtkContext.mime = loadMime();
 
-    writeln(drillGtkContext.GTKIcons["mkv"]);
+    // writeln(drillGtkContext.mime["mkv"]);
 
     
     // return 0;

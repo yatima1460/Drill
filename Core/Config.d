@@ -1,6 +1,6 @@
+import std.path : buildPath, dirName;
 
-
-
+import std.file : thisExePath;
 
 
 // immutable(string) DEFAULT_BLOCK_LIST    = import("BlockLists.txt");
@@ -27,6 +27,8 @@
         assert(PRIORITY_LIST_REGEX.length == PRIORITY_LIST.length);
     }
     bool singlethread;
+
+    string[string] mime;
 }
 
 version (linux)
@@ -57,14 +59,61 @@ public string getConfigPath()
 // }
 
 
+import std.conv : to;
 
+
+private char[] cleanLines(char[] x)
+{
+    import std.algorithm : canFind;
+    import std.array : replace;
+    char[] s = x;
+    while (s.canFind("  ")) 
+        s = s.replace("  "," ");
+    return s;
+}
 
 // string[] loadBlocklists()
 // {
 
 // }
 
+// TODO: do this at compile time?
+string[string] loadMime()
+{
+        import std.algorithm, std.stdio, std.string;
+    auto file = File(buildPath(dirName(thisExePath),"Assets/mime.types")); 
+    import std.array : array;
+    char[][] lines = file.byLine()
+                        .filter!(x => !x.canFind("#"))
+                        .map!strip
+                        .map!(x => x.replace("/","-"))
+                        .map!(x => x.replace("\t"," "))
+                        .map!cleanLines
+                        // .map!(x =>  x.split(" "))
+                        .array
+                        ;            // Read lines
+                        //   .map!split           // Split into words
+                        //   .map!(a => a.length) // Count words per line
+                        //   .sum();              // Total word count
 
+    string[string] icons;
+
+
+    
+    // icons = lines.map!(x => x.split(" ").filter!(x => x.length > 0)).array;
+
+  
+    foreach(line; lines)
+    {
+        auto splitted = line.split(" ");
+        if (splitted.length == 0) continue;
+        for(int i = 1; i < splitted.length; i++)
+        {
+            icons[to!string(splitted[i])] = to!string(splitted[0]);
+        }
+    }
+    return icons;
+}
 /*
 Loads Drill data to be used in any crawling
 */
@@ -117,13 +166,17 @@ DrillConfig loadData(immutable(string) assetsDirectory)
         error(fe.message);
         error("Error when trying to read priority lists, will default to an empty list");
     }
+
+    auto mime = loadMime();
+
     // DrillConfig dd;
     DrillConfig dd = {
         assetsDirectory,
         BLOCK_LIST,
         PRIORITY_LIST,
         PRIORITY_LIST_REGEX,
-        false
+        false,
+        mime
     };
     return dd;
 }

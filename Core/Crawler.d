@@ -26,31 +26,6 @@ alias CrawlerCallback = void function(  const(FileInfo) result, void* userObject
 
 
 
-/++
-    Params:
-        searchString = the search string the user wrote in a Drill frontend
-        fileName = the complete file name without a fullpath, only the file name after the slash
-
-    Returns:
-        true if the file matches the search input
-
-    Complexity:
-        O(searchString*fileName)
-+/
-pure @safe bool isFileNameMatchingSearchString(const(string) searchString, const(string) fileName) 
-in (searchString != null)
-in (searchString.length > 0)
-in (fileName != null)
-in (fileName.length > 0)
-{
-    if (fileName.length < searchString.length) return false;
-    const string[] searchTokens = toLower(strip(searchString)).split(" ");
-    const string fileNameLower = toLower(baseName(fileName));
-    foreach (token; searchTokens)
-        if (!canFind(fileNameLower, token))
-            return false;
-    return true;
-}
 
 unittest
 {
@@ -317,15 +292,22 @@ in (currentDirectory.isDir())
 
 
 
+
+
+import Context : MatchingFunction;
+
 void crawlDirectory(DirEntry currentDirectory, 
                     const Regex!char[] blockListRegex, 
                     const Regex!char[] priorityListRegex, 
                     const(string) searchString, 
                     CrawlerCallback* resultCallback, 
                     const(void*) userObject,
-                    DList!DirEntry queue)
+                    DList!DirEntry queue,
+                    MatchingFunction matchingFunction,
+                    shared(bool)* running)
 in (currentDirectory.isDir())
 {
+
     // // // // /*
     // // // //     NOTE:
     // // // //     A "File" in the more general term and in this function can be both a normal file and a directory
@@ -352,6 +334,7 @@ in (currentDirectory.isDir())
     // If we could get the files inside we start to scan all of them
     foreach (DirEntry currentFile; files)
     {
+        if (!*running) break;
         // if (shouldSkipDirectory(currentFile,blockListRegex))
         //     continue;
 
@@ -396,14 +379,13 @@ in (currentDirectory.isDir())
                 // Switch fallthrough here, so directories are added too
                 case false:
 
-                    // If the file matches the search we consider it a result
-                    // we don't care if it's a normal file or a directory
-                    final switch(isFileNameMatchingSearchString(searchString, baseName(currentFile.name)))
+                    // TODO: function pointer as predicate for search matching
+
+                    final switch (matchingFunction(currentFile,searchString))
                     {
                         // The file does not match the search
                         case false:
                             continue;
-
                         // The file name matches the search string
                         case true:
                             trace("Matching search"~currentFile.name);
@@ -413,6 +395,7 @@ in (currentDirectory.isDir())
                             (*resultCallback)(fi, cast(void*)userObject);
                             break;
                     }
+                  
             }
         }
         catch (Exception e)
@@ -439,6 +422,8 @@ class Crawler : Thread
         }
     }
 
+    import Context: MatchingFunction;
+
 private:
     const(string) MOUNTPOINT;
     const(string) SEARCH_STRING;
@@ -448,6 +433,8 @@ private:
     const(Regex!char[]) PRIORITY_LIST_REGEX;
     
     shared(bool) running;
+
+    const(MatchingFunction) matchingFunction;
 
     CrawlerCallback resultCallback;
 
@@ -467,7 +454,8 @@ public:
         in const(Regex!char[]) PRIORITY_LIST_REGEX,
         in CrawlerCallback resultCallback, 
         in immutable(string) search,
-        in void* userObject
+        in void* userObject,
+        MatchingFunction matchingFunction
     )
     in (MOUNTPOINT != null)
     in (MOUNTPOINT.length != 0)
@@ -497,6 +485,7 @@ public:
         this.running = true;
 
         this.userObject = userObject;
+        this.matchingFunction = matchingFunction;
     }
 
     private void noop_resultFound(const(FileInfo) result,void* v) const
@@ -584,7 +573,17 @@ public:
             queue.removeFront();
 
             //trace("Directory: " ~ currentDirectory.name,this.toString());
-            crawlDirectory(currentDirectory,BLOCK_LIST_REGEX,PRIORITY_LIST_REGEX,SEARCH_STRING,&resultCallback, cast(void*)userObject,queue);
+            crawlDirectory(
+                currentDirectory,
+                BLOCK_LIST_REGEX,
+                PRIORITY_LIST_REGEX,
+                SEARCH_STRING,
+                &resultCallback, 
+                cast(void*)userObject,
+                queue, 
+                matchingFunction,
+                &running
+            );
         }
 
         // If this line is reached it means the crawler finished all the entire mountpoint to scan
