@@ -106,7 +106,7 @@ in(userObject !is null)
     import Utils : openFile;
     import std.process : spawnProcess;
     import std.process : Config;
-    import Utils : cleanExecLine;
+   
 
     DrillGtkContext* context = cast(DrillGtkContext*) userObject;
     assert(context !is null);
@@ -146,9 +146,15 @@ in(userObject !is null)
     switch (fromStringz(csize))
     {
         case " ":
+           
             try
             {
-                spawnProcess(cleanExecLine(to!string(fromStringz(cpath))), null, Config.detached, null);
+                 version(linux)
+                {
+                      import Utils : cleanExecLine;
+                        spawnProcess(cleanExecLine(to!string(fromStringz(cpath))), null, Config.detached, null);
+                }
+              
             }
             catch(Exception e)
             {
