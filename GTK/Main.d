@@ -351,7 +351,7 @@ in(user_data !is null)
         assert(context !is null);
         assert(context.liststore !is null);
         assert(fi !is null);
-        appendFileInfo(context.liststore,*fi);
+        appendFileInfo(context.liststore,*fi,context.GTKIcons);
         //gtk_entry_set_progress_pulse_step (context.search_input,0.001);
         //gtk_entry_progress_pulse (context.search_input);
 
@@ -668,6 +668,8 @@ struct DrillGtkContext
     GtkApplication* app;
     DrillConfig drillConfig;
 
+    string[string] GTKIcons;
+
     long oldTime;
 
     bool list_dirty = false;
@@ -679,6 +681,54 @@ struct DrillGtkContext
 }
 
 
+char[] cleanLines(char[] x)
+{
+    import std.algorithm : canFind;
+    import std.array : replace;
+    char[] s = x;
+    while (s.canFind("  ")) 
+        s = s.replace("  "," ");
+    return s;
+}
+
+// TODO: do this at compile time
+string[string] loadGTKIcons()
+{
+        import std.algorithm, std.stdio, std.string;
+    auto file = File("Assets/mime.types"); 
+    import std.array : array;
+    char[][] lines = file.byLine()
+                        .filter!(x => !x.canFind("#"))
+                        .map!strip
+                        .map!(x => x.replace("/","-"))
+                        .map!(x => x.replace("\t"," "))
+                        .map!cleanLines
+                        // .map!(x =>  x.split(" "))
+                        .array
+                        ;            // Read lines
+                        //   .map!split           // Split into words
+                        //   .map!(a => a.length) // Count words per line
+                        //   .sum();              // Total word count
+
+    string[string] icons;
+
+
+    
+    // icons = lines.map!(x => x.split(" ").filter!(x => x.length > 0)).array;
+
+  
+    foreach(line; lines)
+    {
+        auto splitted = line.split(" ");
+        if (splitted.length == 0) continue;
+        for(int i = 1; i < splitted.length; i++)
+        {
+            icons[to!string(splitted[i])] = to!string(splitted[0]);
+        }
+    }
+    return icons;
+}
+
 int main(string[] args)
 {
     import std.path : buildPath, dirName;
@@ -688,6 +738,8 @@ int main(string[] args)
     import core.memory : GC;
     GC.disable();
 
+
+
     GtkApplication* app = gtk_application_new("me.santamorena.drill",
             GApplicationFlags.G_APPLICATION_FLAGS_NONE);
     assert(app !is null);
@@ -695,6 +747,13 @@ int main(string[] args)
 
     DrillGtkContext drillGtkContext;
     drillGtkContext.app = app;
+
+    drillGtkContext.GTKIcons = loadGTKIcons();
+
+    writeln(drillGtkContext.GTKIcons["mkv"]);
+
+    
+    // return 0;
 
     assert(thisExePath !is null);
     assert(thisExePath.length > 0);
