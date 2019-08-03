@@ -223,6 +223,8 @@ def packageDeb():
             print("Travis OS detected, trying to install the CLI .deb")
             shell("sudo dpkg -i Output/Drill-CLI-linux-x86_64-release-"+DRILL_VERSION+".deb")
         print("CLI .deb done")
+        shell("rm -rf DEBFILE/CLI")
+        print("CLI .deb cleanup")
 
     def packageGTKDeb():
         global GTK_DESKTOP_FILE
@@ -261,6 +263,8 @@ def packageDeb():
             print("Travis OS detected, trying to install the GTK .deb")
             shell("sudo dpkg -i Output/Drill-GTK-linux-x86_64-release-"+DRILL_VERSION+".deb")
         print("GTK .deb done")
+        shell("rm -rf DEBFILE/GTK")
+        print("GTK .deb cleanup")
 
     packageCLIDeb()
     packageGTKDeb()
@@ -309,6 +313,11 @@ script:
     shell("mv out/*.AppImage Output/Drill-GTK-linux-x86_64-release-"+DRILL_VERSION+".AppImage")
     assert(os.path.exists("Output/Drill-GTK-linux-x86_64-release-"+DRILL_VERSION+".AppImage"))
     print("AppImage done.")
+    shell("rm -rf Drill")
+    shell("rmdir out")
+    shell("rm pkg2appimage")
+    shell("rm APP_IMAGE_SCRIPT.yml")
+    print("AppImage cleanup")
 
 def packagePortables():
     if platform == "linux" or platform == "linux2":
@@ -379,6 +388,17 @@ if __name__ == "__main__":
             exit(0)
         if argv[1] == "snap":
             exit(1)
+    if platform == "linux" or platform == "linux2":
+        shell("rm dmd."+DMD_VERSION+".linux.tar")
+        shell("rm dmd."+DMD_VERSION+".linux.tar.xz")
+    if platform == "darwin":
+        # TODO: add OSX cleanup
+        pass
+    if platform == "windows":
+        # TODO: add Windows cleanup
+        pass
+    shell("rm -rf dmd2")
+    print("dmd cleanup done.")
 
         
 
