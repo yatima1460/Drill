@@ -50,8 +50,9 @@
 
 
         function CreateCategory(Category) {
+            
             let downloads_div = document.getElementById("downloads");
-            console.log(Category + " category does not exist");
+            console.log(Category + " category does not exist, creating...");
             let cat_html = '<div id="' + Category + '" class="os">' +
                 '<div class="os-header">' +
                 '<img src="icons/' + Category + '.svg?sanitize=true" srcset="" alt="' + Category + '">' +
@@ -65,7 +66,7 @@
         }
 
         function CreateDownloadButton(Category, URL, Icon, Text, Tooltip) {
-
+            console.log("CreateDownloadButton","Category=",Category, "URL=",URL, "Icon=",Icon, "Text=",Text, "Tooltip=",Tooltip)
             if (Tooltip === undefined) Tooltip = URL;
             let child_category = downloads.querySelector("#" + Category);
             console.log(child_category);
@@ -104,7 +105,7 @@
 
 
         window.onload = function () {
-            fetch('https://api.github.com/repos/yatima1460/Drill/releases/latest')
+            fetch('https://api.github.com/repos/yatima1460/Drill/releases/tags/untagged-d60df3e327e8a10bb4cd')
                 .then(response => {
                     return response.json()
                 })
@@ -143,18 +144,22 @@
 
                             if (asset.name.toLowerCase().includes(OS.toLowerCase())) {
 
-                                let ext = asset.name.split(".")[2];
+                                let ext = asset.name.split(".")
+                                ext = ext[ext.length-1]
+                                
+
+                                console.log(ext)
 
                                 let text = ext;
 
                                 if (ext === "deb") text = "Debian, Ubuntu, Deepin";
                                 if (ext === "zip") text = "Portable";
-                                if (ext === "AppImage") {
-                                    // text = "AppImage";
-                                    text += "<br><b><font size=1.7em color=#FF0000>" +
-                                        "Has problems on Linux Mint, use .deb" +
-                                        "</b></font>"
-                                }
+                                // if (ext === "AppImage") {
+                                //     // text = "AppImage";
+                                //     text += "<br><b><font size=1.7em color=#FF0000>" +
+                                //         "Has problems on Linux Mint, use .deb" +
+                                //         "</b></font>"
+                                // }
 
                                 if (ext === "rpm") {
                                     text = "Red Hat, Fedora, SUSE";
@@ -166,13 +171,13 @@
 
                                 let icon_name = ext + ".svg?sanitize=true";
 
-                                if (ext === "tgz") {
-                                    text = "Slackware";
-                                    icon_name = "Slackware";
-                                    text += "<br><b><font size=1.7em color=#FF0000>" +
-                                        "Untested" +
-                                        "</b></font>"
-                                }
+                                // if (ext === "tgz") {
+                                //     text = "Slackware";
+                                //     icon_name = "Slackware";
+                                //     text += "<br><b><font size=1.7em color=#FF0000>" +
+                                //         "Untested" +
+                                //         "</b></font>"
+                                // }
 
 
 
