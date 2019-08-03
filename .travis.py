@@ -236,9 +236,9 @@ def packageDeb():
         with open("DEBFILE/GTK/usr/bin/"+DEB_PACKAGE_NAME, "w") as text_file:
             text_file.write("#!/bin/bash\n/opt/"+DEB_PACKAGE_NAME+"/"+DEB_PACKAGE_NAME)
         shell("chmod +x DEBFILE/GTK/usr/bin/"+DEB_PACKAGE_NAME)
-        # install in /opt
+        # copy all files and install in /opt
         shell("mkdir -p DEBFILE/GTK/opt/")
-        shell("cp -r "+BUILD_DIR+" DEBFILE/GTK/opt/"+DEB_PACKAGE_NAME)
+        shell("cp -r "+BUILD_DIR+"/ DEBFILE/GTK/opt/"+DEB_PACKAGE_NAME)
         shell("chmod +x DEBFILE/GTK/opt/"+DEB_PACKAGE_NAME+"/"+DEB_PACKAGE_NAME)
         # make .deb metadata
         shell("mkdir -p DEBFILE/GTK/DEBIAN")
@@ -356,13 +356,30 @@ def packageInstallers():
         # packageSnap()
 
 if __name__ == "__main__":
-    dub = installD()
-    buildCLI(dub)
-    buildUI(dub)
-    createZips()
-    packagePortables()
-    packageInstallers()
-    print("All builds done.")
+    if len(argv) == 1:
+        dub = installD()
+        buildCLI(dub)
+        buildUI(dub)
+        createZips()
+        packagePortables()
+        packageInstallers()
+        print("All builds done.")
+    # useful args for local testing
+    if len(argv) == 2:
+        if argv[1] == "appimage":
+            dub = installD()
+            buildUI(dub)
+            packageAppImage()
+            exit(0)
+        if argv[1] == "deb":
+            dub = installD()
+            buildCLI(dub)
+            buildUI(dub)
+            packageDeb()
+            exit(0)
+        if argv[1] == "snap":
+            exit(1)
+
         
 
     
