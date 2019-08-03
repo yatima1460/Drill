@@ -135,13 +135,40 @@ bool isFileContentMatchingSearchString(DirEntry file, const(string) searchString
            // && !blacklistedExtensions.canFind(extension(file.name))
         ) 
         {
-            auto fileRead = readText(file);
-            auto fileContent = toLower(fileRead);
-            bool found = fileContent.canFind(toLower(searchString));
+            bool found = false;
+            try
+            {
+                string fileRead = readText!string(file);
+                auto fileContent = toLower(fileRead);
+                found = fileContent.canFind(toLower(searchString));
+            }
+            catch(Exception e)
+            {
+                try
+                {
+                    wstring fileRead = readText!wstring(file);
+                    auto fileContent = toLower(fileRead);
+                    found = fileContent.canFind(toLower(searchString));
+                }
+                catch(Exception e)
+                {
+                     try
+                    {
+                        dstring fileRead = readText!dstring(file);
+                        auto fileContent = toLower(fileRead);
+                        found = fileContent.canFind(toLower(searchString));
+                    }
+                    catch(Exception e)
+                    {
+                        warning(e.message);
+                        return false;
+                    }
+                    return false;
+                }
+               
 
-            
-            fileRead.destroy();
-            fileContent.destroy();
+            }
+
 
             import core.stdc.stdlib : free;
             import core.memory : GC;
