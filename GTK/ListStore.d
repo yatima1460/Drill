@@ -20,7 +20,8 @@ pure nothrow @trusted void appendApplication(GtkListStore* store, const(Applicat
 
     // HACK: to specify if a row is an app, an hidden space in the size field is added
     // tell me if you have a better idea, user_data in GtkTreeIter doesn't seem reliable
-
+    version(linux)
+    {
     /* Append a row and fill in some data */
     store.gtk_list_store_append(&iter);
     store.gtk_list_store_set(&iter,
@@ -30,6 +31,8 @@ pure nothrow @trusted void appendApplication(GtkListStore* store, const(Applicat
         3, toStringz(" "),
         4, toStringz(app.desktopFileDateModifiedString), 
         -1);
+    }
+
 }
 
 

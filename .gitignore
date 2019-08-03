@@ -8,3 +8,6 @@ dub.selections.json
 
 # Generic log files
 *.log
+
+
+/vcpkg
