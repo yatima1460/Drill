@@ -491,6 +491,14 @@ in(userObject != null)
     context.window = cast(GtkWindow*) builder.gtk_builder_get_object("window");
     assert(context.window !is null);
 
+   if( gtk_window_set_icon_from_file(context.window,toStringz(buildPath(dirName(thisExePath),"Assets/icon.png")),&error) == 0)
+    {
+        assert(error !is null);
+        g_printerr("Error loading file: %s\n", error.message);
+        assert(error !is null);
+        g_clear_error(&error);
+        assert(false, "error icon file");
+    }
     // Set debug title if debug version
     debug
     {
@@ -691,11 +699,11 @@ char[] cleanLines(char[] x)
     return s;
 }
 
-// TODO: do this at compile time
+// TODO: do this at compile time?
 string[string] loadGTKIcons()
 {
         import std.algorithm, std.stdio, std.string;
-    auto file = File("Assets/mime.types"); 
+    auto file = File(buildPath(dirName(thisExePath),"Assets/mime.types")); 
     import std.array : array;
     char[][] lines = file.byLine()
                         .filter!(x => !x.canFind("#"))
