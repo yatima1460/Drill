@@ -110,6 +110,53 @@ This function does not stop the crawlers!!!
     crawlers = [];
 }
 
+import Config : loadMime;
+string[string] mime;
+
+bool isFileContentMatchingSearchString(DirEntry file, const(string) searchString)
+{
+    if (mime == null) mime = loadMime();
+   // immutable(string[]) blacklistedExtensions = [".png",".jpg",".mp4",".psd",".lnk",".sai",".exe",".pdf",".mkv",".swf",".msi",".zip"];
+    import std.file : dirEntries, SpanMode, DirEntry, readText, FileException;
+
+    import std.array : replace;
+    try
+    {
+    
+
+       
+        //if (allowedExtensions.canFind(extension(file.name)))
+        if (!file.isDir() 
+            // && file.size < 100*1024*1024 // 100 megabyte,
+            && (
+                extension(file.name) == ".md" // markdown is not in the RFC standard
+                || mime.get(extension(file.name).replace(".",""),"").canFind("text")
+            )
+           // && !blacklistedExtensions.canFind(extension(file.name))
+        ) 
+        {
+            auto fileRead = readText(file);
+            auto fileContent = toLower(fileRead);
+            bool found = fileContent.canFind(toLower(searchString));
+
+            
+            fileRead.destroy();
+            fileContent.destroy();
+
+            import core.stdc.stdlib : free;
+            import core.memory : GC;
+            GC.collect();
+            return found;
+        }
+        return false;
+    }
+    catch (Exception e)
+    {
+        critical("Can't find string: '",searchString,"' inside: '",file.name,"', error is: '",e.message,"'");
+        return false;
+    }
+    
+}
 
 /++
 This function stops all the crawlers and will return only when all of them are stopped
@@ -122,6 +169,47 @@ This function stops all the crawlers and will return only when all of them are s
     waitForCrawlers(crawlers);
     info("all crawlers stopped");
 }
+import std.file : DirEntry;
+
+alias MatchingFunction = bool function(DirEntry file, const(string) searchString);
+
+import std.uni : toLower;
+import std.algorithm : canFind;
+import std.path : baseName, dirName, extension;
+import std.string : split, strip;
+
+pure @safe bool isTokenizedStringMatchingString(const(string) str, const(string) searchString)
+{
+    if (str.length < searchString.length) return false;
+    const string[] searchTokens = toLower(strip(searchString)).split(" ");
+    const string fileNameLower = toLower(baseName(str));
+    foreach (token; searchTokens)
+        if (!canFind(fileNameLower, token))
+            return false;
+    return true;
+}
+
+/++
+    Params:
+        searchString = the search string the user wrote in a Drill frontend
+        fileName = the complete file name without a fullpath, only the file name after the slash
+
+    Returns:
+        true if the file matches the search input
+
+    Complexity:
+        O(searchString*fileName)
++/
+pure @safe bool isFileNameMatchingSearchString(DirEntry file, const(string) searchString) 
+in (searchString != null)
+in (searchString.length > 0)
+in (file.name != null)
+in (file.name.length > 0)
+{
+    auto fileName = baseName(file.name);
+    return isTokenizedStringMatchingString(fileName, searchString);
+}
+
 
 import Utils : getMountpoints;
 import Crawler : CrawlerCallback;
@@ -141,12 +229,31 @@ in (searchValue !is null, "the search string can't be null")
 in (searchValue.length > 0, "the search string can't be empty")
 in (resultCallback !is null, "the search callback can't be null")
 out (c;c !is null, "DrillContext can't be null after starting a search")
-out (c;c.threads.length <= getMountpoints().length, "threads created number is wrong")
+// out (c;c.threads.length <= getMountpoints().length, "threads created number is wrong")
 {
     import core.stdc.stdio : printf;
     //printf("startCrawling userObject:%p\n",userObject);
     DrillContext* c = new DrillContext();
-    c.searchValue = searchValue;
+
+    MatchingFunction matchingFunction = null;
+    if (searchValue == "content:")
+    {
+        return c;
+    }
+    if (searchValue.canFind("content:"))
+    {
+        matchingFunction = &isFileContentMatchingSearchString;
+        c.searchValue = searchValue.split(":")[1];
+    }
+    else
+    {
+        matchingFunction = &isFileNameMatchingSearchString;
+        c.searchValue = searchValue;
+    }
+
+    assert(c.searchValue !is null);
+    assert(c.searchValue.length > 0);
+    
     c.userObject = cast(void*)userObject;
 
     
@@ -165,7 +272,7 @@ out (c;c.threads.length <= getMountpoints().length, "threads created number is w
             info("Crawler mountpoint is in the blocklist, the crawler will stop.",mountpoint);
             continue;
         }
-        Crawler crawler = new Crawler(mountpoint, config.BLOCK_LIST, config.PRIORITY_LIST_REGEX, resultCallback, searchValue, c.userObject);
+        Crawler crawler = new Crawler(mountpoint, config.BLOCK_LIST, config.PRIORITY_LIST_REGEX, resultCallback, c.searchValue, c.userObject,matchingFunction);
         crawler.isDaemon(false);
         crawler.name = mountpoint;
         if (config.singlethread)
