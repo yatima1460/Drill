@@ -3,6 +3,10 @@
 */
 extern (C) pure nothrow @trusted @nogc
 {
+    gboolean
+gtk_window_set_icon_from_file (GtkWindow *window,
+                               const gchar *filename,
+                               GError **err);
 
     guint
 gtk_builder_add_from_string (GtkBuilder *builder,
