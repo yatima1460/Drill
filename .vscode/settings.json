@@ -1,5 +1,6 @@
 {
     "gulp.autoDetect":"off",
     "jake.autoDetect":"off",
-    "npm.autoDetect":"off"
+    "npm.autoDetect": "off",
+    "git.ignoreLimitWarning": true
 }
