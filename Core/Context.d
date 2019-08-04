@@ -238,7 +238,7 @@ import Crawler : CrawlerCallback;
 import core.stdc.stdio : printf;
 
         //printf("startCrawling foreach loop userObject:%p\n",userObject);
-import Crawler : isInRegexList;
+import Crawler : matchesRegexList;
 import std.algorithm : sort, map, filter, canFind;
 import std.array : array;
 import std.regex : Regex, regex, RegexMatch, match;
@@ -285,10 +285,10 @@ in (resultCallback !is null, "the search callback can't be null")
     // i = case insensitive
     auto blocklistRegex = config.BLOCK_LIST.map!(x => regex(x,"i")).array;
 
-    //getMountpoints.map!(x => !isInRegexList(blocklistRegex,mountpoint))
+    //getMountpoints.map!(x => !matchesRegexList(blocklistRegex,mountpoint))
     foreach (immutable(string) mountpoint; getMountpoints())
     {
-        if (isInRegexList(blocklistRegex, mountpoint))
+        if (matchesRegexList(blocklistRegex, mountpoint))
         {
             info("Crawler mountpoint is in the blocklist, the crawler will stop.",mountpoint);
             continue;
