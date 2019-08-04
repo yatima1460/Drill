@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16">
+    <g color="#000" fill="#474747">
+        <path d="M6 0L1.996 2.6l2.338.364-2.01 5.806c2.241-.432 4.385.76 4.899 3.253l4.644-4.601L13 9.117 14 4l-4.814.195 1.272 1.568L6 8.508l.608-4.984 2.215.455z" style="marker:none" overflow="visible"/>
+        <path d="M3.49 10.015a2.492 2.492 0 0 1 2.498 2.497A2.492 2.492 0 0 1 3.49 15.01a2.492 2.492 0 0 1-2.497-2.497 2.492 2.492 0 0 1 2.497-2.497z" style="isolation:auto;mix-blend-mode:normal;marker:none" display="block" overflow="visible"/>
+    </g>
+</svg>
