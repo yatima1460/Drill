@@ -1,6 +1,6 @@
 {
     "name": "drill-search",
-    "version": "2.1.0",
+    "version": "2.1.1",
     "authors": [
         "Federico Santamorena"
     ],
@@ -29,8 +29,7 @@
                 "debugInfo",
                 "stackStomping",
                 "alwaysStackFrame"
-            ],
-            "versions": ["StdLoggerDisableTrace"]
+            ]
         },
         "release-debug": {
             "buildOptions": [
@@ -40,7 +39,7 @@
                 "stackStomping",
                 "alwaysStackFrame"
             ],
-            "versions": ["StdLoggerDisableTrace","StdLoggerDisableInfo","StdLoggerDisableWarning"]
+            "versions": ["StdLoggerDisableTrace"]
         },
         "release": {
             "buildOptions": [
