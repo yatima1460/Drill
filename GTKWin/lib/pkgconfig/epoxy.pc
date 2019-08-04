@@ -1,0 +1,14 @@
+prefix=C:/Users/feder/Desktop/Drill/vcpkg/packages/libepoxy_x64-windows
+libdir=${prefix}/lib
+includedir=${prefix}/include
+
+epoxy_has_glx=0
+epoxy_has_egl=0
+epoxy_has_wgl=1
+
+Name: epoxy
+Description: GL dispatch library
+Version: 1.5.3
+Libs: -L${libdir} -lepoxy
+Libs.private: -lopengl32 -lgdi32
+Cflags: -I${includedir}
