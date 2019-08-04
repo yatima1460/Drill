@@ -8,9 +8,17 @@
     "copyright": "Copyright © 2019, Federico Santamorena",
     "license": "GPL-2.0",
     "homepage": "https://github.com/yatima1460/Drill",
-    "dflags": [
+    "dflags-posix": [
         "-J=."
     ],
+    "dflags-windows": [
+        "-L=.\\GTKWin\\lib",
+        "-L=.\\GTKWin\\debug",
+        "-L=.\\GTKWin\\bin",
+        "-J=."
+       
+    ],
+
     "copyFiles": [
         "Assets"
     ],
@@ -32,7 +40,7 @@
                 "stackStomping",
                 "alwaysStackFrame"
             ],
-            "versions": ["StdLoggerDisableTrace"]
+            "versions": ["StdLoggerDisableTrace","StdLoggerDisableInfo","StdLoggerDisableWarning"]
         },
         "release": {
             "buildOptions": [
@@ -41,7 +49,7 @@
                 "noBoundsCheck",
                 "releaseMode"
             ],
-            "versions": ["StdLoggerDisableTrace","StdLoggerDisableInfo","StdLoggerDisableWarning"]
+            "versions": ["StdLoggerDisableTrace","StdLoggerDisableInfo","StdLoggerDisableWarning","StdLoggerDisableError"]
         }
     },
     "configurations": [
@@ -85,10 +93,19 @@
                 "gio-2.0"
             ],
             "libs-windows": [
-                "gtk-3.0"
+                ".\\GTKWin\\lib\\gtk-3.0",
+                ".\\GTKWin\\lib\\glib-2.0",
+                ".\\GTKWin\\lib\\gio-2.0",
+                ".\\GTKWin\\lib\\gobject-2.0"
             ],
             "mainSourceFile":"GTK/Main.d",
-            "targetPath": "Build/Drill-GTK-$PLATFORM-$ARCH-$BUILD_TYPE"
+            "targetPath": "Build/Drill-GTK-$PLATFORM-$ARCH-$BUILD_TYPE",
+            
+            "copyFiles-windows": [
+                "Assets",
+                "GTKWin/bin/*.dll",
+                "GTKWin/data/*"
+            ]
         }
     ],
     "toolchainRequirements": {
