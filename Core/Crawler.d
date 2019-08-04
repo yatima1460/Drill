@@ -61,7 +61,7 @@ unittest
     Complexity:
         O(list)
 +/
-bool isInRegexList(const(Regex!char[]) list, const(string) value)
+bool matchesRegexList(const(Regex!char[]) list, const(string) value)
 in (value != null)
 {
     foreach (ref regexrule; list)
@@ -231,33 +231,33 @@ unittest
 // }
 
 
-/++
-    Given a file and a blocklist will determine if the file should be skipped or not
-+/
-bool shouldSkipDirectory(DirEntry currentDirectory, const Regex!char[] blockListRegex)
-in (currentDirectory.isDir())
-{
-    try
-    {
-        if (currentDirectory.isSymlink())
-        {
-            trace("Symlink ignored: " ~ currentDirectory.name);
-            return true;
-        }
-    }
-    catch (Exception e)
-    {
-        return true;
-    }
+// /++
+//     Given a file and a blocklist will determine if the file should be skipped or not
+// +/
+// bool shouldSkipDirectory(DirEntry currentDirectory, const Regex!char[] blockListRegex)
+// in (currentDirectory.isDir())
+// {
+//     try
+//     {
+//         if (currentDirectory.isSymlink())
+//         {
+//             trace("Symlink ignored: " ~ currentDirectory.name);
+//             return true;
+//         }
+//     }
+//     catch (Exception e)
+//     {
+//         return true;
+//     }
 
-    if (isInRegexList(blockListRegex, currentDirectory.name))
-    {
-        trace("Blacklisted: " ~ currentDirectory.name);
-        return true;
-    }
+//     if (isInRegexList(blockListRegex, currentDirectory.name))
+//     {
+//         trace("Blacklisted: " ~ currentDirectory.name);
+//         return true;
+//     }
 
-    return false;
-}
+//     return false;
+// }
 
  import core.stdc.stdio;
  import std.string : toStringz;
@@ -280,7 +280,7 @@ in (currentDirectory.isDir())
 {
     try
     {
-        //FIXME: is "true" as third argument needed here?
+        // FIXME: is "true" as third argument needed here?
         // Are some folders marked as symlink when they actually aren't on Windows?
         iterator = dirEntries(currentDirectory, SpanMode.shallow, true);
         return true;
@@ -316,105 +316,81 @@ in (matchingFunction !is null)
 in (running !is null)
 {
 
-    // // // // /*
-    // // // //     NOTE:
-    // // // //     A "File" in the more general term and in this function can be both a normal file and a directory
-    // // // //     unless isDir() is checked
-    // // // // */
+    /+
+        NOTE:
+        A "File" in the more general term and in this function can be both a normal file and a directory
+        unless isDir() is checked
+    +/
 
 
-   
-        // Then if the directory was not skipped we get a list of the shallow files inside
-        // NOT RECURSIVELY, JUST THE FILES IMMEDIATELY INSIDE
-        // If we fail to get the files we just stop this directory scanning
-
-        // NOTE: do not use IFs but use switches here in the hot path 
-        //       so we don't have CPU branching
-
-
-
-        
+    /+
+        We get a list of the shallow files inside
+        NOT RECURSIVELY, JUST THE FILES IMMEDIATELY INSIDE
+        If we fail to get the files we just stop this directory scanning
+    +/
     DirIterator files;
-    final switch (tryGetShallowFiles(currentDirectory, files))
+    if (!tryGetShallowFiles(currentDirectory, files))
     {
-    case false:
+        error("Trying to get shallow files of "~currentDirectory~" failed.");
         return;
-    case true:
-        break;
     }
 
-    // NOTE: the DirIterator is "lazy" and only evaluates its data when it's encountered
-    // in a foreach loop, so it could crash this is why there is this try-catch
+    /+ 
+        NOTE: the DirIterator is "lazy" and only evaluates its data when it's encountered
+        in a foreach loop, so it could crash; this is why there is this try-catch
+    +/
     try 
     {
-
-        // If we could get the files inside we start to scan all of them
         foreach (DirEntry currentFile; files)
         {
             assert(running !is null);
             if (!*running)
                 break;
-            // if (shouldSkipDirectory(currentFile,blockListRegex))
-            //     continue;
 
             try
             {
-                final switch (currentFile.isSymlink())
+                if (currentFile.isSymlink())
                 {
-                case false:
-                    break;
-                case true:
                     trace("Symlink ignored: " ~ currentDirectory.name);
                     continue;
                 }
-
-                // If the file is a directory we check its priority and then enqueue it
-                final switch (currentFile.isDir())
+        
+          
+                if (matchesRegexList(blockListRegex, currentFile.name))
                 {
-                    // The file is a directory
-                case true:
-                    // First we check if we can skip the directory straight away
-                    // In this way the queue does not get filled <=== that's the plan
-                    final switch (shouldSkipDirectory(currentFile, blockListRegex))
+                    trace("File in blocklists: "~currentFile.name~" skipped.");
+                    continue;
+                }
+
+                 /+
+                    If the file is a directory now
+                    we check its priority and then enqueue it
+                +/
+                if (currentFile.isDir())
+                {
+                    if (matchesRegexList(priorityListRegex, currentFile.name))
                     {
-                    case false:
-                        if (isInRegexList(priorityListRegex, currentFile.name))
-                        {
-                            trace("High priority: " ~ currentFile.name);
-                            queue.insertFront(currentFile);
-                        }
-                        else
-                        {
-                            //trace("Low priority: "~currentFile.name);
-                            queue.insertBack(currentFile);
-                        }
-                        break;
-                    case true:
-                        continue;
+                        trace("High priority: " ~ currentFile.name);
+                        queue.insertFront(currentFile);
                     }
-                    goto case false;
-
-                    // Switch fallthrough here, so directories are added too
-                case false:
-
-                    // TODO: function pointer as predicate for search matching
-
-                    final switch (matchingFunction(currentFile, searchString))
+                    else
                     {
-                        // The file does not match the search
-                    case false:
-                        continue;
-                        // The file name matches the search string
-                    case true:
-                        trace("Matching search" ~ currentFile.name);
-                        immutable(FileInfo) fi = buildFileInfo(currentFile);
-                        //assert(userObject !is null);
-                        assert(resultCallback !is null,
-                                "resultCallback can't be null before calling the callback");
-                        (*resultCallback)(fi, cast(void*) userObject);
-                        break;
+                        trace("Low priority: "~currentFile.name);
+                        queue.insertBack(currentFile);
                     }
+                }
 
+                   
+                /+
+                    The file (normal file or folder) does match the search:
+                        we send it to the callback result function
+                +/
+                if (matchingFunction(currentFile, searchString))
+                {
+                    trace("Matching search" ~ currentFile.name);
+                    immutable(FileInfo) fi = buildFileInfo(currentFile);
+                    assert(resultCallback !is null, "resultCallback can't be null before calling the callback");
+                    (*resultCallback)(fi, cast(void*) userObject);
                 }
             }
             catch (Exception e)
@@ -567,13 +543,13 @@ public:
         // In this way crawlers will not cross paths
 
        
-        // auto mountpointsMinusCurrentOne = getMountpoints()[].filter!(x => x != MOUNTPOINT).map!(x => "^" ~ x ~ "$");
+        auto mountpointsMinusCurrentOne = getMountpoints()[].filter!(x => x != MOUNTPOINT).map!(x => "^" ~ x ~ "$");
 
        // info("Adding these to the global blocklist: " ~ to!string(cp_tmp),this.toString());
         //Array!string crawler_exclusion_list = Array!string(BLOCK_LIST);
        // crawler_exclusion_list ~= cp_tmp;
         //Regex!char[] exclusion_regexes = crawler_exclusion_list[].map!(x => regex(x,"i")).array;
-        //this.BLOCK_LIST_REGEX ~= mountpointsMinusCurrentOne.map!(x => regex(x,"i")).array;
+        this.BLOCK_LIST_REGEX ~= mountpointsMinusCurrentOne.map!(x => regex(x,"i")).array;
         
         //exclusion_regexes;
 
