@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg width="48px" height="48px" viewBox="0 0 48 48" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <!-- Generator: Sketch 39.1 (31720) - http://www.bohemiancoding.com/sketch -->
+    <title>深度看图-48px</title>
+    <desc>Created with Sketch.</desc>
+    <defs>
+        <linearGradient x1="50%" y1="100%" x2="50%" y2="7.95429017%" id="linearGradient-1">
+            <stop stop-color="#FF9191" offset="0%"></stop>
+            <stop stop-color="#FFAE00" offset="100%"></stop>
+        </linearGradient>
+        <linearGradient x1="13.7060533%" y1="9.88813315%" x2="76.9839962%" y2="86.4228772%" id="linearGradient-2">
+            <stop stop-color="#FFD241" offset="0%"></stop>
+            <stop stop-color="#FFC0C1" offset="100%"></stop>
+        </linearGradient>
+    </defs>
+    <g id="Page-1" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <g id="深度看图-48px">
+            <g id="Group-2" transform="translate(2.000000, 6.000000)">
+                <image id="Bitmap" x="0" y="0" width="44" height="41" xlink:href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACwAAAApCAYAAABOScuyAAAABGdBTUEAA1teXP8meAAAATxJREFUWAntmWELgkAMhrMiIuj//9AgIpLaczrJ6dUHp56wwdRt3u716ejDXbXLW9WWuOtz/m2fylva4Jjem6i9HnvRMDhIioH1sDRLhvn2v+aj+G1KkzyDz+JLiUUHczGnClc91EaNF6DOgLUNDWjpLUdI6lesRTUHZpS2iuVrllyrOZG5PPrQWivhE0Hu7QLyaENjpYL//VsUoLlZzwjGegu7SRV3TRo3K7g4nDlBSjhXLy4fguf+SYJwEDYEYkkYIO5hEHZHahoGYQPEPQzC7khNwyBsgLiHQdgdqWkYhA0Q9zAIuyM1DYOwAeIebpbw6HmCO55pDZNGJUxwmdZv1tFoS4LZEUQ05wpXcQolHBeIjM7YG76L38QfCMYRyYaxnimkrU2J1zao4i/xp3itguW5O+vguTRT4bsPnWkeutOUv4kAAAAASUVORK5CYII="></image>
+                <rect id="Rectangle-245" fill="#F4F4F4" opacity="0.7" x="8" y="1" width="28" height="33" rx="1"></rect>
+                <polygon id="Rectangle-5" fill="#000000" opacity="0.03" points="8 2 36 2 36 3 8 3"></polygon>
+                <rect id="Rectangle-245" fill="#F4F4F4" opacity="0.8" x="5" y="3" width="34" height="33" rx="1"></rect>
+                <rect id="Rectangle-245" fill="#F4F4F4" x="2" y="5" width="40" height="33" rx="1"></rect>
+                <rect id="Rectangle-245" fill="url(#linearGradient-1)" x="4" y="7" width="36" height="24"></rect>
+                <polygon id="Combined-Shape" fill="#8173DD" points="19 11 4 31 14 31 24.1098901 17.8131868"></polygon>
+                <polygon id="Combined-Shape" fill="#89A1F6" points="34 31 24 31 14 31 24.0970874 17.7961165"></polygon>
+                <polygon id="Combined-Shape" fill="url(#linearGradient-2)" points="27 14 40 31 34 31 24.0970874 17.7961165"></polygon>
+                <rect id="Rectangle-5" fill="#000000" opacity="0.07" x="5" y="4" width="34" height="1"></rect>
+            </g>
+        </g>
+    </g>
+</svg>
