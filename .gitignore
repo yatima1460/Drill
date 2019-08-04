@@ -11,3 +11,10 @@ dub.selections.json
 
 
 /vcpkg
+
+
+# Travis
+/dmd2
+/DEBFILE
+/dmd.*.tar
+/dmd.*.tar.xz
