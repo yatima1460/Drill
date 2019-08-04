@@ -5,20 +5,11 @@ In this module go useful functions that are not strictly related to crawling
 import std.functional : memoize;
 import std.typecons : Tuple;
 import std.experimental.logger;
-
-
-
-
-// Tuple!(int,"status",string,"output") executeShellThreadSafe(immutable(string) str)
-// {
-//     synchronized
-//     {
-//         import std.process : executeShell;
-//         return executeShell(str);
-//     }
-// }
-
+import std.uni : toLower;
+import std.path : extension;
 import std.process : executeShell;
+
+
 
 version(linux) @system string[] getDesktopFiles() 
 {
@@ -49,13 +40,13 @@ Opens a file using the current system implementation for file associations
 
 Returns: true if successful
 */
-@safe bool openFile(in immutable(string) fullpath)
+@safe bool openFile(immutable string fullpath)
 {
     // FIXME: return false when no file association
     import std.process : spawnProcess;
     import std.stdio : stdin, stdout, stderr;
     import std.process : Config;
-
+    import std.process : executeShell;
 
     try
     {
@@ -66,8 +57,26 @@ Returns: true if successful
         }
         version (linux)
         {
-            spawnProcess(["xdg-open", fullpath], null, Config.detached, null);
-            return true;
+            immutable auto ext = toLower(extension(fullpath));
+            switch (ext)
+            {
+                case ".appimage":
+                    info("File "~fullpath~" detected as .AppImage");
+                    immutable auto cmd = executeShell("chmod +x "~fullpath);
+                    if (cmd.status != 0)
+                    {
+                        critical("Can't set AppImage '"~fullpath~"' as executable.");
+                        // TODO: GTK messagebox here or throw a DrillException?
+                        return false;
+                    }
+                    spawnProcess([fullpath], null, Config.detached, null);
+                    return true;
+
+                default:
+                    info("Generic file "~fullpath~", will use xdg-open.");
+                    spawnProcess(["xdg-open", fullpath], null, Config.detached, null);
+                    return true;
+            }
         }
         version (OSX)
         {
