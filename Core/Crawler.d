@@ -259,6 +259,8 @@ in (currentDirectory.isDir())
     return false;
 }
 
+ import core.stdc.stdio;
+ import std.string : toStringz;
 
 /++
     Returns a lazy iterator for the files immediately inside a directory
@@ -273,7 +275,7 @@ in (currentDirectory.isDir())
     Complexity:
         O(1)
 +/
-bool tryGetShallowFiles(DirEntry currentDirectory, out DirIterator iterator)
+nothrow bool tryGetShallowFiles(DirEntry currentDirectory, out DirIterator iterator)
 in (currentDirectory.isDir())
 {
     try
@@ -284,10 +286,11 @@ in (currentDirectory.isDir())
         return true;
     }
     catch (Exception e)
-    {   
-        error(e.msg);
-        return false;
-    }
+        try
+            error(e.msg);
+        catch (Exception e)
+            printf(toStringz(e.msg));
+    return false;
 }
 
 
@@ -306,6 +309,11 @@ void crawlDirectory(DirEntry currentDirectory,
                     MatchingFunction matchingFunction,
                     shared(bool)* running)
 in (currentDirectory.isDir())
+in (searchString !is null)
+in (searchString.length > 0)
+in (resultCallback !is null)
+in (matchingFunction !is null)
+in (running !is null)
 {
 
     // // // // /*
@@ -315,93 +323,109 @@ in (currentDirectory.isDir())
     // // // // */
 
 
+   
+        // Then if the directory was not skipped we get a list of the shallow files inside
+        // NOT RECURSIVELY, JUST THE FILES IMMEDIATELY INSIDE
+        // If we fail to get the files we just stop this directory scanning
 
-    // Then if the directory was not skipped we get a list of the shallow files inside
-    // NOT RECURSIVELY, JUST THE FILES IMMEDIATELY INSIDE
-    // If we fail to get the files we just stop this directory scanning
+        // NOTE: do not use IFs but use switches here in the hot path 
+        //       so we don't have CPU branching
 
-    // NOTE: do not use IFs but use switches here in the hot path 
-    //       so we don't have CPU branching
+
+
+        
     DirIterator files;
     final switch (tryGetShallowFiles(currentDirectory, files))
     {
-        case false:
-            return;
-        case true:
-            break;
+    case false:
+        return;
+    case true:
+        break;
     }
 
-    // If we could get the files inside we start to scan all of them
-    foreach (DirEntry currentFile; files)
+    // NOTE: the DirIterator is "lazy" and only evaluates its data when it's encountered
+    // in a foreach loop, so it could crash this is why there is this try-catch
+    try 
     {
-        if (!*running) break;
-        // if (shouldSkipDirectory(currentFile,blockListRegex))
-        //     continue;
 
-        try
+        // If we could get the files inside we start to scan all of them
+        foreach (DirEntry currentFile; files)
         {
-            final switch (currentFile.isSymlink())
+            assert(running !is null);
+            if (!*running)
+                break;
+            // if (shouldSkipDirectory(currentFile,blockListRegex))
+            //     continue;
+
+            try
             {
+                final switch (currentFile.isSymlink())
+                {
                 case false:
                     break;
                 case true:
                     trace("Symlink ignored: " ~ currentDirectory.name);
                     continue;
-            }
-            
+                }
 
-            // If the file is a directory we check its priority and then enqueue it
-            final switch (currentFile.isDir())
-            {
-                // The file is a directory
+                // If the file is a directory we check its priority and then enqueue it
+                final switch (currentFile.isDir())
+                {
+                    // The file is a directory
                 case true:
                     // First we check if we can skip the directory straight away
                     // In this way the queue does not get filled <=== that's the plan
-                    final switch(shouldSkipDirectory(currentFile,blockListRegex))
+                    final switch (shouldSkipDirectory(currentFile, blockListRegex))
                     {
-                        case false:
-                            if (isInRegexList(priorityListRegex, currentFile.name))
-                            {
-                                trace("High priority: "~currentFile.name);
-                                queue.insertFront(currentFile);
-                            }
-                            else
-                            {
-                                //trace("Low priority: "~currentFile.name);
-                                queue.insertBack(currentFile);
-                            }
-                            break;
-                        case true:
-                            continue;
+                    case false:
+                        if (isInRegexList(priorityListRegex, currentFile.name))
+                        {
+                            trace("High priority: " ~ currentFile.name);
+                            queue.insertFront(currentFile);
+                        }
+                        else
+                        {
+                            //trace("Low priority: "~currentFile.name);
+                            queue.insertBack(currentFile);
+                        }
+                        break;
+                    case true:
+                        continue;
                     }
                     goto case false;
 
-                // Switch fallthrough here, so directories are added too
+                    // Switch fallthrough here, so directories are added too
                 case false:
 
                     // TODO: function pointer as predicate for search matching
 
-                    final switch (matchingFunction(currentFile,searchString))
+                    final switch (matchingFunction(currentFile, searchString))
                     {
                         // The file does not match the search
-                        case false:
-                            continue;
+                    case false:
+                        continue;
                         // The file name matches the search string
-                        case true:
-                            trace("Matching search"~currentFile.name);
-                            immutable(FileInfo) fi = buildFileInfo(currentFile);
-                            //assert(userObject !is null);
-                            assert(resultCallback !is null,"resultCallback can't be null before calling the callback");
-                            (*resultCallback)(fi, cast(void*)userObject);
-                            break;
+                    case true:
+                        trace("Matching search" ~ currentFile.name);
+                        immutable(FileInfo) fi = buildFileInfo(currentFile);
+                        //assert(userObject !is null);
+                        assert(resultCallback !is null,
+                                "resultCallback can't be null before calling the callback");
+                        (*resultCallback)(fi, cast(void*) userObject);
+                        break;
                     }
-                  
+
+                }
+            }
+            catch (Exception e)
+            {
+                critical(e.msg);
             }
         }
-        catch (Exception e)
-        {
-            critical(e.msg);
-        }
+    }
+    catch (Exception e)
+    {
+        critical(currentDirectory.name," ",e.message);
     }
 }
 
@@ -427,7 +451,7 @@ class Crawler : Thread
 private:
     const(string) MOUNTPOINT;
     const(string) SEARCH_STRING;
-    const(string[]) BLOCK_LIST;
+    Regex!char[] BLOCK_LIST;
 
     Regex!char[] BLOCK_LIST_REGEX;
     const(Regex!char[]) PRIORITY_LIST_REGEX;
@@ -449,9 +473,9 @@ private:
 public:
 
     this(
-        in const(string) MOUNTPOINT, 
-        in const(string[]) BLOCK_LIST,
-        in const(Regex!char[]) PRIORITY_LIST_REGEX,
+        const(string) MOUNTPOINT, 
+        const(Regex!char[]) BLOCK_LIST,
+        const(Regex!char[]) PRIORITY_LIST_REGEX,
         in CrawlerCallback resultCallback, 
         in immutable(string) search,
         in void* userObject,
@@ -479,7 +503,7 @@ public:
 
         this.SEARCH_STRING = search;
         this.resultCallback = resultCallback;
-        this.BLOCK_LIST = BLOCK_LIST;
+        this.BLOCK_LIST = cast(Regex!char[])BLOCK_LIST;
 
 
         this.running = true;
@@ -516,6 +540,8 @@ public:
         return this.running;
     }
 
+    import Utils : getMountpoints;
+
     /**
     NOTE: We don't really care about CPU time, Drill isn't CPU intensive but disk intensive,
     in this function it's not bad design that there are multiple IFs checking the same thing over and over again,
@@ -524,28 +550,34 @@ public:
     ^^^ Is this really true? Maybe slow RAM and CPU can slow down too much the DMA requests too?
     */
     void run()
+    in (SEARCH_STRING != null, "the search string can't be null")
+    in (SEARCH_STRING.length != 0,"the search string can't be empty")
+    // in (running == false, "the crawler is marked running when it isn't even run yet")
+    in (MOUNTPOINT  != null, "the mountpoint can't be null")
+    in (MOUNTPOINT.length != 0, "the mountpoint string can't be empty")
+    in (resultCallback != null, "the result callback can't be null")
     {
         if (running == false)
             return;
-        assert(SEARCH_STRING != null, "the search string can't be null");
-        assert(SEARCH_STRING.length != 0,"the search string can't be empty");
-        //assert(this.running == false, "the crawler is marked running when it isn't even run yet");
-        assert(MOUNTPOINT  != null, "the mountpoint can't be null");
-        assert(MOUNTPOINT.length != 0, "the mountpoint string can't be empty");
-        assert(resultCallback != null, "the result callback can't be null");
+        
 
-        import Utils : getMountpoints;
+        
 
          // Every Crawler will have all the other mountpoints in its blocklist
         // In this way crawlers will not cross paths
-        string[] cp_tmp = getMountpoints()[].filter!(x => x != MOUNTPOINT).map!(x => "^" ~ x ~ "$").array;
-        info("Adding these to the global blocklist: " ~ to!string(cp_tmp),this.toString());
-        Array!string crawler_exclusion_list = Array!string(BLOCK_LIST);
-        crawler_exclusion_list ~= cp_tmp;
-        Regex!char[] exclusion_regexes = crawler_exclusion_list[].map!(x => regex(x,"i")).array;
-        this.BLOCK_LIST_REGEX = exclusion_regexes;
 
-        info("New crawler custom blocklist.length = " ~ to!string(BLOCK_LIST_REGEX.length),this.toString());
+       
+        // auto mountpointsMinusCurrentOne = getMountpoints()[].filter!(x => x != MOUNTPOINT).map!(x => "^" ~ x ~ "$");
+
+       // info("Adding these to the global blocklist: " ~ to!string(cp_tmp),this.toString());
+        //Array!string crawler_exclusion_list = Array!string(BLOCK_LIST);
+       // crawler_exclusion_list ~= cp_tmp;
+        //Regex!char[] exclusion_regexes = crawler_exclusion_list[].map!(x => regex(x,"i")).array;
+        //this.BLOCK_LIST_REGEX ~= mountpointsMinusCurrentOne.map!(x => regex(x,"i")).array;
+        
+        //exclusion_regexes;
+
+       // info("New crawler custom blocklist.length = " ~ to!string(BLOCK_LIST_REGEX.length),this.toString());
         info("Started");
 
         // Use the queue as a stack to scan using a breadth-first algorithm

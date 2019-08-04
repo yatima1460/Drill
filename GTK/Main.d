@@ -46,7 +46,7 @@ in(data != null)
 
 
 
-    if (context.context !is null)
+   
         context.context.threads.stopCrawlingAsync();
 
     *context = DrillGtkContext();
@@ -77,7 +77,7 @@ in(data != null)
         // g_idle_remove_by_data(context);
 
         assert(context !is null);
-        if (context.context !is null)
+        // if (context.context !is null)
             context.context.threads.stopCrawlingAsync();
 
     // assert(context !is null);
@@ -193,7 +193,7 @@ in(context != null)
     // good for usability reasons,
     // But the process will linger a bit to close the crawlers
     assert(context !is null);
-    if (context.context !is null)
+    // if (context.context !is null)
         context.context.threads.stopCrawlingAsync();
 
     assert(context !is null);
@@ -235,16 +235,16 @@ in(userObject !is null)
 
     // If there is a Drill search going on stop it
     assert(context !is null);
-    if (context.context !is null)
-    {
+    // if (context.context !is null)
+    // {
         // Create new buffers
         context.buffer1 = DList!FileInfo();
         context.buffer2 = DList!FileInfo();
         context.buffer = &context.buffer1;
         
         stopCrawlingAsync(context.context.threads);
-        context.context = null;
-    }
+        // context.context = null;
+    // }
 
     // Get input string in the search text field
     assert(widget !is null);
@@ -274,9 +274,9 @@ in(userObject !is null)
     {
         // Start new crawling
         assert(context !is null);
-        assert(context.context is null);
+        // assert(context.context is null);
         context.context = startCrawling(context.drillConfig, searchString, &resultFound, context);
-        assert(context.context !is null);
+       
 
         import std.algorithm : canFind;
 
@@ -373,12 +373,11 @@ in(user_data !is null)
 
     import Context : activeCrawlersCount;
 
-    if (context.context)
+    if (context.context.threads.length != 0)
     {
         assert(context !is null);
 
-        if (context.context.threads.length != 0)
-        {
+       
             auto crawlersDoneCount = context.context.threads.length-activeCrawlersCount(context.context.threads);
             assert(crawlersDoneCount >= 0);
 
@@ -391,12 +390,7 @@ in(user_data !is null)
             
             assert(context.search_input !is null);
             gtk_entry_set_progress_fraction(context.search_input, fraction);
-        }
-        else
-        {
-            assert(context.search_input !is null);
-            gtk_entry_set_progress_fraction(context.search_input, 0.0);
-        }
+     
         
         //void
         //gtk_entry_set_progress_pulse_step (context.search_input,0.1);
@@ -414,6 +408,8 @@ in(user_data !is null)
     }
     else
     {
+   
+
         assert(context.window !is null);
         debug gtk_window_set_title(context.window,"Drill (DEBUG VERSION)");
         else gtk_window_set_title(context.window,"Drill");
@@ -681,7 +677,7 @@ struct DrillGtkContext
     shared(DList!FileInfo) buffer2;
     shared(DList!FileInfo)* buffer;
     GtkEntry* search_input;
-    DrillContext* context;
+    DrillContext context;
     GtkLabel* credits;
     GtkApplication* app;
     DrillConfig drillConfig;
