@@ -1,3 +1,6 @@
+sudo: required
+
+
 
 # Discussed at https://travis-ci.community/t/python-support-on-windows/241/18
 language: python            # this works for Linux but is an error on macOS or Windows
@@ -78,8 +81,7 @@ deploy:
     name: Continuous Integration
     tag_name: ContinuousIntegration
     overwrite: true
-    body: Build #$TRAVIS_BUILD_NUMBER $TRAVIS_BUILD_WEB_URL
-    target_commitish: $TRAVIS_COMMIT
+    body: "Build #$TRAVIS_BUILD_NUMBER $TRAVIS_BUILD_WEB_URL"
     file_glob: true
     api_key:
       secure: $GITHUB_TOKEN
