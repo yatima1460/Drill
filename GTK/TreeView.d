@@ -20,3 +20,5 @@ out(store; store !is null)
 
     return cast(GtkTreeModel*)store;
 }
+
+

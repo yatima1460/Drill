@@ -62,7 +62,7 @@ Returns: true if successful
             {
                 case ".appimage":
                     info("File "~fullpath~" detected as .AppImage");
-                    immutable auto cmd = executeShell("chmod +x "~fullpath);
+                    immutable auto cmd = executeShell("chmod a+x "~fullpath);
                     if (cmd.status != 0)
                     {
                         critical("Can't set AppImage '"~fullpath~"' as executable.");

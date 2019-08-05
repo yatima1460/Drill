@@ -35,6 +35,16 @@ pure nothrow @trusted void appendApplication(GtkListStore* store, const(Applicat
 
 }
 
+void addApplicationsToList(GtkListStore* liststore , ApplicationInfo[] applications)
+in (liststore !is null)
+{
+
+    foreach (application; applications)
+    {
+        assert(liststore !is null);
+        liststore.appendApplication(application);
+    }
+}
 
 
 
