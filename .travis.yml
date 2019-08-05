@@ -69,7 +69,6 @@ before_deploy:
  - git config --local user.email "federico@santamorena.me"
  - export DRILL_VERSION=$(python -c "import sys, json; f = open('dub.json'); print(json.load(f)['version']); f.close()") 
  - ls -lh Output
- - git tag ContinuousIntegration -f
 
 deploy:
   - provider: releases
@@ -77,6 +76,7 @@ deploy:
     draft: false
     prerelease: true
     name: Continuous Integration
+    tag_name: ContinuousIntegration
     overwrite: true
     body: Build #$TRAVIS_BUILD_NUMBER $TRAVIS_BUILD_WEB_URL
     target_commitish: $TRAVIS_COMMIT
@@ -87,7 +87,6 @@ deploy:
       - Output/*.*
     on:
       repo: yatima1460/Drill
-      tags: false
 
   - provider: releases
     skip_cleanup: true
@@ -95,7 +94,7 @@ deploy:
     prerelease: false
     name: $DRILL_VERSION
     body: $DRILL_VERSION
-    target_commitish: $TRAVIS_COMMIT
+    tag_name: $DRILL_VERSION
     file_glob: true
     api_key:
       secure: $GITHUB_TOKEN
