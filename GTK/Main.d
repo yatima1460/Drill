@@ -22,6 +22,10 @@ import FileInfo : FileInfo;
 import std.experimental.logger;
 
 
+import GtkContext : DrillGtkContext;
+
+import ListStore : addApplicationsToList;
+
 // TODO: icons on filenames
 // TODO: right click menu and update screenshot with it
 // TODO: pressing return should open the first result
@@ -43,18 +47,10 @@ in(data != null)
     assert(context !is null);
 
     info("Window will be destroyed");
+    context.context.threads.stopCrawlingAsync();
 
-
-
-   
-        context.context.threads.stopCrawlingAsync();
-
+    assert(context !is null);
     *context = DrillGtkContext();
-
-    // assert(context !is null);
-    // // assert(context.app !is null);
-    // if (context.app)
-    //     g_application_quit(context.app);
 }
 
 
@@ -68,19 +64,13 @@ in(data != null)
     DrillGtkContext* context = cast(DrillGtkContext*) data;
     assert(context !is null);
 
-    
-
     if (event.keyval == GDK_KEY_Escape)
     {
         info("ESC pressed");
-        // assert(context !is null);
-        // g_idle_remove_by_data(context);
 
         assert(context !is null);
-        // if (context.context !is null)
-            context.context.threads.stopCrawlingAsync();
+        context.context.threads.stopCrawlingAsync();
 
-    // assert(context !is null);
         assert (context.app);
         g_application_quit(context.app);
 
@@ -89,136 +79,7 @@ in(data != null)
     return false;
 }
 
-/++
-    Callback called by GTK when the user double clicks a row
-+/
-extern(C) void row_activated(GtkTreeView* tree_view, GtkTreePath* path, GtkTreeViewColumn* column, gpointer userObject)
-in(tree_view !is null)
-in(path !is null)
-in(column !is null)
-in(userObject !is null)
-{
-    import std.string : fromStringz;
-    import std.path : chainPath;
-    import std.array : array, split;
-    import std.conv : to;
-    import core.stdc.stdio : printf;
-    import Utils : openFile;
-    import std.process : spawnProcess;
-    import std.process : Config;
-   
 
-    DrillGtkContext* context = cast(DrillGtkContext*) userObject;
-    assert(context !is null);
-
-    info("Row double-click");
-
-    
-
-    char* cname;
-    char* cpath;
-    char* csize;
-
-    GtkTreeIter iter;
-    assert(tree_view !is null);
-
-
-    GtkTreeModel* model = gtk_tree_view_get_model(tree_view);
-    
-    assert(model !is null);
-    assert(path !is null);
-    if (gtk_tree_model_get_iter(model, &iter, path))
-    {
-        assert(model !is null);
-        gtk_tree_model_get(model, &iter, 1, &cname, 2, &cpath, 3, &csize,-1);
-        assert(cname !is null);
-        assert(cpath !is null);
-    }
-    else
-    {
-        assert(0);
-    }
-
-    //int iterUserData = cast(int)iter.user_data3;
-
-    immutable(string) chained = to!string(chainPath(fromStringz(cpath), fromStringz(cname)).array);
-
-    switch (fromStringz(csize))
-    {
-        case " ":
-           
-            try
-            {
-                 version(linux)
-                {
-                      import Utils : cleanExecLine;
-                        spawnProcess(cleanExecLine(to!string(fromStringz(cpath))), null, Config.detached, null);
-                }
-              
-            }
-            catch(Exception e)
-            {
-                import std.string : toStringz;
-                GtkDialogFlags flags = GtkDialogFlags.GTK_DIALOG_DESTROY_WITH_PARENT;
-                auto dialog = gtk_message_dialog_new (context.window,
-                                                flags,
-                                                GtkMessageType.GTK_MESSAGE_ERROR,
-                                                GtkButtonsType.GTK_BUTTONS_CANCEL,
-
-                                                toStringz(e.message));
-                gtk_dialog_run (cast(GtkDialog*)dialog);
-                gtk_widget_destroy (dialog);
-            }
-            break;
-        default:
-            openFile(chained);
-    }
-}
-
-/++
-    Closes the GTK application and stops the crawlers
-
-    Params:
-        context = the DrillGtkContext struct
-+/
-void closeApplication(DrillGtkContext* context)
-in(context != null)
-{
-
-    assert(context !is null);
-    g_idle_remove_by_data(context);
-
-    // Last opportunity to stop crawlers
-    // Because we stop with Async the window will close instantly,
-    // good for usability reasons,
-    // But the process will linger a bit to close the crawlers
-    assert(context !is null);
-    // if (context.context !is null)
-        context.context.threads.stopCrawlingAsync();
-
-    assert(context !is null);
-    context.running = false;
-
-    // assert(context !is null);
-    // assert(context.treeview !is null);
-    // gtk_widget_destroy(cast(GtkWidget*)context.treeview);
-    // context.treeview = null;
-
-    // assert(context !is null);
-    // assert(context.search_input !is null);
-    // gtk_widget_destroy(cast(GtkWidget*)context.search_input);
-    // context.search_input = null;
-
-    // assert(context !is null);
-    // assert(context.queue !is null);
-    // g_async_queue_unref(context.queue);
-    // context.queue = null;
-
-    // assert(context !is null);
-    // assert(context.window !is null);
-    // gtk_widget_destroy(cast(GtkWidget*)context.window);
-
-}
 
 
 
@@ -424,16 +285,93 @@ in(user_data !is null)
 }
 
 
-void addApplicationsToList(GtkListStore* liststore , ApplicationInfo[] applications)
-in (liststore !is null)
+/++
+    Callback called by GTK when the user double clicks a row
++/
+extern(C) void row_activated(GtkTreeView* tree_view, GtkTreePath* path, GtkTreeViewColumn* column, gpointer userObject)
+in(tree_view !is null)
+in(path !is null)
+in(column !is null)
+in(userObject !is null)
 {
+    import std.string : fromStringz;
+    import std.path : chainPath;
+    import std.array : array, split;
+    import std.conv : to;
+    import core.stdc.stdio : printf;
+    import Utils : openFile;
+    import std.process : spawnProcess;
+    import std.process : Config;
+   
 
-    foreach (application; applications)
+    DrillGtkContext* context = cast(DrillGtkContext*) userObject;
+    assert(context !is null);
+
+    info("Row double-click");
+
+    
+
+    char* cname;
+    char* cpath;
+    char* csize;
+
+    GtkTreeIter iter;
+    assert(tree_view !is null);
+
+
+    GtkTreeModel* model = gtk_tree_view_get_model(tree_view);
+    
+    assert(model !is null);
+    assert(path !is null);
+    if (gtk_tree_model_get_iter(model, &iter, path))
     {
-        assert(liststore !is null);
-        liststore.appendApplication(application);
+        assert(model !is null);
+        gtk_tree_model_get(model, &iter, 1, &cname, 2, &cpath, 3, &csize,-1);
+        assert(cname !is null);
+        assert(cpath !is null);
+    }
+    else
+    {
+        assert(0);
+    }
+
+    //int iterUserData = cast(int)iter.user_data3;
+
+    immutable(string) chained = to!string(chainPath(fromStringz(cpath), fromStringz(cname)).array);
+
+    switch (fromStringz(csize))
+    {
+        case " ":
+           
+            try
+            {
+                 version(linux)
+                {
+                      import Utils : cleanExecLine;
+                        spawnProcess(cleanExecLine(to!string(fromStringz(cpath))), null, Config.detached, null);
+                }
+              
+            }
+            catch(Exception e)
+            {
+                import std.string : toStringz;
+                GtkDialogFlags flags = GtkDialogFlags.GTK_DIALOG_DESTROY_WITH_PARENT;
+                auto dialog = gtk_message_dialog_new (context.window,
+                                                flags,
+                                                GtkMessageType.GTK_MESSAGE_ERROR,
+                                                GtkButtonsType.GTK_BUTTONS_CANCEL,
+
+                                                toStringz(e.message));
+                gtk_dialog_run (cast(GtkDialog*)dialog);
+                gtk_widget_destroy (dialog);
+            }
+            break;
+        default:
+            openFile(chained);
     }
 }
+
+
 
 
 extern (C) void activate(GtkApplication* app, gpointer userObject)
@@ -637,64 +575,13 @@ in(userObject != null)
     (cast(GtkWidget*) context.window).gtk_widget_show_all();
 }
 
-//(app1,app2) => app1.desktopFileDateModifiedString > app2.desktopFileDateModifiedString
-// import std.algorithm : sort, cmp;
-
-// int[] array = [1, 2, 3, 4];
-
-// auto array2 = sort(array);
-
-// import std.algorithm.sorting : makeIndex;
-
-// immutable(ApplicationInfo[]) arr = getApplications().idup;
-
-// // auto index1 = new immutable(int)*[arr.length];
-// // auto arri = makeIndex!("a > b")(arr,index1);
-// auto appsSorted = arr[].sort!((a,b) => a < b);
-
-//Tuple!(GtkTreeView*,"treeview",GAsyncQueue*,"queue")* t = new Tuple!(GtkTreeView*,"treeview",GAsyncQueue*,"queue")(context.treeview, context.queue);
 
 
 
 import Config : DrillConfig;
 
-struct DrillGtkContext
-{
-    import Context : DrillContext;
-    import ApplicationInfo : ApplicationInfo;
 
-    // import std.path : dirName, buildNormalizedPath, absolutePath, buildPath;
-    // import std.string : toStringz;
-    // import Context : startCrawling, DrillContext;
-    // import ApplicationInfo : ApplicationInfo, getApplications;
-    ApplicationInfo[] applications;
-    GtkWindow* window;
-    GAsyncQueue* queue;
-    bool running = true;
-    GtkTreeView* treeview;
-    GtkListStore* liststore;
-    shared(DList!FileInfo) buffer1;
-    shared(DList!FileInfo) buffer2;
-    shared(DList!FileInfo)* buffer;
-    GtkEntry* search_input;
-    DrillContext context;
-    GtkLabel* credits;
-    GtkApplication* app;
-    DrillConfig drillConfig;
-
-    string[string] mime;
-
-    long oldTime;
-
-    bool list_dirty = false;
-
-    invariant
-    {
-        assert(app !is null);
-    }
-}
-
-
+import Config : loadMime;
 
 
 int main(string[] args)
@@ -706,23 +593,15 @@ int main(string[] args)
     import core.memory : GC;
     GC.disable();
 
-
-
-    GtkApplication* app = gtk_application_new("me.santamorena.drill",
-            GApplicationFlags.G_APPLICATION_FLAGS_NONE);
+    GtkApplication* app = gtk_application_new("software.drill", GApplicationFlags.G_APPLICATION_FLAGS_NONE);
     assert(app !is null);
     GC.addRoot(app);
 
     DrillGtkContext drillGtkContext;
     drillGtkContext.app = app;
 
-    import Config : loadMime;
+
     drillGtkContext.mime = loadMime();
-
-    // writeln(drillGtkContext.mime["mkv"]);
-
-    
-    // return 0;
 
     assert(thisExePath !is null);
     assert(thisExePath.length > 0);
@@ -731,9 +610,6 @@ int main(string[] args)
     assert(app !is null);
     g_signal_connect(app, "activate", &activate, &drillGtkContext);
     int status = g_application_run(cast(GApplication*) app, 0, null);
-
-
-    
 
     assert(app !is null);
     g_object_unref(app);
