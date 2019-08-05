@@ -85,7 +85,8 @@
                 "Core/Utils.d",
                 "GTK/GTKBinds.d",
                 "GTK/ListStore.d",
-                "GTK/TreeView.d"
+                "GTK/TreeView.d",
+                "GTK/GtkContext.d"
             ],
             "libs-posix": [
                 "gtk-3",
