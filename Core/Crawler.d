@@ -413,14 +413,14 @@ in (running !is null)
 class Crawler : Thread
 {
 
-    // debug
-    // {
-    //     ~this()
-    //     {
-    //         import core.stdc.stdio;
-    //         printf("Crawler destroyed\n");
-    //     }
-    // }
+    debug
+    {
+        ~this()
+        {
+            import core.stdc.stdio;
+            printf("Crawler destroyed\n");
+        }
+    }
 
     import Context: MatchingFunction;
 
