@@ -73,11 +73,6 @@ before_deploy:
  - export DRILL_VERSION=$(python -c "import sys, json; f = open('dub.json'); print(json.load(f)['version']); f.close()") 
  - ls -lh Output
 
-branches:
-  except:
-    - # Do not build tags that we create when we upload to GitHub Releases
-    - /^(?i:continuous)$/
-
 deploy:
   - provider: releases
     skip_cleanup: true
