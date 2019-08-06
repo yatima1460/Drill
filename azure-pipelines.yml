@@ -3,6 +3,7 @@
 stages:
 
 - stage: UnittestCLI
+  displayName: Unittest CLI
   dependsOn: []
   jobs:
   - job:
@@ -19,6 +20,7 @@ stages:
       displayName: 'Unittest ZipCLIRelease'
 
 - stage: UnittestGTK
+  displayName: Unittest GTK
   dependsOn: []
   jobs:
   - job:
@@ -36,7 +38,7 @@ stages:
 
 - stage: BuildCLIDebug
   displayName: Build CLI Debug
-  dependsOn: UnittestCLI
+  dependsOn: []
   jobs:
   - job:
     pool:
@@ -57,7 +59,7 @@ stages:
 
 - stage: BuildCLIRelease
   displayName: Build CLI Release
-  dependsOn: UnittestCLI
+  dependsOn: []
   jobs:
   - job: linux_cli_release_x86_64_dmd_stable
     displayName: Linux CLI Release x86_64 DMD stable
@@ -80,7 +82,7 @@ stages:
 
 - stage: BuildGTKDebug
   displayName: Build GTK Debug
-  dependsOn: UnittestGTK
+  dependsOn: []
   jobs:
   - job:
     pool:
@@ -102,7 +104,7 @@ stages:
 
 - stage: BuildGTKRelease
   displayName: Build GTK Release
-  dependsOn: UnittestGTK
+  dependsOn: []
   jobs:
   - job:
     pool:
@@ -256,6 +258,8 @@ stages:
 
 - stage: Publish
   dependsOn: 
+    - UnittestCLI
+    - UnittestGTK
     - CreateAppimage
     - CreateGTKDeb
     - CreateCLIDeb
