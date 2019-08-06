@@ -9,45 +9,78 @@ variables:
 trigger:
 - master
 
+
 stages:
-- stage: install_prerequisites
+- stage: Build
   jobs:
-  - job: Linux
+  - job: linux_cli_debug_x86_64
+    displayName: Linux CLI Debug x86_64
     pool:
-      vmImage: 'ubuntu-16.04'
+      name: Hosted Ubuntu 1604
     steps:
-    - bash: sudo apt -y install libgcc1
-    - bash: sudo apt -y install libgtk-3-dev
-    - bash: sudo apt -y install desktop-file-utils
-    - bash: sudo apt -y install p7zip-full
-    - bash: sudo apt -y install build-essential
-- stage: install_d
-  jobs:
-  - job: Windows
+    - bash: |
+        wget http://downloads.dlang.org/releases/2.x/2.087.1/dmd_2.087.1-0_amd64.deb
+        sudo dpkg -i dmd_2.087.1-0_amd64.deb
+        dmd --version
+        dub --version
+      displayName: 'Install DMD'
+    - bash: 'dub build -c CLI -b debug --arch=x86_64'
+      displayName: 'Build CLI Debug x86_64'
+    - task: PublishPipelineArtifact@1
+      inputs:
+        targetPath: 'Build/Drill-CLI-linux-x86_64-debug'
+        artifact: 'Build CLI Debug x86_64'
+
+  - job: linux_cli_release_x86_64
+    displayName: Linux CLI Release x86_64
     pool:
-      vmImage: 'vs2017-win2016'
+      name: Hosted Ubuntu 1604
     steps:
-    - script: echo hello from Windows
-  - job: OSX
-    pool:
-      vmImage: 'macOS-10.13'
-    steps:
-    - bash: wget http://downloads.dlang.org/releases/2.x/$(dmd_version)/dmd.$(dmd_version).osx.tar.xz
-    - bash: 7z -aoa x dmd.$(dmd_version).osx.tar.xz
-    - bash: 7z -aoa x dmd.$(dmd_version).osx.tar
-    - bash: chmod +x dmd2/osx/bin/dub
-    - bash: dmd2/osx/bin/dub --version
-    - bash: chmod +x dmd2/osx/bin/dmd
-    - bash: dmd2/osx/bin/dmd --version
+    - bash: |
+        wget http://downloads.dlang.org/releases/2.x/2.087.1/dmd_2.087.1-0_amd64.deb
+        sudo dpkg -i dmd_2.087.1-0_amd64.deb
+        dmd --version
+        dub --version
+      displayName: 'Install D Linux'
+    - bash: |
+        dub build -c CLI -b release --arch=x86_64
+      displayName: 'dub build -c CLI -b release'
+    - task: PublishPipelineArtifact@1
+      inputs:
+        targetPath: Drill-CLI-linux-x86_64-release
+        artifact: 'CLI Release x86_64'
+
+
+
+      
+
+# - stage: install_d
+#   jobs:
+#   - job: Windows
+#     pool:
+#       vmImage: 'vs2017-win2016'
+#     steps:
+#     - script: echo hello from Windows
+#   - job: OSX
+#     pool:
+#       vmImage: 'macOS-10.13'
+#     steps:
+#     - bash: wget http://downloads.dlang.org/releases/2.x/$(dmd_version)/dmd.$(dmd_version).osx.tar.xz
+#     - bash: 7z -aoa x dmd.$(dmd_version).osx.tar.xz
+#     - bash: 7z -aoa x dmd.$(dmd_version).osx.tar
+#     - bash: chmod +x dmd2/osx/bin/dub
+#     - bash: dmd2/osx/bin/dub --version
+#     - bash: chmod +x dmd2/osx/bin/dmd
+#     - bash: dmd2/osx/bin/dmd --version
     
-  - job: Linux
-    pool:
-      vmImage: 'ubuntu-16.04'
-    steps:
-    - bash: wget -c http://downloads.dlang.org/releases/2.x/$(dmd_version)/dmd.$(dmd_version).linux.tar.xz
-    - bash: 7z x -aos dmd.$(dmd_version).linux.tar.xz
-    - bash: 7z x -aos dmd.$(dmd_version).linux.tar
-    - bash: chmod +x dmd2/linux/bin64/dub
-    - bash: dmd2/linux/bin64/dub --version
-    - bash: chmod +x dmd2/linux/bin64/dmd
-    - bash: dmd2/linux/bin64/dmd --version
+#   - job: Linux
+#     pool:
+#       vmImage: 'ubuntu-16.04'
+#     steps:
+#     - bash: wget -c http://downloads.dlang.org/releases/2.x/$(dmd_version)/dmd.$(dmd_version).linux.tar.xz
+#     - bash: 7z x -aos dmd.$(dmd_version).linux.tar.xz
+#     - bash: 7z x -aos dmd.$(dmd_version).linux.tar
+#     - bash: chmod +x dmd2/linux/bin64/dub
+#     - bash: dmd2/linux/bin64/dub --version
+#     - bash: chmod +x dmd2/linux/bin64/dmd
+#     - bash: dmd2/linux/bin64/dmd --version
