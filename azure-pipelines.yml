@@ -6,24 +6,20 @@
 trigger:
 - master
 
-parameters:
-  name: 'Drill'
-  testFile: ''
-
 stages:
-- stage: Test_${{ parameters.name }}
+- stage: Test
   jobs:
-  - job: ${{ parameters.name }}_Windows
+  - job: Windows
     pool:
       vmImage: vs2017-win2016
     steps:
     - script: python .travis.py
-  - job: ${{ parameters.name }}_Mac
+  - job: Mac
     pool:
       vmImage: macos-10.13
     steps:
     - script: python .travis.py
-  - job: ${{ parameters.name }}_Ubuntu
+  - job: Ubuntu
     pool:
       vmImage: ubuntu-latest
     steps:
