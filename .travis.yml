@@ -52,27 +52,88 @@
 #           - p7zip-full
 #           - build-essential
 
-language: d
+# language: d
 
-d:
-- dmd
+# d:
+# - dmd
 
-os:
-- linux
-- windows
-- osx
+# os:
+# - linux
+# # - windows
+# - osx
 
-script: dub build -c CLI
+
+
+# matrix:
+#   exclude:
+#   - d: 2.0.0
+#     gemfile: Gemfile
 
 jobs:
   fast_finish: true
   include:
     - d: dmd
+      name: CLI Debug
       language: d
       script:
-        - dub build -c CLI
+        - dub build -c CLI -b debug
 
-        
+    - d: dmd
+      name: CLI Release
+      language: d
+      script:
+        - dub build -c CLI -b release
+
+    - d: dmd
+      name: GTK Debug
+      language: d
+      install: sudo apt install -y libgtk-3-dev
+      script:
+        - dub build -c GTK -b debug
+
+    - d: dmd
+      name: GTK Release
+      language: d
+      install: sudo apt install -y libgtk-3-dev
+      script:
+        - dub build -c GTK -b release
+
+
+    - d: dmd
+      name: CLI Debug
+      language: d
+      os: osx
+      script:
+        - dub build -c CLI -b debug
+
+    - d: dmd
+      name: CLI Release
+      language: d
+      os: osx
+      script:
+        - dub build -c CLI -b release
+
+    - d: dmd
+      name: GTK Debug
+      language: d
+      install: homebrew install gtk+3
+      os: osx
+      script:
+        - dub build -c GTK -b debug
+
+    - d: dmd
+      name: GTK Release
+      language: d
+      install: homebrew install gtk+3
+      os: osx
+      script:
+        - dub build -c GTK -b release
+    
+    - os: windows
+      name: CLI Debug
+      script:
+        - dub build -c CLI -b debug
+
 
 
     # - stage: Test
