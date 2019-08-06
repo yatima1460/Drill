@@ -1,16 +1,7 @@
-# Starter pipeline
-# Start with a minimal pipeline that you can customize to build and deploy your code.
-# Add steps that build, run tests, deploy, and more:
-# https://aka.ms/yaml
 
 
-
-trigger:
-- master
-
-
-
-stages:
+s
+tages:
 
 # - stage: Unittest
 #   jobs:
@@ -28,9 +19,8 @@ stages:
 #     - bash: 'dub build -c CLI -b unittest --arch=x86_64'
 #       displayName: 'Build CLI Unittest x86_64'
 
-- stage: Build
+- stage: BuildDebug
   jobs:
-  
   - job: linux_cli_debug_x86_64_dmd_stable
     displayName: Linux CLI Debug x86_64 DMD stable
     pool:
@@ -49,6 +39,9 @@ stages:
         targetPath: 'Build/Drill-CLI-linux-x86_64-debug'
         artifact: 'Drill-CLI-linux-x86_64-debug'
 
+
+- stage: BuildRelease
+  jobs:
   - job: linux_cli_release_x86_64_dmd_stable
     displayName: Linux CLI Release x86_64 DMD stable
     pool:
@@ -68,9 +61,10 @@ stages:
         targetPath: 'Build/Drill-CLI-linux-x86_64-release'
         artifact: 'Drill-CLI-linux-x86_64-release'
 
-- stage: Package
-  displayName: Package .zip
-  dependsOn: Build
+
+- stage: ZipRelease
+  displayName: Release .zip
+  dependsOn: BuildRelease
   jobs:
   - job: linux_cli_release_x86_64_dmd_stable_zip
     displayName: Linux CLI Release x86_64 DMD stable Zip
@@ -89,9 +83,29 @@ stages:
         artifact: 'Drill-CLI-linux-x86_64-release.zip'
 
 
+- stage: ZipDebug
+  displayName: Debug .zip
+  dependsOn: BuildDebug
+  jobs:
+  - job:
+    pool:
+      name: Hosted Ubuntu 1604
+    steps:
+    - task: DownloadPipelineArtifact@2
+      inputs:
+        buildType: 'current'
+        itemPattern: 'Drill-CLI-linux-x86_64-debug'
+        targetPath: '$(Pipeline.Workspace)'
+    - bash: 7z a -tzip Drill-CLI-linux-x86_64-debug.zip $(Pipeline.Workspace)/Drill-CLI-linux-x86_64-debug/*
+    - task: PublishPipelineArtifact@1
+      inputs:
+        targetPath: 'Drill-CLI-linux-x86_64-debug.zip'
+        artifact: 'Drill-CLI-linux-x86_64-debug.zip'
+
+
 - stage: CreateAppimage
   displayName: Create Appimage
-  dependsOn: Build
+  dependsOn: BuildRelease
   jobs:
   - job: linux_cli_release_x86_64_dmd_stable
     displayName: Linux CLI Release x86_64 DMD stable
@@ -103,10 +117,11 @@ stages:
         buildType: 'current'
         itemPattern: 'Drill-CLI-linux-x86_64-release'
         targetPath: '$(Pipeline.Workspace)'
+
 
 - stage: CreateDeb
-  displayName: Create ,deb
-  dependsOn: Build
+  displayName: Create .deb
+  dependsOn: BuildRelease
   jobs:
   - job: linux_cli_release_x86_64_dmd_stable
     displayName: Linux CLI Release x86_64 DMD stable
@@ -119,19 +134,14 @@ stages:
         itemPattern: 'Drill-CLI-linux-x86_64-release'
         targetPath: '$(Pipeline.Workspace)'
 
-    # - bash: 7z a -tzip Drill-CLI-linux-x86_64-release.zip $(Pipeline.Workspace)/Drill-CLI-linux-x86_64-release/*
-    # - task: PublishPipelineArtifact@1
-    #   inputs:
-    #     targetPath: 'Drill-CLI-linux-x86_64-release.zip'
-    #     artifact: 'Drill-CLI-linux-x86_64-release.zip'
 
 - stage: Publish
   dependsOn: 
-    - Package
+    - ZipRelease
     - CreateAppimage
   jobs:
-  - job: linux_cli_release_x86_64_dmd_stable_zip_publish
-    displayName: Linux CLI Release x86_64 DMD Zip Publish
+  - job:
+    displayName: Publish
     pool:
       name: Hosted Ubuntu 1604
     steps:
@@ -149,7 +159,10 @@ stages:
         tagSource: 'auto'
         assets: '$(Pipeline.Workspace)/Drill-CLI-linux-x86_64-release.zip'
         isPreRelease: true
-        
+
+
+
+
     # - task: ZipDirectory@1
     #   inputs:
     #     ItemSpec: 'Build/Drill-CLI-linux-x86_64-release'
