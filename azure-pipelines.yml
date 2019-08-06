@@ -44,10 +44,7 @@ stages:
     - task: PublishPipelineArtifact@1
       inputs:
         targetPath: 'Build/Drill-CLI-linux-x86_64-debug'
-        artifact: 'x86_64 Linux DMD Debug CLI'
-    - task: ZipDirectory@1
-      inputs:
-        ItemSpec: 'Build/Drill-CLI-linux-x86_64-debug'
+        artifact: 'Drill-CLI-linux-x86_64-debug'
 
   - job: linux_cli_release_x86_64_dmd_stable
     displayName: Linux CLI Release x86_64 DMD stable
@@ -63,9 +60,41 @@ stages:
     - bash: |
         dub build -c CLI -b release --arch=x86_64
       displayName: 'dub build -c CLI -b release'
-    - task: ZipDirectory@1
+    - task: PublishPipelineArtifact@1
       inputs:
-        ItemSpec: 'Build/Drill-CLI-linux-x86_64-release'
+        targetPath: 'Build/Drill-CLI-linux-x86_64-release'
+        artifact: 'Drill-CLI-linux-x86_64-release'
+
+- stage: Package
+  jobs:
+  - job: linux_cli_release_x86_64_dmd_stable_zip
+    displayName: Linux CLI Debug x86_64 DMD stable Zip
+    pool:
+      name: Hosted Ubuntu 1604
+    steps:
+    - task: DownloadPipelineArtifact@2
+      inputs:
+        buildType: 'current'
+        itemPattern: 'Drill-CLI-linux-x86_64-release'
+        targetPath: '$(Pipeline.Workspace)'
+    - task: 7z@1
+      inputs:
+        Folder: 'Drill-CLI-linux-x86_64-release'
+        Archive: 'Drill-CLI-linux-x86_64-release.zip'
+        ArchiveFormat: 'zip'
+    # - task: GitHubRelease@0
+    #   inputs:
+    #     gitHubConnection: 
+    #     repositoryName: '$(Build.Repository.Name)'
+    #     action: 'create'
+    #     target: '$(Build.SourceVersion)'
+    #     tagSource: 'auto'
+    #     assets: 'Drill-CLI-linux-x86_64-release.zip'
+    #     isPreRelease: true
+        
+    # - task: ZipDirectory@1
+    #   inputs:
+    #     ItemSpec: 'Build/Drill-CLI-linux-x86_64-release'
 
 
         
