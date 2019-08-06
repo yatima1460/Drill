@@ -13,6 +13,21 @@ trigger:
 stages:
 - stage: Build
   jobs:
+  
+  - job: linux_cli_unittest_x86_64_dmd_stable
+    displayName: Linux CLI Unittest x86_64 DMD stable
+    pool:
+      name: Hosted Ubuntu 1604
+    steps:
+    - bash: |
+        wget http://downloads.dlang.org/releases/2.x/$(dmd_version)/dmd_$(dmd_version)-0_amd64.deb
+        sudo dpkg -i dmd_$(dmd_version)-0_amd64.deb
+        dmd --version
+        dub --version
+      displayName: 'Install DMD'
+    - bash: 'dub build -c CLI -b unittest --arch=x86_64'
+      displayName: 'Build CLI Unittest x86_64'
+
   - job: linux_cli_debug_x86_64_dmd_stable
     displayName: Linux CLI Debug x86_64 DMD stable
     pool:
@@ -50,8 +65,21 @@ stages:
         targetPath: Build/Drill-CLI-linux-x86_64-release
         artifact: 'x86_64 Linux DMD Release CLI'
 
-- stage: Package
-  jobs:
+  - job: linux_package_cli_release_x86_64_dmd_stable
+    dependsOn: linux_cli_release_x86_64_dmd_stable
+    steps:
+    - task: DownloadPipelineArtifact@2
+      inputs:
+        buildType: 'specific'
+        project: '609befef-9c2f-4601-a879-747a87fb063c'
+        definition: '6'
+        buildVersionToDownload: 'latest'
+        itemPattern: 'x86_64 Linux DMD Release CLI'
+        targetPath: '$(Pipeline.Workspace)'
+    - task: ZipDirectory@1
+      inputs:
+        ItemSpec: 'x86_64 Linux DMD Release CLI'
+
   - job: linux_package_cli_debug_x86_64_dmd_stable
     dependsOn: linux_cli_debug_x86_64_dmd_stable
     steps:
@@ -66,7 +94,7 @@ stages:
     - task: ZipDirectory@1
       inputs:
         ItemSpec: 'x86_64 Linux DMD Debug CLI'
-    
+
 
 
 
