@@ -3,26 +3,51 @@
 # Add steps that build, run tests, deploy, and more:
 # https://aka.ms/yaml
 
+variables:
+  dmd_version: 2.087.0
+
 trigger:
 - master
 
 stages:
-- stage: Test
+- stage: Install prerequisites
+  jobs:
+  - job: Linux
+    pool:
+      vmImage: 'ubuntu-16.04'
+    steps:
+    - bash: sudo apt -y install libgcc1
+    - bash: sudo apt -y install libgtk-3-dev
+    - bash: sudo apt -y install desktop-file-utils
+    - bash: sudo apt -y install p7zip-full
+    - bash: sudo apt -y install build-essential
+- stage: Install D
   jobs:
   - job: Windows
     pool:
-      vmImage: vs2017-win2016
+      vmImage: 'vs2017-win2016'
     steps:
-    - script: python .travis.py
-  - job: Mac
+    - script: echo hello from Windows
+  - job: OSX
     pool:
-      vmImage: macos-10.13
+      vmImage: 'macOS-10.13'
     steps:
-    - script: python .travis.py
-  - job: Ubuntu
+    - bash: wget http://downloads.dlang.org/releases/2.x/$(dmd_version)/dmd.$(dmd_version).osx.tar.xz
+    - bash: 7z -aoa x dmd.$(dmd_version).osx.tar.xz
+    - bash: 7z -aoa x dmd.$(dmd_version).osx.tar
+    - bash: chmod +x dmd2/osx/bin/dub
+    - bash: dmd2/osx/bin/dub --version
+    - bash: chmod +x dmd2/osx/bin/dmd
+    - bash: dmd2/osx/bin/dmd --version
+    
+  - job: Linux
     pool:
-      vmImage: ubuntu-latest
+      vmImage: 'ubuntu-16.04'
     steps:
-    - script: python .travis.py
-
-
+    - bash: wget -c http://downloads.dlang.org/releases/2.x/$(dmd_version)/dmd.$(dmd_version).linux.tar.xz
+    - bash: 7z x -aos dmd.$(dmd_version).linux.tar.xz
+    - bash: 7z x -aos dmd.$(dmd_version).linux.tar
+    - bash: chmod +x dmd2/linux/bin64/dub
+    - bash: dmd2/linux/bin64/dub --version
+    - bash: chmod +x dmd2/linux/bin64/dmd
+    - bash: dmd2/linux/bin64/dmd --version
