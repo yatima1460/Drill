@@ -29,21 +29,22 @@ alias CrawlerCallback = void function(  const(FileInfo) result, void* userObject
 
 unittest
 {
-    assert(isFileNameMatchingSearchString(".","."));
-    assert(isFileNameMatchingSearchString("a","a"));
+    import Context : isTokenizedStringMatchingString;
+    assert(isTokenizedStringMatchingString(".","."));
+    assert(isTokenizedStringMatchingString("a","a"));
 
-    assert(isFileNameMatchingSearchString("aaaa","aaaaa"));
-    assert(!isFileNameMatchingSearchString("aaaaa","aaaa"));
+    assert(isTokenizedStringMatchingString("aaaa","aaaaa"));
+    assert(!isTokenizedStringMatchingString("aaaaa","aaaa"));
 
-    assert(isFileNameMatchingSearchString("jojo 39","JoJo's Bizarre Adventures Golden Wind 39.mkv"));
-    assert(!isFileNameMatchingSearchString("jojo 38","JoJo's Bizarre Adventures Golden Wind 39.mkv"));
-    assert(isFileNameMatchingSearchString("jojo 3","JoJo's Bizarre Adventures Golden Wind 39.mkv"));
-    assert(!isFileNameMatchingSearchString("jojo3","JoJo's Bizarre Adventures Golden Wind 39.mkv"));
-    assert(isFileNameMatchingSearchString("jojo","JoJo's Bizarre Adventures Golden Wind 39.mkv"));
-    assert(isFileNameMatchingSearchString("39","JoJo's Bizarre Adventures Golden Wind 39.mkv"));
-    assert(isFileNameMatchingSearchString("olde","JoJo's Bizarre Adventures Golden Wind 39.mkv"));
-    assert(isFileNameMatchingSearchString("JoJo's Bizarre Adventures Golden Wind 39.mkv","JoJo's Bizarre Adventures Golden Wind 39.mkv"));
-    assert(isFileNameMatchingSearchString(".mkv","JoJo's Bizarre Adventures Golden Wind 39.mkv"));
+    assert(isTokenizedStringMatchingString("jojo 39","JoJo's Bizarre Adventures Golden Wind 39.mkv"));
+    assert(!isTokenizedStringMatchingString("jojo 38","JoJo's Bizarre Adventures Golden Wind 39.mkv"));
+    assert(isTokenizedStringMatchingString("jojo 3","JoJo's Bizarre Adventures Golden Wind 39.mkv"));
+    assert(!isTokenizedStringMatchingString("jojo3","JoJo's Bizarre Adventures Golden Wind 39.mkv"));
+    assert(isTokenizedStringMatchingString("jojo","JoJo's Bizarre Adventures Golden Wind 39.mkv"));
+    assert(isTokenizedStringMatchingString("39","JoJo's Bizarre Adventures Golden Wind 39.mkv"));
+    assert(isTokenizedStringMatchingString("olde","JoJo's Bizarre Adventures Golden Wind 39.mkv"));
+    assert(isTokenizedStringMatchingString("JoJo's Bizarre Adventures Golden Wind 39.mkv","JoJo's Bizarre Adventures Golden Wind 39.mkv"));
+    assert(isTokenizedStringMatchingString(".mkv","JoJo's Bizarre Adventures Golden Wind 39.mkv"));
 }
 
 
@@ -120,11 +121,11 @@ unittest
     assert(!f.isDirectory);
     assert(f.isFile);
     assert(f.dateModifiedString);
-    assert(canFind(f.containingFolder,"/Build/Drill-CLI-linux-x86_64-unittest-cov"));
-    assert(f.fileName == "drill-search-test-CLI");
-    assert(f.fileNameLower == "drill-search-test-cli");
+    assert(canFind(f.containingFolder,"/Build/Drill-CLI-linux-x86_64-unittest"));
+    assert(f.fileName == "drill-search-cli");
+    assert(f.fileNameLower == "drill-search-cli");
     assert(f.extension == "");
-    assert(canFind(f.fullPath,"/Build/Drill-CLI-linux-x86_64-unittest-cov/drill-search-test-CLI"),f.fullPath);
+    assert(canFind(f.fullPath,"/Build/Drill-CLI-linux-x86_64-unittest/drill-search-cli"),f.fullPath);
     assert(!canFind(f.sizeString, "0 B"));
 }
 unittest
