@@ -84,7 +84,6 @@ stages:
     - task: DownloadPipelineArtifact@2
       inputs:
         buildType: 'current'
-        itemPattern: 'Drill-CLI-linux-x86_64-release'
         targetPath: '$(Pipeline.Workspace)'
     - bash: 7z a -tzip Drill-CLI-linux-x86_64-release.zip $(Pipeline.Workspace)/Drill-CLI-linux-x86_64-release/*
     - task: PublishPipelineArtifact@1
