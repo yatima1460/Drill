@@ -304,11 +304,11 @@ stages:
     pool:
       name: Hosted Ubuntu 1604
     steps:
+    - bash: mkdir $(Pipeline.Workspace)/Output
     - task: DownloadPipelineArtifact@2
       inputs:
         buildType: 'current'
-        itemPattern: 'Drill-CLI-linux-x86_64-release.zip'
-        targetPath: '$(Pipeline.Workspace)'
+        targetPath: '$(Pipeline.Workspace)/Output'
     - task: GitHubRelease@0
       inputs:
         gitHubConnection: $(GITHUB_TOKEN)
@@ -316,7 +316,7 @@ stages:
         action: 'create'
         target: '$(Build.SourceVersion)'
         tagSource: 'auto'
-        assets: '$(Pipeline.Workspace)/Drill-CLI-linux-x86_64-release.zip'
+        assets: '$(Pipeline.Workspace)/Output/*.*'
         isPreRelease: true
 
 
