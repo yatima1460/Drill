@@ -56,8 +56,6 @@ language: d
 
 d:
 - dmd
-- ldc
-- gdc
 
 os:
 - linux
@@ -66,11 +64,22 @@ os:
 
 script: dub build -c CLI
 
-# jobs:
-#   include:
-#     - stage: Test
-#       name: CLI Test
-#       script: dub build -c CLI -b unittest
+jobs:
+  fast_finish: true
+  include:
+    - d: dmd
+      language: d
+      script:
+        - dub build -c CLI
+
+        
+
+
+    # - stage: Test
+    #   name: CLI Test
+    #   script: dub build -c CLI -b unittest
+    #   os: windows
+      
 
 #     - 
 #       name: GTK Test
