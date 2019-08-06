@@ -73,6 +73,7 @@ stages:
         buildType: 'specific'
         project: '609befef-9c2f-4601-a879-747a87fb063c'
         definition: '6'
+        specificBuildWithTriggering: true
         buildVersionToDownload: 'latest'
         itemPattern: 'x86_64 Linux DMD Release CLI'
         targetPath: '$(Pipeline.Workspace)'
