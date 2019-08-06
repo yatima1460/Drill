@@ -11,23 +11,25 @@ import std.process : executeShell;
 
 
 
-version(linux) @system string[] getDesktopFiles() 
+version(linux) @system string[] getDesktopFiles()
 {
     synchronized
     {
-        
-        import std.array : split;
-     
-        // TODO: replace executeShell with a system call to get the list of files, executeShell is SLOW
-        immutable auto ls = executeShell("ls /usr/share/applications/*.desktop | grep -v _");
-        if (ls.status == 0)
-        {   
-            import std.algorithm : filter;
-            import std.array : array;
-            return ls.output.split("\n").filter!(x => x.length > 0).array;
+        import std.algorithm : canFind, filter, map;
+        import std.array : array;
+        import std.file : dirEntries, SpanMode;
+        try
+        {
+            return dirEntries("/usr/share/applications", "*.desktop", SpanMode.depth)
+                .map!(a => a.name)
+                .filter!(name => !name.canFind('_'))
+                .array;
         }
-        error("Can't retrieve applications, will return an empty list");
-        return [];
+        catch (Exception _)
+        {
+            error("Can't retrieve applications, will return an empty list");
+            return [];
+        }
     }
 }
 
