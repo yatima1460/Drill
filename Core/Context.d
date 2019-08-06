@@ -200,7 +200,7 @@ import std.algorithm : canFind;
 import std.path : baseName, dirName, extension;
 import std.string : split, strip;
 
-pure @safe bool isTokenizedStringMatchingString(const(string) str, const(string) searchString)
+pure @safe bool isTokenizedStringMatchingString(const(string) searchString, const(string) str)
 {
     if (str.length < searchString.length) return false;
     const string[] searchTokens = toLower(strip(searchString)).split(" ");
@@ -228,9 +228,10 @@ in (searchString.length > 0)
 in (file.name != null)
 in (file.name.length > 0)
 {
-    auto fileName = baseName(file.name);
-    return isTokenizedStringMatchingString(fileName, searchString);
+    return isTokenizedStringMatchingString(searchString, baseName(file.name));
 }
+
+
 
 
 import Utils : getMountpoints;
