@@ -102,11 +102,11 @@ in(store !is null)
     
             import AppImage;
             case ".appimage":
-                import std.path : stripExtension;
-                auto withoutExtension = baseName(stripExtension(fileInfo.fileName));
-                withoutExtension = withoutExtension.replace("-"," ").capitalize();
-                name = toStringz("AppImage: "~withoutExtension);
-                path = toStringz(fileInfo.fullPath);
+                // import std.path : stripExtension;
+                // auto withoutExtension = baseName(stripExtension(fileInfo.fileName));
+                // withoutExtension = withoutExtension.replace("-"," ").capitalize();
+                // name = toStringz("AppImage: "~withoutExtension);
+                // path = toStringz(fileInfo.fullPath);
 
                 // Fallback, if we can't extract the image we will use a local one
                 import std.array : split;
