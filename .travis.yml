@@ -54,6 +54,18 @@
 
 jobs:
   include:
+    - stage: Test
+      name: CLI Test
+      os: linux
+      language: d
+      script: dub build -c CLI -b unittest
+
+    - 
+      name: GTK Test
+      os: linux
+      language: d
+      script: dub build -c GTK -b unittest
+
     - stage: Build
       name: CLI Debug
       os: linux
