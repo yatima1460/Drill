@@ -15,13 +15,14 @@ version(linux) @system string[] getDesktopFiles()
 {
     synchronized
     {
-        import std.algorithm : map;
+        import std.algorithm : canFind, filter, map;
         import std.array : array;
         import std.file : dirEntries, SpanMode;
         try
         {
             return dirEntries("/usr/share/applications", "*.desktop", SpanMode.depth)
                 .map!(a => a.name)
+                .filter!(name => !name.canFind('_'))
                 .array;
         }
         catch (Exception _)
