@@ -56,14 +56,17 @@ jobs:
   include:
     - stage: Build CLI Debug
       os: linux
+      language: d
       script: dub build -c CLI
 
     - stage: Build CLI Release
       os: linux
+      language: d
       script: dub build -c CLI -b release
 
     - stage: Build GTK Debug
       os: linux
+      language: d
       apt:
         update: true
         packages:
@@ -77,6 +80,7 @@ jobs:
 
     - stage: Build GTK Release
       os: linux
+      language: d
       apt:
         update: true
         packages:
@@ -106,9 +110,9 @@ jobs:
         #     - $HOME/Library/Caches/Homebrew
         #     - /usr/local/Homebrew
 
-    - name: "Windows"
-      os: windows           # Windows 10.0.17134 N/A Build 17134
-      language: shell       # 'language: python' is an error on Travis CI Windows
+    # - name: "Windows"
+    #   os: windows           # Windows 10.0.17134 N/A Build 17134
+    #   language: shell       # 'language: python' is an error on Travis CI Windows
       # python: 3.7         # 'python:' is ignored on Travis CI Windows
       # before_install:
       #   - choco install python  # this install takes at least 1 min 30 sec
