@@ -24,9 +24,9 @@ stages:
     pool:
       name: Hosted
     steps:
-    - bash: |
+    - powershell: |
         wget http://downloads.dlang.org/releases/2.x/$(dmd_version)/dmd.$(dmd_version).windows.7z
-        sudo 7z x dmd.$(dmd_version).windows.7z
+        7z x dmd.$(dmd_version).windows.7z
         dmd2/windows/bin/dmd.exe --version
         dmd2/windows/bin/dub.exe --version
       displayName: 'Install DMD'
