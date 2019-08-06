@@ -1,0 +1,32 @@
+# Starter pipeline
+# Start with a minimal pipeline that you can customize to build and deploy your code.
+# Add steps that build, run tests, deploy, and more:
+# https://aka.ms/yaml
+
+trigger:
+- master
+
+parameters:
+  name: 'Drill'
+  testFile: ''
+
+stages:
+- stage: Test_${{ parameters.name }}
+  jobs:
+  - job: ${{ parameters.name }}_Windows
+    pool:
+      vmImage: vs2017-win2016
+    steps:
+    - script: python .travis.py
+  - job: ${{ parameters.name }}_Mac
+    pool:
+      vmImage: macos-10.13
+    steps:
+    - script: python .travis.py
+  - job: ${{ parameters.name }}_Ubuntu
+    pool:
+      vmImage: ubuntu-latest
+    steps:
+    - script: python .travis.py
+
+
