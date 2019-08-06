@@ -311,15 +311,13 @@ stages:
         targetPath: '$(Pipeline.Workspace)/Output'
     - task: GitHubRelease@0
       inputs:
-        gitHubConnection: $(GITHUB_TOKEN)
+        gitHubConnection: 'githubtoken'
         repositoryName: '$(Build.Repository.Name)'
         action: 'create'
         target: '$(Build.SourceVersion)'
         tagSource: 'auto'
         assets: '$(Pipeline.Workspace)/Output/*.*'
         isPreRelease: true
-
-
 
 
     # - task: ZipDirectory@1
