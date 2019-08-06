@@ -204,7 +204,7 @@ stages:
         targetPath: '$(Pipeline.Workspace)'
 
 
-- stage: CreateDeb
+- stage: CreateCLIDeb
   displayName: Create CLI .deb
   dependsOn: BuildCLIRelease
   jobs:
