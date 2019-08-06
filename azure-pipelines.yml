@@ -298,6 +298,15 @@ stages:
 
 
 
+
+
+
+
+
+
+
+
+
   jobs:
   - job:
     displayName: Publish
@@ -309,13 +318,18 @@ stages:
       inputs:
         buildType: 'current'
         targetPath: '$(Pipeline.Workspace)/Output'
+
     - task: GitHubRelease@0
       inputs:
         gitHubConnection: 'githubtoken'
         repositoryName: '$(Build.Repository.Name)'
         action: 'create'
         target: '$(Build.SourceVersion)'
-        tagSource: 'auto'
+        tagSource: 'manual'
+        tag: 'ContinuousIntegration'
+        title: 'ContinuousIntegration'
+        releaseNotesSource: 'input'
+        releaseNotes: '$(Build.BuildNumber) $(Build.BuildUri)'
         assets: '$(Pipeline.Workspace)/Output/*.*'
         isPreRelease: true
 
