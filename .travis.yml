@@ -55,16 +55,19 @@ sudo: required
 jobs:
   include:
     - stage: Build
+      name: CLI Debug
       os: linux
       language: d
       script: dub build -c CLI
 
     - stage: Build
+      name: CLI Release
       os: linux
       language: d
       script: dub build -c CLI -b release
 
     - stage: Build
+      name: GTK Debug
       os: linux
       language: d
       apt:
@@ -78,6 +81,7 @@ jobs:
       script: dub build -c GTK
 
     - stage: Build
+      name: GTK Release
       os: linux
       language: d
       apt:
