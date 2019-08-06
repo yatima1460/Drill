@@ -3,8 +3,7 @@
 # Add steps that build, run tests, deploy, and more:
 # https://aka.ms/yaml
 
-variables:
-  dmd_version: 2.087.0
+
 
 trigger:
 - master
@@ -72,7 +71,7 @@ stages:
 - stage: Package
   jobs:
   - job: linux_cli_release_x86_64_dmd_stable_zip
-    displayName: Linux CLI Debug x86_64 DMD stable Zip
+    displayName: Linux CLI Release x86_64 DMD stable Zip
     pool:
       name: Hosted Ubuntu 1604
     steps:
@@ -81,11 +80,24 @@ stages:
         buildType: 'current'
         itemPattern: 'Drill-CLI-linux-x86_64-release'
         targetPath: '$(Pipeline.Workspace)'
-    - task: 7z@1
+    - bash: 7z a -tzip Drill-CLI-linux-x86_64-release.zip Drill-CLI-linux-x86_64-release/*
+    - task: PublishPipelineArtifact@1
       inputs:
-        Folder: 'Drill-CLI-linux-x86_64-release'
-        Archive: 'Drill-CLI-linux-x86_64-release.zip'
-        ArchiveFormat: 'zip'
+        targetPath: 'Drill-CLI-linux-x86_64-release.zip'
+        artifact: 'Drill-CLI-linux-x86_64-release.zip'
+
+- stage: Publish
+  jobs:
+  - job: linux_cli_release_x86_64_dmd_stable_zip_publish
+    displayName: Linux CLI Release x86_64 DMD Zip Publish
+    pool:
+      name: Hosted Ubuntu 1604
+    steps:
+    - task: DownloadPipelineArtifact@2
+      inputs:
+        buildType: 'current'
+        itemPattern: 'Drill-CLI-linux-x86_64-release.zip'
+        targetPath: '$(Pipeline.Workspace)'
     - task: GitHubRelease@0
       inputs:
         gitHubConnection: $(GITHUB_TOKEN)
