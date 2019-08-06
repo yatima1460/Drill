@@ -127,6 +127,7 @@ stages:
         dmd --version
         dub --version
       displayName: 'Install DMD'
+    - bash: 'sudo apt install -y libgtk-3-dev'
     - bash: 'dub build -c GTK -b debug --arch=x86_64'
       displayName: 'Build GTK Debug x86_64'
     - task: PublishPipelineArtifact@1
@@ -170,6 +171,7 @@ stages:
         dmd --version
         dub --version
       displayName: 'Install DMD'
+    - bash: 'sudo apt install -y libgtk-3-dev'
     - bash: 'dub build -c GTK -b release --arch=x86_64'
       displayName: 'Build GTK Release x86_64'
     - task: PublishPipelineArtifact@1
@@ -214,7 +216,7 @@ stages:
 
 
 - stage: CreateAppimage
-  displayName: Create Appimage
+  displayName: Create AppImage
   dependsOn: BuildGTKRelease
   jobs:
   - job: linux_cli_release_x86_64_dmd_stable
