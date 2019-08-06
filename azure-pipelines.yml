@@ -1,7 +1,6 @@
 
 
-s
-tages:
+stages:
 
 # - stage: Unittest
 #   jobs:
