@@ -10,7 +10,7 @@ trigger:
 - master
 
 stages:
-- stage: Install prerequisites
+- stage: install_prerequisites
   jobs:
   - job: Linux
     pool:
@@ -21,7 +21,7 @@ stages:
     - bash: sudo apt -y install desktop-file-utils
     - bash: sudo apt -y install p7zip-full
     - bash: sudo apt -y install build-essential
-- stage: Install D
+- stage: install_d
   jobs:
   - job: Windows
     pool:
