@@ -1,4 +1,4 @@
-sudo: required
+
 
 
 # addons:
@@ -60,39 +60,29 @@ jobs:
       language: d
       script: dub build -c CLI
 
-    - stage: Build
+    - 
       name: CLI Release
       os: linux
       language: d
       script: dub build -c CLI -b release
 
-    - stage: Build
+    - 
       name: GTK Debug
       os: linux
       language: d
-      apt:
-        update: true
-        packages:
-          - libgcc1
-          - libgtk-3-dev
-          - desktop-file-utils
-          - p7zip-full
-          - build-essential
+      sudo: required
+      install: sudo apt install -y libgtk-3-dev
       script: dub build -c GTK
 
-    - stage: Build
+    - 
       name: GTK Release
       os: linux
       language: d
-      apt:
-        update: true
-        packages:
-          - libgcc1
-          - libgtk-3-dev
-          - desktop-file-utils
-          - p7zip-full
-          - build-essential
+      sudo: required
+      install: sudo apt install -y libgtk-3-dev
       script: dub build -c GTK -b release
+
+    # - stage: Test Binary
 
           # - stage: Deploy
           #   script: ./deploy
