@@ -87,17 +87,20 @@ jobs:
     - d: dmd
       name: GTK Debug
       language: d
-      install: sudo apt install -y libgtk-3-dev
+      install: 
+        - sudo apt update
+        - sudo apt install -y libgtk-3-dev
       script:
         - dub build -c GTK -b debug
 
     - d: dmd
       name: GTK Release
       language: d
-      install: sudo apt install -y libgtk-3-dev
+      install: 
+        - sudo apt update
+        - sudo apt install -y libgtk-3-dev
       script:
         - dub build -c GTK -b release
-
 
     - d: dmd
       name: CLI Debug
@@ -116,7 +119,7 @@ jobs:
     - d: dmd
       name: GTK Debug
       language: d
-      install: homebrew install gtk+3
+      install: brew install gtk+3
       os: osx
       script:
         - dub build -c GTK -b debug
@@ -124,7 +127,7 @@ jobs:
     - d: dmd
       name: GTK Release
       language: d
-      install: homebrew install gtk+3
+      install: brew install gtk+3
       os: osx
       script:
         - dub build -c GTK -b release
