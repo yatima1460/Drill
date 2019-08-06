@@ -64,36 +64,37 @@ os:
 - windows
 - osx
 
+script: dub build -c CLI
 
-jobs:
-  include:
-    - stage: Test
-      name: CLI Test
-      script: dub build -c CLI -b unittest
+# jobs:
+#   include:
+#     - stage: Test
+#       name: CLI Test
+#       script: dub build -c CLI -b unittest
 
-    - 
-      name: GTK Test
-      script: dub build -c GTK -b unittest
+#     - 
+#       name: GTK Test
+#       script: dub build -c GTK -b unittest
 
-    - stage: Build
-      name: CLI Debug
-      script: dub build -c CLI
+#     - stage: Build
+#       name: CLI Debug
+#       script: dub build -c CLI
 
-    - 
-      name: CLI Release
-      script: dub build -c CLI -b release
+#     - 
+#       name: CLI Release
+#       script: dub build -c CLI -b release
 
-    - 
-      name: GTK Debug
-      sudo: required
-      install: sudo apt install -y libgtk-3-dev
-      script: dub build -c GTK
+#     - 
+#       name: GTK Debug
+#       sudo: required
+#       install: sudo apt install -y libgtk-3-dev
+#       script: dub build -c GTK
 
-    - 
-      name: GTK Release
-      sudo: required
-      install: sudo apt install -y libgtk-3-dev
-      script: dub build -c GTK -b release
+#     - 
+#       name: GTK Release
+#       sudo: required
+#       install: sudo apt install -y libgtk-3-dev
+#       script: dub build -c GTK -b release
 
     # - stage: Test Binary
 
