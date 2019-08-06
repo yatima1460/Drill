@@ -83,6 +83,7 @@
                 "Core/ListData.d",
                 "Core/Meta.d",
                 "Core/Utils.d",
+                "Core/AppImage.d",
                 "GTK/GTKBinds.d",
                 "GTK/ListStore.d",
                 "GTK/TreeView.d"

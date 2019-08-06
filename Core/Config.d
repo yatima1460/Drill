@@ -96,6 +96,7 @@ string[string] loadMime()
                         //   .map!(a => a.length) // Count words per line
                         //   .sum();              // Total word count
 
+
     string[string] icons;
 
 
@@ -112,6 +113,41 @@ string[string] loadMime()
             icons[to!string(splitted[i])] = to!string(splitted[0]);
         }
     }
+
+    import std.experimental.logger;
+
+    import std.algorithm : filter;
+
+    import std.array : array, split;
+    import std.file : dirEntries, SpanMode, DirEntry, readText, FileException;
+
+    auto assoc = dirEntries(buildPath(dirName(thisExePath),"Assets/IconsFallback"),"*.txt", SpanMode.shallow, false); 
+
+    foreach (fileFallback; assoc)
+    {
+        //writeln("fileFallback ",fileFallback," => ",assoc," assoc.");
+        auto fileAssoc = File(fileFallback); 
+        auto iconsFileAssoc = fileAssoc.byLine();
+        foreach (extName; iconsFileAssoc)
+        {
+            string extWithoutDot = to!string(extName.replace(".",""));
+            if (icons.get(extWithoutDot,null) == null)
+            {
+                import std.path : baseName;
+                import std.path : stripExtension;
+                icons[extWithoutDot] = baseName(stripExtension(fileFallback.name));
+            }
+        }
+
+
+    }
+
+    foreach(key,value;icons)
+    {
+        info("Extension '",key,"' => '",value,"' icon.");
+    }
+
+
     return icons;
 }
 /*
