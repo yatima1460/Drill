@@ -55,42 +55,38 @@ sudo: required
 jobs:
   include:
     - stage: Build
-      - name: CLI Debug
-        os: linux
-        language: d
-        script: dub build -c CLI
+  
+      os: linux
+      language: d
+      script: dub build -c CLI
 
-      - name: CLI Release
-        os: linux
-        language: d
-        script: dub build -c CLI -b release
+      os: linux
+      language: d
+      script: dub build -c CLI -b release
 
-      - name: GTK Debug
-        os: linux
-        language: d
-        apt:
-          update: true
-          packages:
-            - libgcc1
-            - libgtk-3-dev
-            - desktop-file-utils
-            - p7zip-full
-            - build-essential
-        script: dub build -c GTK
-        
-
-      - name: GTK Release
-        os: linux
-        language: d
-        apt:
-          update: true
-          packages:
-            - libgcc1
-            - libgtk-3-dev
-            - desktop-file-utils
-            - p7zip-full
-            - build-essential
-        script: dub build -c GTK -b release
+      os: linux
+      language: d
+      apt:
+        update: true
+        packages:
+          - libgcc1
+          - libgtk-3-dev
+          - desktop-file-utils
+          - p7zip-full
+          - build-essential
+      script: dub build -c GTK
+      
+      os: linux
+      language: d
+      apt:
+        update: true
+        packages:
+          - libgcc1
+          - libgtk-3-dev
+          - desktop-file-utils
+          - p7zip-full
+          - build-essential
+      script: dub build -c GTK -b release
 
           # - stage: Deploy
           #   script: ./deploy
