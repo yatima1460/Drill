@@ -25,8 +25,8 @@ stages:
       name: Hosted
     steps:
     - powershell: |
-        wget http://downloads.dlang.org/releases/2.x/$(dmd_version)/dmd.$(dmd_version).windows.7z
-        7z x dmd.$(dmd_version).windows.7z
+        Invoke-WebRequest -Uri http://downloads.dlang.org/releases/2.x/$(dmd_version)/dmd.$(dmd_version).windows.7z -OutFile dmd2.7z 
+        7z x dmd2.7z
         dmd2/windows/bin/dmd.exe --version
         dmd2/windows/bin/dub.exe --version
       displayName: 'Install DMD'
