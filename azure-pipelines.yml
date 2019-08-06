@@ -10,24 +10,28 @@ trigger:
 - master
 
 
+
 stages:
+
+# - stage: Unittest
+#   jobs:
+#   - job: linux_cli_unittest_x86_64_dmd_stable
+#     displayName: Linux CLI Unittest x86_64 DMD stable
+#     pool:
+#       name: Hosted Ubuntu 1604
+#     steps:
+#     - bash: |
+#         wget http://downloads.dlang.org/releases/2.x/$(dmd_version)/dmd_$(dmd_version)-0_amd64.deb
+#         sudo dpkg -i dmd_$(dmd_version)-0_amd64.deb
+#         dmd --version
+#         dub --version
+#       displayName: 'Install DMD'
+#     - bash: 'dub build -c CLI -b unittest --arch=x86_64'
+#       displayName: 'Build CLI Unittest x86_64'
+
 - stage: Build
   jobs:
   
-  - job: linux_cli_unittest_x86_64_dmd_stable
-    displayName: Linux CLI Unittest x86_64 DMD stable
-    pool:
-      name: Hosted Ubuntu 1604
-    steps:
-    - bash: |
-        wget http://downloads.dlang.org/releases/2.x/$(dmd_version)/dmd_$(dmd_version)-0_amd64.deb
-        sudo dpkg -i dmd_$(dmd_version)-0_amd64.deb
-        dmd --version
-        dub --version
-      displayName: 'Install DMD'
-    - bash: 'dub build -c CLI -b unittest --arch=x86_64'
-      displayName: 'Build CLI Unittest x86_64'
-
   - job: linux_cli_debug_x86_64_dmd_stable
     displayName: Linux CLI Debug x86_64 DMD stable
     pool:
@@ -82,15 +86,15 @@ stages:
         Folder: 'Drill-CLI-linux-x86_64-release'
         Archive: 'Drill-CLI-linux-x86_64-release.zip'
         ArchiveFormat: 'zip'
-    # - task: GitHubRelease@0
-    #   inputs:
-    #     gitHubConnection: 
-    #     repositoryName: '$(Build.Repository.Name)'
-    #     action: 'create'
-    #     target: '$(Build.SourceVersion)'
-    #     tagSource: 'auto'
-    #     assets: 'Drill-CLI-linux-x86_64-release.zip'
-    #     isPreRelease: true
+    - task: GitHubRelease@0
+      inputs:
+        gitHubConnection: $(GITHUB_TOKEN)
+        repositoryName: '$(Build.Repository.Name)'
+        action: 'create'
+        target: '$(Build.SourceVersion)'
+        tagSource: 'auto'
+        assets: 'Drill-CLI-linux-x86_64-release.zip'
+        isPreRelease: true
         
     # - task: ZipDirectory@1
     #   inputs:
