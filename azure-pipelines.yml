@@ -2,40 +2,7 @@
 
 stages:
 
-- stage: UnittestCLI
-  displayName: Unittest CLI
-  dependsOn: []
-  jobs:
-  - job:
-    pool:
-      name: Hosted Ubuntu 1604
-    steps:
-    - bash: |
-        wget http://downloads.dlang.org/releases/2.x/$(dmd_version)/dmd_$(dmd_version)-0_amd64.deb
-        sudo dpkg -i dmd_$(dmd_version)-0_amd64.deb
-        dmd --version
-        dub --version
-      displayName: 'Install DMD'
-    - bash: 'dub build -c CLI -b unittest --arch=x86_64'
-      displayName: 'Unittest ZipCLIRelease'
 
-
-- stage: UnittestGTK
-  displayName: Unittest GTK
-  dependsOn: []
-  jobs:
-  - job:
-    pool:
-      name: Hosted Ubuntu 1604
-    steps:
-    - bash: |
-        wget http://downloads.dlang.org/releases/2.x/$(dmd_version)/dmd_$(dmd_version)-0_amd64.deb
-        sudo dpkg -i dmd_$(dmd_version)-0_amd64.deb
-        dmd --version
-        dub --version
-      displayName: 'Install DMD'
-    - bash: 'dub build -c GTK -b unittest --arch=x86_64'
-      displayName: 'Unittest GTK'
 
 
 - stage: BuildCLIDebug
@@ -264,7 +231,40 @@ stages:
 
 
 
+- stage: UnittestCLI
+  displayName: Unittest CLI
+  dependsOn: []
+  jobs:
+  - job:
+    pool:
+      name: Hosted Ubuntu 1604
+    steps:
+    - bash: |
+        wget http://downloads.dlang.org/releases/2.x/$(dmd_version)/dmd_$(dmd_version)-0_amd64.deb
+        sudo dpkg -i dmd_$(dmd_version)-0_amd64.deb
+        dmd --version
+        dub --version
+      displayName: 'Install DMD'
+    - bash: 'dub build -c CLI -b unittest --arch=x86_64'
+      displayName: 'Unittest ZipCLIRelease'
 
+
+- stage: UnittestGTK
+  displayName: Unittest GTK
+  dependsOn: []
+  jobs:
+  - job:
+    pool:
+      name: Hosted Ubuntu 1604
+    steps:
+    - bash: |
+        wget http://downloads.dlang.org/releases/2.x/$(dmd_version)/dmd_$(dmd_version)-0_amd64.deb
+        sudo dpkg -i dmd_$(dmd_version)-0_amd64.deb
+        dmd --version
+        dub --version
+      displayName: 'Install DMD'
+    - bash: 'dub build -c GTK -b unittest --arch=x86_64'
+      displayName: 'Unittest GTK'
 
 
 
