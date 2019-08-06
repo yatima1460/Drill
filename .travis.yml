@@ -21,27 +21,49 @@ sudo: required
 #       - p7zip
 #       - gtk+3
 
+# language: D
 
-
-matrix:
-  include:
-    - name: "Linux CLI"
-      language: D
-      d:
-        - dmd
-      dist: xenial
-      apt:
-        update: true
-        packages:
-          - libgcc1
-          - p7zip-full
-          - build-essential
+# matrix:
+#   include:
+#     - d:
+#       - dmd
+#       - gdc
+#       - ldc
+#     - name: "Linux CLI"
+#       dist: xenial
+#       apt:
+#         update: true
+#         packages:
+#           - libgcc1
+#           - p7zip-full
+#           - build-essential
           
-    - name: "Linux GTK"
-      language: D
-      d:
-        - dmd
-      dist: xenial
+#     - name: "Linux GTK"
+#       language: D
+#       d:
+#         - dmd
+#       dist: xenial
+#       apt:
+#         update: true
+#         packages:
+#           - libgcc1
+#           - libgtk-3-dev
+#           - desktop-file-utils
+#           - p7zip-full
+#           - build-essential
+
+jobs:
+  include:
+    - stage: Build CLI Debug
+      os: linux
+      script: dub build -c CLI
+
+    - stage: Build CLI Release
+      os: linux
+      script: dub build -c CLI -b release
+
+    - stage: Build GTK Debug
+      os: linux
       apt:
         update: true
         packages:
@@ -50,19 +72,19 @@ matrix:
           - desktop-file-utils
           - p7zip-full
           - build-essential
-
-jobs:
-  include:
-    - stage: Build CLI Debug
-      script: dub build -c CLI
-
-    - stage: Build CLI Release
-      script: dub build -c CLI -b release
-
-    - stage: Build GTK Debug
       script: dub build -c GTK
+      
 
     - stage: Build GTK Release
+      os: linux
+      apt:
+        update: true
+        packages:
+          - libgcc1
+          - libgtk-3-dev
+          - desktop-file-utils
+          - p7zip-full
+          - build-essential
       script: dub build -c GTK -b release
 
           # - stage: Deploy
