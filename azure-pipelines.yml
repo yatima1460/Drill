@@ -69,6 +69,8 @@ stages:
         artifact: 'Drill-CLI-linux-x86_64-release'
 
 - stage: Package
+  displayName: Package .zip
+  dependsOn: Build
   jobs:
   - job: linux_cli_release_x86_64_dmd_stable_zip
     displayName: Linux CLI Release x86_64 DMD stable Zip
@@ -80,13 +82,53 @@ stages:
         buildType: 'current'
         itemPattern: 'Drill-CLI-linux-x86_64-release'
         targetPath: '$(Pipeline.Workspace)'
-    - bash: 7z a -tzip Drill-CLI-linux-x86_64-release.zip Drill-CLI-linux-x86_64-release/*
+    - bash: 7z a -tzip Drill-CLI-linux-x86_64-release.zip $(Pipeline.Workspace)/Drill-CLI-linux-x86_64-release/*
     - task: PublishPipelineArtifact@1
       inputs:
         targetPath: 'Drill-CLI-linux-x86_64-release.zip'
         artifact: 'Drill-CLI-linux-x86_64-release.zip'
 
+
+- stage: CreateAppimage
+  displayName: Create Appimage
+  dependsOn: Build
+  jobs:
+  - job: linux_cli_release_x86_64_dmd_stable
+    displayName: Linux CLI Release x86_64 DMD stable
+    pool:
+      name: Hosted Ubuntu 1604
+    steps:
+    - task: DownloadPipelineArtifact@2
+      inputs:
+        buildType: 'current'
+        itemPattern: 'Drill-CLI-linux-x86_64-release'
+        targetPath: '$(Pipeline.Workspace)'
+
+- stage: CreateDeb
+  displayName: Create ,deb
+  dependsOn: Build
+  jobs:
+  - job: linux_cli_release_x86_64_dmd_stable
+    displayName: Linux CLI Release x86_64 DMD stable
+    pool:
+      name: Hosted Ubuntu 1604
+    steps:
+    - task: DownloadPipelineArtifact@2
+      inputs:
+        buildType: 'current'
+        itemPattern: 'Drill-CLI-linux-x86_64-release'
+        targetPath: '$(Pipeline.Workspace)'
+
+    # - bash: 7z a -tzip Drill-CLI-linux-x86_64-release.zip $(Pipeline.Workspace)/Drill-CLI-linux-x86_64-release/*
+    # - task: PublishPipelineArtifact@1
+    #   inputs:
+    #     targetPath: 'Drill-CLI-linux-x86_64-release.zip'
+    #     artifact: 'Drill-CLI-linux-x86_64-release.zip'
+
 - stage: Publish
+  dependsOn: 
+    - Package
+    - CreateAppimage
   jobs:
   - job: linux_cli_release_x86_64_dmd_stable_zip_publish
     displayName: Linux CLI Release x86_64 DMD Zip Publish
@@ -105,7 +147,7 @@ stages:
         action: 'create'
         target: '$(Build.SourceVersion)'
         tagSource: 'auto'
-        assets: 'Drill-CLI-linux-x86_64-release.zip'
+        assets: '$(Pipeline.Workspace)/Drill-CLI-linux-x86_64-release.zip'
         isPreRelease: true
         
     # - task: ZipDirectory@1
