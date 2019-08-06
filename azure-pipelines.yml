@@ -3,7 +3,54 @@
 stages:
 
 
+- stage: UnittestCLI
+  displayName: Unittest CLI
+  dependsOn: []
+  jobs:
+  - job: Linux
+    pool:
+      name: Hosted Ubuntu 1604
+    steps:
+    - bash: |
+        wget http://downloads.dlang.org/releases/2.x/$(dmd_version)/dmd_$(dmd_version)-0_amd64.deb
+        sudo dpkg -i dmd_$(dmd_version)-0_amd64.deb
+        dmd --version
+        dub --version
+      displayName: 'Install DMD'
+    - bash: 'dub build -c CLI -b unittest --arch=x86_64'
+      displayName: 'Unittest ZipCLIRelease'
 
+  - job: Windows
+    pool:
+      name: Hosted
+    steps:
+    - bash: |
+        wget http://downloads.dlang.org/releases/2.x/$(dmd_version)/dmd.$(dmd_version).windows.7z"
+        sudo 7z x dmd.$(dmd_version).windows.7z
+        dmd2/windows/bin/dmd.exe --version
+        dmd2/windows/bin/dub.exe --version
+      displayName: 'Install DMD'
+    - bash: 'dmd2/windows/bin/dub.exe build -c CLI -b unittest --arch=x86_64'
+      displayName: 'Unittest ZipCLIRelease'
+
+
+- stage: UnittestGTK
+  displayName: Unittest GTK
+  dependsOn: []
+  jobs:
+  - job:
+    pool:
+      name: Hosted Ubuntu 1604
+    steps:
+    - bash: |
+        wget http://downloads.dlang.org/releases/2.x/$(dmd_version)/dmd_$(dmd_version)-0_amd64.deb
+        sudo dpkg -i dmd_$(dmd_version)-0_amd64.deb
+        dmd --version
+        dub --version
+      displayName: 'Install DMD'
+    - bash: 'sudo apt install -y libgtk-3-dev'
+    - bash: 'dub build -c GTK -b unittest --arch=x86_64'
+      displayName: 'Unittest GTK'
 
 # - stage: BuildCLIDebug
 #   displayName: Build CLI Debug
@@ -76,8 +123,7 @@ stages:
   displayName: Release CLI .zip
   dependsOn: BuildCLIRelease
   jobs:
-  - job: linux_cli_release_x86_64_dmd_stable_zip
-    displayName: Linux CLI Release x86_64 DMD stable Zip
+  - job: Linux
     pool:
       name: Hosted Ubuntu 1604
     steps:
@@ -231,41 +277,7 @@ stages:
 
 
 
-- stage: UnittestCLI
-  displayName: Unittest CLI
-  dependsOn: []
-  jobs:
-  - job:
-    pool:
-      name: Hosted Ubuntu 1604
-    steps:
-    - bash: |
-        wget http://downloads.dlang.org/releases/2.x/$(dmd_version)/dmd_$(dmd_version)-0_amd64.deb
-        sudo dpkg -i dmd_$(dmd_version)-0_amd64.deb
-        dmd --version
-        dub --version
-      displayName: 'Install DMD'
-    - bash: 'dub build -c CLI -b unittest --arch=x86_64'
-      displayName: 'Unittest ZipCLIRelease'
 
-
-- stage: UnittestGTK
-  displayName: Unittest GTK
-  dependsOn: []
-  jobs:
-  - job:
-    pool:
-      name: Hosted Ubuntu 1604
-    steps:
-    - bash: |
-        wget http://downloads.dlang.org/releases/2.x/$(dmd_version)/dmd_$(dmd_version)-0_amd64.deb
-        sudo dpkg -i dmd_$(dmd_version)-0_amd64.deb
-        dmd --version
-        dub --version
-      displayName: 'Install DMD'
-    - bash: 'sudo apt install -y libgtk-3-dev'
-    - bash: 'dub build -c GTK -b unittest --arch=x86_64'
-      displayName: 'Unittest GTK'
 
 
 
