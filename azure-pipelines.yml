@@ -63,6 +63,11 @@ stages:
     - script: '%cd%/dmd2/windows/bin/dmd.exe --version'
     - script: '%cd%/dmd2/windows/bin/dub.exe --version'
     - script: '%cd%/dmd2/windows/bin/dub.exe build -c CLI -b release --arch=x86_64'
+    - task: PublishPipelineArtifact@1
+      inputs:
+        targetPath: 'Build/Drill-CLI-windows-x86_64-release'
+        artifact: 'Drill-CLI-windows-x86_64-release' 
+
 
   - job: Linux_GTK_Unittest
     dependsOn: []
@@ -169,9 +174,11 @@ stages:
   - job: Publish_Beta
     condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/master'))
     dependsOn: 
-      - Linux_CLI_Release_Test
+      - Windows_CLI_Unittest
+      - Linux_CLI_Unittest
       - Linux_CLI_Release_Zip
       - Windows_CLI_Release_Zip
+      - Linux_CLI_Release_Test
     pool:
       name: Hosted Ubuntu 1604
     steps:
