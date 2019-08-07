@@ -69,75 +69,99 @@
 #   - d: 2.0.0
 #     gemfile: Gemfile
 
+env:
+  - DMD_VERSION=2.087.1
+
 jobs:
   fast_finish: true
   include:
-    - d: dmd
+
+    - os: linux
       name: CLI Unittest
-      language: d
+      language: bash
+      install:
+        - curl https://dlang.org/install.sh | bash -s
+        - source ~/dlang/dmd-$DMD_VERSION/activate
       script:
         - dub build -c CLI -b unittest
 
-    - d: dmd
+    - os: linux
       name: CLI Release
-      language: d
+      language: bash
+      install:
+        - curl https://dlang.org/install.sh | bash -s
+        - source ~/dlang/dmd-$DMD_VERSION/activate
       script:
         - dub build -c CLI -b release
 
-    - d: dmd
+    - os: linux
       name: GTK Unittest
-      language: d
+      language: bash
       install: 
         - sudo apt update
         - sudo apt install -y libgtk-3-dev
+        - curl https://dlang.org/install.sh | bash -s
+        - source ~/dlang/dmd-$DMD_VERSION/activate
       script:
         - dub build -c GTK -b unittest
 
-    - d: dmd
+    - os: linux
       name: GTK Release
-      language: d
+      language: bash
       install: 
         - sudo apt update
         - sudo apt install -y libgtk-3-dev
+        - curl https://dlang.org/install.sh | bash -s
+        - source ~/dlang/dmd-$DMD_VERSION/activate
       script:
         - dub build -c GTK -b release
 
-    - d: dmd
+    - os: osx
       name: CLI Unittest
-      language: d
-      os: osx
+      language: bash
+      install:
+        - curl https://dlang.org/install.sh | bash -s
+        - source ~/dlang/dmd-$DMD_VERSION/activate
       script:
         - dub build -c CLI -b unittest
 
-    - d: dmd
+    - os: osx
       name: CLI Release
-      language: d
-      os: osx
+      language: bash
+      install:
+        - curl https://dlang.org/install.sh | bash -s
+        - source ~/dlang/dmd-$DMD_VERSION/activate
       script:
         - dub build -c CLI -b release
 
-    - d: dmd
+    - os: osx
       name: GTK Unittest
       language: bash
-      install: brew install gtk+3
-      os: osx
-      script:
+      install: 
+        - brew install gtk+3
         - curl https://dlang.org/install.sh | bash -s
+        - source ~/dlang/dmd-$DMD_VERSION/activate
+      script:
         - dub build -c GTK -b unittest
 
-    - d: dmd
+    - os: osx
       name: GTK Release
       language: bash
-      install: brew install gtk+3
-      os: osx
-      script:
+      install: 
+        - brew install gtk+3
         - curl https://dlang.org/install.sh | bash -s
+        - source ~/dlang/dmd-$DMD_VERSION/activate
+      script:
         - dub build -c GTK -b release
     
     - os: windows
+      language: shell
       name: CLI Unittest
+      powershell:
+        - Invoke-WebRequest -Uri http://downloads.dlang.org/releases/2.x/$(DMD_VERSION)/dmd.$(DMD_VERSION).windows.zip -OutFile dmd2.zip
+        - Expand-Archive dmd2.zip -DestinationPath .
       script:
-        - dub build -c CLI -b unittest
+        - dmd2/windows/bin/dub.exe build -c CLI -b unittest
 
 
 
