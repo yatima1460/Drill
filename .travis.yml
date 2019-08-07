@@ -76,47 +76,47 @@ jobs:
   fast_finish: true
   include:
 
-    - stage: Unittest
-      os: linux
-      name: CLI Unittest
-      language: bash
-      install:
-        - curl https://dlang.org/install.sh | bash -s
-        - source ~/dlang/dmd-$DMD_VERSION/activate
-      script:
-        - dub build -c CLI -b unittest
+    # - stage: Unittest
+    #   os: linux
+    #   name: CLI Unittest
+    #   language: bash
+    #   install:
+    #     - curl https://dlang.org/install.sh | bash -s
+    #     - source ~/dlang/dmd-$DMD_VERSION/activate
+    #   script:
+    #     - dub build -c CLI -b unittest
 
-    - 
-      os: windows
-      language: bash
-      name: CLI Unittest
-      install:
-        - wget http://downloads.dlang.org/releases/2.x/$DMD_VERSION/dmd.$DMD_VERSION.windows.zip
-        - powershell Expand-Archive dmd.$DMD_VERSION.windows.zip -DestinationPath .
-      script:
-        - dmd2/windows/bin/dub.exe build -c CLI -b unittest
+    # - 
+    #   os: windows
+    #   language: bash
+    #   name: CLI Unittest
+    #   install:
+    #     - wget http://downloads.dlang.org/releases/2.x/$DMD_VERSION/dmd.$DMD_VERSION.windows.zip
+    #     - powershell Expand-Archive dmd.$DMD_VERSION.windows.zip -DestinationPath .
+    #   script:
+    #     - dmd2/windows/bin/dub.exe build -c CLI -b unittest
 
-    - 
-      # os: osx
-      # name: CLI Unittest
-      # language: bash
-      # install:
-      #   - curl https://dlang.org/install.sh | bash -s
-      #   - source ~/dlang/dmd-$DMD_VERSION/activate
-      # script:
-      #   - dub build -c CLI -b unittest
+    # - 
+    #   # os: osx
+    #   # name: CLI Unittest
+    #   # language: bash
+    #   # install:
+    #   #   - curl https://dlang.org/install.sh | bash -s
+    #   #   - source ~/dlang/dmd-$DMD_VERSION/activate
+    #   # script:
+    #   #   - dub build -c CLI -b unittest
 
-    - 
-      os: linux
-      name: GTK Unittest
-      language: bash
-      install: 
-        - sudo apt update
-        - sudo apt install -y libgtk-3-dev
-        - curl https://dlang.org/install.sh | bash -s
-        - source ~/dlang/dmd-$DMD_VERSION/activate
-      script:
-        - dub build -c GTK -b unittest
+    # - 
+    #   os: linux
+    #   name: GTK Unittest
+    #   language: bash
+    #   install: 
+    #     - sudo apt update
+    #     - sudo apt install -y libgtk-3-dev
+    #     - curl https://dlang.org/install.sh | bash -s
+    #     - source ~/dlang/dmd-$DMD_VERSION/activate
+    #   script:
+    #     - dub build -c GTK -b unittest
 
     # - 
     #   os: osx
@@ -144,7 +144,7 @@ jobs:
         secret_access_key: $AWS_SECRET_KEY
         bucket: "drill-search"
         skip_cleanup: true
-        upload-dir: Drill-CLI-linux-x86_64-release
+        upload-dir: Build/Drill-CLI-linux-x86_64-release
 
     # - 
     #   os: osx
@@ -167,7 +167,13 @@ jobs:
         - source ~/dlang/dmd-$DMD_VERSION/activate
       script:
         - dub build -c GTK -b release
-
+      deploy:
+        provider: s3
+        access_key_id: $AWS_ACCESS_KEY
+        secret_access_key: $AWS_SECRET_KEY
+        bucket: "drill-search"
+        skip_cleanup: true
+        upload-dir: Build/Drill-GTK-linux-x86_64-release
     # - 
     #   os: osx
     #   name: GTK Release
@@ -252,47 +258,46 @@ jobs:
   # - if [ "$TRAVIS_OS_NAME" = "linux" ]; then sudo snap install dmd --classic; fi
   # - if [ "$TRAVIS_OS_NAME" = "linux" ]; then sudo snap install dub --classic; fi
 
-before_deploy:
- - git config --local user.name "Federico Santamorena"
- - git config --local user.email "federico@santamorena.me"
- - export DRILL_VERSION=$(python -c "import sys, json; f = open('dub.json'); print(json.load(f)['version']); f.close()") 
- - ls -lh Output
+# before_deploy:
+#  - git config --local user.name "Federico Santamorena"
+#  - git config --local user.email "federico@santamorena.me"
+#  - export DRILL_VERSION=$(python -c "import sys, json; f = open('dub.json'); print(json.load(f)['version']); f.close()") 
 
-deploy:
-  # - provider: releases
-  #   skip_cleanup: true
-  #   draft: false
-  #   prerelease: true
-  #   name: Continuous Integration
-  #   tag_name: ContinuousIntegration
-  #   overwrite: true
-  #   body: "Build #$TRAVIS_BUILD_NUMBER $TRAVIS_BUILD_WEB_URL"
-  #   file_glob: true
-  #   api_key:
-  #     secure: $GITHUB_TOKEN
-  #   file: 
-  #     - Output/*.*
-  #   on:
-  #     repo: yatima1460/Drill
+# deploy:
+#   # - provider: releases
+#   #   skip_cleanup: true
+#   #   draft: false
+#   #   prerelease: true
+#   #   name: Continuous Integration
+#   #   tag_name: ContinuousIntegration
+#   #   overwrite: true
+#   #   body: "Build #$TRAVIS_BUILD_NUMBER $TRAVIS_BUILD_WEB_URL"
+#   #   file_glob: true
+#   #   api_key:
+#   #     secure: $GITHUB_TOKEN
+#   #   file: 
+#   #     - Output/*.*
+#   #   on:
+#   #     repo: yatima1460/Drill
 
-  - provider: releases
-    skip_cleanup: true
-    draft: false
-    prerelease: false
-    name: $DRILL_VERSION
-    body: $DRILL_VERSION
-    tag_name: $DRILL_VERSION
-    file_glob: true
-    api_key:
-      secure: $GITHUB_TOKEN
-    file: 
-      - Output/*.*
-    on:
-      repo: yatima1460/Drill
-      tags: true
-      condition: $TRAVIS_TAG =~ ^[0-9]+\.[0-9]+\.[0-9]+$
+#   - provider: releases
+#     skip_cleanup: true
+#     draft: false
+#     prerelease: false
+#     name: $DRILL_VERSION
+#     body: $DRILL_VERSION
+#     tag_name: $DRILL_VERSION
+#     file_glob: true
+#     api_key:
+#       secure: $GITHUB_TOKEN
+#     file: 
+#       - Output/*.*
+#     on:
+#       repo: yatima1460/Drill
+#       tags: true
+#       condition: $TRAVIS_TAG =~ ^[0-9]+\.[0-9]+\.[0-9]+$
 
-notifications:
-  email:
-    on_success: never
-    on_failure: always
+# notifications:
+#   email:
+#     on_success: never
+#     on_failure: always
