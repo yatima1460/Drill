@@ -184,7 +184,6 @@ jobs:
     inputs:
       buildType: 'current'
       targetPath: '$(Build.BinariesDirectory)'
-      itemPattern: '.zip'
   - bash: 'ls -la'
   - bash: 'ls -la $(Build.BinariesDirectory)'
   - bash: 'ls -la $(Build.BinariesDirectory)/'
