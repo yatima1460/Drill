@@ -79,34 +79,23 @@ stages:
     - bash: 'dub build -c GTK -b unittest --arch=x86_64'
       displayName: 'Unittest GTK'
 
+  - job: Linux_CLI_Release_Test
+    dependsOn: [Linux_CLI_Release]
+    pool:
+      name: Hosted Ubuntu 1604
+    steps:
+    - checkout: none
+    - task: DownloadPipelineArtifact@2
+      inputs:
+        buildType: 'current'
+        targetPath: '.'
+    - bash: |
+        cd Drill-CLI-linux-x86_64-release
+        chmod +x drill-search-cli
+        ./drill-search-cli searchstring
 
-
-
-
-- stage: Test
-  displayName: Test
-  dependsOn: [Build]
-
-  jobs:
-    - job: Linux_CLI_Release_Test
-      dependsOn: []
-      pool:
-        name: Hosted Ubuntu 1604
-      steps:
-      - checkout: none
-      - task: DownloadPipelineArtifact@2
-        inputs:
-          buildType: 'current'
-          targetPath: '.'
-      - bash: |
-          cd Drill-CLI-linux-x86_64-release
-          chmod +x drill-search-cli
-          ./drill-search-cli searchstring
-
-- stage: Package
-  dependsOn: [Test]
-  jobs:
   - job: Linux_CLI_Release_Zip
+    dependsOn: [Linux_CLI_Release]
     pool:
       name: Hosted Ubuntu 1604
     steps:
@@ -121,42 +110,43 @@ stages:
         targetPath: 'Drill-CLI-linux-x86_64-release.zip'
         artifact: 'Drill-CLI-linux-x86_64-release.zip'
 
+  - job: Publish
+    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/master'))
+    dependsOn: 
+      - Linux_CLI_Release_Test
+      - Linux_CLI_Release_Zip
+    pool:
+      name: Hosted Ubuntu 1604
+    steps:
+    - checkout: none
+    - task: DownloadPipelineArtifact@2
+      inputs:
+        buildType: 'current'
+        targetPath: '$(Build.ArtifactStagingDirectory)'
+        itemPattern: '*.zip'
+    - task: GitHubRelease@0
+      inputs:
+        gitHubConnection: 'githubtoken'
+        repositoryName: '$(Build.Repository.Name)'
+        action: 'delete'
+        tag: 'ContinuousIntegration'
+    - task: GitHubRelease@0
+      inputs:
+        gitHubConnection: 'githubtoken'
+        repositoryName: '$(Build.Repository.Name)'
+        action: 'create'
+        target: '$(Build.SourceVersion)'
+        tagSource: 'manual'
+        tag: 'ContinuousIntegration'
+        title: 'ContinuousIntegration'
+        releaseNotesSource: 'input'
+        releaseNotes: 'Automated Build $(Build.BuildNumber)'
+        isPreRelease: true
+        assetUploadMode: replace
+        addChangeLog: false
+        assets: |
+          $(Build.ArtifactStagingDirectory)/*.zip
 
-- stage: Publish
-  displayName: Publish
-  dependsOn: [Package]
-
-  jobs:
-    - job: Publish
-      dependsOn: []
-      pool:
-        name: Hosted Ubuntu 1604
-      steps:
-      - checkout: none
-      - bash: 'ls $(Build.ArtifactStagingDirectory)'
-      - task: DownloadPipelineArtifact@2
-        inputs:
-          buildType: 'current'
-          targetPath: '$(Build.ArtifactStagingDirectory)'
-      - bash: 'ls $(Build.ArtifactStagingDirectory)'
-      - task: GitHubRelease@0
-        inputs:
-          gitHubConnection: 'githubtoken'
-          repositoryName: '$(Build.Repository.Name)'
-          action: 'delete'
-          tag: 'ContinuousIntegration'
-      - task: GitHubRelease@0
-        inputs:
-          gitHubConnection: 'githubtoken'
-          repositoryName: '$(Build.Repository.Name)'
-          action: 'create'
-          target: '$(Build.SourceVersion)'
-          tagSource: 'manual'
-          tag: 'ContinuousIntegration'
-          title: 'ContinuousIntegration'
-          releaseNotesSource: 'input'
-          releaseNotes: 'Automated Build'
-          isPreRelease: true
 
 
 # - stage: BuildCLIDebug
