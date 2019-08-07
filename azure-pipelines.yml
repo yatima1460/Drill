@@ -183,12 +183,12 @@ jobs:
   - task: DownloadPipelineArtifact@2
     inputs:
       buildType: 'current'
-      targetPath: '$(Build.StagingDirectory)'
+      targetPath: '$(Build.BinariesDirectory)'
       itemPattern: '*.zip'
   - bash: 'ls -la'
-  - bash: 'ls -la $(Build.StagingDirectory)'
-  - bash: 'ls -la $(Build.StagingDirectory)/'
-  - bash: 'ls -la $(Build.StagingDirectory)/ *.zip'
+  - bash: 'ls -la $(Build.BinariesDirectory)'
+  - bash: 'ls -la $(Build.BinariesDirectory)/'
+  - bash: 'ls -la $(Build.BinariesDirectory)/ *.zip'
   - task: GitHubRelease@0
     inputs:
       gitHubConnection: 'githubtoken'
@@ -210,7 +210,7 @@ jobs:
       assetUploadMode: replace
       addChangeLog: false
       assets: |
-        $(Build.StagingDirectory)/*.zip
+        $(Build.BinariesDirectory)/*.zip
 
 
 
