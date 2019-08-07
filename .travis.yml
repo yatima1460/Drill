@@ -73,10 +73,10 @@ jobs:
   fast_finish: true
   include:
     - d: dmd
-      name: CLI Debug
+      name: CLI Unittest
       language: d
       script:
-        - dub build -c CLI -b debug
+        - dub build -c CLI -b unittest
 
     - d: dmd
       name: CLI Release
@@ -85,13 +85,13 @@ jobs:
         - dub build -c CLI -b release
 
     - d: dmd
-      name: GTK Debug
+      name: GTK Unittest
       language: d
       install: 
         - sudo apt update
         - sudo apt install -y libgtk-3-dev
       script:
-        - dub build -c GTK -b debug
+        - dub build -c GTK -b unittest
 
     - d: dmd
       name: GTK Release
@@ -103,11 +103,11 @@ jobs:
         - dub build -c GTK -b release
 
     - d: dmd
-      name: CLI Debug
+      name: CLI Unittest
       language: d
       os: osx
       script:
-        - dub build -c CLI -b debug
+        - dub build -c CLI -b unittest
 
     - d: dmd
       name: CLI Release
@@ -117,25 +117,27 @@ jobs:
         - dub build -c CLI -b release
 
     - d: dmd
-      name: GTK Debug
-      language: d
+      name: GTK Unittest
+      language: bash
       install: brew install gtk+3
       os: osx
       script:
-        - dub build -c GTK -b debug
+        - curl https://dlang.org/install.sh | bash -s
+        - dub build -c GTK -b unittest
 
     - d: dmd
       name: GTK Release
-      language: d
+      language: bash
       install: brew install gtk+3
       os: osx
       script:
+        - curl https://dlang.org/install.sh | bash -s
         - dub build -c GTK -b release
     
     - os: windows
-      name: CLI Debug
+      name: CLI Unittest
       script:
-        - dub build -c CLI -b debug
+        - dub build -c CLI -b unittest
 
 
 
