@@ -52,6 +52,18 @@ stages:
     - script: '%cd%/dmd2/windows/bin/dub.exe --version'
     - script: '%cd%/dmd2/windows/bin/dub.exe build -c CLI -b unittest --arch=x86_64'
 
+  - job: Windows_CLI_Release
+    dependsOn: [Windows_CLI_Unittest]
+    pool:
+      name: Hosted VS2017
+    steps:
+    - powershell: |
+        Invoke-WebRequest -Uri http://downloads.dlang.org/releases/2.x/$(dmd_version)/dmd.$(dmd_version).windows.zip -OutFile dmd2.zip
+        Expand-Archive dmd2.zip -DestinationPath .
+    - script: '%cd%/dmd2/windows/bin/dmd.exe --version'
+    - script: '%cd%/dmd2/windows/bin/dub.exe --version'
+    - script: '%cd%/dmd2/windows/bin/dub.exe build -c CLI -b release --arch=x86_64'
+
   - job: Linux_GTK_Unittest
     dependsOn: []
     pool:
@@ -66,7 +78,6 @@ stages:
     - bash: 'sudo apt install -y libgtk-3-dev'
     - bash: 'dub build -c GTK -b unittest --arch=x86_64'
       displayName: 'Unittest GTK'
-
 
   - job: Linux_CLI_Release_Zip
     dependsOn: Linux_CLI_Release
@@ -84,6 +95,63 @@ stages:
         targetPath: 'Drill-CLI-linux-x86_64-release.zip'
         artifact: 'Drill-CLI-linux-x86_64-release.zip'
 
+
+
+- stage: Test
+  displayName: Test
+  dependsOn: [Build]
+
+  jobs:
+    - job: Linux_CLI_Release_Test
+      dependsOn: []
+      pool:
+        name: Hosted Ubuntu 1604
+      steps:
+      - checkout: none
+      - task: DownloadPipelineArtifact@2
+        inputs:
+          buildType: 'current'
+          targetPath: '.'
+      - bash: 'cd Drill-CLI-linux-x86_64-release'
+      - bash: 'chmod +x drill-search-cli'
+      - bash: './drill-search-cli searchstring'
+      
+
+- stage: Publish
+  displayName: Publish
+  dependsOn: [Test]
+
+  jobs:
+    - job: Publish
+      dependsOn: []
+      pool:
+        name: Hosted Ubuntu 1604
+      steps:
+      - checkout: none
+      - bash: 'ls $(Build.ArtifactStagingDirectory)'
+      - task: DownloadPipelineArtifact@2
+        inputs:
+          buildType: 'current'
+          targetPath: '$(Build.ArtifactStagingDirectory)'
+      - bash: 'ls $(Build.ArtifactStagingDirectory)'
+      - task: GitHubRelease@0
+        inputs:
+          gitHubConnection: 'githubtoken'
+          repositoryName: '$(Build.Repository.Name)'
+          action: 'delete'
+          tag: 'ContinuousIntegration'
+      - task: GitHubRelease@0
+        inputs:
+          gitHubConnection: 'githubtoken'
+          repositoryName: '$(Build.Repository.Name)'
+          action: 'create'
+          target: '$(Build.SourceVersion)'
+          tagSource: 'manual'
+          tag: 'ContinuousIntegration'
+          title: 'ContinuousIntegration'
+          releaseNotesSource: 'input'
+          releaseNotes: 'Automated Build'
+          isPreRelease: true
 
 
 # - stage: BuildCLIDebug
@@ -325,37 +393,6 @@ stages:
 
 
 
-#   jobs:
-#   - job:
-#     displayName: Publish
-#     pool:
-#       name: Hosted Ubuntu 1604
-#     steps:
-#     - checkout: none
-#     - bash: 'ls $(Build.ArtifactStagingDirectory)'
-#     - task: DownloadPipelineArtifact@2
-#       inputs:
-#         buildType: 'current'
-#         targetPath: '$(Build.ArtifactStagingDirectory)'
-#     - bash: 'ls $(Build.ArtifactStagingDirectory)'
-#     - task: GitHubRelease@0
-#       inputs:
-#         gitHubConnection: 'githubtoken'
-#         repositoryName: '$(Build.Repository.Name)'
-#         action: 'delete'
-#         tag: 'ContinuousIntegration'
-#     - task: GitHubRelease@0
-#       inputs:
-#         gitHubConnection: 'githubtoken'
-#         repositoryName: '$(Build.Repository.Name)'
-#         action: 'create'
-#         target: '$(Build.SourceVersion)'
-#         tagSource: 'manual'
-#         tag: 'ContinuousIntegration'
-#         title: 'ContinuousIntegration'
-#         releaseNotesSource: 'input'
-#         releaseNotes: 'Automated Build'
-#         isPreRelease: true
 
 
 
