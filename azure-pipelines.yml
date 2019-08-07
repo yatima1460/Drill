@@ -339,11 +339,10 @@ stages:
       name: Hosted Ubuntu 1604
     steps:
     - checkout: none
-    - bash: mkdir $(Pipeline.Workspace)/Output
     - task: DownloadPipelineArtifact@2
       inputs:
         buildType: 'current'
-        targetPath: '$(Pipeline.Workspace)/Output'
+        targetPath: '$(Pipeline.Workspace)'
 
     - task: GitHubRelease@0
       inputs:
@@ -356,7 +355,7 @@ stages:
         title: 'ContinuousIntegration'
         releaseNotesSource: 'input'
         releaseNotes: '$(Build.BuildNumber) $(Build.BuildUri)'
-        assets: '$(Pipeline.Workspace)/Output/*.*'
+        assets: '$(Pipeline.Workspace)/*.*'
         isPreRelease: true
 
 
