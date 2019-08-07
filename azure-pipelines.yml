@@ -339,12 +339,12 @@ stages:
       name: Hosted Ubuntu 1604
     steps:
     - checkout: none
-    - bash: 'ls $(Build.ArtifactStagingDirectory)'
+    - bash: 'ls $(System.DefaultWorkingDirectory)'
     - task: DownloadPipelineArtifact@2
       inputs:
         buildType: 'current'
-        targetPath: '$(Build.ArtifactStagingDirectory)'
-    - bash: 'ls $(Build.ArtifactStagingDirectory)'
+        targetPath: '$(System.DefaultWorkingDirectory)'
+    - bash: 'ls $(System.DefaultWorkingDirectory)'
     - task: GitHubRelease@0
       inputs:
         gitHubConnection: 'githubtoken'
@@ -356,7 +356,7 @@ stages:
         title: 'ContinuousIntegration'
         releaseNotesSource: 'input'
         releaseNotes: '$(Build.BuildNumber) $(Build.BuildUri)'
-        assets: '$(Build.ArtifactStagingDirectory)/*.*'
+        assets: '$(System.DefaultWorkingDirectory)/*.*'
         isPreRelease: true
 
 
