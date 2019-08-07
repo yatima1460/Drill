@@ -79,20 +79,7 @@ stages:
     - bash: 'dub build -c GTK -b unittest --arch=x86_64'
       displayName: 'Unittest GTK'
 
-  - job: Linux_CLI_Release_Test
-    dependsOn: [Linux_CLI_Release]
-    pool:
-      name: Hosted Ubuntu 1604
-    steps:
-    - checkout: none
-    - task: DownloadPipelineArtifact@2
-      inputs:
-        buildType: 'current'
-        targetPath: '.'
-    - bash: |
-        cd Drill-CLI-linux-x86_64-release
-        chmod +x drill-search-cli
-        ./drill-search-cli searchstring
+
 
   - job: Linux_CLI_Release_Zip
     dependsOn: [Linux_CLI_Release]
@@ -110,7 +97,23 @@ stages:
         targetPath: 'Drill-CLI-linux-x86_64-release.zip'
         artifact: 'Drill-CLI-linux-x86_64-release.zip'
 
-  - job: Publish
+
+  - job: Linux_CLI_Release_Test
+    dependsOn: [Linux_CLI_Release]
+    pool:
+      name: Hosted Ubuntu 1604
+    steps:
+    - checkout: none
+    - task: DownloadPipelineArtifact@2
+      inputs:
+        buildType: 'current'
+        targetPath: '.'
+    # Azure creates a directory for every artifact
+    # Use the long path so we test if relative CWD works too in Drill
+    - bash: chmod +x ./Drill-CLI-linux-x86_64-release/Drill-CLI-linux-x86_64-release/drill-search-cli
+    - bash: ./Drill-CLI-linux-x86_64-release/Drill-CLI-linux-x86_64-release/drill-search-cli .
+
+  - job: Publish_Beta
     condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/master'))
     dependsOn: 
       - Linux_CLI_Release_Test
@@ -138,7 +141,7 @@ stages:
         target: '$(Build.SourceVersion)'
         tagSource: 'manual'
         tag: 'ContinuousIntegration'
-        title: 'ContinuousIntegration'
+        title: 'Beta'
         releaseNotesSource: 'input'
         releaseNotes: 'Automated Build $(Build.BuildNumber)'
         isPreRelease: true
