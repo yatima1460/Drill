@@ -138,6 +138,13 @@ jobs:
         - source ~/dlang/dmd-$DMD_VERSION/activate
       script:
         - dub build -c CLI -b release
+      deploy:
+        provider: s3
+        access_key_id: $AWS_ACCESS_KEY
+        secret_access_key: $AWS_SECRET_KEY
+        bucket: "drill-search"
+        skip_cleanup: true
+        upload-dir: Drill-CLI-linux-x86_64-release
 
     # - 
     #   os: osx
