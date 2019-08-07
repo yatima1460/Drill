@@ -28,7 +28,7 @@ stages:
 
   - job: Windows
     pool:
-      name: VS2017
+      name: Hosted VS2017
     steps:
     - powershell: |
         Invoke-WebRequest -Uri http://downloads.dlang.org/releases/2.x/2.084.0/dmd.2.084.0.windows.zip -OutFile dmd2.zip
