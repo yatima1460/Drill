@@ -124,8 +124,9 @@ stages:
     - task: DownloadPipelineArtifact@2
       inputs:
         buildType: 'current'
-        targetPath: '$(Build.ArtifactStagingDirectory)'
+        targetPath: '.'
         itemPattern: '*.zip'
+    - bash: 'ls -la'
     - task: GitHubRelease@0
       inputs:
         gitHubConnection: 'githubtoken'
@@ -147,7 +148,7 @@ stages:
         assetUploadMode: replace
         addChangeLog: false
         assets: |
-          $(Build.ArtifactStagingDirectory)/*.zip
+          ./Drill-CLI-linux-x86_64-release.zip
 
 
 
