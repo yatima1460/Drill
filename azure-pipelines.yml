@@ -24,13 +24,14 @@ stages:
     pool:
       name: Hosted
     steps:
+    - script: choco install 7zip
     - powershell: |
         Invoke-WebRequest -Uri http://downloads.dlang.org/releases/2.x/$(dmd_version)/dmd.$(dmd_version).windows.7z -OutFile dmd2.7z 
         7z x dmd2.7z
         dmd2/windows/bin/dmd.exe --version
         dmd2/windows/bin/dub.exe --version
       displayName: 'Install DMD'
-    - bash: 'dmd2/windows/bin/dub.exe build -c CLI -b unittest --arch=x86_64'
+    - script: 'dmd2/windows/bin/dub.exe build -c CLI -b unittest --arch=x86_64'
       displayName: 'Unittest ZipCLIRelease'
 
 
