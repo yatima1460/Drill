@@ -79,6 +79,24 @@ stages:
     - bash: 'dub build -c GTK -b unittest --arch=x86_64'
       displayName: 'Unittest GTK'
 
+  - job: Linux_GTK_Release
+    dependsOn: []
+    pool:
+      name: Hosted Ubuntu 1604
+    steps:
+    - bash: |
+        wget http://downloads.dlang.org/releases/2.x/$(dmd_version)/dmd_$(dmd_version)-0_amd64.deb
+        sudo dpkg -i dmd_$(dmd_version)-0_amd64.deb
+        dmd --version
+        dub --version
+      displayName: 'Install DMD'
+    - bash: 'dub build -c GTK -b release --arch=x86_64'
+      displayName: "GTK Release"
+    - task: PublishPipelineArtifact@1
+      inputs:
+        targetPath: 'Build/Drill-GTK-linux-x86_64-release'
+        artifact: 'Drill-GTK-linux-x86_64-release' 
+
 
 
   - job: Linux_CLI_Release_Zip
@@ -97,6 +115,39 @@ stages:
         targetPath: 'Drill-CLI-linux-x86_64-release.zip'
         artifact: 'Drill-CLI-linux-x86_64-release.zip'
 
+  - job: Linux_GTK_Release_Zip
+    dependsOn: [Linux_GTK_Release]
+    pool:
+      name: Hosted Ubuntu 1604
+    steps:
+    - checkout: none
+    - task: DownloadPipelineArtifact@2
+      inputs:
+        buildType: 'current'
+        targetPath: '$(Pipeline.Workspace)'
+    - bash: 7z a -tzip Drill-GTK-linux-x86_64-release.zip $(Pipeline.Workspace)/Drill-GTK-linux-x86_64-release/*
+    - task: PublishPipelineArtifact@1
+      inputs:
+        targetPath: 'Drill-GTK-linux-x86_64-release.zip'
+        artifact: 'Drill-GTK-linux-x86_64-release.zip'
+
+
+
+  - job: Windows_CLI_Release_Zip
+    dependsOn: [Windows_CLI_Release]
+    pool:
+      name: Hosted VS2017
+    steps:
+    - checkout: none
+    - task: DownloadPipelineArtifact@2
+      inputs:
+        buildType: 'current'
+        targetPath: '$(Pipeline.Workspace)'
+    - bash: 7z a -tzip Drill-CLI-windows-x86_64-release.zip $(Pipeline.Workspace)/Drill-CLI-windows-x86_64-release/*
+    - task: PublishPipelineArtifact@1
+      inputs:
+        targetPath: 'Drill-CLI-windows-x86_64-release.zip'
+        artifact: 'Drill-CLI-windows-x86_64-release.zip'
 
   - job: Linux_CLI_Release_Test
     dependsOn: [Linux_CLI_Release]
@@ -112,11 +163,14 @@ stages:
     - bash: chmod +x ./Drill-CLI-linux-x86_64-release/drill-search-cli
     - bash: ./Drill-CLI-linux-x86_64-release/drill-search-cli .
 
+
+
   - job: Publish_Beta
     condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/master'))
     dependsOn: 
       - Linux_CLI_Release_Test
       - Linux_CLI_Release_Zip
+      - Windows_CLI_Release_Zip
     pool:
       name: Hosted Ubuntu 1604
     steps:
@@ -124,9 +178,12 @@ stages:
     - task: DownloadPipelineArtifact@2
       inputs:
         buildType: 'current'
-        targetPath: '.'
+        targetPath: '$(Pipeline.Workspace)'
         itemPattern: '*.zip'
     - bash: 'ls -la'
+    - bash: 'ls -la $(Pipeline.Workspace)'
+    - bash: 'ls -la $(Pipeline.Workspace)/'
+    - bash: 'ls -la $(Pipeline.Workspace)/*.zip'
     - task: GitHubRelease@0
       inputs:
         gitHubConnection: 'githubtoken'
@@ -148,7 +205,7 @@ stages:
         assetUploadMode: replace
         addChangeLog: false
         assets: |
-          ./Drill-CLI-linux-x86_64-release.zip
+          $(Pipeline.Workspace)/*.zip
 
 
 
