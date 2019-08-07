@@ -342,7 +342,7 @@ stages:
     - task: DownloadPipelineArtifact@2
       inputs:
         buildType: 'current'
-        targetPath: '$(Pipeline.Workspace)'
+        targetPath: '.'
 
     - task: GitHubRelease@0
       inputs:
@@ -355,7 +355,7 @@ stages:
         title: 'ContinuousIntegration'
         releaseNotesSource: 'input'
         releaseNotes: '$(Build.BuildNumber) $(Build.BuildUri)'
-        assets: '$(System.DefaultWorkingDirectory)/*.*'
+        assets: '*.*'
         isPreRelease: true
 
 
