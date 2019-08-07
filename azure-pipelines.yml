@@ -33,10 +33,9 @@ stages:
     - powershell: |
         Invoke-WebRequest -Uri http://downloads.dlang.org/releases/2.x/$(dmd_version)/dmd.$(dmd_version).windows.7z -OutFile dmd2.7z 
         Invoke-WebRequest -Uri https://www.7-zip.org/a/7z1900-x64.exe -OutFile 7z.exe 
-        7z.exe x dmd2.7z
-        dmd2/windows/bin/dmd.exe --version
-        dmd2/windows/bin/dub.exe --version
-      displayName: 'Install DMD'
+    - script: '7z.exe x dmd2.7z'
+    - script: 'dmd2/windows/bin/dmd.exe --version'
+    - script: 'dmd2/windows/bin/dub.exe --version'
     - script: 'dmd2/windows/bin/dub.exe build -c CLI -b unittest --arch=x86_64'
 
 
