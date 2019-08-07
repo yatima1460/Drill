@@ -88,10 +88,10 @@ jobs:
 
     - 
       os: windows
-      language: shell
+      language: bash
       name: CLI Unittest
       install:
-        - powershell Invoke-WebRequest -Uri http://downloads.dlang.org/releases/2.x/$(DMD_VERSION)/dmd.$(DMD_VERSION).windows.zip -OutFile dmd2.zip
+        - wget http://downloads.dlang.org/releases/2.x/$(DMD_VERSION)/dmd.$(DMD_VERSION).windows.zip
         - powershell Expand-Archive dmd2.zip -DestinationPath .
       script:
         - dmd2/windows/bin/dub.exe build -c CLI -b unittest
