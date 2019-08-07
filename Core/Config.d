@@ -62,7 +62,8 @@ public string getConfigPath()
 import std.conv : to;
 
 
-private char[] cleanLines(char[] x)
+// do not add "private" so we support old compilers
+char[] cleanLines(char[] x)
 {
     import std.algorithm : canFind;
     import std.array : replace;
