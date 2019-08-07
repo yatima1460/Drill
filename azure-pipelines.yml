@@ -31,7 +31,7 @@ stages:
       name: Hosted
     steps:
     - powershell: |
-        Invoke-WebRequest -Uri http://downloads.dlang.org/releases/2.x/$(dmd_version)/dmd.$(dmd_version).windows.7z -OutFile dmd2.7z 
+        Invoke-WebRequest -Uri http://downloads.dlang.org/releases/2.x/2.084.0/dmd.2.084.0.windows.7z -OutFile dmd2.7z 
         Invoke-WebRequest -Uri https://www.7-zip.org/a/7z1900-x64.exe -OutFile 7z1900-x64.exe 
     - script: '7z1900-x64.exe /S /D="%cd%"'
     # - script: 'refreshenv'
