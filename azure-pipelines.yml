@@ -332,6 +332,9 @@ stages:
 
 
 
+
+
+
   jobs:
   - job:
     displayName: Publish
@@ -349,13 +352,19 @@ stages:
       inputs:
         gitHubConnection: 'githubtoken'
         repositoryName: '$(Build.Repository.Name)'
-        action: 'edit'
+        action: 'delete'
+        tag: 'ContinuousIntegration'
+    - task: GitHubRelease@0
+      inputs:
+        gitHubConnection: 'githubtoken'
+        repositoryName: '$(Build.Repository.Name)'
+        action: 'create'
         target: '$(Build.SourceVersion)'
         tagSource: 'manual'
         tag: 'ContinuousIntegration'
         title: 'ContinuousIntegration'
         releaseNotesSource: 'input'
-        releaseNotes: '$(Build.BuildNumber) $(Build.BuildUri)'
+        releaseNotes: 'Automated Build'
         isPreRelease: true
 
 
