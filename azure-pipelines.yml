@@ -108,10 +108,9 @@ stages:
       inputs:
         buildType: 'current'
         targetPath: '.'
-    # Azure creates a directory for every artifact
     # Use the long path so we test if relative CWD works too in Drill
-    - bash: chmod +x ./Drill-CLI-linux-x86_64-release/Drill-CLI-linux-x86_64-release/drill-search-cli
-    - bash: ./Drill-CLI-linux-x86_64-release/Drill-CLI-linux-x86_64-release/drill-search-cli .
+    - bash: chmod +x ./Drill-CLI-linux-x86_64-release/drill-search-cli
+    - bash: ./Drill-CLI-linux-x86_64-release/drill-search-cli .
 
   - job: Publish_Beta
     condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/master'))
