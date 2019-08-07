@@ -140,11 +140,13 @@ jobs:
         - dub build -c CLI -b release
       deploy:
         provider: s3
+        region: eu-central-1
         access_key_id: $AWS_ACCESS_KEY
         secret_access_key: $AWS_SECRET_KEY
         bucket: "drill-search"
         skip_cleanup: true
-        upload-dir: Build/Drill-CLI-linux-x86_64-release
+        local_dir: Build
+        # upload-dir: Build/Drill-CLI-linux-x86_64-release
 
     # - 
     #   os: osx
@@ -169,11 +171,13 @@ jobs:
         - dub build -c GTK -b release
       deploy:
         provider: s3
+        region: eu-central-1
         access_key_id: $AWS_ACCESS_KEY
         secret_access_key: $AWS_SECRET_KEY
         bucket: "drill-search"
         skip_cleanup: true
-        upload-dir: Build/Drill-GTK-linux-x86_64-release
+        local_dir: Build
+        
     # - 
     #   os: osx
     #   name: GTK Release
