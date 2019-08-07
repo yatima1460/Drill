@@ -3,11 +3,13 @@
 stages:
 
 
-- stage: UnittestCLI
-  displayName: Unittest CLI
+- stage: Build
+  displayName: Build
   dependsOn: []
+
   jobs:
-  - job: Linux
+  - job: Linux_CLI_Unittest
+    dependsOn: []
     pool:
       name: Hosted Ubuntu 1604
     steps:
@@ -18,15 +20,28 @@ stages:
         dub --version
       displayName: 'Install DMD'
     - bash: 'dub build -c CLI -b unittest --arch=x86_64'
+      displayName: "CLI Unittest"
 
+  - job: Linux_CLI_Release
+    dependsOn: [Linux_CLI_Unittest]
+    pool:
+      name: Hosted Ubuntu 1604
+    steps:
+    - bash: |
+        wget http://downloads.dlang.org/releases/2.x/$(dmd_version)/dmd_$(dmd_version)-0_amd64.deb
+        sudo dpkg -i dmd_$(dmd_version)-0_amd64.deb
+        dmd --version
+        dub --version
+      displayName: 'Install DMD'
+    - bash: 'dub build -c CLI -b release --arch=x86_64'
+      displayName: "CLI Release"
+    - task: PublishPipelineArtifact@1
+      inputs:
+        targetPath: 'Build/Drill-CLI-linux-x86_64-release'
+        artifact: 'Drill-CLI-linux-x86_64-release' 
 
-
-
-
-
-
-
-  - job: Windows
+  - job: Windows_CLI_Unittest
+    dependsOn: []
     pool:
       name: Hosted VS2017
     steps:
@@ -37,12 +52,8 @@ stages:
     - script: '%cd%/dmd2/windows/bin/dub.exe --version'
     - script: '%cd%/dmd2/windows/bin/dub.exe build -c CLI -b unittest --arch=x86_64'
 
-
-- stage: UnittestGTK
-  displayName: Unittest GTK
-  dependsOn: []
-  jobs:
-  - job:
+  - job: Linux_GTK_Unittest
+    dependsOn: []
     pool:
       name: Hosted Ubuntu 1604
     steps:
@@ -55,6 +66,25 @@ stages:
     - bash: 'sudo apt install -y libgtk-3-dev'
     - bash: 'dub build -c GTK -b unittest --arch=x86_64'
       displayName: 'Unittest GTK'
+
+
+  - job: Linux_CLI_Release_Zip
+    dependsOn: Linux_CLI_Release
+    pool:
+      name: Hosted Ubuntu 1604
+    steps:
+    - checkout: none
+    - task: DownloadPipelineArtifact@2
+      inputs:
+        buildType: 'current'
+        targetPath: '$(Pipeline.Workspace)'
+    - bash: 7z a -tzip Drill-CLI-linux-x86_64-release.zip $(Pipeline.Workspace)/Drill-CLI-linux-x86_64-release/*
+    - task: PublishPipelineArtifact@1
+      inputs:
+        targetPath: 'Drill-CLI-linux-x86_64-release.zip'
+        artifact: 'Drill-CLI-linux-x86_64-release.zip'
+
+
 
 # - stage: BuildCLIDebug
 #   displayName: Build CLI Debug
@@ -98,89 +128,49 @@ stages:
 #         targetPath: 'Drill-CLI-linux-x86_64-debug.zip'
 #         artifact: 'Drill-CLI-linux-x86_64-debug.zip'
 
-
-- stage: BuildCLIRelease
-  displayName: Build CLI Release
-  dependsOn: UnittestCLI
-  jobs:
-  - job: linux_cli_release_x86_64_dmd_stable
-    displayName: Linux CLI Release x86_64 DMD stable
-    pool:
-      name: Hosted Ubuntu 1604
-    steps:
-    - bash: |
-        wget http://downloads.dlang.org/releases/2.x/$(dmd_version)/dmd_$(dmd_version)-0_amd64.deb
-        sudo dpkg -i dmd_$(dmd_version)-0_amd64.deb
-        dmd --version
-        dub --version
-      displayName: 'Install D Linux'
-    - bash: |
-        dub build -c CLI -b release --arch=x86_64
-      displayName: 'dub build -c CLI -b release'
-    - task: PublishPipelineArtifact@1
-      inputs:
-        targetPath: 'Build/Drill-CLI-linux-x86_64-release'
-        artifact: 'Drill-CLI-linux-x86_64-release' 
+  
 
 
-- stage: BuildGTKRelease
-  displayName: Build GTK Release
-  dependsOn: UnittestGTK
-  jobs:
-  - job:
-    pool:
-      name: Hosted Ubuntu 1604
-    steps:
-    - bash: |
-        wget http://downloads.dlang.org/releases/2.x/$(dmd_version)/dmd_$(dmd_version)-0_amd64.deb
-        sudo dpkg -i dmd_$(dmd_version)-0_amd64.deb
-        dmd --version
-        dub --version
-      displayName: 'Install DMD'
-    - bash: 'sudo apt install -y libgtk-3-dev'
-    - bash: 'dub build -c GTK -b release --arch=x86_64'
-      displayName: 'Build GTK Release x86_64'
-    - task: PublishPipelineArtifact@1
-      inputs:
-        targetPath: 'Build/Drill-GTK-linux-x86_64-release'
-        artifact: 'Drill-GTK-linux-x86_64-release'
+# - stage: BuildGTKRelease
+#   displayName: Build GTK Release
+#   dependsOn: UnittestGTK
+#   jobs:
+#   - job:
+#     pool:
+#       name: Hosted Ubuntu 1604
+#     steps:
+#     - bash: |
+#         wget http://downloads.dlang.org/releases/2.x/$(dmd_version)/dmd_$(dmd_version)-0_amd64.deb
+#         sudo dpkg -i dmd_$(dmd_version)-0_amd64.deb
+#         dmd --version
+#         dub --version
+#       displayName: 'Install DMD'
+#     - bash: 'sudo apt install -y libgtk-3-dev'
+#     - bash: 'dub build -c GTK -b release --arch=x86_64'
+#       displayName: 'Build GTK Release x86_64'
+#     - task: PublishPipelineArtifact@1
+#       inputs:
+#         targetPath: 'Build/Drill-GTK-linux-x86_64-release'
+#         artifact: 'Drill-GTK-linux-x86_64-release'
 
 
 
-- stage: ZipCLIRelease
-  displayName: Release CLI .zip
-  dependsOn: BuildCLIRelease
-  jobs:
-  - job: Linux
-    pool:
-      name: Hosted Ubuntu 1604
-    steps:
-    - checkout: none
-    - task: DownloadPipelineArtifact@2
-      inputs:
-        buildType: 'current'
-        targetPath: '$(Pipeline.Workspace)'
-    - bash: 7z a -tzip Drill-CLI-linux-x86_64-release.zip $(Pipeline.Workspace)/Drill-CLI-linux-x86_64-release/*
-    - task: PublishPipelineArtifact@1
-      inputs:
-        targetPath: 'Drill-CLI-linux-x86_64-release.zip'
-        artifact: 'Drill-CLI-linux-x86_64-release.zip'
 
 
-- stage: CreateCLIDeb
-  displayName: Create CLI .deb
-  dependsOn: BuildCLIRelease
-  jobs:
-  - job:
-    pool:
-      name: Hosted Ubuntu 1604
-    steps:
-    - checkout: none
-    - task: DownloadPipelineArtifact@2
-      inputs:
-        buildType: 'current'
-        itemPattern: 'Drill-CLI-linux-x86_64-release'
-        targetPath: '$(Pipeline.Workspace)'
+# - stage: CreateCLIDeb
+#   displayName: Create CLI .deb
+#   dependsOn: BuildCLIRelease
+#   jobs:
+#   - job:
+#     pool:
+#       name: Hosted Ubuntu 1604
+#     steps:
+#     - checkout: none
+#     - task: DownloadPipelineArtifact@2
+#       inputs:
+#         buildType: 'current'
+#         itemPattern: 'Drill-CLI-linux-x86_64-release'
+#         targetPath: '$(Pipeline.Workspace)'
 
 
 
@@ -235,60 +225,57 @@ stages:
 
 
 
-- stage: ZipGTKRelease
-  displayName: Release GTK .zip
-  dependsOn: BuildGTKRelease
-  jobs:
-  - job:
-    pool:
-      name: Hosted Ubuntu 1604
-    steps:
-    - checkout: none
-    - task: DownloadPipelineArtifact@2
-      inputs:
-        buildType: 'current'
-        targetPath: '$(Pipeline.Workspace)'
-    - bash: 7z a -tzip Drill-GTK-linux-x86_64-release.zip $(Pipeline.Workspace)/Drill-GTK-linux-x86_64-release/*
-    - task: PublishPipelineArtifact@1
-      inputs:
-        targetPath: 'Drill-GTK-linux-x86_64-release.zip'
-        artifact: 'Drill-GTK-linux-x86_64-release.zip'
+# - stage: ZipGTKRelease
+#   displayName: Release GTK .zip
+#   dependsOn: BuildGTKRelease
+#   jobs:
+#   - job:
+#     pool:
+#       name: Hosted Ubuntu 1604
+#     steps:
+#     - checkout: none
+#     - task: DownloadPipelineArtifact@2
+#       inputs:
+#         buildType: 'current'
+#         targetPath: '$(Pipeline.Workspace)'
+#     - bash: 7z a -tzip Drill-GTK-linux-x86_64-release.zip $(Pipeline.Workspace)/Drill-GTK-linux-x86_64-release/*
+#     - task: PublishPipelineArtifact@1
+#       inputs:
+#         targetPath: 'Drill-GTK-linux-x86_64-release.zip'
+#         artifact: 'Drill-GTK-linux-x86_64-release.zip'
 
 
-- stage: CreateGTKDeb
-  displayName: Create GTK .deb
-  dependsOn: BuildGTKRelease
-  jobs:
-  - job:
-    pool:
-      name: Hosted Ubuntu 1604
-    steps:
-    - checkout: none
-    - task: DownloadPipelineArtifact@2
-      inputs:
-        buildType: 'current'
-        itemPattern: 'Drill-GTK-linux-x86_64-release'
-        targetPath: '$(Pipeline.Workspace)'     
+# - stage: CreateGTKDeb
+#   displayName: Create GTK .deb
+#   dependsOn: BuildGTKRelease
+#   jobs:
+#   - job:
+#     pool:
+#       name: Hosted Ubuntu 1604
+#     steps:
+#     - checkout: none
+#     - task: DownloadPipelineArtifact@2
+#       inputs:
+#         buildType: 'current'
+#         itemPattern: 'Drill-GTK-linux-x86_64-release'
+#         targetPath: '$(Pipeline.Workspace)'     
 
 
-- stage: CreateAppimage
-  displayName: Create AppImage
-  dependsOn: BuildGTKRelease
-  jobs:
-  - job: linux_cli_release_x86_64_dmd_stable
-    displayName: Linux CLI Release x86_64 DMD stable
-    pool:
-      name: Hosted Ubuntu 1604
-    steps:
-    - checkout: none
-    - task: DownloadPipelineArtifact@2
-      inputs:
-        buildType: 'current'
-        itemPattern: 'Drill-CLI-linux-x86_64-release'
-        targetPath: '$(Pipeline.Workspace)'
-
-
-
+# - stage: CreateAppimage
+#   displayName: Create AppImage
+#   dependsOn: BuildGTKRelease
+#   jobs:
+#   - job: linux_cli_release_x86_64_dmd_stable
+#     displayName: Linux CLI Release x86_64 DMD stable
+#     pool:
+#       name: Hosted Ubuntu 1604
+#     steps:
+#     - checkout: none
+#     - task: DownloadPipelineArtifact@2
+#       inputs:
+#         buildType: 'current'
+#         itemPattern: 'Drill-CLI-linux-x86_64-release'
+#         targetPath: '$(Pipeline.Workspace)'
 
 
 
@@ -309,17 +296,20 @@ stages:
 
 
 
-- stage: Publish
-  dependsOn: 
-    - UnittestCLI
-    - UnittestGTK
-    - CreateAppimage
-    - CreateGTKDeb
-    - CreateCLIDeb
-    # - ZipCLIDebug
-    - ZipCLIRelease
-    # - ZipGTKDebug
-    - ZipGTKRelease
+
+
+
+# - stage: Publish
+#   dependsOn: 
+#     - UnittestCLI
+#     - UnittestGTK
+#     - CreateAppimage
+#     - CreateGTKDeb
+#     - CreateCLIDeb
+#     # - ZipCLIDebug
+#     - ZipCLIRelease
+#     # - ZipGTKDebug
+#     - ZipGTKRelease
 
 
 
@@ -335,37 +325,53 @@ stages:
 
 
 
-  jobs:
-  - job:
-    displayName: Publish
-    pool:
-      name: Hosted Ubuntu 1604
-    steps:
-    - checkout: none
-    - bash: 'ls $(Build.ArtifactStagingDirectory)'
-    - task: DownloadPipelineArtifact@2
-      inputs:
-        buildType: 'current'
-        targetPath: '$(Build.ArtifactStagingDirectory)'
-    - bash: 'ls $(Build.ArtifactStagingDirectory)'
-    - task: GitHubRelease@0
-      inputs:
-        gitHubConnection: 'githubtoken'
-        repositoryName: '$(Build.Repository.Name)'
-        action: 'delete'
-        tag: 'ContinuousIntegration'
-    - task: GitHubRelease@0
-      inputs:
-        gitHubConnection: 'githubtoken'
-        repositoryName: '$(Build.Repository.Name)'
-        action: 'create'
-        target: '$(Build.SourceVersion)'
-        tagSource: 'manual'
-        tag: 'ContinuousIntegration'
-        title: 'ContinuousIntegration'
-        releaseNotesSource: 'input'
-        releaseNotes: 'Automated Build'
-        isPreRelease: true
+#   jobs:
+#   - job:
+#     displayName: Publish
+#     pool:
+#       name: Hosted Ubuntu 1604
+#     steps:
+#     - checkout: none
+#     - bash: 'ls $(Build.ArtifactStagingDirectory)'
+#     - task: DownloadPipelineArtifact@2
+#       inputs:
+#         buildType: 'current'
+#         targetPath: '$(Build.ArtifactStagingDirectory)'
+#     - bash: 'ls $(Build.ArtifactStagingDirectory)'
+#     - task: GitHubRelease@0
+#       inputs:
+#         gitHubConnection: 'githubtoken'
+#         repositoryName: '$(Build.Repository.Name)'
+#         action: 'delete'
+#         tag: 'ContinuousIntegration'
+#     - task: GitHubRelease@0
+#       inputs:
+#         gitHubConnection: 'githubtoken'
+#         repositoryName: '$(Build.Repository.Name)'
+#         action: 'create'
+#         target: '$(Build.SourceVersion)'
+#         tagSource: 'manual'
+#         tag: 'ContinuousIntegration'
+#         title: 'ContinuousIntegration'
+#         releaseNotesSource: 'input'
+#         releaseNotes: 'Automated Build'
+#         isPreRelease: true
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
     # - task: ZipDirectory@1
