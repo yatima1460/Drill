@@ -34,7 +34,7 @@ stages:
         Invoke-WebRequest -Uri http://downloads.dlang.org/releases/2.x/$(dmd_version)/dmd.$(dmd_version).windows.7z -OutFile dmd2.7z 
         Invoke-WebRequest -Uri https://www.7-zip.org/a/7z1900-x64.exe -OutFile 7z1900-x64.exe 
     - script: '7z1900-x64.exe /S'
-    - script: 'refreshenv'
+    # - script: 'refreshenv'
     - script: '7z x dmd2.7z'
     - script: 'dmd2/windows/bin/dmd.exe --version'
     - script: 'dmd2/windows/bin/dub.exe --version'
@@ -126,6 +126,30 @@ stages:
         artifact: 'Drill-CLI-linux-x86_64-release' 
 
 
+- stage: BuildGTKRelease
+  displayName: Build GTK Release
+  dependsOn: UnittestGTK
+  jobs:
+  - job:
+    pool:
+      name: Hosted Ubuntu 1604
+    steps:
+    - bash: |
+        wget http://downloads.dlang.org/releases/2.x/$(dmd_version)/dmd_$(dmd_version)-0_amd64.deb
+        sudo dpkg -i dmd_$(dmd_version)-0_amd64.deb
+        dmd --version
+        dub --version
+      displayName: 'Install DMD'
+    - bash: 'sudo apt install -y libgtk-3-dev'
+    - bash: 'dub build -c GTK -b release --arch=x86_64'
+      displayName: 'Build GTK Release x86_64'
+    - task: PublishPipelineArtifact@1
+      inputs:
+        targetPath: 'Build/Drill-GTK-linux-x86_64-release'
+        artifact: 'Drill-GTK-linux-x86_64-release'
+
+
+
 - stage: ZipCLIRelease
   displayName: Release CLI .zip
   dependsOn: BuildCLIRelease
@@ -134,6 +158,7 @@ stages:
     pool:
       name: Hosted Ubuntu 1604
     steps:
+    - checkout: none
     - task: DownloadPipelineArtifact@2
       inputs:
         buildType: 'current'
@@ -153,6 +178,7 @@ stages:
     pool:
       name: Hosted Ubuntu 1604
     steps:
+    - checkout: none
     - task: DownloadPipelineArtifact@2
       inputs:
         buildType: 'current'
@@ -209,27 +235,7 @@ stages:
 
 
 
-- stage: BuildGTKRelease
-  displayName: Build GTK Release
-  dependsOn: UnittestGTK
-  jobs:
-  - job:
-    pool:
-      name: Hosted Ubuntu 1604
-    steps:
-    - bash: |
-        wget http://downloads.dlang.org/releases/2.x/$(dmd_version)/dmd_$(dmd_version)-0_amd64.deb
-        sudo dpkg -i dmd_$(dmd_version)-0_amd64.deb
-        dmd --version
-        dub --version
-      displayName: 'Install DMD'
-    - bash: 'sudo apt install -y libgtk-3-dev'
-    - bash: 'dub build -c GTK -b release --arch=x86_64'
-      displayName: 'Build GTK Release x86_64'
-    - task: PublishPipelineArtifact@1
-      inputs:
-        targetPath: 'Build/Drill-GTK-linux-x86_64-release'
-        artifact: 'Drill-GTK-linux-x86_64-release'
+
 
 
 - stage: ZipGTKRelease
@@ -240,6 +246,7 @@ stages:
     pool:
       name: Hosted Ubuntu 1604
     steps:
+    - checkout: none
     - task: DownloadPipelineArtifact@2
       inputs:
         buildType: 'current'
@@ -259,6 +266,7 @@ stages:
     pool:
       name: Hosted Ubuntu 1604
     steps:
+    - checkout: none
     - task: DownloadPipelineArtifact@2
       inputs:
         buildType: 'current'
@@ -275,6 +283,7 @@ stages:
     pool:
       name: Hosted Ubuntu 1604
     steps:
+    - checkout: none
     - task: DownloadPipelineArtifact@2
       inputs:
         buildType: 'current'
@@ -332,6 +341,7 @@ stages:
     pool:
       name: Hosted Ubuntu 1604
     steps:
+    - checkout: none
     - bash: mkdir $(Pipeline.Workspace)/Output
     - task: DownloadPipelineArtifact@2
       inputs:
