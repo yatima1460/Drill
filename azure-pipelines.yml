@@ -339,11 +339,12 @@ stages:
       name: Hosted Ubuntu 1604
     steps:
     - checkout: none
+    - bash: 'ls $(Build.ArtifactStagingDirectory)'
     - task: DownloadPipelineArtifact@2
       inputs:
         buildType: 'current'
         targetPath: '$(Build.ArtifactStagingDirectory)'
-
+    - bash: 'ls $(Build.ArtifactStagingDirectory)'
     - task: GitHubRelease@0
       inputs:
         gitHubConnection: 'githubtoken'
