@@ -274,7 +274,7 @@ jobs:
       assetUploadMode: replace
       addChangeLog: false
       assets: |
-        $(Build.BinariesDirectory)/*.zip
+        $(Build.BinariesDirectory)/Drill-CLI-windows-x86_64-release.zip/Drill-CLI-windows-x86_64-release.zip
 
 
 
