@@ -1,23 +1,27 @@
 
 [A-Z]:\\Windows$
 [A-Z]:\\System Volume Information
-[A-Z]:\\Program Files/Windows
-[A-Z]:\\Program Files (x86)/Windows
-[A-Z]:\\Program Files \(x86\)/Windows
+
 [A-Z]:\\NVPACK
-[A-Z]:\\NVIDIA\/
+[A-Z]:\\NVIDIA$
 [A-Z]:\\npm\\
 [A-Z]:\\$WINDOWS\.~BT
 [A-Z]:\\ProgramData
 [A-Z]:\\$Recycle\.Bin
 [A-Z]:\\$RECYCLE\.BIN
 [A-Z]:\\PenTabletDriver
-[A-Z]:\\vsts
 
+[A-Z]:\\Program Files
+[A-Z]:\\Program Files \(x86\)
+
+[A-Z]:\\vsts
+[A-Z]:\\WindowsAzure
+[A-Z]:\\Strawberry
 [A-Z]:\\cobertura-[0-9]+\.[0-9]+\.[0-9]+
 [A-Z]:\\agents
 [A-Z]:\\Go[0-9]+\.[0-9]+\.[0-9]+
 [A-Z]:\\Miniconda
+[A-Z]:\\Modules
 
 [A-Z]:\\Rust
 \\_tasks\\
