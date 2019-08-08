@@ -249,10 +249,6 @@ jobs:
     inputs:
       buildType: 'current'
       targetPath: '$(Build.BinariesDirectory)'
-  - bash: 'ls -la'
-  - bash: 'ls -la $(Build.BinariesDirectory)'
-  - bash: 'ls -la $(Build.BinariesDirectory)/'
-  - bash: 'ls -la $(Build.BinariesDirectory)/ *.zip'
   - task: GitHubRelease@0
     inputs:
       gitHubConnection: 'githubtoken'
