@@ -3,3 +3,4 @@ Library
 ^/System
 ^/private
 ^/Applications
+^/Users/vsts
