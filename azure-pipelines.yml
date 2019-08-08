@@ -56,8 +56,7 @@ jobs:
   steps:
   - bash: 'brew install gpgme'
   - bash: 'curl -fsS https://dlang.org/install.sh | bash -s dmd'
-  - bash: 'source ~/dlang/dmd-$(dmd_version)/activate'
-  - bash: 'dub build -c CLI -b unittest --arch=x86_64'
+  - bash: 'source ~/dlang/dmd-$(dmd_version)/activate && dub build -c CLI -b unittest --arch=x86_64'
 
 
 - job: OSX_CLI_Release
@@ -67,8 +66,7 @@ jobs:
   steps:
   - bash: 'brew install gpgme'
   - bash: 'curl -fsS https://dlang.org/install.sh | bash -s dmd'
-  - bash: 'source ~/dlang/dmd-$(dmd_version)/activate'
-  - bash: 'dub build -c CLI -b release --arch=x86_64'
+  - bash: 'source ~/dlang/dmd-$(dmd_version)/activate && dub build -c CLI -b release --arch=x86_64'
   - task: PublishPipelineArtifact@1
     inputs:
       targetPath: 'Build/Drill-CLI-osx-x86_64-release'
@@ -115,11 +113,10 @@ jobs:
   steps:
   - bash: 'brew install gpgme'
   - bash: 'curl -fsS https://dlang.org/install.sh | bash -s dmd'
-  - bash: 'source ~/dlang/dmd-$(dmd_version)/activate'
   - bash: 'brew install gtk+3'
   - bash: 'brew install glib'
   - bash: 'brew install gobject-introspection'
-  - bash: 'dub build -c GTK -b unittest --arch=x86_64'
+  - bash: 'source ~/dlang/dmd-$(dmd_version)/activate && dub build -c GTK -b unittest --arch=x86_64'
     displayName: 'Unittest GTK'
 
 
@@ -130,11 +127,10 @@ jobs:
   steps:
   - bash: 'brew install gpgme'
   - bash: 'curl -fsS https://dlang.org/install.sh | bash -s dmd'
-  - bash: 'source ~/dlang/dmd-$(dmd_version)/activate'
   - bash: 'brew install gtk+3'
   - bash: 'brew install glib'
   - bash: 'brew install gobject-introspection'
-  - bash: 'dub build -c GTK -b release --arch=x86_64'
+  - bash: 'source ~/dlang/dmd-$(dmd_version)/activate && dub build -c GTK -b release --arch=x86_64'
     displayName: 'Unittest GTK'
 
 - job: Linux_GTK_Release
