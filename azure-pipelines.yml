@@ -212,6 +212,7 @@ stages:
       inputs:
         buildType: 'current'
         artifactName: 'Drill-CLI-linux-x86_64-release'
+        targetPath: '$(Pipeline.Workspace)' 
     - bash: ls -la
     - bash: ls -la $(Pipeline.Workspace)
     - bash: ls -la Drill-CLI-linux-x86_64-release
@@ -243,7 +244,7 @@ stages:
 
 
 - stage: OSX_CLI_Release_Zip
-  dependsOn: []
+  dependsOn: [OSX_CLI_Release]
   jobs:
   - job: 
     dependsOn: []
@@ -309,10 +310,10 @@ stages:
         artifact: 'Drill-GTK-osx-x86_64-release.zip'
 
 
-- stage: 
-  dependsOn: []
+- stage: Linux_CLI_Stress_Test
+  dependsOn: [Linux_CLI_Release]
   jobs:
-  - job: Linux_CLI_Stress_Test
+  - job: 
     dependsOn: []
     pool:
       name: Hosted Ubuntu 1604
@@ -327,10 +328,10 @@ stages:
     - bash: chmod +x ./Drill-CLI-linux-x86_64-release/drill-search-cli
     - bash: ./Drill-CLI-linux-x86_64-release/drill-search-cli .
 
-- stage: 
-  dependsOn: []
+- stage: OSX_CLI_Stress_Test
+  dependsOn: [OSX_CLI_Release]
   jobs:
-  - job: OSX_CLI_Stress_Test
+  - job: 
     dependsOn: []
     pool:
       name: Hosted macOS
@@ -344,10 +345,10 @@ stages:
     - bash: chmod +x ./Drill-CLI-osx-x86_64-release/drill-search-cli
     - bash: ./Drill-CLI-osx-x86_64-release/drill-search-cli .
 
-- stage: 
-  dependsOn: []
+- stage: Windows_CLI_Stress_Test
+  dependsOn: [Windows_CLI_Release]
   jobs:
-  - job: Windows_CLI_Stress_Test
+  - job: 
     dependsOn: []
     pool:
       name: Hosted VS2017
@@ -399,7 +400,7 @@ stages:
     - bash: ./Drill-CLI-osx-x86_64-release/drill-search-cli .
 
 - stage: Windows_CLI_Time_Test
-  dependsOn: [Windows_CLI_Release]
+  dependsOn: []
   jobs:
   - job: 
     timeoutInMinutes: 1
