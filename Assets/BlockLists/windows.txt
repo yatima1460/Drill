@@ -1,18 +1,21 @@
-Windows$
-\$Recycle\.Bin
-\$RECYCLE\.BIN
+
+[A-Z]:\\Windows$
+[A-Z]:\\System Volume Information
+[A-Z]:\\Program Files/Windows
+[A-Z]:\\Program Files (x86)/Windows
+[A-Z]:\\Program Files \(x86\)/Windows
+[A-Z]:\\NVPACK
+[A-Z]:\\NVIDIA\/
+[A-Z]:\\npm\\
+[A-Z]:\\$WINDOWS\.~BT
+[A-Z]:\\ProgramData
+[A-Z]:\\$Recycle\.Bin
+[A-Z]:\\$RECYCLE\.BIN
+[A-Z]:\\PenTabletDriver
+
+PerfLogs
+AppData
+SysReset
+vcpkg$
 WindowsApps$
 /desktop.ini$
-PerfLogs\/
-ProgramData
-PenTabletDriver
-AppData
-\$WINDOWS\.~BT
-\$SysReset
-System Volume Information
-Program Files/Windows
-Program Files (x86)/Windows
-Program Files \(x86\)/Windows
-NVPACK
-NVIDIA\/
-vcpkg$
