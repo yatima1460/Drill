@@ -237,47 +237,64 @@ jobs:
       targetPath: 'Drill-GTK-osx-x86_64-release.zip'
       artifact: 'Drill-GTK-osx-x86_64-release.zip'
 
-- job: Linux_CLI_Stress_Test
-  dependsOn: [Linux_CLI_Release]
-  pool:
-    name: Hosted Ubuntu 1604
-  steps:
-  - checkout: none
-  - task: DownloadPipelineArtifact@2
-    inputs:
-      buildType: 'current'
-      artifactName: 'Drill-CLI-linux-x86_64-release'
-      targetPath: '$(Pipeline.Workspace)/Drill-CLI-linux-x86_64-release'
-  # Use the long path so we test if relative CWD works too in Drill
-  - bash: chmod +x $(Pipeline.Workspace)/Drill-CLI-linux-x86_64-release/drill-search-cli
-  - bash: $(Pipeline.Workspace)/Drill-CLI-linux-x86_64-release/drill-search-cli .
 
-- job: OSX_CLI_Stress_Test
-  dependsOn: [OSX_CLI_Release]
-  pool:
-    name: Hosted macOS
-  steps:
-  - checkout: none
-  - task: DownloadPipelineArtifact@2
-    inputs:
-      buildType: 'current'
-      artifactName: 'Drill-CLI-osx-x86_64-release'
-      targetPath: '$(Pipeline.Workspace)/Drill-CLI-osx-x86_64-release'
-  - bash: chmod +x $(Pipeline.Workspace)/Drill-CLI-osx-x86_64-release/drill-search-cli
-  - bash: $(Pipeline.Workspace)/Drill-CLI-osx-x86_64-release/drill-search-cli .
+# - job: Linux_GTK_Release_AppImage_Test
+#   dependsOn: [Linux_GTK_Release_AppImage]
+#   pool:
+#     name: Hosted Ubuntu 1604
+#   steps:
+#   - checkout: none
+#   - task: DownloadPipelineArtifact@2
+#     inputs:
+#       buildType: 'current'
+#       artifactName: 'Drill-GTK-linux-x86_64-release-'
+#       targetPath: '$(Pipeline.Workspace)/Drill-GTK-linux-x86_64-release'
+#   - bash: 7z a -tzip Drill-GTK-linux-x86_64-release.zip $(Pipeline.Workspace)/Drill-GTK-linux-x86_64-release/*
+#   - task: PublishPipelineArtifact@1
+#     inputs:
+#       targetPath: 'Drill-GTK-linux-x86_64-release.zip'
+#       artifact: 'Drill-GTK-linux-x86_64-release.zip'
+# - job: Linux_CLI_Stress_Test
+#   dependsOn: [Linux_CLI_Release]
+#   pool:
+#     name: Hosted Ubuntu 1604
+#   steps:
+#   - checkout: none
+#   - task: DownloadPipelineArtifact@2
+#     inputs:
+#       buildType: 'current'
+#       artifactName: 'Drill-CLI-linux-x86_64-release'
+#       targetPath: '$(Pipeline.Workspace)/Drill-CLI-linux-x86_64-release'
+#   # Use the long path so we test if relative CWD works too in Drill
+#   - bash: chmod +x $(Pipeline.Workspace)/Drill-CLI-linux-x86_64-release/drill-search-cli
+#   - bash: $(Pipeline.Workspace)/Drill-CLI-linux-x86_64-release/drill-search-cli .
 
-- job: Windows_CLI_Stress_Test
-  dependsOn: [Windows_CLI_Release]
-  pool:
-    name: Hosted VS2017
-  steps:
-  - checkout: none
-  - task: DownloadPipelineArtifact@2
-    inputs:
-      buildType: 'current'
-      artifactName: 'Drill-CLI-windows-x86_64-release'
-      targetPath: '$(Pipeline.Workspace)/Drill-CLI-windows-x86_64-release'
-  - script: $(Pipeline.Workspace)/Drill-CLI-windows-x86_64-release/drill-search-cli.exe .
+# - job: OSX_CLI_Stress_Test
+#   dependsOn: [OSX_CLI_Release]
+#   pool:
+#     name: Hosted macOS
+#   steps:
+#   - checkout: none
+#   - task: DownloadPipelineArtifact@2
+#     inputs:
+#       buildType: 'current'
+#       artifactName: 'Drill-CLI-osx-x86_64-release'
+#       targetPath: '$(Pipeline.Workspace)/Drill-CLI-osx-x86_64-release'
+#   - bash: chmod +x $(Pipeline.Workspace)/Drill-CLI-osx-x86_64-release/drill-search-cli
+#   - bash: $(Pipeline.Workspace)/Drill-CLI-osx-x86_64-release/drill-search-cli .
+
+# - job: Windows_CLI_Stress_Test
+#   dependsOn: [Windows_CLI_Release]
+#   pool:
+#     name: Hosted VS2017
+#   steps:
+#   - checkout: none
+#   - task: DownloadPipelineArtifact@2
+#     inputs:
+#       buildType: 'current'
+#       artifactName: 'Drill-CLI-windows-x86_64-release'
+#       targetPath: '$(Pipeline.Workspace)/Drill-CLI-windows-x86_64-release'
+#   - script: $(Pipeline.Workspace)/Drill-CLI-windows-x86_64-release/drill-search-cli.exe .
 
 - job: Linux_CLI_Time_Test
   timeoutInMinutes: 1
@@ -332,9 +349,9 @@ jobs:
   - OSX_CLI_Release_Zip
   - Linux_GTK_Release_Zip
   - OSX_GTK_Release_Zip
-  - Linux_CLI_Stress_Test
-  - OSX_CLI_Stress_Test
-  - Windows_CLI_Stress_Test
+  # - Linux_CLI_Stress_Test
+  # - OSX_CLI_Stress_Test
+  # - Windows_CLI_Stress_Test
   - Linux_CLI_Time_Test
   - OSX_CLI_Time_Test
   - Windows_CLI_Time_Test
@@ -360,7 +377,7 @@ jobs:
       target: '$(Build.SourceVersion)'
       tagSource: 'manual'
       tag: 'ContinuousIntegration'
-      title: 'Beta'
+      title: '$(Build.BuildNumber) Beta'
       releaseNotesSource: 'input'
       releaseNotes: 'Automated Build $(Build.BuildNumber)'
       isPreRelease: true
