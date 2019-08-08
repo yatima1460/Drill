@@ -48,7 +48,10 @@ stages:
     - bash: 'curl -fsS https://dlang.org/install.sh | bash -s dmd'
     - bash: 'source ~/dlang/dmd-$(dmd_version)/activate && dub build -c CLI -b unittest --arch=x86_64'
 
-  - job: Linux_GTK_Unittest
+- stage: Linux_GTK_Unittest
+  dependsOn: []
+  jobs:
+  - job: 
     dependsOn: []
     pool:
       name: Hosted Ubuntu 1604
