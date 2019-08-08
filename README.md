@@ -1,8 +1,25 @@
 # Drill
 
-![](docs/screenshot.png)
+| Type |Linux  | Windows | OSX  |
+|---|---|---|---|---|
+| CLI Unittest |      ![](https://dev.azure.com/yatima1460/Drill/_apis/build/status/yatima1460.Drill?branchName=master&jobName=Linux_CLI_Unittest) | ![](https://dev.azure.com/yatima1460/Drill/_apis/build/status/yatima1460.Drill?branchName=master&jobName=Windows_CLI_Unittest) | ![](https://dev.azure.com/yatima1460/Drill/_apis/build/status/yatima1460.Drill?branchName=master&jobName=OSX_CLI_Unittest)
+| GTK Unittest |      ![](https://dev.azure.com/yatima1460/Drill/_apis/build/status/yatima1460.Drill?branchName=master&jobName=Linux_GTK_Unittest) | ![](https://dev.azure.com/yatima1460/Drill/_apis/build/status/yatima1460.Drill?branchName=master&jobName=Windows_GTK_Unittest) | ![](https://dev.azure.com/yatima1460/Drill/_apis/build/status/yatima1460.Drill?branchName=master&jobName=OSX_GTK_Unittest) 
+| CLI Release |      ![](https://dev.azure.com/yatima1460/Drill/_apis/build/status/yatima1460.Drill?branchName=master&jobName=Linux_CLI_Release) | ![](https://dev.azure.com/yatima1460/Drill/_apis/build/status/yatima1460.Drill?branchName=master&jobName=Windows_CLI_Release) | ![](https://dev.azure.com/yatima1460/Drill/_apis/build/status/yatima1460.Drill?branchName=master&jobName=OSX_CLI_Release)
+| GTK Release |      ![](https://dev.azure.com/yatima1460/Drill/_apis/build/status/yatima1460.Drill?branchName=master&jobName=Linux_GTK_Release) | ![](https://dev.azure.com/yatima1460/Drill/_apis/build/status/yatima1460.Drill?branchName=master&jobName=Windows_GTK_Release) | ![](https://dev.azure.com/yatima1460/Drill/_apis/build/status/yatima1460.Drill?branchName=master&jobName=OSX_GTK_Release)
+| CLI .zip |  ![](https://dev.azure.com/yatima1460/Drill/_apis/build/status/yatima1460.Drill?branchName=master&jobName=Linux_CLI_Release_Zip) | ![](https://dev.azure.com/yatima1460/Drill/_apis/build/status/yatima1460.Drill?branchName=master&jobName=Windows_CLI_Release_Zip) | ![](https://dev.azure.com/yatima1460/Drill/_apis/build/status/yatima1460.Drill?branchName=master&jobName=OSX_CLI_Release_Zip) 
+| GTK .zip |  ![](https://dev.azure.com/yatima1460/Drill/_apis/build/status/yatima1460.Drill?branchName=master&jobName=Linux_GTK_Release_Zip) | ![](https://dev.azure.com/yatima1460/Drill/_apis/build/status/yatima1460.Drill?branchName=master&jobName=Windows_GTK_Release_Zip) | ![](https://dev.azure.com/yatima1460/Drill/_apis/build/status/yatima1460.Drill?branchName=master&jobName=OSX_GTK_Release_Zip) 
+| CLI .deb |  ![](https://dev.azure.com/yatima1460/Drill/_apis/build/status/yatima1460.Drill?branchName=master&jobName=Linux_CLI_Release_Deb) | N/A | N/A
+| GTK .deb |  ![](https://dev.azure.com/yatima1460/Drill/_apis/build/status/yatima1460.Drill?branchName=master&jobName=Linux_GTK_Release_Deb) | N/A | N/A
+| GTK AppImage |  ![](https://dev.azure.com/yatima1460/Drill/_apis/build/status/yatima1460.Drill?branchName=master&jobName=Linux_GTK_Release_AppImage) | N/A | N/A
+| CLI Stress Test |  ![](https://dev.azure.com/yatima1460/Drill/_apis/build/status/yatima1460.Drill?branchName=master&jobName=Linux_CLI_Stress_Test) | ![](https://dev.azure.com/yatima1460/Drill/_apis/build/status/yatima1460.Drill?branchName=master&jobName=Windows_CLI_Stress_Test) | ![](https://dev.azure.com/yatima1460/Drill/_apis/build/status/yatima1460.Drill?branchName=master&jobName=OSX_CLI_Stress_Test) 
 
-[![Build Status](https://travis-ci.org/yatima1460/Drill.svg?branch=master)](https://travis-ci.org/yatima1460/Drill)
+| Result
+|---|
+| Publish Beta: ![](https://dev.azure.com/yatima1460/Drill/_apis/build/status/yatima1460.Drill?branchName=master&jobName=Publish_Beta)
+| Pipeline: [![Build Status](https://dev.azure.com/yatima1460/Drill/_apis/build/status/yatima1460.Drill?branchName=master)](https://dev.azure.com/yatima1460/Drill/_build/latest?definitionId=6&branchName=master)
+
+
+
 [![Financial Contributors on Open Collective](https://opencollective.com/Drill/all/badge.svg?label=financial+contributors)](https://opencollective.com/Drill) [![GitHub issues](https://img.shields.io/github/issues/yatima1460/Drill.svg)](https://github.com/yatima1460/Drill/issues)
 [![GitHub forks](https://img.shields.io/github/forks/yatima1460/Drill.svg)](https://github.com/yatima1460/Drill/network)
 [![GitHub stars](https://img.shields.io/github/stars/yatima1460/Drill.svg)](https://github.com/yatima1460/Drill/stargazers)
@@ -11,7 +28,7 @@
 [![Twitter](https://img.shields.io/twitter/url/https/github.com/yatima1460/Drill.svg?style=social)](https://twitter.com/intent/tweet?text=Wow:&url=https%3A%2F%2Fgithub.com%2Fyatima1460%2FDrill)
 
 Get notified for latest releases
-[![Telegram](docs/icons/telegram_icon.png?sanitize=true)](https://telegram.me/drill_search)
+[![Telegram](https://raw.githubusercontent.com/yatima1460/Drill/gh-pages/icons/telegram_icon.png)](https://telegram.me/drill_search)
 
 # TL;DR: What is this
 
@@ -25,6 +42,7 @@ Search files without indexing, but clever crawling:
 
 
 ![](https://raw.githubusercontent.com/yatima1460/Drill/gh-pages/screenshot.png)
+
 
 # How to run this
 
@@ -120,21 +138,18 @@ Read the Issues and check the labels for high priority ones
 
 - Backend
     - settings in .config/drill-search
-    - /home/username needs to have higher priority over / crawler when /home isn't mounted on a secondary mountpoint
     - Commas in numbers strings
         - Correct separator based on current system internationalization
     - AM/PM time base
-    - Icons image needs to be generic and in the backend
     - 1 Threadpool per mount point
         - 1 Threadpool PER DISK if possible
         - NVM could benefit when multiple threads are run for the same disk?
     - Metadata searching and new tokens (mp3, etc...)
-    - Percentage of crawling
-    - No GC
+    - No GC in Backend
 
 - ncurses
 
-- Frontend/GTK
+- GTK
     - Open containing folder with right click 
     - Alternate row colors
     - Error messagebox if opening file fails
