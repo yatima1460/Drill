@@ -292,6 +292,53 @@ stages:
     - script: cd Drill-CLI-windows-x86_64-release
     - script: drill-search-cli.exe .
 
+  - job: Linux_CLI_Time_Test
+    timeoutInMinutes: 1
+    dependsOn: []
+    pool:
+      name: Hosted Ubuntu 1604
+    steps:
+    - checkout: none
+    - task: DownloadPipelineArtifact@2
+      inputs:
+        buildType: 'current'
+        targetPath: '.'
+        artifactName: 'Drill-CLI-linux-x86_64-release'
+    # Use the long path so we test if relative CWD works too in Drill
+    - bash: chmod +x ./Drill-CLI-linux-x86_64-release/drill-search-cli
+    - bash: ./Drill-CLI-linux-x86_64-release/drill-search-cli .
+
+  - job: OSX_CLI_Time_Test
+    timeoutInMinutes: 1
+    dependsOn: []
+    pool:
+      name: Hosted macOS
+    steps:
+    - checkout: none
+    - task: DownloadPipelineArtifact@2
+      inputs:
+        buildType: 'current'
+        targetPath: '.'
+        artifactName: 'Drill-CLI-osx-x86_64-release'
+    - bash: chmod +x ./Drill-CLI-osx-x86_64-release/drill-search-cli
+    - bash: ./Drill-CLI-osx-x86_64-release/drill-search-cli .
+
+  - job: Windows_CLI_Time_Test
+    timeoutInMinutes: 1
+    dependsOn: []
+    pool:
+      name: Hosted VS2017
+    steps:
+    - checkout: none
+    - task: DownloadPipelineArtifact@2
+      inputs:
+        buildType: 'current'
+        targetPath: '.'
+        artifactName: 'Drill-CLI-windows-x86_64-release'
+    - script: cd Drill-CLI-windows-x86_64-release
+    - script: drill-search-cli.exe .
+
+
 - stage: Publish
   dependsOn: [Package, Test]
   jobs:
