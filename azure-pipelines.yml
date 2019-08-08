@@ -205,6 +205,23 @@ jobs:
       artifact: 'Drill-CLI-windows-x86_64-release.zip'
 
 
+- job: OSX_CLI_Release_Zip
+  dependsOn: [OSX_CLI_Release]
+  pool:
+    name: Hosted macOS
+  steps:
+  - checkout: none
+  - task: DownloadPipelineArtifact@2
+    inputs:
+      buildType: 'current'
+      targetPath: '$(Pipeline.Workspace)'
+  - powershell: Compress-Archive -Path $(Pipeline.Workspace)/Drill-CLI-osx-x86_64-release -DestinationPath Drill-CLI-osx-x86_64-release.zip
+  - task: PublishPipelineArtifact@1
+    inputs:
+      targetPath: 'Drill-CLI-osx-x86_64-release.zip'
+      artifact: 'Drill-CLI-osx-x86_64-release.zip'
+
+
 - job: Linux_CLI_Stress_Test
   dependsOn: [Linux_CLI_Release]
   pool:
@@ -236,10 +253,12 @@ jobs:
 - job: Publish_Beta
   condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/master'))
   dependsOn: 
-    # - Windows_CLI_Unittest
-    # - Linux_CLI_Unittest
+    - Windows_CLI_Unittest
+    - Linux_CLI_Unittest
+    - OSX_CLI_Unittest
     - Linux_CLI_Release_Zip
-    # - Windows_CLI_Release_Zip
+    - Windows_CLI_Release_Zip
+    - OSX_CLI_Release_Zip
     # - Linux_CLI_Release_Test
   pool:
     name: Hosted Ubuntu 1604
@@ -270,7 +289,12 @@ jobs:
       assetUploadMode: replace
       addChangeLog: false
       assets: |
+        $(Build.BinariesDirectory)/Drill-CLI-linux-x86_64-release.zip/Drill-CLI-linux-x86_64-release.zip
         $(Build.BinariesDirectory)/Drill-CLI-windows-x86_64-release.zip/Drill-CLI-windows-x86_64-release.zip
+        $(Build.BinariesDirectory)/Drill-CLI-osx-x86_64-release.zip/Drill-CLI-osx-x86_64-release.zip
+        $(Build.BinariesDirectory)/Drill-CLI-linux-x86_64-release.zip/Drill-CLI-linux-x86_64-release.zip/Drill-CLI-linux-x86_64-release.zip
+        $(Build.BinariesDirectory)/Drill-CLI-windows-x86_64-release.zip/Drill-CLI-windows-x86_64-release.zip/Drill-CLI-windows-x86_64-release.zip
+        $(Build.BinariesDirectory)/Drill-CLI-osx-x86_64-release.zip/Drill-CLI-osx-x86_64-release.zip/Drill-CLI-osx-x86_64-release.zip
 
 
 
