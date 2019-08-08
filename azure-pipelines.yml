@@ -171,6 +171,7 @@ stages:
       inputs:
         buildType: 'current'
         targetPath: '$(Pipeline.Workspace)'
+        artifactName: 'Drill-CLI-linux-x86_64-release'
     - bash: 7z a -tzip Drill-CLI-linux-x86_64-release.zip $(Pipeline.Workspace)/Drill-CLI-linux-x86_64-release/*
     - task: PublishPipelineArtifact@1
       inputs:
@@ -187,6 +188,7 @@ stages:
       inputs:
         buildType: 'current'
         targetPath: '$(Pipeline.Workspace)'
+        artifactName: 'Drill-CLI-windows-x86_64-release'
     - bash: 7z a -tzip Drill-CLI-windows-x86_64-release.zip $(Pipeline.Workspace)/Drill-CLI-windows-x86_64-release/*
     - task: PublishPipelineArtifact@1
       inputs:
@@ -203,6 +205,7 @@ stages:
       inputs:
         buildType: 'current'
         targetPath: '$(Pipeline.Workspace)'
+        artifactName: 'Drill-CLI-osx-x86_64-release'
     - bash: 7z a -tzip Drill-CLI-osx-x86_64-release.zip $(Pipeline.Workspace)/Drill-CLI-osx-x86_64-release/*
     - task: PublishPipelineArtifact@1
       inputs:
@@ -219,6 +222,7 @@ stages:
       inputs:
         buildType: 'current'
         targetPath: '$(Pipeline.Workspace)'
+        artifactName: 'Drill-GTK-linux-x86_64-release'
     - bash: 7z a -tzip Drill-GTK-linux-x86_64-release.zip $(Pipeline.Workspace)/Drill-GTK-linux-x86_64-release/*
     - task: PublishPipelineArtifact@1
       inputs:
@@ -235,6 +239,7 @@ stages:
       inputs:
         buildType: 'current'
         targetPath: '$(Pipeline.Workspace)'
+        artifactName: 'Drill-GTK-osx-x86_64-release'
     - bash: 7z a -tzip Drill-GTK-osx-x86_64-release.zip $(Pipeline.Workspace)/Drill-GTK-osx-x86_64-release/*
     - task: PublishPipelineArtifact@1
       inputs:
@@ -254,6 +259,7 @@ stages:
       inputs:
         buildType: 'current'
         targetPath: '.'
+        artifactName: 'Drill-CLI-linux-x86_64-release'
     # Use the long path so we test if relative CWD works too in Drill
     - bash: chmod +x ./Drill-CLI-linux-x86_64-release/drill-search-cli
     - bash: ./Drill-CLI-linux-x86_64-release/drill-search-cli .
@@ -268,6 +274,7 @@ stages:
       inputs:
         buildType: 'current'
         targetPath: '.'
+        artifactName: 'Drill-CLI-osx-x86_64-release'
     - bash: chmod +x ./Drill-CLI-osx-x86_64-release/drill-search-cli
     - bash: ./Drill-CLI-osx-x86_64-release/drill-search-cli .
 
@@ -281,6 +288,7 @@ stages:
       inputs:
         buildType: 'current'
         targetPath: '.'
+        artifactName: 'Drill-CLI-windows-x86_64-release'
     - script: cd Drill-CLI-windows-x86_64-release
     - script: drill-search-cli.exe .
 
