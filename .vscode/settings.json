@@ -1,8 +1,0 @@
-{
-    "gulp.autoDetect":"off",
-    "jake.autoDetect":"off",
-    "npm.autoDetect": "off",
-    "git.ignoreLimitWarning": true,
-    "travis.repository": "Drill",
-    "travis.username": "yatima1460"
-}
