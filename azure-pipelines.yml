@@ -332,7 +332,7 @@ jobs:
   - bash: $(Pipeline.Workspace)/Drill-CLI-osx-x86_64-release/drill-search-cli .
 
 - job: Windows_CLI_Name_Test
-  timeoutInMinutes: 5
+  timeoutInMinutes: 1
   dependsOn: [Windows_CLI_Release]
   pool:
     name: Hosted VS2017
@@ -350,7 +350,7 @@ jobs:
 # Seach files for content tests with cutoff time
 
 - job: Linux_CLI_Content_Test
-  timeoutInMinutes: 5
+  timeoutInMinutes: 2
   dependsOn: [Linux_CLI_Release]
   pool:
     name: Hosted Ubuntu 1604
@@ -366,7 +366,7 @@ jobs:
   - bash: $(Pipeline.Workspace)/Drill-CLI-linux-x86_64-release/drill-search-cli content:.
 
 - job: OSX_CLI_Content_Test
-  timeoutInMinutes: 5
+  timeoutInMinutes: 2
   dependsOn: [OSX_CLI_Release]
   pool:
     name: Hosted macOS
@@ -381,7 +381,7 @@ jobs:
   - bash: $(Pipeline.Workspace)/Drill-CLI-osx-x86_64-release/drill-search-cli content:.
 
 - job: Windows_CLI_Content_Test
-  timeoutInMinutes: 1
+  timeoutInMinutes: 2
   dependsOn: [Windows_CLI_Release]
   pool:
     name: Hosted VS2017
