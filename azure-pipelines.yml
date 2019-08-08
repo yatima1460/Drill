@@ -277,8 +277,7 @@ jobs:
       buildType: 'current'
       artifactName: 'Drill-CLI-windows-x86_64-release'
       targetPath: '$(Pipeline.Workspace)/Drill-CLI-windows-x86_64-release'
-  - script: cd $(Pipeline.Workspace)/Drill-CLI-windows-x86_64-release
-  - script: drill-search-cli.exe .
+  - script: $(Pipeline.Workspace)/Drill-CLI-windows-x86_64-release/drill-search-cli.exe .
 
 - job: Linux_CLI_Time_Test
   timeoutInMinutes: 1
@@ -323,8 +322,7 @@ jobs:
       buildType: 'current'
       artifactName: 'Drill-CLI-windows-x86_64-release'
       targetPath: '$(Pipeline.Workspace)/Drill-CLI-windows-x86_64-release'
-  - script: cd $(Pipeline.Workspace)/Drill-CLI-windows-x86_64-release
-  - script: drill-search-cli.exe .
+  - script: $(Pipeline.Workspace)/Drill-CLI-windows-x86_64-release/drill-search-cli.exe .
 
 - job: Publish_Beta
   condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/master'))
