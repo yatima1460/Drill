@@ -170,9 +170,8 @@ stages:
     - task: DownloadPipelineArtifact@2
       inputs:
         buildType: 'current'
-        targetPath: '$(Pipeline.Workspace)'
         artifactName: 'Drill-CLI-linux-x86_64-release'
-    - bash: 7z a -tzip Drill-CLI-linux-x86_64-release.zip $(Pipeline.Workspace)/Drill-CLI-linux-x86_64-release/*
+    - bash: 7z a -tzip Drill-CLI-linux-x86_64-release.zip Drill-CLI-linux-x86_64-release/*
     - task: PublishPipelineArtifact@1
       inputs:
         targetPath: 'Drill-CLI-linux-x86_64-release.zip'
@@ -187,9 +186,8 @@ stages:
     - task: DownloadPipelineArtifact@2
       inputs:
         buildType: 'current'
-        targetPath: '$(Pipeline.Workspace)'
         artifactName: 'Drill-CLI-windows-x86_64-release'
-    - bash: 7z a -tzip Drill-CLI-windows-x86_64-release.zip $(Pipeline.Workspace)/Drill-CLI-windows-x86_64-release/*
+    - bash: 7z a -tzip Drill-CLI-windows-x86_64-release.zip Drill-CLI-windows-x86_64-release/*
     - task: PublishPipelineArtifact@1
       inputs:
         targetPath: 'Drill-CLI-windows-x86_64-release.zip'
@@ -204,9 +202,8 @@ stages:
     - task: DownloadPipelineArtifact@2
       inputs:
         buildType: 'current'
-        targetPath: '$(Pipeline.Workspace)'
         artifactName: 'Drill-CLI-osx-x86_64-release'
-    - bash: 7z a -tzip Drill-CLI-osx-x86_64-release.zip $(Pipeline.Workspace)/Drill-CLI-osx-x86_64-release/*
+    - bash: 7z a -tzip Drill-CLI-osx-x86_64-release.zip Drill-CLI-osx-x86_64-release/*
     - task: PublishPipelineArtifact@1
       inputs:
         targetPath: 'Drill-CLI-osx-x86_64-release.zip'
