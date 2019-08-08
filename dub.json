@@ -107,10 +107,8 @@
             
             "copyFiles-windows": [
                 "GTKWin/bin/*.dll",
-                "GTKWin/data/*"
-            ],
-            "copyFiles-osx": [
-                "GTKWin/data/*"
+                "GTKWin/data/etc",
+                "GTKWin/data/share"
             ]
         }
     ],
