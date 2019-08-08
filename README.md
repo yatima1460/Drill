@@ -13,9 +13,9 @@
 || GTK AppImage      |  ![](https://dev.azure.com/yatima1460/Drill/_apis/build/status/yatima1460.Drill?branchName=master&jobName=Linux_GTK_Release_AppImage) | N/A | N/A |
 |Test| Install CLI .deb          |  ![](https://dev.azure.com/yatima1460/Drill/_apis/build/status/yatima1460.Drill?branchName=master&jobName=Linux_CLI_Release_Deb_Test) | N/A | N/A |
 || Install GTK .deb         |  ![](https://dev.azure.com/yatima1460/Drill/_apis/build/status/yatima1460.Drill?branchName=master&jobName=Linux_GTK_Release_Deb_Test) | N/A | N/A |
-|| AppImage Test     |  ![](https://dev.azure.com/yatima1460/Drill/_apis/build/status/yatima1460.Drill?branchName=master&jobName=Linux_GTK_Release_AppImage_Test) | N/A | N/A |
-|| CLI Stress Test   |  ![](https://dev.azure.com/yatima1460/Drill/_apis/build/status/yatima1460.Drill?branchName=master&jobName=Linux_CLI_Stress_Test) | ![](https://dev.azure.com/yatima1460/Drill/_apis/build/status/yatima1460.Drill?branchName=master&jobName=Windows_CLI_Stress_Test) | ![](https://dev.azure.com/yatima1460/Drill/_apis/build/status/yatima1460.Drill?branchName=master&jobName=OSX_CLI_Stress_Test) |
-|| CLI Search Time Test   |  ![](https://dev.azure.com/yatima1460/Drill/_apis/build/status/yatima1460.Drill?branchName=master&jobName=Linux_CLI_Time_Test) | ![](https://dev.azure.com/yatima1460/Drill/_apis/build/status/yatima1460.Drill?branchName=master&jobName=Windows_CLI_Time_Test) | ![](https://dev.azure.com/yatima1460/Drill/_apis/build/status/yatima1460.Drill?branchName=master&jobName=OSX_CLI_Time_Test) |
+|| Extract AppImage     |  ![](https://dev.azure.com/yatima1460/Drill/_apis/build/status/yatima1460.Drill?branchName=master&jobName=Linux_GTK_Release_AppImage_Test) | N/A | N/A |
+|| CLI Stress   |  ![](https://dev.azure.com/yatima1460/Drill/_apis/build/status/yatima1460.Drill?branchName=master&jobName=Linux_CLI_Stress_Test) | ![](https://dev.azure.com/yatima1460/Drill/_apis/build/status/yatima1460.Drill?branchName=master&jobName=Windows_CLI_Stress_Test) | ![](https://dev.azure.com/yatima1460/Drill/_apis/build/status/yatima1460.Drill?branchName=master&jobName=OSX_CLI_Stress_Test) |
+|| CLI Search Time   |  ![](https://dev.azure.com/yatima1460/Drill/_apis/build/status/yatima1460.Drill?branchName=master&jobName=Linux_CLI_Time_Test) | ![](https://dev.azure.com/yatima1460/Drill/_apis/build/status/yatima1460.Drill?branchName=master&jobName=Windows_CLI_Time_Test) | ![](https://dev.azure.com/yatima1460/Drill/_apis/build/status/yatima1460.Drill?branchName=master&jobName=OSX_CLI_Time_Test) |
 
 | Result
 |---|
