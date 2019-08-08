@@ -5,11 +5,10 @@ variables:
   dmd_version: 2.087.1
 
 stages:
-- stage: Unittest
+- stage: Linux_CLI_Unittest
   dependsOn: []
   jobs:
-  - job: Linux_CLI_Unittest
-    dependsOn: []
+  - job: 
     pool:
       name: Hosted Ubuntu 1604
     steps:
@@ -22,8 +21,11 @@ stages:
     - bash: 'dub build -c CLI -b unittest --arch=x86_64'
       displayName: "CLI Unittest"
 
-  - job: Windows_CLI_Unittest
-    dependsOn: []
+
+- stage: Windows_CLI_Unittest
+  dependsOn: []
+  jobs:
+  - job: 
     pool:
       name: Hosted VS2017
     steps:
@@ -34,6 +36,9 @@ stages:
     - script: '%cd%/dmd2/windows/bin/dub.exe --version'
     - script: '%cd%/dmd2/windows/bin/dub.exe build -c CLI -b unittest --arch=x86_64'
 
+- stage: 
+  dependsOn: []
+  jobs:
   - job: OSX_CLI_Unittest
     dependsOn: []
     pool:
@@ -58,7 +63,10 @@ stages:
     - bash: 'dub build -c GTK -b unittest --arch=x86_64'
       displayName: 'Unittest GTK'
 
-  - job: OSX_GTK_Unittest
+- stage: OSX_GTK_Unittest
+  dependsOn: []
+  jobs:
+  - job: 
     dependsOn: []
     pool:
       name: Hosted macOS
@@ -71,11 +79,13 @@ stages:
     - bash: 'source ~/dlang/dmd-$(dmd_version)/activate && dub build -c GTK -b unittest --arch=x86_64'
       displayName: 'Unittest GTK'
 
-- stage: Build
-  dependsOn: [Unittest]
+
+
+
+- stage: Linux_CLI_Release
+  dependsOn: [Linux_CLI_Unittest]
   jobs:
-  - job: Linux_CLI_Release
-    dependsOn: []
+  - job:
     pool:
       name: Hosted Ubuntu 1604
     steps:
@@ -92,7 +102,13 @@ stages:
         targetPath: 'Build/Drill-CLI-linux-x86_64-release'
         artifact: 'Drill-CLI-linux-x86_64-release' 
 
-  - job: Windows_CLI_Release
+
+
+
+- stage: Windows_CLI_Release
+  dependsOn: [Windows_CLI_Unittest]
+  jobs:
+  - job: 
     dependsOn: []
     pool:
       name: Hosted VS2017
@@ -108,7 +124,13 @@ stages:
         targetPath: 'Build/Drill-CLI-windows-x86_64-release'
         artifact: 'Drill-CLI-windows-x86_64-release' 
 
-  - job: OSX_CLI_Release
+
+
+
+- stage: OSX_CLI_Release
+  dependsOn: [OSX_CLI_Unittest]
+  jobs:
+  - job: 
     dependsOn: []
     pool:
       name: Hosted macOS
@@ -121,7 +143,13 @@ stages:
         targetPath: 'Build/Drill-CLI-osx-x86_64-release'
         artifact: 'Drill-CLI-osx-x86_64-release' 
 
-  - job: Linux_GTK_Release
+
+
+
+- stage: Linux_GTK_Release
+  dependsOn: [Linux_GTK_Unittest]
+  jobs:
+  - job:
     dependsOn: []
     pool:
       name: Hosted Ubuntu 1604
@@ -140,7 +168,13 @@ stages:
         targetPath: 'Build/Drill-GTK-linux-x86_64-release'
         artifact: 'Drill-GTK-linux-x86_64-release' 
 
-  - job: OSX_GTK_Release
+
+
+
+- stage: OSX_GTK_Release
+  dependsOn: [OSX_GTK_Unittest]
+  jobs:
+  - job: 
     dependsOn: []
     pool:
       name: Hosted macOS
@@ -158,10 +192,14 @@ stages:
         artifact: 'Drill-GTK-osx-x86_64-release' 
 
 
-- stage: Package
-  dependsOn: Build
+
+
+
+
+- stage: Linux_CLI_Release_Zip
+  dependsOn: Linux_CLI_Release
   jobs:
-  - job: Linux_CLI_Release_Zip
+  - job: 
     dependsOn: []
     pool:
       name: Hosted Ubuntu 1604
@@ -180,7 +218,11 @@ stages:
         targetPath: 'Drill-CLI-linux-x86_64-release.zip'
         artifact: 'Drill-CLI-linux-x86_64-release.zip'
 
-  - job: Windows_CLI_Release_Zip
+
+- stage: Windows_CLI_Release_Zip
+  dependsOn: [Windows_CLI_Release]
+  jobs:
+  - job: 
     dependsOn: []
     pool:
       name: Hosted Ubuntu 1604
@@ -196,7 +238,11 @@ stages:
         targetPath: 'Drill-CLI-windows-x86_64-release.zip'
         artifact: 'Drill-CLI-windows-x86_64-release.zip'
 
-  - job: OSX_CLI_Release_Zip
+
+- stage: OSX_CLI_Release_Zip
+  dependsOn: []
+  jobs:
+  - job: 
     dependsOn: []
     pool:
       name: Hosted Ubuntu 1604
@@ -212,7 +258,14 @@ stages:
         targetPath: 'Drill-CLI-osx-x86_64-release.zip'
         artifact: 'Drill-CLI-osx-x86_64-release.zip'
 
-  - job: Linux_GTK_Release_Zip
+
+
+
+
+- stage: Linux_GTK_Release_Zip
+  dependsOn: [Linux_GTK_Release]
+  jobs:
+  - job: 
     dependsOn: []
     pool:
       name: Hosted Ubuntu 1604
@@ -229,7 +282,13 @@ stages:
         targetPath: 'Drill-GTK-linux-x86_64-release.zip'
         artifact: 'Drill-GTK-linux-x86_64-release.zip'
 
-  - job: OSX_GTK_Release_Zip
+
+
+
+- stage: OSX_GTK_Release_Zip
+  dependsOn: [OSX_GTK_Release]
+  jobs:
+  - job: 
     dependsOn: []
     pool:
       name: Hosted Ubuntu 1604
@@ -246,8 +305,9 @@ stages:
         targetPath: 'Drill-GTK-osx-x86_64-release.zip'
         artifact: 'Drill-GTK-osx-x86_64-release.zip'
 
-- stage: Test
-  dependsOn: [Build]
+
+- stage: 
+  dependsOn: []
   jobs:
   - job: Linux_CLI_Stress_Test
     dependsOn: []
@@ -264,6 +324,9 @@ stages:
     - bash: chmod +x ./Drill-CLI-linux-x86_64-release/drill-search-cli
     - bash: ./Drill-CLI-linux-x86_64-release/drill-search-cli .
 
+- stage: 
+  dependsOn: []
+  jobs:
   - job: OSX_CLI_Stress_Test
     dependsOn: []
     pool:
@@ -278,6 +341,9 @@ stages:
     - bash: chmod +x ./Drill-CLI-osx-x86_64-release/drill-search-cli
     - bash: ./Drill-CLI-osx-x86_64-release/drill-search-cli .
 
+- stage: 
+  dependsOn: []
+  jobs:
   - job: Windows_CLI_Stress_Test
     dependsOn: []
     pool:
@@ -292,7 +358,10 @@ stages:
     - script: cd Drill-CLI-windows-x86_64-release
     - script: drill-search-cli.exe .
 
-  - job: Linux_CLI_Time_Test
+- stage: Linux_CLI_Time_Test
+  dependsOn: [Linux_CLI_Release]
+  jobs:
+  - job: 
     timeoutInMinutes: 1
     dependsOn: []
     pool:
@@ -308,7 +377,10 @@ stages:
     - bash: chmod +x ./Drill-CLI-linux-x86_64-release/drill-search-cli
     - bash: ./Drill-CLI-linux-x86_64-release/drill-search-cli .
 
-  - job: OSX_CLI_Time_Test
+- stage: OSX_CLI_Time_Test
+  dependsOn: [OSX_CLI_Release]
+  jobs:
+  - job: 
     timeoutInMinutes: 1
     dependsOn: []
     pool:
@@ -323,7 +395,10 @@ stages:
     - bash: chmod +x ./Drill-CLI-osx-x86_64-release/drill-search-cli
     - bash: ./Drill-CLI-osx-x86_64-release/drill-search-cli .
 
-  - job: Windows_CLI_Time_Test
+- stage: Windows_CLI_Time_Test
+  dependsOn: [Windows_CLI_Release]
+  jobs:
+  - job: 
     timeoutInMinutes: 1
     dependsOn: []
     pool:
@@ -339,11 +414,16 @@ stages:
     - script: drill-search-cli.exe .
 
 
-- stage: Publish
-  dependsOn: [Package, Test]
+- stage: Publish_Beta
+  condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/master'))
+  dependsOn:
+  - Windows_CLI_Release_Zip
+  - Linux_CLI_Release_Zip
+  - OSX_CLI_Release_Zip
+  - Linux_GTK_Release_Zip
+  - OSX_GTK_Release_Zip
   jobs:
-  - job: Publish_Beta
-    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/master'))
+  - job:
     pool:
       name: Hosted Ubuntu 1604
     steps:
