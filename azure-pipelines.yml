@@ -296,7 +296,11 @@ jobs:
 #       targetPath: '$(Pipeline.Workspace)/Drill-CLI-windows-x86_64-release'
 #   - script: $(Pipeline.Workspace)/Drill-CLI-windows-x86_64-release/drill-search-cli.exe .
 
-- job: Linux_CLI_Time_Test
+
+
+# Seach files by name tests with cutoff time
+
+- job: Linux_CLI_Name_Test
   timeoutInMinutes: 1
   dependsOn: [Linux_CLI_Release]
   pool:
@@ -312,7 +316,7 @@ jobs:
   - bash: chmod +x $(Pipeline.Workspace)/Drill-CLI-linux-x86_64-release/drill-search-cli
   - bash: $(Pipeline.Workspace)/Drill-CLI-linux-x86_64-release/drill-search-cli .
 
-- job: OSX_CLI_Time_Test
+- job: OSX_CLI_Name_Test
   timeoutInMinutes: 1
   dependsOn: [OSX_CLI_Release]
   pool:
@@ -327,8 +331,8 @@ jobs:
   - bash: chmod +x $(Pipeline.Workspace)/Drill-CLI-osx-x86_64-release/drill-search-cli
   - bash: $(Pipeline.Workspace)/Drill-CLI-osx-x86_64-release/drill-search-cli .
 
-- job: Windows_CLI_Time_Test
-  timeoutInMinutes: 1
+- job: Windows_CLI_Name_Test
+  timeoutInMinutes: 5
   dependsOn: [Windows_CLI_Release]
   pool:
     name: Hosted VS2017
@@ -340,6 +344,59 @@ jobs:
       artifactName: 'Drill-CLI-windows-x86_64-release'
       targetPath: '$(Pipeline.Workspace)/Drill-CLI-windows-x86_64-release'
   - script: $(Pipeline.Workspace)/Drill-CLI-windows-x86_64-release/drill-search-cli.exe .
+
+
+
+# Seach files for content tests with cutoff time
+
+- job: Linux_CLI_Content_Test
+  timeoutInMinutes: 5
+  dependsOn: [Linux_CLI_Release]
+  pool:
+    name: Hosted Ubuntu 1604
+  steps:
+  - checkout: none
+  - task: DownloadPipelineArtifact@2
+    inputs:
+      buildType: 'current'
+      artifactName: 'Drill-CLI-linux-x86_64-release'
+      targetPath: '$(Pipeline.Workspace)/Drill-CLI-linux-x86_64-release'
+  # Use the long path so we test if relative CWD works too in Drill
+  - bash: chmod +x $(Pipeline.Workspace)/Drill-CLI-linux-x86_64-release/drill-search-cli
+  - bash: $(Pipeline.Workspace)/Drill-CLI-linux-x86_64-release/drill-search-cli content:.
+
+- job: OSX_CLI_Content_Test
+  timeoutInMinutes: 5
+  dependsOn: [OSX_CLI_Release]
+  pool:
+    name: Hosted macOS
+  steps:
+  - checkout: none
+  - task: DownloadPipelineArtifact@2
+    inputs:
+      buildType: 'current'
+      artifactName: 'Drill-CLI-osx-x86_64-release'
+      targetPath: '$(Pipeline.Workspace)/Drill-CLI-osx-x86_64-release'
+  - bash: chmod +x $(Pipeline.Workspace)/Drill-CLI-osx-x86_64-release/drill-search-cli
+  - bash: $(Pipeline.Workspace)/Drill-CLI-osx-x86_64-release/drill-search-cli content:.
+
+- job: Windows_CLI_Content_Test
+  timeoutInMinutes: 1
+  dependsOn: [Windows_CLI_Release]
+  pool:
+    name: Hosted VS2017
+  steps:
+  - checkout: none
+  - task: DownloadPipelineArtifact@2
+    inputs:
+      buildType: 'current'
+      artifactName: 'Drill-CLI-windows-x86_64-release'
+      targetPath: '$(Pipeline.Workspace)/Drill-CLI-windows-x86_64-release'
+  - script: $(Pipeline.Workspace)/Drill-CLI-windows-x86_64-release/drill-search-cli.exe content:.
+
+
+
+
 
 - job: Publish_Beta
   condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/master'))
