@@ -70,7 +70,7 @@ jobs:
     displayName: 'Unittest GTK'
 
 - job: Linux_CLI_Release
-  dependsOn: [Linux_CLI_Unittest]
+  dependsOn: []
   pool:
     name: Hosted Ubuntu 1604
   steps:
@@ -88,7 +88,7 @@ jobs:
       artifact: 'Drill-CLI-linux-x86_64-release' 
 
 - job: Windows_CLI_Release
-  dependsOn: [Windows_CLI_Unittest]
+  dependsOn: []
   pool:
     name: Hosted VS2017
   steps:
@@ -104,7 +104,7 @@ jobs:
       artifact: 'Drill-CLI-windows-x86_64-release' 
 
 - job: OSX_CLI_Release
-  dependsOn: [OSX_CLI_Unittest]
+  dependsOn: []
   pool:
     name: Hosted macOS
   steps:
@@ -117,7 +117,7 @@ jobs:
       artifact: 'Drill-CLI-osx-x86_64-release' 
 
 - job: Linux_GTK_Release
-  dependsOn: [Linux_GTK_Unittest]
+  dependsOn: []
   pool:
     name: Hosted Ubuntu 1604
   steps:
@@ -136,7 +136,7 @@ jobs:
       artifact: 'Drill-GTK-linux-x86_64-release' 
 
 - job: OSX_GTK_Release
-  dependsOn: [OSX_GTK_Unittest]
+  dependsOn: []
   pool:
     name: Hosted macOS
   steps:
@@ -401,6 +401,11 @@ jobs:
 - job: Publish_Beta
   condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/master'))
   dependsOn:
+  - Linux_CLI_Unittest
+  - Windows_CLI_Unittest
+  - OSX_CLI_Unittest
+  - Linux_GTK_Unittest
+  - OSX_GTK_Unittest
   - Linux_CLI_Release_Zip
   - Windows_CLI_Release_Zip
   - OSX_CLI_Release_Zip
