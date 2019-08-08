@@ -355,8 +355,8 @@ stages:
 
 - stage: Publish_Beta
   dependsOn:
-  - CLIZip
-  - GTKZip
+  - CLI_Zip
+  - GTK_Zip
   jobs:
   - job: Publish_Beta
     condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/master'))
