@@ -187,7 +187,7 @@ stages:
       inputs:
         buildType: 'current'
         targetPath: '$(Pipeline.Workspace)'
-    - bash: 7z a -tzip Drill-GTK-windows-x86_64-release.zip $(Pipeline.Workspace)/Drill-GTK-windows-x86_64-release/*
+    - bash: 7z a -tzip Drill-CLI-windows-x86_64-release.zip $(Pipeline.Workspace)/Drill-CLI-windows-x86_64-release/*
     - task: PublishPipelineArtifact@1
       inputs:
         targetPath: 'Drill-CLI-windows-x86_64-release.zip'
@@ -203,7 +203,7 @@ stages:
       inputs:
         buildType: 'current'
         targetPath: '$(Pipeline.Workspace)'
-    - bash: 7z a -tzip Drill-GTK-osx-x86_64-release.zip $(Pipeline.Workspace)/Drill-GTK-osx-x86_64-release/*
+    - bash: 7z a -tzip Drill-CLI-osx-x86_64-release.zip $(Pipeline.Workspace)/Drill-CLI-osx-x86_64-release/*
     - task: PublishPipelineArtifact@1
       inputs:
         targetPath: 'Drill-CLI-osx-x86_64-release.zip'
@@ -235,7 +235,7 @@ stages:
       inputs:
         buildType: 'current'
         targetPath: '$(Pipeline.Workspace)'
-    - bash: 7z a -tzip Drill-GTK-osx-x86_64-release.zip $(Pipeline.Workspace)/Drill-osx-linux-x86_64-release/*
+    - bash: 7z a -tzip Drill-GTK-osx-x86_64-release.zip $(Pipeline.Workspace)/Drill-GTK-osx-x86_64-release/*
     - task: PublishPipelineArtifact@1
       inputs:
         targetPath: 'Drill-GTK-osx-x86_64-release.zip'
@@ -281,10 +281,11 @@ stages:
       inputs:
         buildType: 'current'
         targetPath: '.'
-    - script: Drill-CLI-windows-x86_64-release/drill-search-cli.exe .
+    - script: cd Drill-CLI-windows-x86_64-release
+    - script: drill-search-cli.exe .
 
 - stage: Publish
-  dependsOn: [Test]
+  dependsOn: [Package, Test]
   jobs:
   - job: Publish_Beta
     condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/master'))
