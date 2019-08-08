@@ -5,10 +5,11 @@ variables:
   dmd_version: 2.087.1
 
 stages:
-- stage: Unittest
+- stage: CLI_Unittest
   dependsOn: []
   jobs:
   - job: Linux_CLI_Unittest
+    displayName: Linux
     dependsOn: []
     pool:
       name: Hosted Ubuntu 1604
@@ -43,7 +44,11 @@ stages:
     - bash: 'curl -fsS https://dlang.org/install.sh | bash -s dmd'
     - bash: 'source ~/dlang/dmd-$(dmd_version)/activate && dub build -c CLI -b unittest --arch=x86_64'
 
+- stage: GTK_Unittest
+  dependsOn: []
+  jobs:
   - job: Linux_GTK_Unittest
+    displayName: Linux
     dependsOn: []
     pool:
       name: Hosted Ubuntu 1604
@@ -71,8 +76,8 @@ stages:
     - bash: 'source ~/dlang/dmd-$(dmd_version)/activate && dub build -c GTK -b unittest --arch=x86_64'
       displayName: 'Unittest GTK'
 
-- stage: Build
-  dependsOn: [Unittest]
+- stage: CLI_Build
+  dependsOn: [CLI_Unittest]
   jobs:
   - job: Linux_CLI_Release
     dependsOn: []
@@ -121,6 +126,9 @@ stages:
         targetPath: 'Build/Drill-CLI-osx-x86_64-release'
         artifact: 'Drill-CLI-osx-x86_64-release' 
 
+- stage: GTK_Build
+  dependsOn: [GTK_Unittest]
+  jobs:
   - job: Linux_GTK_Release
     dependsOn: []
     pool:
@@ -158,8 +166,8 @@ stages:
         artifact: 'Drill-GTK-osx-x86_64-release' 
 
 
-- stage: Package
-  dependsOn: Build
+- stage: CLI_Zip
+  dependsOn: CLI_Build
   jobs:
   - job: Linux_CLI_Release_Zip
     dependsOn: []
@@ -171,9 +179,7 @@ stages:
       inputs:
         buildType: 'current'
         artifactName: 'Drill-CLI-linux-x86_64-release'
-    - bash: ls -la
-    - bash: ls -la $(Pipeline.Workspace)
-    - bash: ls -la Drill-CLI-linux-x86_64-release
+        targetPath: '$(Pipeline.Workspace)/Drill-CLI-linux-x86_64-release'
     - bash: 7z a -tzip Drill-CLI-linux-x86_64-release.zip $(Pipeline.Workspace)/Drill-CLI-linux-x86_64-release/*
     - task: PublishPipelineArtifact@1
       inputs:
@@ -214,6 +220,9 @@ stages:
         targetPath: 'Drill-CLI-osx-x86_64-release.zip'
         artifact: 'Drill-CLI-osx-x86_64-release.zip'
 
+- stage: GTK_Zip
+  dependsOn: GTK_Build
+  jobs:
   - job: Linux_GTK_Release_Zip
     dependsOn: []
     pool:
@@ -248,8 +257,8 @@ stages:
         targetPath: 'Drill-GTK-osx-x86_64-release.zip'
         artifact: 'Drill-GTK-osx-x86_64-release.zip'
 
-- stage: Test
-  dependsOn: [Build]
+- stage: CLI_Stress_Test
+  dependsOn: [CLI_Build]
   jobs:
   - job: Linux_CLI_Stress_Test
     dependsOn: []
@@ -294,6 +303,9 @@ stages:
     - script: cd $(Pipeline.Workspace)/Drill-CLI-windows-x86_64-release
     - script: drill-search-cli.exe .
 
+- stage: Time_Test
+  dependsOn: CLI_Build
+  jobs:
   - job: Linux_CLI_Time_Test
     timeoutInMinutes: 1
     dependsOn: []
@@ -341,8 +353,10 @@ stages:
     - script: drill-search-cli.exe .
 
 
-- stage: Publish
-  dependsOn: [Package, Test]
+- stage: Publish_Beta
+  dependsOn:
+  - CLIZip
+  - GTKZip
   jobs:
   - job: Publish_Beta
     condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/master'))
