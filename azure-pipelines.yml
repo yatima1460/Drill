@@ -4,212 +4,325 @@
 variables:
   dmd_version: 2.087.1
 
-jobs:
-- job: Linux_CLI_Unittest
+stages:
+- stage: Unittest
   dependsOn: []
-  pool:
-    name: Hosted Ubuntu 1604
-  steps:
-  - bash: |
-      wget http://downloads.dlang.org/releases/2.x/$(dmd_version)/dmd_$(dmd_version)-0_amd64.deb
-      sudo dpkg -i dmd_$(dmd_version)-0_amd64.deb
-      dmd --version
-      dub --version
-    displayName: 'Install DMD'
-  - bash: 'dub build -c CLI -b unittest --arch=x86_64'
-    displayName: "CLI Unittest"
+  jobs:
+  - job: Linux_CLI_Unittest
+    dependsOn: []
+    pool:
+      name: Hosted Ubuntu 1604
+    steps:
+    - bash: |
+        wget http://downloads.dlang.org/releases/2.x/$(dmd_version)/dmd_$(dmd_version)-0_amd64.deb
+        sudo dpkg -i dmd_$(dmd_version)-0_amd64.deb
+        dmd --version
+        dub --version
+      displayName: 'Install DMD'
+    - bash: 'dub build -c CLI -b unittest --arch=x86_64'
+      displayName: "CLI Unittest"
 
-- job: Linux_CLI_Release
-  dependsOn: []
-  pool:
-    name: Hosted Ubuntu 1604
-  steps:
-  - bash: |
-      wget http://downloads.dlang.org/releases/2.x/$(dmd_version)/dmd_$(dmd_version)-0_amd64.deb
-      sudo dpkg -i dmd_$(dmd_version)-0_amd64.deb
-      dmd --version
-      dub --version
-    displayName: 'Install DMD'
-  - bash: 'dub build -c CLI -b release --arch=x86_64'
-    displayName: "CLI Release"
-  - task: PublishPipelineArtifact@1
-    inputs:
-      targetPath: 'Build/Drill-CLI-linux-x86_64-release'
-      artifact: 'Drill-CLI-linux-x86_64-release' 
+  - job: Windows_CLI_Unittest
+    dependsOn: []
+    pool:
+      name: Hosted VS2017
+    steps:
+    - powershell: |
+        Invoke-WebRequest -Uri http://downloads.dlang.org/releases/2.x/$(dmd_version)/dmd.$(dmd_version).windows.zip -OutFile dmd2.zip
+        Expand-Archive dmd2.zip -DestinationPath .
+    - script: '%cd%/dmd2/windows/bin/dmd.exe --version'
+    - script: '%cd%/dmd2/windows/bin/dub.exe --version'
+    - script: '%cd%/dmd2/windows/bin/dub.exe build -c CLI -b unittest --arch=x86_64'
 
-- job: Windows_CLI_Unittest
-  dependsOn: []
-  pool:
-    name: Hosted VS2017
-  steps:
-  - powershell: |
-      Invoke-WebRequest -Uri http://downloads.dlang.org/releases/2.x/$(dmd_version)/dmd.$(dmd_version).windows.zip -OutFile dmd2.zip
-      Expand-Archive dmd2.zip -DestinationPath .
-  - script: '%cd%/dmd2/windows/bin/dmd.exe --version'
-  - script: '%cd%/dmd2/windows/bin/dub.exe --version'
-  - script: '%cd%/dmd2/windows/bin/dub.exe build -c CLI -b unittest --arch=x86_64'
+  - job: OSX_CLI_Unittest
+    dependsOn: []
+    pool:
+      name: Hosted macOS
+    steps:
+    - bash: 'brew install gpgme'
+    - bash: 'curl -fsS https://dlang.org/install.sh | bash -s dmd'
+    - bash: 'source ~/dlang/dmd-$(dmd_version)/activate && dub build -c CLI -b unittest --arch=x86_64'
 
-- job: Windows_CLI_Release
-  dependsOn: []
-  pool:
-    name: Hosted VS2017
-  steps:
-  - powershell: |
-      Invoke-WebRequest -Uri http://downloads.dlang.org/releases/2.x/$(dmd_version)/dmd.$(dmd_version).windows.zip -OutFile dmd2.zip
-      Expand-Archive dmd2.zip -DestinationPath .
-  - script: '%cd%/dmd2/windows/bin/dmd.exe --version'
-  - script: '%cd%/dmd2/windows/bin/dub.exe --version'
-  - script: '%cd%/dmd2/windows/bin/dub.exe build -c CLI -b release --arch=x86_64'
-  - task: PublishPipelineArtifact@1
-    inputs:
-      targetPath: 'Build/Drill-CLI-windows-x86_64-release'
-      artifact: 'Drill-CLI-windows-x86_64-release' 
+  - job: Linux_GTK_Unittest
+    dependsOn: []
+    pool:
+      name: Hosted Ubuntu 1604
+    steps:
+    - bash: |
+        wget http://downloads.dlang.org/releases/2.x/$(dmd_version)/dmd_$(dmd_version)-0_amd64.deb
+        sudo dpkg -i dmd_$(dmd_version)-0_amd64.deb
+        dmd --version
+        dub --version
+      displayName: 'Install DMD'
+    - bash: 'sudo apt install -y libgtk-3-dev'
+    - bash: 'dub build -c GTK -b unittest --arch=x86_64'
+      displayName: 'Unittest GTK'
 
+  - job: OSX_GTK_Unittest
+    dependsOn: []
+    pool:
+      name: Hosted macOS
+    steps:
+    - bash: 'brew install gpgme'
+    - bash: 'curl -fsS https://dlang.org/install.sh | bash -s dmd'
+    - bash: 'brew install gtk+3'
+    - bash: 'brew install glib'
+    - bash: 'brew install gobject-introspection'
+    - bash: 'source ~/dlang/dmd-$(dmd_version)/activate && dub build -c GTK -b unittest --arch=x86_64'
+      displayName: 'Unittest GTK'
 
-- job: Linux_GTK_Unittest
-  dependsOn: []
-  pool:
-    name: Hosted Ubuntu 1604
-  steps:
-  - bash: |
-      wget http://downloads.dlang.org/releases/2.x/$(dmd_version)/dmd_$(dmd_version)-0_amd64.deb
-      sudo dpkg -i dmd_$(dmd_version)-0_amd64.deb
-      dmd --version
-      dub --version
-    displayName: 'Install DMD'
-  - bash: 'sudo apt install -y libgtk-3-dev'
-  - bash: 'dub build -c GTK -b unittest --arch=x86_64'
-    displayName: 'Unittest GTK'
+- stage: Build
+  dependsOn: [Unittest]
+  jobs:
+  - job: Linux_CLI_Release
+    dependsOn: []
+    pool:
+      name: Hosted Ubuntu 1604
+    steps:
+    - bash: |
+        wget http://downloads.dlang.org/releases/2.x/$(dmd_version)/dmd_$(dmd_version)-0_amd64.deb
+        sudo dpkg -i dmd_$(dmd_version)-0_amd64.deb
+        dmd --version
+        dub --version
+      displayName: 'Install DMD'
+    - bash: 'dub build -c CLI -b release --arch=x86_64'
+      displayName: "CLI Release"
+    - task: PublishPipelineArtifact@1
+      inputs:
+        targetPath: 'Build/Drill-CLI-linux-x86_64-release'
+        artifact: 'Drill-CLI-linux-x86_64-release' 
 
-- job: Linux_GTK_Release
-  dependsOn: []
-  pool:
-    name: Hosted Ubuntu 1604
-  steps:
-  - bash: |
-      wget http://downloads.dlang.org/releases/2.x/$(dmd_version)/dmd_$(dmd_version)-0_amd64.deb
-      sudo dpkg -i dmd_$(dmd_version)-0_amd64.deb
-      dmd --version
-      dub --version
-    displayName: 'Install DMD'
-  - bash: 'sudo apt install -y libgtk-3-dev'
-  - bash: 'dub build -c GTK -b release --arch=x86_64'
-    displayName: "GTK Release"
-  - task: PublishPipelineArtifact@1
-    inputs:
-      targetPath: 'Build/Drill-GTK-linux-x86_64-release'
-      artifact: 'Drill-GTK-linux-x86_64-release' 
+  - job: Windows_CLI_Release
+    dependsOn: []
+    pool:
+      name: Hosted VS2017
+    steps:
+    - powershell: |
+        Invoke-WebRequest -Uri http://downloads.dlang.org/releases/2.x/$(dmd_version)/dmd.$(dmd_version).windows.zip -OutFile dmd2.zip
+        Expand-Archive dmd2.zip -DestinationPath .
+    - script: '%cd%/dmd2/windows/bin/dmd.exe --version'
+    - script: '%cd%/dmd2/windows/bin/dub.exe --version'
+    - script: '%cd%/dmd2/windows/bin/dub.exe build -c CLI -b release --arch=x86_64'
+    - task: PublishPipelineArtifact@1
+      inputs:
+        targetPath: 'Build/Drill-CLI-windows-x86_64-release'
+        artifact: 'Drill-CLI-windows-x86_64-release' 
 
+  - job: OSX_CLI_Release
+    dependsOn: []
+    pool:
+      name: Hosted macOS
+    steps:
+    - bash: 'brew install gpgme'
+    - bash: 'curl -fsS https://dlang.org/install.sh | bash -s dmd'
+    - bash: 'source ~/dlang/dmd-$(dmd_version)/activate && dub build -c CLI -b release --arch=x86_64'
+    - task: PublishPipelineArtifact@1
+      inputs:
+        targetPath: 'Build/Drill-CLI-osx-x86_64-release'
+        artifact: 'Drill-CLI-osx-x86_64-release' 
 
+  - job: Linux_GTK_Release
+    dependsOn: []
+    pool:
+      name: Hosted Ubuntu 1604
+    steps:
+    - bash: |
+        wget http://downloads.dlang.org/releases/2.x/$(dmd_version)/dmd_$(dmd_version)-0_amd64.deb
+        sudo dpkg -i dmd_$(dmd_version)-0_amd64.deb
+        dmd --version
+        dub --version
+      displayName: 'Install DMD'
+    - bash: 'sudo apt install -y libgtk-3-dev'
+    - bash: 'dub build -c GTK -b release --arch=x86_64'
+      displayName: "GTK Release"
+    - task: PublishPipelineArtifact@1
+      inputs:
+        targetPath: 'Build/Drill-GTK-linux-x86_64-release'
+        artifact: 'Drill-GTK-linux-x86_64-release' 
 
-- job: Linux_CLI_Release_Zip
-  dependsOn: [Linux_CLI_Release]
-  pool:
-    name: Hosted Ubuntu 1604
-  steps:
-  - checkout: none
-  - task: DownloadPipelineArtifact@2
-    inputs:
-      buildType: 'current'
-      targetPath: '$(Pipeline.Workspace)'
-  - bash: 7z a -tzip Drill-CLI-linux-x86_64-release.zip $(Pipeline.Workspace)/Drill-CLI-linux-x86_64-release/*
-  - task: PublishPipelineArtifact@1
-    inputs:
-      targetPath: 'Drill-CLI-linux-x86_64-release.zip'
-      artifact: 'Drill-CLI-linux-x86_64-release.zip'
-
-- job: Linux_GTK_Release_Zip
-  dependsOn: [Linux_GTK_Release]
-  pool:
-    name: Hosted Ubuntu 1604
-  steps:
-  - checkout: none
-  - task: DownloadPipelineArtifact@2
-    inputs:
-      buildType: 'current'
-      targetPath: '$(Pipeline.Workspace)'
-  - bash: 7z a -tzip Drill-GTK-linux-x86_64-release.zip $(Pipeline.Workspace)/Drill-GTK-linux-x86_64-release/*
-  - task: PublishPipelineArtifact@1
-    inputs:
-      targetPath: 'Drill-GTK-linux-x86_64-release.zip'
-      artifact: 'Drill-GTK-linux-x86_64-release.zip'
-
-
-
-- job: Windows_CLI_Release_Zip
-  dependsOn: [Windows_CLI_Release]
-  pool:
-    name: Hosted VS2017
-  steps:
-  - checkout: none
-  - task: DownloadPipelineArtifact@2
-    inputs:
-      buildType: 'current'
-      targetPath: '$(Pipeline.Workspace)'
-  - powershell: Compress-Archive -Path $(Pipeline.Workspace)/Drill-CLI-windows-x86_64-release -DestinationPath Drill-CLI-windows-x86_64-release.zip
-  - task: PublishPipelineArtifact@1
-    inputs:
-      targetPath: 'Drill-CLI-windows-x86_64-release.zip'
-      artifact: 'Drill-CLI-windows-x86_64-release.zip'
-
-- job: Linux_CLI_Release_Test
-  dependsOn: [Linux_CLI_Release]
-  pool:
-    name: Hosted Ubuntu 1604
-  steps:
-  - checkout: none
-  - task: DownloadPipelineArtifact@2
-    inputs:
-      buildType: 'current'
-      targetPath: '.'
-  # Use the long path so we test if relative CWD works too in Drill
-  - bash: chmod +x ./Drill-CLI-linux-x86_64-release/drill-search-cli
-  - bash: ./Drill-CLI-linux-x86_64-release/drill-search-cli .
+  - job: OSX_GTK_Release
+    dependsOn: []
+    pool:
+      name: Hosted macOS
+    steps:
+    - bash: 'brew install gpgme'
+    - bash: 'curl -fsS https://dlang.org/install.sh | bash -s dmd'
+    - bash: 'brew install gtk+3'
+    - bash: 'brew install glib'
+    - bash: 'brew install gobject-introspection'
+    - bash: 'source ~/dlang/dmd-$(dmd_version)/activate && dub build -c GTK -b release --arch=x86_64'
+      displayName: 'Unittest GTK'
+    - task: PublishPipelineArtifact@1
+      inputs:
+        targetPath: 'Build/Drill-GTK-osx-x86_64-release'
+        artifact: 'Drill-GTK-osx-x86_64-release' 
 
 
+- stage: Package
+  dependsOn: Build
+  jobs:
+  - job: Linux_CLI_Release_Zip
+    dependsOn: []
+    pool:
+      name: Hosted Ubuntu 1604
+    steps:
+    - checkout: none
+    - task: DownloadPipelineArtifact@2
+      inputs:
+        buildType: 'current'
+        targetPath: '$(Pipeline.Workspace)'
+    - bash: 7z a -tzip Drill-CLI-linux-x86_64-release.zip $(Pipeline.Workspace)/Drill-CLI-linux-x86_64-release/*
+    - task: PublishPipelineArtifact@1
+      inputs:
+        targetPath: 'Drill-CLI-linux-x86_64-release.zip'
+        artifact: 'Drill-CLI-linux-x86_64-release.zip'
 
-- job: Publish_Beta
-  condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/master'))
-  dependsOn: 
-    # - Windows_CLI_Unittest
-    # - Linux_CLI_Unittest
-    - Linux_CLI_Release_Zip
-    # - Windows_CLI_Release_Zip
-    # - Linux_CLI_Release_Test
-  pool:
-    name: Hosted Ubuntu 1604
-  steps:
-  - checkout: none
-  - task: DownloadPipelineArtifact@2
-    inputs:
-      buildType: 'current'
-      targetPath: '$(Build.BinariesDirectory)'
-  - bash: 'ls -la'
-  - bash: 'ls -la $(Build.BinariesDirectory)'
-  - bash: 'ls -la $(Build.BinariesDirectory)/'
-  - bash: 'ls -la $(Build.BinariesDirectory)/ *.zip'
-  - task: GitHubRelease@0
-    inputs:
-      gitHubConnection: 'githubtoken'
-      repositoryName: '$(Build.Repository.Name)'
-      action: 'delete'
-      tag: 'ContinuousIntegration'
-  - task: GitHubRelease@0
-    inputs:
-      gitHubConnection: 'githubtoken'
-      repositoryName: '$(Build.Repository.Name)'
-      action: 'create'
-      target: '$(Build.SourceVersion)'
-      tagSource: 'manual'
-      tag: 'ContinuousIntegration'
-      title: 'Beta'
-      releaseNotesSource: 'input'
-      releaseNotes: 'Automated Build $(Build.BuildNumber)'
-      isPreRelease: true
-      assetUploadMode: replace
-      addChangeLog: false
-      assets: |
-        $(Build.BinariesDirectory)/*.zip
+  - job: Windows_CLI_Release_Zip
+    dependsOn: []
+    pool:
+      name: Hosted Ubuntu 1604
+    steps:
+    - checkout: none
+    - task: DownloadPipelineArtifact@2
+      inputs:
+        buildType: 'current'
+        targetPath: '$(Pipeline.Workspace)'
+    - bash: 7z a -tzip Drill-GTK-windows-x86_64-release.zip $(Pipeline.Workspace)/Drill-GTK-windows-x86_64-release/*
+    - task: PublishPipelineArtifact@1
+      inputs:
+        targetPath: 'Drill-CLI-windows-x86_64-release.zip'
+        artifact: 'Drill-CLI-windows-x86_64-release.zip'
+
+  - job: OSX_CLI_Release_Zip
+    dependsOn: []
+    pool:
+      name: Hosted Ubuntu 1604
+    steps:
+    - checkout: none
+    - task: DownloadPipelineArtifact@2
+      inputs:
+        buildType: 'current'
+        targetPath: '$(Pipeline.Workspace)'
+    - bash: 7z a -tzip Drill-GTK-osx-x86_64-release.zip $(Pipeline.Workspace)/Drill-GTK-osx-x86_64-release/*
+    - task: PublishPipelineArtifact@1
+      inputs:
+        targetPath: 'Drill-CLI-osx-x86_64-release.zip'
+        artifact: 'Drill-CLI-osx-x86_64-release.zip'
+
+  - job: Linux_GTK_Release_Zip
+    dependsOn: []
+    pool:
+      name: Hosted Ubuntu 1604
+    steps:
+    - checkout: none
+    - task: DownloadPipelineArtifact@2
+      inputs:
+        buildType: 'current'
+        targetPath: '$(Pipeline.Workspace)'
+    - bash: 7z a -tzip Drill-GTK-linux-x86_64-release.zip $(Pipeline.Workspace)/Drill-GTK-linux-x86_64-release/*
+    - task: PublishPipelineArtifact@1
+      inputs:
+        targetPath: 'Drill-GTK-linux-x86_64-release.zip'
+        artifact: 'Drill-GTK-linux-x86_64-release.zip'
+
+  - job: OSX_GTK_Release_Zip
+    dependsOn: []
+    pool:
+      name: Hosted Ubuntu 1604
+    steps:
+    - checkout: none
+    - task: DownloadPipelineArtifact@2
+      inputs:
+        buildType: 'current'
+        targetPath: '$(Pipeline.Workspace)'
+    - bash: 7z a -tzip Drill-GTK-osx-x86_64-release.zip $(Pipeline.Workspace)/Drill-osx-linux-x86_64-release/*
+    - task: PublishPipelineArtifact@1
+      inputs:
+        targetPath: 'Drill-GTK-osx-x86_64-release.zip'
+        artifact: 'Drill-GTK-osx-x86_64-release.zip'
+
+- stage: Test
+  dependsOn: [Build]
+  jobs:
+  - job: Linux_CLI_Stress_Test
+    dependsOn: []
+    pool:
+      name: Hosted Ubuntu 1604
+    steps:
+    - checkout: none
+    - task: DownloadPipelineArtifact@2
+      inputs:
+        buildType: 'current'
+        targetPath: '.'
+    # Use the long path so we test if relative CWD works too in Drill
+    - bash: chmod +x ./Drill-CLI-linux-x86_64-release/drill-search-cli
+    - bash: ./Drill-CLI-linux-x86_64-release/drill-search-cli .
+
+  - job: OSX_CLI_Stress_Test
+    dependsOn: []
+    pool:
+      name: Hosted macOS
+    steps:
+    - checkout: none
+    - task: DownloadPipelineArtifact@2
+      inputs:
+        buildType: 'current'
+        targetPath: '.'
+    - bash: chmod +x ./Drill-CLI-osx-x86_64-release/drill-search-cli
+    - bash: ./Drill-CLI-osx-x86_64-release/drill-search-cli .
+
+  - job: Windows_CLI_Stress_Test
+    dependsOn: []
+    pool:
+      name: Hosted VS2017
+    steps:
+    - checkout: none
+    - task: DownloadPipelineArtifact@2
+      inputs:
+        buildType: 'current'
+        targetPath: '.'
+    - script: Drill-CLI-windows-x86_64-release/drill-search-cli.exe .
+
+- stage: Publish
+  dependsOn: [Test]
+  jobs:
+  - job: Publish_Beta
+    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/master'))
+    pool:
+      name: Hosted Ubuntu 1604
+    steps:
+    - checkout: none
+    - task: DownloadPipelineArtifact@2
+      inputs:
+        buildType: 'current'
+        targetPath: '$(Build.BinariesDirectory)'
+    - task: GitHubRelease@0
+      inputs:
+        gitHubConnection: 'githubtoken'
+        repositoryName: '$(Build.Repository.Name)'
+        action: 'delete'
+        tag: 'ContinuousIntegration'
+    - task: GitHubRelease@0
+      inputs:
+        gitHubConnection: 'githubtoken'
+        repositoryName: '$(Build.Repository.Name)'
+        action: 'create'
+        target: '$(Build.SourceVersion)'
+        tagSource: 'manual'
+        tag: 'ContinuousIntegration'
+        title: 'Beta'
+        releaseNotesSource: 'input'
+        releaseNotes: 'Automated Build $(Build.BuildNumber)'
+        isPreRelease: true
+        assetUploadMode: replace
+        addChangeLog: false
+        assets: |
+          $(Build.BinariesDirectory)/Drill-CLI-linux-x86_64-release.zip/Drill-CLI-linux-x86_64-release.zip
+          $(Build.BinariesDirectory)/Drill-CLI-windows-x86_64-release.zip/Drill-CLI-windows-x86_64-release.zip
+          $(Build.BinariesDirectory)/Drill-CLI-osx-x86_64-release.zip/Drill-CLI-osx-x86_64-release.zip
+          $(Build.BinariesDirectory)/Drill-GTK-linux-x86_64-release.zip/Drill-GTK-linux-x86_64-release.zip
+          $(Build.BinariesDirectory)/Drill-GTK-osx-x86_64-release.zip/Drill-GTK-osx-x86_64-release.zip
+
 
 
 
