@@ -7,7 +7,6 @@ variables:
 
 jobs:
 - job: Linux_CLI_Unittest
-  displayName: Linux
   dependsOn: []
   pool:
     name: Hosted Ubuntu 1604
@@ -43,7 +42,6 @@ jobs:
   - bash: 'source ~/dlang/dmd-$(dmd_version)/activate && dub build -c CLI -b unittest --arch=x86_64'
 
 - job: Linux_GTK_Unittest
-  displayName: Linux
   dependsOn: []
   pool:
     name: Hosted Ubuntu 1604
