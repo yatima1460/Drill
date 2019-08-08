@@ -14,12 +14,13 @@
 |Test| Install CLI .deb          |  ![](https://dev.azure.com/yatima1460/Drill/_apis/build/status/yatima1460.Drill?branchName=master&jobName=Linux_CLI_Release_Deb_Test) | N/A | N/A |
 || Install GTK .deb         |  ![](https://dev.azure.com/yatima1460/Drill/_apis/build/status/yatima1460.Drill?branchName=master&jobName=Linux_GTK_Release_Deb_Test) | N/A | N/A |
 || Extract .AppImage     |  ![](https://dev.azure.com/yatima1460/Drill/_apis/build/status/yatima1460.Drill?branchName=master&jobName=Linux_GTK_Release_AppImage_Test) | N/A | N/A |
-|| CLI Search Time   |  ![](https://dev.azure.com/yatima1460/Drill/_apis/build/status/yatima1460.Drill?branchName=master&jobName=Linux_CLI_Time_Test) | ![](https://dev.azure.com/yatima1460/Drill/_apis/build/status/yatima1460.Drill?branchName=master&jobName=Windows_CLI_Time_Test) | ![](https://dev.azure.com/yatima1460/Drill/_apis/build/status/yatima1460.Drill?branchName=master&jobName=OSX_CLI_Time_Test) |
+|| CLI Search Name Time   |  ![](https://dev.azure.com/yatima1460/Drill/_apis/build/status/yatima1460.Drill?branchName=master&jobName=Linux_CLI_Name_Test) | ![](https://dev.azure.com/yatima1460/Drill/_apis/build/status/yatima1460.Drill?branchName=master&jobName=Windows_CLI_Name_Test) | ![](https://dev.azure.com/yatima1460/Drill/_apis/build/status/yatima1460.Drill?branchName=master&jobName=OSX_CLI_Name_Test) |
+|| CLI Search Content Time   |  ![](https://dev.azure.com/yatima1460/Drill/_apis/build/status/yatima1460.Drill?branchName=master&jobName=Linux_CLI_Content_Test) | ![](https://dev.azure.com/yatima1460/Drill/_apis/build/status/yatima1460.Drill?branchName=master&jobName=Windows_CLI_Content_Test) | ![](https://dev.azure.com/yatima1460/Drill/_apis/build/status/yatima1460.Drill?branchName=master&jobName=OSX_CLI_Content_Test) |
 
-| Result
-|---|
-| Publish Beta: ![](https://dev.azure.com/yatima1460/Drill/_apis/build/status/yatima1460.Drill?branchName=master&jobName=Publish_Beta)
-| Pipeline: [![Build Status](https://dev.azure.com/yatima1460/Drill/_apis/build/status/yatima1460.Drill?branchName=master)](https://dev.azure.com/yatima1460/Drill/_build/latest?definitionId=6&branchName=master)
+| | Result |
+|---|---|
+| Publish Beta| ![](https://dev.azure.com/yatima1460/Drill/_apis/build/status/yatima1460.Drill?branchName=master&jobName=Publish_Beta)  |
+| Pipeline| [![Build Status](https://dev.azure.com/yatima1460/Drill/_apis/build/status/yatima1460.Drill?branchName=master)](https://dev.azure.com/yatima1460/Drill/_build/latest?definitionId=6&branchName=master) |
 
 
 
