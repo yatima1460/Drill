@@ -12,10 +12,19 @@
 [A-Z]:\\$Recycle\.Bin
 [A-Z]:\\$RECYCLE\.BIN
 [A-Z]:\\PenTabletDriver
+[A-Z]:\\vsts
 
-PerfLogs
-AppData
-SysReset
+[A-Z]:\\cobertura-[0-9]+\.[0-9]+\.[0-9]+
+[A-Z]:\\agents
+[A-Z]:\\Go[0-9]+\.[0-9]+\.[0-9]+
+[A-Z]:\\Miniconda
+
+[A-Z]:\\Rust
+\\_tasks\\
+
+PerfLogs$
+AppData$
+SysReset$
 vcpkg$
 WindowsApps$
 /desktop.ini$
