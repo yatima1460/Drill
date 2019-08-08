@@ -428,8 +428,7 @@ class Crawler : Thread
 private:
     const(string) MOUNTPOINT;
     const(string) SEARCH_STRING;
-    Regex!char[] BLOCK_LIST;
-
+ 
     Regex!char[] BLOCK_LIST_REGEX;
     const(Regex!char[]) PRIORITY_LIST_REGEX;
     
@@ -480,7 +479,7 @@ public:
 
         this.SEARCH_STRING = search;
         this.resultCallback = resultCallback;
-        this.BLOCK_LIST = cast(Regex!char[])BLOCK_LIST;
+        this.BLOCK_LIST_REGEX = cast(Regex!char[])BLOCK_LIST;
 
 
         this.running = true;
