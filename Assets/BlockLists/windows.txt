@@ -14,6 +14,21 @@
 [A-Z]:\\Program Files
 [A-Z]:\\Program Files \(x86\)
 
+PerfLogs$
+AppData$
+SysReset$
+vcpkg$
+WindowsApps$
+\\desktop.ini$
+
+
+[A-Z]:\\Packages\\
+
+
+[A-Z]:\\Rust
+
+[A-Z]:\\mysql-5.7.21-winx64\\
+[A-Z]:\\SeleniumWebDrivers\\
 [A-Z]:\\vsts
 [A-Z]:\\WindowsAzure
 [A-Z]:\\Strawberry
@@ -22,13 +37,8 @@
 [A-Z]:\\Go[0-9]+\.[0-9]+\.[0-9]+
 [A-Z]:\\Miniconda
 [A-Z]:\\Modules
+[A-Z]:\\Users\installer\\
+[A-Z]:\\hostedtoolcache\\
 
-[A-Z]:\\Rust
 \\_tasks\\
 
-PerfLogs$
-AppData$
-SysReset$
-vcpkg$
-WindowsApps$
-/desktop.ini$
