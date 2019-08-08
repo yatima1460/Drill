@@ -5,10 +5,11 @@ variables:
   dmd_version: 2.087.1
 
 stages:
-- stage: Linux_CLI_Unittest
+- stage: Unittest
   dependsOn: []
   jobs:
-  - job: 
+  - job: Linux_CLI_Unittest
+    dependsOn: []
     pool:
       name: Hosted Ubuntu 1604
     steps:
@@ -21,11 +22,8 @@ stages:
     - bash: 'dub build -c CLI -b unittest --arch=x86_64'
       displayName: "CLI Unittest"
 
-
-- stage: Windows_CLI_Unittest
-  dependsOn: []
-  jobs:
-  - job: 
+  - job: Windows_CLI_Unittest
+    dependsOn: []
     pool:
       name: Hosted VS2017
     steps:
@@ -36,10 +34,7 @@ stages:
     - script: '%cd%/dmd2/windows/bin/dub.exe --version'
     - script: '%cd%/dmd2/windows/bin/dub.exe build -c CLI -b unittest --arch=x86_64'
 
-- stage: OSX_CLI_Unittest
-  dependsOn: []
-  jobs:
-  - job:
+  - job: OSX_CLI_Unittest
     dependsOn: []
     pool:
       name: Hosted macOS
@@ -48,10 +43,7 @@ stages:
     - bash: 'curl -fsS https://dlang.org/install.sh | bash -s dmd'
     - bash: 'source ~/dlang/dmd-$(dmd_version)/activate && dub build -c CLI -b unittest --arch=x86_64'
 
-- stage: Linux_GTK_Unittest
-  dependsOn: []
-  jobs:
-  - job: 
+  - job: Linux_GTK_Unittest
     dependsOn: []
     pool:
       name: Hosted Ubuntu 1604
@@ -66,10 +58,7 @@ stages:
     - bash: 'dub build -c GTK -b unittest --arch=x86_64'
       displayName: 'Unittest GTK'
 
-- stage: OSX_GTK_Unittest
-  dependsOn: []
-  jobs:
-  - job: 
+  - job: OSX_GTK_Unittest
     dependsOn: []
     pool:
       name: Hosted macOS
@@ -82,13 +71,11 @@ stages:
     - bash: 'source ~/dlang/dmd-$(dmd_version)/activate && dub build -c GTK -b unittest --arch=x86_64'
       displayName: 'Unittest GTK'
 
-
-
-
-- stage: Linux_CLI_Release
-  dependsOn: [Linux_CLI_Unittest]
+- stage: Build
+  dependsOn: [Unittest]
   jobs:
-  - job:
+  - job: Linux_CLI_Release
+    dependsOn: []
     pool:
       name: Hosted Ubuntu 1604
     steps:
@@ -105,13 +92,7 @@ stages:
         targetPath: 'Build/Drill-CLI-linux-x86_64-release'
         artifact: 'Drill-CLI-linux-x86_64-release' 
 
-
-
-
-- stage: Windows_CLI_Release
-  dependsOn: [Windows_CLI_Unittest]
-  jobs:
-  - job: 
+  - job: Windows_CLI_Release
     dependsOn: []
     pool:
       name: Hosted VS2017
@@ -127,13 +108,7 @@ stages:
         targetPath: 'Build/Drill-CLI-windows-x86_64-release'
         artifact: 'Drill-CLI-windows-x86_64-release' 
 
-
-
-
-- stage: OSX_CLI_Release
-  dependsOn: [OSX_CLI_Unittest]
-  jobs:
-  - job: 
+  - job: OSX_CLI_Release
     dependsOn: []
     pool:
       name: Hosted macOS
@@ -146,13 +121,7 @@ stages:
         targetPath: 'Build/Drill-CLI-osx-x86_64-release'
         artifact: 'Drill-CLI-osx-x86_64-release' 
 
-
-
-
-- stage: Linux_GTK_Release
-  dependsOn: [Linux_GTK_Unittest]
-  jobs:
-  - job:
+  - job: Linux_GTK_Release
     dependsOn: []
     pool:
       name: Hosted Ubuntu 1604
@@ -171,13 +140,7 @@ stages:
         targetPath: 'Build/Drill-GTK-linux-x86_64-release'
         artifact: 'Drill-GTK-linux-x86_64-release' 
 
-
-
-
-- stage: OSX_GTK_Release
-  dependsOn: [OSX_GTK_Unittest]
-  jobs:
-  - job: 
+  - job: OSX_GTK_Release
     dependsOn: []
     pool:
       name: Hosted macOS
@@ -195,14 +158,10 @@ stages:
         artifact: 'Drill-GTK-osx-x86_64-release' 
 
 
-
-
-
-
-- stage: Linux_CLI_Release_Zip
-  dependsOn: Linux_CLI_Release
+- stage: Package
+  dependsOn: Build
   jobs:
-  - job: 
+  - job: Linux_CLI_Release_Zip
     dependsOn: []
     pool:
       name: Hosted Ubuntu 1604
@@ -212,7 +171,6 @@ stages:
       inputs:
         buildType: 'current'
         artifactName: 'Drill-CLI-linux-x86_64-release'
-        targetPath: '$(Pipeline.Workspace)' 
     - bash: ls -la
     - bash: ls -la $(Pipeline.Workspace)
     - bash: ls -la Drill-CLI-linux-x86_64-release
@@ -222,11 +180,7 @@ stages:
         targetPath: 'Drill-CLI-linux-x86_64-release.zip'
         artifact: 'Drill-CLI-linux-x86_64-release.zip'
 
-
-- stage: Windows_CLI_Release_Zip
-  dependsOn: [Windows_CLI_Release]
-  jobs:
-  - job: 
+  - job: Windows_CLI_Release_Zip
     dependsOn: []
     pool:
       name: Hosted Ubuntu 1604
@@ -236,17 +190,14 @@ stages:
       inputs:
         buildType: 'current'
         artifactName: 'Drill-CLI-windows-x86_64-release'
-    - bash: 7z a -tzip Drill-CLI-windows-x86_64-release.zip Drill-CLI-windows-x86_64-release/*
+        targetPath: '$(Pipeline.Workspace)/Drill-CLI-windows-x86_64-release'
+    - bash: 7z a -tzip Drill-CLI-windows-x86_64-release.zip $(Pipeline.Workspace)/Drill-CLI-windows-x86_64-release/*
     - task: PublishPipelineArtifact@1
       inputs:
         targetPath: 'Drill-CLI-windows-x86_64-release.zip'
         artifact: 'Drill-CLI-windows-x86_64-release.zip'
 
-
-- stage: OSX_CLI_Release_Zip
-  dependsOn: [OSX_CLI_Release]
-  jobs:
-  - job: 
+  - job: OSX_CLI_Release_Zip
     dependsOn: []
     pool:
       name: Hosted Ubuntu 1604
@@ -256,20 +207,14 @@ stages:
       inputs:
         buildType: 'current'
         artifactName: 'Drill-CLI-osx-x86_64-release'
-    - bash: 7z a -tzip Drill-CLI-osx-x86_64-release.zip Drill-CLI-osx-x86_64-release/*
+        targetPath: '$(Pipeline.Workspace)/Drill-CLI-osx-x86_64-release'
+    - bash: 7z a -tzip Drill-CLI-osx-x86_64-release.zip $(Pipeline.Workspace)/Drill-CLI-osx-x86_64-release/*
     - task: PublishPipelineArtifact@1
       inputs:
         targetPath: 'Drill-CLI-osx-x86_64-release.zip'
         artifact: 'Drill-CLI-osx-x86_64-release.zip'
 
-
-
-
-
-- stage: Linux_GTK_Release_Zip
-  dependsOn: [Linux_GTK_Release]
-  jobs:
-  - job: 
+  - job: Linux_GTK_Release_Zip
     dependsOn: []
     pool:
       name: Hosted Ubuntu 1604
@@ -278,21 +223,15 @@ stages:
     - task: DownloadPipelineArtifact@2
       inputs:
         buildType: 'current'
-        targetPath: '$(Pipeline.Workspace)'
         artifactName: 'Drill-GTK-linux-x86_64-release'
+        targetPath: '$(Pipeline.Workspace)/Drill-GTK-linux-x86_64-release'
     - bash: 7z a -tzip Drill-GTK-linux-x86_64-release.zip $(Pipeline.Workspace)/Drill-GTK-linux-x86_64-release/*
     - task: PublishPipelineArtifact@1
       inputs:
         targetPath: 'Drill-GTK-linux-x86_64-release.zip'
         artifact: 'Drill-GTK-linux-x86_64-release.zip'
 
-
-
-
-- stage: OSX_GTK_Release_Zip
-  dependsOn: [OSX_GTK_Release]
-  jobs:
-  - job: 
+  - job: OSX_GTK_Release_Zip
     dependsOn: []
     pool:
       name: Hosted Ubuntu 1604
@@ -301,19 +240,18 @@ stages:
     - task: DownloadPipelineArtifact@2
       inputs:
         buildType: 'current'
-        targetPath: '$(Pipeline.Workspace)'
         artifactName: 'Drill-GTK-osx-x86_64-release'
+        targetPath: '$(Pipeline.Workspace)/Drill-GTK-osx-x86_64-release'
     - bash: 7z a -tzip Drill-GTK-osx-x86_64-release.zip $(Pipeline.Workspace)/Drill-GTK-osx-x86_64-release/*
     - task: PublishPipelineArtifact@1
       inputs:
         targetPath: 'Drill-GTK-osx-x86_64-release.zip'
         artifact: 'Drill-GTK-osx-x86_64-release.zip'
 
-
-- stage: Linux_CLI_Stress_Test
-  dependsOn: [Linux_CLI_Release]
+- stage: Test
+  dependsOn: [Build]
   jobs:
-  - job: 
+  - job: Linux_CLI_Stress_Test
     dependsOn: []
     pool:
       name: Hosted Ubuntu 1604
@@ -322,16 +260,13 @@ stages:
     - task: DownloadPipelineArtifact@2
       inputs:
         buildType: 'current'
-        targetPath: '.'
         artifactName: 'Drill-CLI-linux-x86_64-release'
+        targetPath: '$(Pipeline.Workspace)/Drill-CLI-linux-x86_64-release'
     # Use the long path so we test if relative CWD works too in Drill
-    - bash: chmod +x ./Drill-CLI-linux-x86_64-release/drill-search-cli
-    - bash: ./Drill-CLI-linux-x86_64-release/drill-search-cli .
+    - bash: chmod +x $(Pipeline.Workspace)/Drill-CLI-linux-x86_64-release/drill-search-cli
+    - bash: $(Pipeline.Workspace)/Drill-CLI-linux-x86_64-release/drill-search-cli .
 
-- stage: OSX_CLI_Stress_Test
-  dependsOn: [OSX_CLI_Release]
-  jobs:
-  - job: 
+  - job: OSX_CLI_Stress_Test
     dependsOn: []
     pool:
       name: Hosted macOS
@@ -340,15 +275,12 @@ stages:
     - task: DownloadPipelineArtifact@2
       inputs:
         buildType: 'current'
-        targetPath: '.'
         artifactName: 'Drill-CLI-osx-x86_64-release'
-    - bash: chmod +x ./Drill-CLI-osx-x86_64-release/drill-search-cli
-    - bash: ./Drill-CLI-osx-x86_64-release/drill-search-cli .
+        targetPath: '$(Pipeline.Workspace)/Drill-CLI-osx-x86_64-release'
+    - bash: chmod +x $(Pipeline.Workspace)/Drill-CLI-osx-x86_64-release/drill-search-cli
+    - bash: $(Pipeline.Workspace)/Drill-CLI-osx-x86_64-release/drill-search-cli .
 
-- stage: Windows_CLI_Stress_Test
-  dependsOn: [Windows_CLI_Release]
-  jobs:
-  - job: 
+  - job: Windows_CLI_Stress_Test
     dependsOn: []
     pool:
       name: Hosted VS2017
@@ -357,15 +289,12 @@ stages:
     - task: DownloadPipelineArtifact@2
       inputs:
         buildType: 'current'
-        targetPath: '.'
         artifactName: 'Drill-CLI-windows-x86_64-release'
-    - script: cd Drill-CLI-windows-x86_64-release
+        targetPath: '$(Pipeline.Workspace)/Drill-CLI-windows-x86_64-release'
+    - script: cd $(Pipeline.Workspace)/Drill-CLI-windows-x86_64-release
     - script: drill-search-cli.exe .
 
-- stage: Linux_CLI_Time_Test
-  dependsOn: [Linux_CLI_Release]
-  jobs:
-  - job: 
+  - job: Linux_CLI_Time_Test
     timeoutInMinutes: 1
     dependsOn: []
     pool:
@@ -375,16 +304,13 @@ stages:
     - task: DownloadPipelineArtifact@2
       inputs:
         buildType: 'current'
-        targetPath: '.'
         artifactName: 'Drill-CLI-linux-x86_64-release'
+        targetPath: '$(Pipeline.Workspace)/Drill-CLI-linux-x86_64-release'
     # Use the long path so we test if relative CWD works too in Drill
-    - bash: chmod +x ./Drill-CLI-linux-x86_64-release/drill-search-cli
-    - bash: ./Drill-CLI-linux-x86_64-release/drill-search-cli .
+    - bash: chmod +x $(Pipeline.Workspace)/Drill-CLI-linux-x86_64-release/drill-search-cli
+    - bash: $(Pipeline.Workspace)/Drill-CLI-linux-x86_64-release/drill-search-cli .
 
-- stage: OSX_CLI_Time_Test
-  dependsOn: [OSX_CLI_Release]
-  jobs:
-  - job: 
+  - job: OSX_CLI_Time_Test
     timeoutInMinutes: 1
     dependsOn: []
     pool:
@@ -394,15 +320,12 @@ stages:
     - task: DownloadPipelineArtifact@2
       inputs:
         buildType: 'current'
-        targetPath: '.'
         artifactName: 'Drill-CLI-osx-x86_64-release'
-    - bash: chmod +x ./Drill-CLI-osx-x86_64-release/drill-search-cli
-    - bash: ./Drill-CLI-osx-x86_64-release/drill-search-cli .
+        targetPath: '$(Pipeline.Workspace)/Drill-CLI-osx-x86_64-release'
+    - bash: chmod +x $(Pipeline.Workspace)/Drill-CLI-osx-x86_64-release/drill-search-cli
+    - bash: $(Pipeline.Workspace)/Drill-CLI-osx-x86_64-release/drill-search-cli .
 
-- stage: Windows_CLI_Time_Test
-  dependsOn: []
-  jobs:
-  - job: 
+  - job: Windows_CLI_Time_Test
     timeoutInMinutes: 1
     dependsOn: []
     pool:
@@ -412,22 +335,17 @@ stages:
     - task: DownloadPipelineArtifact@2
       inputs:
         buildType: 'current'
-        targetPath: '.'
         artifactName: 'Drill-CLI-windows-x86_64-release'
-    - script: cd Drill-CLI-windows-x86_64-release
+        targetPath: '$(Pipeline.Workspace)/Drill-CLI-windows-x86_64-release'
+    - script: cd $(Pipeline.Workspace)/Drill-CLI-windows-x86_64-release
     - script: drill-search-cli.exe .
 
 
-- stage: Publish_Beta
-  condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/master'))
-  dependsOn:
-  - Windows_CLI_Release_Zip
-  - Linux_CLI_Release_Zip
-  - OSX_CLI_Release_Zip
-  - Linux_GTK_Release_Zip
-  - OSX_GTK_Release_Zip
+- stage: Publish
+  dependsOn: [Package, Test]
   jobs:
-  - job:
+  - job: Publish_Beta
+    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/master'))
     pool:
       name: Hosted Ubuntu 1604
     steps:
