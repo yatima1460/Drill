@@ -171,6 +171,8 @@ stages:
       inputs:
         buildType: 'current'
         artifactName: 'Drill-CLI-linux-x86_64-release'
+    - bash: ls -la
+    - bash: ls -la Drill-CLI-linux-x86_64-release
     - bash: 7z a -tzip Drill-CLI-linux-x86_64-release.zip Drill-CLI-linux-x86_64-release/*
     - task: PublishPipelineArtifact@1
       inputs:
