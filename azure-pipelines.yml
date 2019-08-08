@@ -409,9 +409,12 @@ jobs:
   # - Linux_CLI_Stress_Test
   # - OSX_CLI_Stress_Test
   # - Windows_CLI_Stress_Test
-  - Linux_CLI_Time_Test
-  - OSX_CLI_Time_Test
-  - Windows_CLI_Time_Test
+  - Linux_CLI_Name_Test
+  - OSX_CLI_Name_Test
+  - Windows_CLI_Name_Test
+  - Linux_CLI_Content_Test
+  - OSX_CLI_Content_Test
+  - Windows_CLI_Content_Test
   pool:
     name: Hosted Ubuntu 1604
   steps:
