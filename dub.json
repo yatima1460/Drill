@@ -106,8 +106,10 @@
             "targetPath": "Build/Drill-GTK-$PLATFORM-$ARCH-$BUILD_TYPE",
             
             "copyFiles-windows": [
-                "Assets",
                 "GTKWin/bin/*.dll",
+                "GTKWin/data/*"
+            ],
+            "copyFiles-osx": [
                 "GTKWin/data/*"
             ]
         }
