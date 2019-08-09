@@ -110,7 +110,11 @@ string[string] mime;
 
 bool isFileContentMatchingSearchString(DirEntry file, const(string) searchString)
 {
-    if (mime == null) mime = loadMime();
+    version (GTK)
+    {
+        if (mime == null) mime = loadMime();
+    }
+    
    // immutable(string[]) blacklistedExtensions = [".png",".jpg",".mp4",".psd",".lnk",".sai",".exe",".pdf",".mkv",".swf",".msi",".zip"];
     import std.file : dirEntries, SpanMode, DirEntry, readText, FileException;
 
@@ -118,7 +122,13 @@ bool isFileContentMatchingSearchString(DirEntry file, const(string) searchString
     try
     {
     
+        auto shouldBeScanned = false;
 
+
+          version (GTK)
+        {
+
+        }
        
         //if (allowedExtensions.canFind(extension(file.name)))
         if (!file.isDir() 

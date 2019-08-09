@@ -52,7 +52,7 @@ int main(string[] args)
 {
     try
     {
-        DrillConfig data = loadData(buildPath(dirName(thisExePath), "Assets"));
+        DrillConfig data = loadData(dirName(thisExePath));
 
         bool date = false;
         bool size = false;
