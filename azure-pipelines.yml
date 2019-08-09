@@ -41,10 +41,9 @@ jobs:
   - powershell: |
       Invoke-WebRequest -Uri http://downloads.dlang.org/releases/2.x/$(dmd_version)/dmd.$(dmd_version).windows.zip -OutFile dmd2.zip
       Expand-Archive dmd2.zip -DestinationPath .
-  - script: '%cd%/dmd2/windows/bin/dmd.exe --version'
-  - script: '%cd%/dmd2/windows/bin/dub.exe --version'
-  - bash: wget https://github.com/yatima1460/GTK3-Windows/releases/download/20190809.4/GTK_x86_64_VS2019.zip
-  - bash: 7z x GTK_x86_64_VS2019.zip
+  - powershell: |
+      Invoke-WebRequest -Uri https://github.com/yatima1460/GTK3-Windows/releases/download/20190809.4/GTK_x86_64_VS2019.zip -OutFile GTK_x86_64_VS2019.zip
+      Expand-Archive GTK_x86_64_VS2019.zip -DestinationPath .
   - script: '%cd%/dmd2/windows/bin/dub.exe build -c GTK -b unittest --arch=x86_64'
 
 - job: OSX_CLI_Unittest
