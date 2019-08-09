@@ -39,33 +39,33 @@ pure nothrow @trusted void appendApplication(GtkListStore* store, const(Applicat
 
 
 
-nothrow const(string) getGTKIconNameFromExtension(const(string) extension)
-{
-    import std.process : executeShell;
-        import std.array : array, replace, split;
-    string icon = null;
-    try
-    {
+// nothrow const(string) getGTKIconNameFromExtension(const(string) extension)
+// {
+//     import std.process : executeShell;
+//         import std.array : array, replace, split;
+//     string icon = null;
+//     try
+//     {
        
-        auto iconMaybe = executeShell("grep '" ~ "' /etc/mime.types");
-        if (iconMaybe.status == 0)
-        {
+//         auto iconMaybe = executeShell("grep '" ~ "' /etc/mime.types");
+//         if (iconMaybe.status == 0)
+//         {
 
-            icon = iconMaybe.output.replace("/", "-");
+//             icon = iconMaybe.output.replace("/", "-");
 
-        }
-        else
-        {
-            icon = "text-x-generic";
-        }
+//         }
+//         else
+//         {
+//             icon = "text-x-generic";
+//         }
        
-    }
-    catch (Exception e)
-    {
-        icon = "text-x-generic";
-    }
-     return icon;
-}
+//     }
+//     catch (Exception e)
+//     {
+//         icon = "text-x-generic";
+//     }
+//      return icon;
+// }
 import std.experimental.logger;
 import std.string : capitalize;
 import std.path : baseName;

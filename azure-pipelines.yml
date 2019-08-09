@@ -149,6 +149,23 @@ jobs:
       targetPath: 'Build/Drill-GTK-linux-x86_64-release'
       artifact: 'Drill-GTK-linux-x86_64-release' 
 
+- job: Windows_GTK_Release
+  dependsOn: []
+  pool:
+    name: Hosted VS2017
+  steps:
+  - powershell: |
+      Invoke-WebRequest -Uri http://downloads.dlang.org/releases/2.x/$(dmd_version)/dmd.$(dmd_version).windows.zip -OutFile dmd2.zip
+      Expand-Archive dmd2.zip -DestinationPath .
+  - powershell: |
+      Invoke-WebRequest -Uri https://github.com/yatima1460/GTK3-Windows/releases/download/20190809.4/GTK_x86_64_VS2019.zip -OutFile GTK_x86_64_VS2019.zip
+      Expand-Archive GTK_x86_64_VS2019.zip -DestinationPath .
+  - script: '%cd%/dmd2/windows/bin/dub.exe build -c GTK -b release --arch=x86_64'
+  - task: PublishPipelineArtifact@1
+    inputs:
+      targetPath: 'Build/Drill-GTK-windows-x86_64-release'
+      artifact: 'Drill-GTK-windows-x86_64-release' 
+
 - job: OSX_GTK_Release
   dependsOn: []
   pool:
@@ -199,6 +216,25 @@ jobs:
     inputs:
       targetPath: 'Drill-CLI-windows-x86_64-release.zip'
       artifact: 'Drill-CLI-windows-x86_64-release.zip'
+
+- job: Windows_GTK_Release_Zip
+  dependsOn: [Windows_GTK_Release]
+  pool:
+    name: Hosted Ubuntu 1604
+  steps:
+  - checkout: none
+  - task: DownloadPipelineArtifact@2
+    inputs:
+      buildType: 'current'
+      artifactName: 'Drill-GTK-windows-x86_64-release'
+      targetPath: '$(Pipeline.Workspace)/Drill-GTK-windows-x86_64-release'
+  - bash: 7z a -tzip Drill-GTK-windows-x86_64-release.zip $(Pipeline.Workspace)/Drill-GTK-windows-x86_64-release/*
+  - task: PublishPipelineArtifact@1
+    inputs:
+      targetPath: 'Drill-GTK-windows-x86_64-release.zip'
+      artifact: 'Drill-GTK-windows-x86_64-release.zip'
+
+
 
 - job: OSX_CLI_Release_Zip
   dependsOn: [OSX_CLI_Release]
@@ -424,10 +460,8 @@ jobs:
   - Windows_CLI_Release_Zip
   - OSX_CLI_Release_Zip
   - Linux_GTK_Release_Zip
+  - Windows_GTK_Release_Zip
   - OSX_GTK_Release_Zip
-  # - Linux_CLI_Stress_Test
-  # - OSX_CLI_Stress_Test
-  # - Windows_CLI_Stress_Test
   - Linux_CLI_Name_Test
   - OSX_CLI_Name_Test
   - Windows_CLI_Name_Test
@@ -467,6 +501,7 @@ jobs:
         $(Build.BinariesDirectory)/Drill-CLI-windows-x86_64-release.zip/Drill-CLI-windows-x86_64-release.zip
         $(Build.BinariesDirectory)/Drill-CLI-osx-x86_64-release.zip/Drill-CLI-osx-x86_64-release.zip
         $(Build.BinariesDirectory)/Drill-GTK-linux-x86_64-release.zip/Drill-GTK-linux-x86_64-release.zip
+        $(Build.BinariesDirectory)/Drill-GTK-windows-x86_64-release.zip/Drill-GTK-windows-x86_64-release.zip
         $(Build.BinariesDirectory)/Drill-GTK-osx-x86_64-release.zip/Drill-GTK-osx-x86_64-release.zip
 
 
