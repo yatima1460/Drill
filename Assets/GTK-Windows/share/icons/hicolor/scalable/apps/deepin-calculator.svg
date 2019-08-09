@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="48px" height="48px" viewBox="0 0 48 48" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <!-- Generator: Sketch 47.1 (45422) - http://www.bohemiancoding.com/sketch -->
+    <title>deepin-calculator</title>
+    <desc>Created with Sketch.</desc>
+    <defs>
+        <linearGradient x1="50%" y1="0%" x2="50%" y2="92.6181353%" id="linearGradient-1">
+            <stop stop-color="#35C7FF" offset="0%"></stop>
+            <stop stop-color="#00A7FF" offset="100%"></stop>
+        </linearGradient>
+        <linearGradient x1="50%" y1="0%" x2="50%" y2="96.2173151%" id="linearGradient-2">
+            <stop stop-color="#FFFFFF" offset="0%"></stop>
+            <stop stop-color="#FFFFFF" offset="100%"></stop>
+        </linearGradient>
+    </defs>
+    <g id="Page-1" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <g id="deepin-calculator">
+            <g id="Group-3" transform="translate(2.000000, 3.000000)">
+                <image id="Bitmap" x="0" y="0" width="44" height="44" xlink:href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACwAAAAsCAYAAAAehFoBAAAAAXNSR0IArs4c6QAAASlJREFUWAntmcFOAkEQRFnBiAfC/3+niRpFhnodu+DisTNj0p0UWwzJ8HjsaWfb3WdTzdxX57chhEwAggToXjkpx9/3ukwfQD+VN+VHGUAm7Fl9JVjhBNuzrgflSxlPD4sv6qsObIBvCcwvWH1gDGBAAV99gjFBuY9Xn2BM4NVhzdfAVlFU2nCRWG/bhq2iqLThIrHetg1bRVFpw0VivW0btoqi0oaLxHrbNmwVRaUNF4n1tm3YKopKGy4S623bsFUUlTZcJNbbtmGrKCppmMOPlZ8Rwwajn7xf/wEwjAEM+UX5Vjj4SOuq0wcWmGCDcXDQATAL7wrzquRxWCxMeoGLs7kPBTYYR963XIHMMzF+WX6mOmUA5jbIfz8OFh+h6JkphH98KeCZ3Q0t0CZ5ZNrZHwAAAABJRU5ErkJggg=="></image>
+                <path d="M5,1 L39,1 L39,1 C40.6568542,1 42,2.34314575 42,4 L42,38 L42,38 C42,39.6568542 40.6568542,41 39,41 L5,41 L5,41 C3.34314575,41 2,39.6568542 2,38 L2,4 L2,4 C2,2.34314575 3.34314575,1 5,1 Z" id="Mask" fill="url(#linearGradient-1)"></path>
+                <path d="M5,2 L22,2 L22,21 L3,21 L3,4 L3,4 C3,2.8954305 3.8954305,2 5,2 Z" id="数字背景" fill="url(#linearGradient-2)"></path>
+                <path d="M22,21 L41,21 L41,38 L41,38 C41,39.1045695 40.1045695,40 39,40 L22,40 L22,21 Z" id="数字背景" fill="#FFFFFF"></path>
+                <g id="Group" transform="translate(9.000000, 27.000000)" fill="#FFFFFF">
+                    <path d="M2.79289322,3.46966991 L0.521446609,5.74111652 L1.22855339,6.4482233 L3.5,4.1767767 L5.77144661,6.4482233 L6.47855339,5.74111652 L4.20710678,3.46966991 L6.47855339,1.1982233 L5.77144661,0.491116524 L3.5,2.76256313 L1.22855339,0.491116524 L0.521446609,1.1982233 L2.79289322,3.46966991 Z" id="Combined-Shape"></path>
+                </g>
+                <g id="Group" transform="translate(9.000000, 8.000000)" fill="#2ABFF9">
+                    <path d="M4,3 L4,5.77315973e-15 L3,5.83439207e-15 L3,3 L7.28306304e-14,3 L7.28306304e-14,4 L3,4 L3,7 L4,7 L4,4 L7,4 L7,3 L4,3 Z" id="Combined-Shape"></path>
+                </g>
+                <g id="Group" transform="translate(28.000000, 11.000000)" fill="#FFFFFF">
+                    <rect id="Rectangle-3" x="0" y="0" width="7" height="1"></rect>
+                </g>
+                <g id="Group-2" transform="translate(28.000000, 29.000000)" fill="#2ABFF9">
+                    <path d="M0,0 L7,0 L7,1 L0,1 L0,0 Z M0,2 L7,2 L7,3 L0,3 L0,2 Z" id="Combined-Shape"></path>
+                </g>
+            </g>
+        </g>
+    </g>
+</svg>
