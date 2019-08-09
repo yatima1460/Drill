@@ -16,9 +16,17 @@
         "-L=.\\GTKWin\\debug",
         "-L=.\\GTKWin\\bin",
         "-J=."
-       
     ],
-
+    "sourceFiles": [
+        "Core/ApplicationInfo.d",
+        "Core/Config.d",
+        "Core/Context.d",
+        "Core/Crawler.d",
+        "Core/FileInfo.d",
+        "Core/ListData.d",
+        "Core/Meta.d",
+        "Core/Utils.d"
+    ],
     "copyFiles": [
         "Assets"
     ],
@@ -39,7 +47,9 @@
                 "stackStomping",
                 "alwaysStackFrame"
             ],
-            "versions": ["StdLoggerDisableTrace"]
+            "versions": [
+                "StdLoggerDisableTrace"
+            ]
         },
         "release": {
             "buildOptions": [
@@ -48,7 +58,12 @@
                 "noBoundsCheck",
                 "releaseMode"
             ],
-            "versions": ["StdLoggerDisableTrace","StdLoggerDisableInfo","StdLoggerDisableWarning","StdLoggerDisableError"]
+            "versions": [
+                "StdLoggerDisableTrace",
+                "StdLoggerDisableInfo",
+                "StdLoggerDisableWarning",
+                "StdLoggerDisableError"
+            ]
         }
     },
     "configurations": [
@@ -56,34 +71,14 @@
             "name": "CLI",
             "targetType": "executable",
             "targetName": "drill-search-cli",
-            "mainSourceFile":"CLI/CLI.d",
-            "targetPath": "Build/Drill-CLI-$PLATFORM-$ARCH-$BUILD_TYPE",
-            "sourceFiles": [
-                "Core/ApplicationInfo.d",
-                "Core/Config.d",
-                "Core/Context.d",
-                "Core/Crawler.d",
-                "Core/FileInfo.d",
-                "Core/ListData.d",
-                "Core/Meta.d",
-                "Core/Utils.d"
-            ]
+            "mainSourceFile": "CLI/CLI.d",
+            "targetPath": "Build/Drill-CLI-$PLATFORM-$ARCH-$BUILD_TYPE"
         },
-        
         {
             "name": "GTK",
             "targetType": "executable",
             "targetName": "drill-search-gtk",
             "sourceFiles": [
-                "Core/ApplicationInfo.d",
-                "Core/Config.d",
-                "Core/Context.d",
-                "Core/Crawler.d",
-                "Core/FileInfo.d",
-                "Core/ListData.d",
-                "Core/Meta.d",
-                "Core/Utils.d",
-                "Core/AppImage.d",
                 "GTK/GTKBinds.d",
                 "GTK/ListStore.d",
                 "GTK/TreeView.d"
@@ -93,22 +88,21 @@
                 "gio-2.0"
             ],
             "libs-osx": [
-		"glib-2.0",
+                "glib-2.0",
                 "gobject-2.0"
             ],
             "libs-windows": [
-                ".\\GTKWin\\lib\\gtk-3.0",
-                ".\\GTKWin\\lib\\glib-2.0",
-                ".\\GTKWin\\lib\\gio-2.0",
-                ".\\GTKWin\\lib\\gobject-2.0"
+                "GTK_x86_64_VS2019/installed/x64-windows/lib/gtk-3.0",
+                "GTK_x86_64_VS2019/installed/x64-windows/lib/glib-2.0",
+                "GTK_x86_64_VS2019/installed/x64-windows/lib/gio-2.0",
+                "GTK_x86_64_VS2019/installed/x64-windows/lib/gobject-2.0"
             ],
-            "mainSourceFile":"GTK/Main.d",
+            "mainSourceFile": "GTK/Main.d",
             "targetPath": "Build/Drill-GTK-$PLATFORM-$ARCH-$BUILD_TYPE",
-            
             "copyFiles-windows": [
-                "GTKWin/bin/*.dll",
-                "GTKWin/data/etc",
-                "GTKWin/data/share"
+                "GTK_x86_64_VS2019/installed/x64-windows/bin/*.dll",
+                "GTK-Windows/etc",
+                "GTK-Windows/share"
             ]
         }
     ],

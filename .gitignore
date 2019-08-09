@@ -18,3 +18,6 @@ dub.selections.json
 /DEBFILE
 /dmd.*.tar
 /dmd.*.tar.xz
+
+
+GTK_x86_64_VS*
