@@ -1,2 +1,0 @@
-- All files in $CONFIG_NAME will be copied to the config name
-- All files in $OS_NAME will be copied only to that OS distribution
