@@ -71,27 +71,46 @@ If you want a version that doesn't require sudo and can be configurable download
 **Use DMD or LDC!!!**
 
 
-## Build
-
-### IMPORTANT
+## IMPORTANT
 
 - If you omit `-b release` a slower debug version with infinite logs (NOT recommended) will be created
 - Note: `-b release-debug` is somewhat in between a debug and a release version, it's compiled with fast code but it has debug checks enabled and some logs
-
-### All OSes
-
-- Install DMD
-    - on Linux download the .deb, don't install it from apt,
-      be sure GDC doesn't get installed as backend compiler
-    - https://dlang.org/download.html#dmd
-- Build a configuration, check the possible ones inside `dub.json`:
+- Then build a configuration, check the possible ones inside `dub.json`:
     - `dub build -b release -c CLI`
     - `dub build -b release -c GTK` 
         - requires libgtk-3-dev
     - etc...
 - Output will be inside `./Build`
 
-### Windows Visual Studio
+## Build prerequisites
+
+
+### Linux
+
+- Install DMD
+    - on Linux download the .deb, don't install it from apt,
+      be sure GDC doesn't get installed as backend compiler
+    - https://dlang.org/download.html#dmd
+
+### OSX
+
+```bash
+brew install gpgme
+curl -fsS https://dlang.org/install.sh | bash -s dmd
+
+# for the GTK version
+brew install gtk+3
+brew install glib
+brew install gobject-introspection
+source ~/dlang/dmd-$(dmd_version)/activate && dub build -c GTK -b release --arch=x86_64
+```
+
+### Windows
+
+- Install https://dlang.org/download.html#dmd
+- https://github.com/yatima1460/GTK3-Windows
+
+### How to use Windows Visual Studio
 
 - Install DMD
 - Install Visual Studio 2017
