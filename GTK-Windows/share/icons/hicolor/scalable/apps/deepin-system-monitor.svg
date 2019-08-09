@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="48px" height="48px" viewBox="0 0 48 48" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <!-- Generator: Sketch 43 (38999) - http://www.bohemiancoding.com/sketch -->
+    <title>deepin-monitor-48px</title>
+    <desc>Created with Sketch.</desc>
+    <defs>
+        <linearGradient x1="56.4842886%" y1="100%" x2="38.7631206%" y2="0%" id="linearGradient-1">
+            <stop stop-color="#5F3EFF" offset="0%"></stop>
+            <stop stop-color="#6E62FF" offset="100%"></stop>
+        </linearGradient>
+    </defs>
+    <g id="Page-1" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <g id="deepin-monitor-48px">
+            <g id="Group" transform="translate(1.000000, 2.000000)">
+                <image id="Bitmap" x="0" y="0" width="46" height="46" xlink:href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAC4AAAAuCAYAAABXuSs3AAAABGdBTUEAA1teXP8meAAAA21JREFUaAXV2Alv2zAMhuF194FhB4Zh//8v7j47Pm4+zW4VV0GbxiPA6jAlvaQo2c3ZvZvL2W6KlJrzuva5PztJPWX6DyovLzA6OOOU9P5uIJi56o5NSn1/SmOnfbATJjtEYg80sL+rDuQQMfbBboCxGT/sQEBGFmU7B/45MmjA5tHOJg4MwY+Aswm08lfp0OQ7oJHCvA9383LA/KtrZLvKriuBzqSgjyWAk0Kr0ADWwBNlWwlYLh9bEm1rrsLvAw+0SP+4bpJb9gYwB1bhe+BJj0TaJKcSgeuu3wOXZxlwF+mxLygiL4gY1RepA3IuMVQe8yDO11yrY5gzNdt5xBlwRIp8bxanr0iVx6WLlLkccY4wWGxLtU8pWDDNg9xe24l2bpFTgvbWdrNhE2isDVy9ewg82IDkcLaoJ1V4waPb+v44hq/YMLaIq1BObOEmKYyuYEuqnCXiOZTdERvqbIc0HiS/N8TYRZHrWFvEObC4J7vDTt+JccqSpIoc/1/AF4eTA6f8LhndS4xYW6pMXoyOPrFdi3g42uWejg2WjTE5ntO6QdYFUrv9gHc/Yhbm22kAd4mczyPudbp1wSjQF3dilbzwHb51wThd20mVXIVbhg8b1pYqGr6+npduVbBhnIKciMsbnU9Kt3inY8KGEWuLuIbPRt68LN2aYMKGcXE4gXrgn+QXpVuKuqzAhG1KkyqX/4DqKHHl2JZvGhuQ18XgJvlaCvxKxKtvegD4aekWDioGLJhatKvejfjkUT17VWrAdG9Wedfi+ntX+rk04GHrggMEK7dsk4FtQNXvQqz9oVR6fCltKVL1SdrXVjp2JVDwnr8pjcdVPbr41Qq0wyhouQKr+k/2gbMIPO/Bm4AeU+T0+1KRnkNf2fE1cICinm2S8/JOJK5MVH03EcF5W2oNwIG2fnet68Br3ATv4jfJs1LRd89z4KZiHudIlNU/lcrppEcXup4PvWhMSDkp/1xPHBAlkflY6re9Q8Q83oZeLAIiNZwj82SH90KXzRA4OwIebBzwkuJEfgJOpOyOiCmJF5oUSymPzQMSrJ0L8N7UKJuFgDlEYh8HAgOMcop6HluRAySSNIc8zunznKxG+cLk4m8mn/eN1DNOSS8D98AvO6Ad0JQja082ARge0DHMHCmZzOvac7DUU3p+sPwFBgrZAV5sE2wAAAAASUVORK5CYII="></image>
+                <circle id="Oval-3" fill="url(#linearGradient-1)" cx="23" cy="22" r="21"></circle>
+                <path d="M7,17.5 L38.5,17.5" id="Path-6" stroke="#FFFFFF" opacity="0.1"></path>
+                <rect id="Rectangle" fill="#FFFFFF" opacity="0.5" x="20" y="38" width="6" height="2"></rect>
+                <path d="M13,8.5 L32.5,8.5" id="Path-6" stroke="#FFFFFF" opacity="0.1"></path>
+                <path d="M7,26.5 L38.5,26.5" id="Path-6" stroke="#FFFFFF" opacity="0.1"></path>
+                <path d="M27.5,38 L27.5,6" id="Path-6" stroke="#FFFFFF" opacity="0.1"></path>
+                <path d="M36.5,31 L36.5,13" id="Path-6" stroke="#FFFFFF" opacity="0.1"></path>
+                <path d="M18.5,38 L18.5,5" id="Path-6" stroke="#FFFFFF" opacity="0.1"></path>
+                <path d="M9.5,31 L9.5,13" id="Path-6" stroke="#FFFFFF" opacity="0.1"></path>
+                <path d="M13,35.5 L33,35.5" id="Path-6" stroke="#FFFFFF" opacity="0.1"></path>
+                <path d="M30.6819685,37.7281816 C36.4960754,34.883116 40.5,28.9091413 40.5,22 C40.5,12.3350169 32.6649831,4.5 23,4.5 C13.3350169,4.5 5.5,12.3350169 5.5,22 C5.5,28.924353 9.52157472,34.909417 15.3564602,37.7469279" id="Oval-2" stroke="#FFFFFF" stroke-width="1.5" opacity="0.5" stroke-linecap="round"></path>
+                <path d="M9.5,24.5 C9.5,24.5 10.5,26.5 12.5,26.5 C17,26.5 15.5,15.5 20,15.5 C24.5,15.5 22,26.5 26.5,26.5 C29.5,26.5 28,21.5 30.5,21.5 C33,21.5 31,27 36.5,26.5" id="Path-5" stroke="#FFFFFF" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
+            </g>
+        </g>
+    </g>
+</svg>
