@@ -100,7 +100,7 @@ in(store !is null)
         switch(toLower(fileInfo.extension))
         {
     
-            import AppImage;
+            // import AppImage;
             case ".appimage":
                 // import std.path : stripExtension;
                 // auto withoutExtension = baseName(stripExtension(fileInfo.fileName));
