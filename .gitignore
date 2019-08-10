@@ -21,3 +21,8 @@ dub.selections.json
 
 
 GTK_x86_64_VS*
+
+
+# AppImage
+Drill.AppDir
+*.AppImage*
