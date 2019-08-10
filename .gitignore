@@ -1,6 +1,7 @@
 # D
 .dub
 dub.selections.json
+*.def
 
 # Binaries
 /Build
