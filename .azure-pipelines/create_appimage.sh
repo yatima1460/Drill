@@ -7,6 +7,8 @@ mkdir -p $PIPELINE_WORKSPACE/Drill.AppDir/usr/share/applications
 cp $PIPELINE_WORKSPACE/Assets/GTK-Linux/drill.software.appdata.xml $PIPELINE_WORKSPACE/Drill.AppDir/usr/share/metainfo
 cp $PIPELINE_WORKSPACE/Assets/GTK-Linux/drill-search-gtk.desktop $PIPELINE_WORKSPACE/Drill.AppDir/usr/share/applications
 ln -s drill-search-gtk $PIPELINE_WORKSPACE/Drill.AppDir/AppRun
+chmod +x $PIPELINE_WORKSPACE/Drill.AppDir/AppRun
+chmod +x $PIPELINE_WORKSPACE/Drill.AppDir/drill-search-gtk
 cp $PIPELINE_WORKSPACE/Assets/GTK-Linux/drill-search-gtk.svg $PIPELINE_WORKSPACE/Drill.AppDir
 wget https://github.com/AppImage/AppImageKit/releases/download/12/appimagetool-x86_64.AppImage -O $PIPELINE_WORKSPACE/appimagetool-x86_64.AppImage
 chmod +x $PIPELINE_WORKSPACE/appimagetool-x86_64.AppImage
