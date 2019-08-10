@@ -283,12 +283,12 @@ jobs:
     inputs:
       buildType: 'current'
       artifactName: 'Drill-GTK-linux-x86_64-release'
-      targetPath: '$(Pipeline.Workspace)/Drill-GTK-linux-x86_64-release'
+      targetPath: '$(System.DefaultWorkingDirectory)/Drill-GTK-linux-x86_64-release'
   - bash: sudo apt install -y appstream
-  - bash: export PIPELINE_WORKSPACE=$(Pipeline.Workspace) && bash .azure-pipelines/create_appimage.sh
+  - bash: export PIPELINE_WORKSPACE=$(System.DefaultWorkingDirectory) && bash .azure-pipelines/create_appimage.sh
   - task: PublishPipelineArtifact@1
     inputs:
-      targetPath: '$(Pipeline.Workspace)/Drill-x86_64.AppImage'
+      targetPath: '$(System.DefaultWorkingDirectory)/Drill-x86_64.AppImage'
       artifact: 'Drill-x86_64.AppImage' 
 
 - job: Linux_GTK_Release_AppImage_Test
@@ -300,9 +300,9 @@ jobs:
     inputs:
       buildType: 'current'
       artifactName: 'Drill-x86_64.AppImage'
-      targetPath: '$(Pipeline.Workspace)'
-  - bash: chmod +x $(Pipeline.Workspace)/Drill-x86_64.AppImage
-  - bash: $(Pipeline.Workspace)/Drill-x86_64.AppImage --appimage-extract
+      targetPath: '$(System.DefaultWorkingDirectory)'
+  - bash: chmod +x $(System.DefaultWorkingDirectory)/Drill-x86_64.AppImage
+  - bash: $(System.DefaultWorkingDirectory)/Drill-x86_64.AppImage --appimage-extract
       
 
 - job: OSX_GTK_Release_Zip
@@ -396,10 +396,10 @@ jobs:
     inputs:
       buildType: 'current'
       artifactName: 'Drill-CLI-linux-x86_64-release'
-      targetPath: '$(Pipeline.Workspace)/Drill-CLI-linux-x86_64-release'
+      targetPath: '$(System.DefaultWorkingDirectory)/Drill-CLI-linux-x86_64-release'
   # Use the long path so we test if relative CWD works too in Drill
-  - bash: chmod +x $(Pipeline.Workspace)/Drill-CLI-linux-x86_64-release/drill-search-cli
-  - bash: $(Pipeline.Workspace)/Drill-CLI-linux-x86_64-release/drill-search-cli .
+  - bash: chmod +x $(System.DefaultWorkingDirectory)/Drill-CLI-linux-x86_64-release/drill-search-cli
+  - bash: $(System.DefaultWorkingDirectory)/Drill-CLI-linux-x86_64-release/drill-search-cli .
 
 - job: OSX_CLI_Name_Test
   timeoutInMinutes: 1
