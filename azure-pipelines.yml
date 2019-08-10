@@ -285,7 +285,7 @@ jobs:
       artifactName: 'Drill-GTK-linux-x86_64-release'
       targetPath: '$(Pipeline.Workspace)/Drill-GTK-linux-x86_64-release'
   - bash: sudo apt install -y appstream
-  - bash: bash .azure-pipelines/create_appimage.sh
+  - bash: export PIPELINE_WORKSPACE=$(Pipeline.Workspace) && bash .azure-pipelines/create_appimage.sh
   - task: PublishPipelineArtifact@1
     inputs:
       targetPath: '$(Pipeline.Workspace)/Drill-x86_64.AppImage'
