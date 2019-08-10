@@ -481,6 +481,7 @@ jobs:
 
 
 
+##export DRILL_VERSION=$(python -c "import sys, json; f = open('dub.json'); print(json.load(f)['version']); f.close()") 
 
 
 - job: Publish_Beta
