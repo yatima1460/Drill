@@ -12,5 +12,5 @@ chmod +x $PIPELINE_WORKSPACE/Drill.AppDir/drill-search-gtk
 cp $PIPELINE_WORKSPACE/Assets/GTK-Linux/drill-search-gtk.svg $PIPELINE_WORKSPACE/Drill.AppDir
 wget https://github.com/AppImage/AppImageKit/releases/download/12/appimagetool-x86_64.AppImage -O $PIPELINE_WORKSPACE/appimagetool-x86_64.AppImage
 chmod +x $PIPELINE_WORKSPACE/appimagetool-x86_64.AppImage
-export ARCH=x86_64 && $PIPELINE_WORKSPACE/appimagetool-x86_64.AppImage $PIPELINE_WORKSPACE/Drill.AppDir
-test -f $PIPELINE_WORKSPACE/Drill-x86_64.AppImage
+export ARCH=x86_64 && $PIPELINE_WORKSPACE/appimagetool-x86_64.AppImage $PIPELINE_WORKSPACE/Drill.AppDir Drill-release-x86_64.AppImage
+test -f $PIPELINE_WORKSPACE/Drill-release-x86_64.AppImage
