@@ -294,12 +294,26 @@ jobs:
   - bash: wget https://github.com/AppImage/AppImageKit/releases/download/12/appimagetool-x86_64.AppImage
   - bash: chmod +x appimagetool-x86_64.AppImage
   - bash: export DRILL_VERSION=$(python -c "import sys, json; f = open('dub.json'); print(json.load(f)['version']); f.close()") 
-  - bash: export ARCH=x86_64
-  - bash: ./appimagetool-x86_64.AppImage Drill.AppDir Drill-$(echo $DRILL_VERSION)_x86_64.AppImage
+  - bash: export ARCH=x86_64 && ./appimagetool-x86_64.AppImage Drill.AppDir Drill-$(echo $DRILL_VERSION)_x86_64.AppImage
   - task: PublishPipelineArtifact@1
     inputs:
       targetPath: 'Drill-$(echo $DRILL_VERSION)_x86_64.AppImage'
       artifact: 'AppImage' 
+
+- job: Linux_GTK_Release_AppImage_Test
+  dependsOn: [Linux_GTK_Release_AppImage]
+  pool:
+    name: Hosted Ubuntu 1604
+  steps:
+  - task: DownloadPipelineArtifact@2
+    inputs:
+      buildType: 'current'
+      artifactName: 'AppImage'
+      targetPath: '$(Pipeline.Workspace)'
+  - bash: export DRILL_VERSION=$(python -c "import sys, json; f = open('dub.json'); print(json.load(f)['version']); f.close()") 
+  - bash: chmod +x $(Pipeline.Workspace)/Drill-$(echo $DRILL_VERSION)_x86_64.AppImage
+  - bash: $(Pipeline.Workspace)/Drill-$(echo $DRILL_VERSION)_x86_64.AppImage --appimage-extract
+      
 
 - job: OSX_GTK_Release_Zip
   dependsOn: [OSX_GTK_Release]
@@ -482,6 +496,7 @@ jobs:
 - job: Publish_Beta
   condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/master'))
   dependsOn:
+  - Linux_GTK_Release_AppImage_Test
   - Linux_GTK_Release_AppImage
   - Linux_CLI_Unittest
   - Windows_CLI_Unittest
