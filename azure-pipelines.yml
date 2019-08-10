@@ -288,8 +288,8 @@ jobs:
   - bash: export PIPELINE_WORKSPACE=$(System.DefaultWorkingDirectory) && bash .azure-pipelines/create_appimage.sh
   - task: PublishPipelineArtifact@1
     inputs:
-      targetPath: '$(System.DefaultWorkingDirectory)/Drill-x86_64.AppImage'
-      artifact: 'Drill-x86_64.AppImage' 
+      targetPath: '$(System.DefaultWorkingDirectory)/Drill-release-x86_64.AppImage'
+      artifact: 'Drill-release-x86_64.AppImage' 
 
 - job: Linux_GTK_Release_AppImage_Test
   dependsOn: [Linux_GTK_Release_AppImage]
@@ -299,10 +299,10 @@ jobs:
   - task: DownloadPipelineArtifact@2
     inputs:
       buildType: 'current'
-      artifactName: 'Drill-x86_64.AppImage'
+      artifactName: 'Drill-release-x86_64.AppImage'
       targetPath: '$(System.DefaultWorkingDirectory)'
-  - bash: chmod +x $(System.DefaultWorkingDirectory)/Drill-x86_64.AppImage
-  - bash: $(System.DefaultWorkingDirectory)/Drill-x86_64.AppImage --appimage-extract
+  - bash: chmod +x $(System.DefaultWorkingDirectory)/Drill-release-x86_64.AppImage
+  - bash: $(System.DefaultWorkingDirectory)/Drill-release-x86_64.AppImage --appimage-extract
       
 
 - job: OSX_GTK_Release_Zip
@@ -481,7 +481,67 @@ jobs:
 
 
 
-##export DRILL_VERSION=$(python -c "import sys, json; f = open('dub.json'); print(json.load(f)['version']); f.close()") 
+##
+
+
+- job: Publish_Alpha
+  condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/master'))
+  dependsOn:
+  - Linux_GTK_Release_AppImage_Test
+  - Linux_GTK_Release_AppImage
+  - Linux_CLI_Unittest
+  - Windows_CLI_Unittest
+  - OSX_CLI_Unittest
+  - Linux_GTK_Unittest
+  - OSX_GTK_Unittest
+  - Linux_CLI_Release_Zip
+  - Windows_CLI_Release_Zip
+  - OSX_CLI_Release_Zip
+  - Linux_GTK_Release_Zip
+  - Windows_GTK_Release_Zip
+  - OSX_GTK_Release_Zip
+  - Linux_CLI_Name_Test
+  - OSX_CLI_Name_Test
+  - Windows_CLI_Name_Test
+  - Linux_CLI_Content_Test
+  - OSX_CLI_Content_Test
+  - Windows_CLI_Content_Test
+  pool:
+    name: Hosted Ubuntu 1604
+  steps:
+  - checkout: none
+  - task: DownloadPipelineArtifact@2
+    inputs:
+      buildType: 'current'
+      targetPath: '$(Build.BinariesDirectory)'
+  - task: GitHubRelease@0
+    inputs:
+      gitHubConnection: 'githubtoken'
+      repositoryName: '$(Build.Repository.Name)'
+      action: 'delete'
+      tag: 'ContinuousIntegration'
+  - task: GitHubRelease@0
+    inputs:
+      gitHubConnection: 'githubtoken'
+      repositoryName: '$(Build.Repository.Name)'
+      action: 'create'
+      target: '$(Build.SourceVersion)'
+      tagSource: 'manual'
+      tag: 'ContinuousIntegration'
+      title: '$(Build.BuildNumber) Alpha'
+      releaseNotesSource: 'input'
+      releaseNotes: 'Automated Build $(Build.BuildNumber)'
+      isPreRelease: true
+      assetUploadMode: replace
+      addChangeLog: false
+      assets: |
+        $(Build.BinariesDirectory)/Drill-release-x86_64.AppImage/Drill-release-x86_64.AppImage
+        $(Build.BinariesDirectory)/Drill-CLI-linux-x86_64-release.zip/Drill-CLI-linux-x86_64-release.zip
+        $(Build.BinariesDirectory)/Drill-CLI-windows-x86_64-release.zip/Drill-CLI-windows-x86_64-release.zip
+        $(Build.BinariesDirectory)/Drill-CLI-osx-x86_64-release.zip/Drill-CLI-osx-x86_64-release.zip
+        $(Build.BinariesDirectory)/Drill-GTK-linux-x86_64-release.zip/Drill-GTK-linux-x86_64-release.zip
+        $(Build.BinariesDirectory)/Drill-GTK-windows-x86_64-release.zip/Drill-GTK-windows-x86_64-release.zip
+        $(Build.BinariesDirectory)/Drill-GTK-osx-x86_64-release.zip/Drill-GTK-osx-x86_64-release.zip
 
 
 - job: Publish_Beta
@@ -513,12 +573,7 @@ jobs:
     inputs:
       buildType: 'current'
       targetPath: '$(Build.BinariesDirectory)'
-  - task: GitHubRelease@0
-    inputs:
-      gitHubConnection: 'githubtoken'
-      repositoryName: '$(Build.Repository.Name)'
-      action: 'delete'
-      tag: 'ContinuousIntegration'
+  - bash: export DRILL_VERSION=$(python -c "import sys, json; f = open('dub.json'); print(json.load(f)['version']); f.close()") 
   - task: GitHubRelease@0
     inputs:
       gitHubConnection: 'githubtoken'
@@ -526,23 +581,21 @@ jobs:
       action: 'create'
       target: '$(Build.SourceVersion)'
       tagSource: 'manual'
-      tag: 'ContinuousIntegration'
-      title: '$(Build.BuildNumber) Beta'
+      tag: $DRILL_VERSION
+      title: '$DRILL_VERSION Beta'
       releaseNotesSource: 'input'
-      releaseNotes: 'Automated Build $(Build.BuildNumber)'
+      releaseNotes: 'Automated Build $DRILL_VERSION'
       isPreRelease: true
       assetUploadMode: replace
       addChangeLog: false
       assets: |
-        $(Build.BinariesDirectory)/Drill-x86_64.AppImage/Drill-x86_64.AppImage
+        $(Build.BinariesDirectory)/Drill-release-x86_64.AppImage/Drill-release-x86_64.AppImage
         $(Build.BinariesDirectory)/Drill-CLI-linux-x86_64-release.zip/Drill-CLI-linux-x86_64-release.zip
         $(Build.BinariesDirectory)/Drill-CLI-windows-x86_64-release.zip/Drill-CLI-windows-x86_64-release.zip
         $(Build.BinariesDirectory)/Drill-CLI-osx-x86_64-release.zip/Drill-CLI-osx-x86_64-release.zip
         $(Build.BinariesDirectory)/Drill-GTK-linux-x86_64-release.zip/Drill-GTK-linux-x86_64-release.zip
         $(Build.BinariesDirectory)/Drill-GTK-windows-x86_64-release.zip/Drill-GTK-windows-x86_64-release.zip
         $(Build.BinariesDirectory)/Drill-GTK-osx-x86_64-release.zip/Drill-GTK-osx-x86_64-release.zip
-
-
 
 
 # - stage: BuildCLIDebug
