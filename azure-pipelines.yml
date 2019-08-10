@@ -147,7 +147,10 @@ jobs:
   - task: PublishPipelineArtifact@1
     inputs:
       targetPath: 'Build/Drill-GTK-linux-x86_64-release'
-      artifact: 'Drill-GTK-linux-x86_64-release' 
+      artifact: 'Drill-GTK-linux-x86_64-release'
+
+
+
 
 - job: Windows_GTK_Release
   dependsOn: []
@@ -269,6 +272,33 @@ jobs:
     inputs:
       targetPath: 'Drill-GTK-linux-x86_64-release.zip'
       artifact: 'Drill-GTK-linux-x86_64-release.zip'
+
+
+- job: Linux_GTK_Release_AppImage
+  dependsOn: [Linux_GTK_Release]
+  pool:
+    name: Hosted Ubuntu 1604
+  steps:
+  - task: DownloadPipelineArtifact@2
+    inputs:
+      buildType: 'current'
+      artifactName: 'Drill-GTK-linux-x86_64-release'
+      targetPath: '$(Pipeline.Workspace)/Drill-GTK-linux-x86_64-release'
+  - bash: mkdir -p Drill.AppDir
+  - bash: cp -R $(Pipeline.Workspace)/Drill-GTK-linux-x86_64-release/* Drill.AppDir
+  - bash: mkdir -p Drill.AppDir/usr/share/metainfo
+  - bash: mkdir -p Drill.AppDir/usr/share/metainfo
+  - bash: cp Assets/GTK-Linux/drill-search-gtk.appdata.xml Drill.AppDir/usr/share/metainfo
+  - bash: ln -s drill-search-gtk Drill.AppDir/AppRun
+  - bash: cp Assets/GTK-Linux/drill-search-gtk.svg Drill.AppDir
+  - bash: wget https://github.com/AppImage/AppImageKit/releases/download/12/appimagetool-x86_64.AppImage
+  - bash: chmod +x appimagetool-x86_64.AppImage
+  - bash: export DRILL_VERSION=$(python -c "import sys, json; f = open('dub.json'); print(json.load(f)['version']); f.close()") 
+  - bash: ./appimagetool-x86_64.AppImage Drill.AppDir Drill-$(echo $DRILL_VERSION)_x86_64.AppImage
+  - task: PublishPipelineArtifact@1
+    inputs:
+      targetPath: 'Drill-$(echo $DRILL_VERSION)_x86_64.AppImage'
+      artifact: 'AppImage' 
 
 - job: OSX_GTK_Release_Zip
   dependsOn: [OSX_GTK_Release]
@@ -451,6 +481,7 @@ jobs:
 - job: Publish_Beta
   condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/master'))
   dependsOn:
+  - Linux_GTK_Release_AppImage
   - Linux_CLI_Unittest
   - Windows_CLI_Unittest
   - OSX_CLI_Unittest
@@ -497,6 +528,7 @@ jobs:
       assetUploadMode: replace
       addChangeLog: false
       assets: |
+        $(Build.BinariesDirectory)/AppImage/*.AppImage
         $(Build.BinariesDirectory)/Drill-CLI-linux-x86_64-release.zip/Drill-CLI-linux-x86_64-release.zip
         $(Build.BinariesDirectory)/Drill-CLI-windows-x86_64-release.zip/Drill-CLI-windows-x86_64-release.zip
         $(Build.BinariesDirectory)/Drill-CLI-osx-x86_64-release.zip/Drill-CLI-osx-x86_64-release.zip
