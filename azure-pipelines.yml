@@ -294,6 +294,7 @@ jobs:
   - bash: wget https://github.com/AppImage/AppImageKit/releases/download/12/appimagetool-x86_64.AppImage
   - bash: chmod +x appimagetool-x86_64.AppImage
   - bash: export DRILL_VERSION=$(python -c "import sys, json; f = open('dub.json'); print(json.load(f)['version']); f.close()") 
+  - bash: export ARCH=x86_64
   - bash: ./appimagetool-x86_64.AppImage Drill.AppDir Drill-$(echo $DRILL_VERSION)_x86_64.AppImage
   - task: PublishPipelineArtifact@1
     inputs:
