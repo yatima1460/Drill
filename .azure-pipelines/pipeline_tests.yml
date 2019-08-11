@@ -122,7 +122,7 @@ stages:
       displayName: GTK Release
 
 - stage: AppImage_Tests
-  dependsOn: GTK_Release
+  dependsOn: GTK_Releases
   jobs:
   - job: Linux_GTK_AppImage_Create
     pool:
