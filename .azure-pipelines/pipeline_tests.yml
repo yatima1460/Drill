@@ -9,41 +9,41 @@ jobs:
     name: Hosted Ubuntu 1604
   steps:
   - template: dub_install_linux.yml
-  - script: 'dub build -c CLI -b unittest --arch=x86_64'
-    displayName: "CLI Unittest"
+  - script: dub build -c CLI -b unittest --arch=x86_64
+    displayName: CLI Unittest
 
 - job: OSX_CLI_Unittest
   pool:
     name: Hosted macOS
   steps:
   - template: dub_install_osx.yml
-  - script: dub build -c CLI -b unittest --arch=x86_64'
+  - script: dub build -c CLI -b unittest --arch=x86_64
 
 - job: Windows_CLI_Unittest
   pool:
     name: Hosted VS2017
   steps:
   - template: dub_install_windows.yml
-  - script: 'dub build -c CLI -b release --arch=x86_64'
+  - script: dub build -c CLI -b release --arch=x86_64
 
 - job: Linux_CLI_Release
   pool:
     name: Hosted Ubuntu 1604
   steps:
   - template: dub_install_linux.yml
-  - script: 'dub build -c CLI -b release --arch=x86_64'
-    displayName: "CLI Unittest"
+  - script: dub build -c CLI -b release --arch=x86_64
+    displayName: CLI Unittest
 
 - job: OSX_CLI_Release
   pool:
     name: Hosted macOS
   steps:
   - template: dub_install_osx.yml
-  - script: dub build -c CLI -b release --arch=x86_64'
+  - script: dub build -c CLI -b release --arch=x86_64
 
 - job: Windows_CLI_Release
   pool:
     name: Hosted VS2017
   steps:
   - template: dub_install_windows.yml
-  - script: 'dub build -c CLI -b unittest --arch=x86_64'
+  - script: dub build -c CLI -b unittest --arch=x86_64
