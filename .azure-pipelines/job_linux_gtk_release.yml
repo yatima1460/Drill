@@ -1,9 +1,9 @@
-- job: Linux_GTK_Release
-  dependsOn: 
-  pool:
-    name: Hosted Ubuntu 1604
-  steps:
-  - template: dub_install_linux.yml
-  - template: gtk_install_linux.yml
-  - script: dub build -c GTK -b release --arch=x86_64
-    displayName: GTK Release
+job: Linux_GTK_Release
+dependsOn: 
+pool:
+  name: Hosted Ubuntu 1604
+steps:
+- template: dub_install_linux.yml
+- template: gtk_install_linux.yml
+- script: dub build -c GTK -b release --arch=x86_64
+  displayName: GTK Release

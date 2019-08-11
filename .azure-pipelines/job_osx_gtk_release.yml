@@ -1,8 +1,8 @@
-- job: OSX_GTK_Release
-  pool:
-    name: Hosted macOS
-  steps:
-  - template: dub_install_osx.yml
-  - template: gtk_install_osx.yml
-  - script: dub build -c GTK -b release --arch=x86_64
-    displayName: GTK Release
+job: OSX_GTK_Release
+pool:
+  name: Hosted macOS
+steps:
+- template: dub_install_osx.yml
+- template: gtk_install_osx.yml
+- script: dub build -c GTK -b release --arch=x86_64
+  displayName: GTK Release
