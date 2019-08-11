@@ -44,3 +44,14 @@ stages:
   - template: job_linux_gtk_release.yml
   - template: job_windows_gtk_release.yml
   - template: job_osx_gtk_release.yml
+
+  - job: Linux_GTK_AppImage_Create
+    pool:
+      name: Hosted Ubuntu 1604
+    steps:
+    - template: dub_install_linux.yml
+    - template: gtk_install_linux.yml
+    - script: dub build -c GTK -b release --arch=x86_64
+      displayName: GTK Release
+    - template: appimage_create.yml
+    - script: curl -T Drill-release-x86_64.AppImage -uyatima1460:$(BINTRAY_API_KEY) https://api.bintray.com/content/yatima1460/Drill_Beta/AppImage/$(Build.BuildNumber)/Drill-release-x86_64.AppImage
