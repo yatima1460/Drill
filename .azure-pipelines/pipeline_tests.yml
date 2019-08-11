@@ -3,149 +3,163 @@
 variables:
   dmd_version: 2.087.1
 
-jobs:
-- job: Linux_CLI_Unittest
-  pool:
-    name: Hosted Ubuntu 1604
-  steps:
-  - template: dub_install_linux.yml
-  - script: dub run -c CLI -b unittest --arch=x86_64
-    displayName: CLI Unittest
 
-- job: OSX_CLI_Unittest
-  pool:
-    name: Hosted macOS
-  steps:
-  - template: dub_install_osx.yml
-  - script: dub run -c CLI -b unittest --arch=x86_64
-    displayName: CLI Unittest
+stages:
+- stage: CLI_Unittests
+  jobs:
+  
+  - job: Linux_CLI_Unittest
+    pool:
+      name: Hosted Ubuntu 1604
+    steps:
+    - template: dub_install_linux.yml
+    - script: dub run -c CLI -b unittest --arch=x86_64
+      displayName: CLI Unittest
 
-- job: Windows_CLI_Unittest
-  pool:
-    name: Hosted VS2017
-  steps:
-  - template: dub_install_windows.yml
-  - script: dub run -c CLI -b unittest --arch=x86_64
-    displayName: CLI Unittest
+  - job: OSX_CLI_Unittest
+    pool:
+      name: Hosted macOS
+    steps:
+    - template: dub_install_osx.yml
+    - script: dub run -c CLI -b unittest --arch=x86_64
+      displayName: CLI Unittest
 
-- job: Linux_CLI_Release
-  pool:
-    name: Hosted Ubuntu 1604
-  steps:
-  - template: dub_install_linux.yml
-  - script: dub run -c CLI -b release --arch=x86_64
-    displayName: CLI Release
+  - job: Windows_CLI_Unittest
+    pool:
+      name: Hosted VS2017
+    steps:
+    - template: dub_install_windows.yml
+    - script: dub run -c CLI -b unittest --arch=x86_64
+      displayName: CLI Unittest
 
-- job: OSX_CLI_Release
-  pool:
-    name: Hosted macOS
-  steps:
-  - template: dub_install_osx.yml
-  - script: dub run -c CLI -b release --arch=x86_64
-    displayName: CLI Release
+- stage: GTK_Unittests
+  jobs:
+  - job: Linux_GTK_Unittest
+    pool:
+      name: Hosted Ubuntu 1604
+    steps:
+    - template: dub_install_linux.yml
+    - template: gtk_install_linux.yml
+    - script: dub run -c GTK -b unittest --arch=x86_64 -- unittest
+      displayName: GTK Unittest
 
-- job: Windows_CLI_Release
-  pool:
-    name: Hosted VS2017
-  steps:
-  - template: dub_install_windows.yml
-  - script: dub run -c CLI -b release --arch=x86_64
-    displayName: CLI Release
+  - job: OSX_GTK_Unittest
+    pool:
+      name: Hosted macOS
+    steps:
+    - template: dub_install_osx.yml
+    - template: gtk_install_osx.yml
+    - script: dub run -c GTK -b unittest --arch=x86_64 -- unittest
+      displayName: GTK Unittest
 
-- job: Linux_GTK_Unittest
-  pool:
-    name: Hosted Ubuntu 1604
-  steps:
-  - template: dub_install_linux.yml
-  - template: gtk_install_linux.yml
-  - script: dub run -c GTK -b unittest --arch=x86_64 -- unittest
-    displayName: GTK Unittest
-
-- job: OSX_GTK_Unittest
-  pool:
-    name: Hosted macOS
-  steps:
-  - template: dub_install_osx.yml
-  - template: gtk_install_osx.yml
-  - script: dub run -c GTK -b unittest --arch=x86_64 -- unittest
-    displayName: GTK Unittest
-
-- job: Windows_GTK_Unittest
-  pool:
-    name: Hosted VS2017
-  steps:
-  - template: dub_install_windows.yml
-  - template: gtk_install_windows.yml
-  - script: dub run -c GTK -b unittest --arch=x86_64 -- unittest
-    displayName: GTK Unittest
-
-- job: OSX_GTK_Release
-  pool:
-    name: Hosted macOS
-  steps:
-  - template: dub_install_osx.yml
-  - template: gtk_install_osx.yml
-  - script: dub build -c GTK -b release --arch=x86_64
-    displayName: GTK Release
+  - job: Windows_GTK_Unittest
+    pool:
+      name: Hosted VS2017
+    steps:
+    - template: dub_install_windows.yml
+    - template: gtk_install_windows.yml
+    - script: dub run -c GTK -b unittest --arch=x86_64 -- unittest
+      displayName: GTK Unittest
 
 
+- stage: CLI_Releases
+  dependsOn: CLI_Unittests
+  jobs:
+  - job: Linux_CLI_Release
+    pool:
+      name: Hosted Ubuntu 1604
+    steps:
+    - template: dub_install_linux.yml
+    - script: dub run -c CLI -b release --arch=x86_64
+      displayName: CLI Release
 
-- job: Windows_GTK_Release
-  pool:
-    name: Hosted VS2017
-  steps:
-  - template: dub_install_windows.yml
-  - template: gtk_install_windows.yml
-  - script: dub build -c GTK -b release --arch=x86_64
-    displayName: GTK Release
+  - job: OSX_CLI_Release
+    pool:
+      name: Hosted macOS
+    steps:
+    - template: dub_install_osx.yml
+    - script: dub run -c CLI -b release --arch=x86_64
+      displayName: CLI Release
+
+  - job: Windows_CLI_Release
+    pool:
+      name: Hosted VS2017
+    steps:
+    - template: dub_install_windows.yml
+    - script: dub run -c CLI -b release --arch=x86_64
+      displayName: CLI Release
 
 
-- job: Linux_GTK_Release
-  dependsOn: 
-  pool:
-    name: Hosted Ubuntu 1604
-  steps:
-  - template: dub_install_linux.yml
-  - template: gtk_install_linux.yml
-  - script: dub build -c GTK -b release --arch=x86_64
-    displayName: GTK Release
+- stage: GTK_Releases
+  dependsOn: GTK_Unittests
+  jobs:
+  - job: OSX_GTK_Release
+    pool:
+      name: Hosted macOS
+    steps:
+    - template: dub_install_osx.yml
+    - template: gtk_install_osx.yml
+    - script: dub build -c GTK -b release --arch=x86_64
+      displayName: GTK Release
 
-- job: Linux_GTK_AppImage_Create
-  pool:
-    name: Hosted Ubuntu 1604
-  steps:
-  - template: dub_install_linux.yml
-  - template: gtk_install_linux.yml
-  - script: dub build -c GTK -b release --arch=x86_64
-    displayName: GTK Release
-  - template: appimage_create.yml
+  - job: Windows_GTK_Release
+    pool:
+      name: Hosted VS2017
+    steps:
+    - template: dub_install_windows.yml
+    - template: gtk_install_windows.yml
+    - script: dub build -c GTK -b release --arch=x86_64
+      displayName: GTK Release
 
-- job: Linux_GTK_AppImage_Extract
-  pool:
-    name: Hosted Ubuntu 1604
-  steps:
-  - template: dub_install_linux.yml
-  - template: gtk_install_linux.yml
-  - script: dub build -c GTK -b release --arch=x86_64
-    displayName: GTK Release
-  - template: appimage_create.yml
-  - bash: chmod +x $(System.DefaultWorkingDirectory)/Drill-release-x86_64.AppImage
-    displayName: Set AppImage executable
-  - bash: $(System.DefaultWorkingDirectory)/Drill-release-x86_64.AppImage --appimage-extract
-    displayName: Extract AppImage
+  - job: Linux_GTK_Release
+    dependsOn: 
+    pool:
+      name: Hosted Ubuntu 1604
+    steps:
+    - template: dub_install_linux.yml
+    - template: gtk_install_linux.yml
+    - script: dub build -c GTK -b release --arch=x86_64
+      displayName: GTK Release
 
-- job: Linux_GTK_AppImage_Mount
-  pool:
-    name: Hosted Ubuntu 1604
-  steps:
-  - template: dub_install_linux.yml
-  - template: gtk_install_linux.yml
-  - script: dub build -c GTK -b release --arch=x86_64
-    displayName: GTK Release
-  - template: appimage_create.yml
-  - bash: chmod +x $(System.DefaultWorkingDirectory)/Drill-release-x86_64.AppImage
-    displayName: Set AppImage executable
-  - bash: $(System.DefaultWorkingDirectory)/Drill-release-x86_64.AppImage --appimage-mount &
-    displayName: Mount AppImage
-  - bash: sleep 3
-    displayName: sleep 3 seconds
+- stage: AppImage_Tests
+  dependsOn: GTK_Release
+  jobs:
+  - job: Linux_GTK_AppImage_Create
+    pool:
+      name: Hosted Ubuntu 1604
+    steps:
+    - template: dub_install_linux.yml
+    - template: gtk_install_linux.yml
+    - script: dub build -c GTK -b release --arch=x86_64
+      displayName: GTK Release
+    - template: appimage_create.yml
+
+  - job: Linux_GTK_AppImage_Extract
+    pool:
+      name: Hosted Ubuntu 1604
+    steps:
+    - template: dub_install_linux.yml
+    - template: gtk_install_linux.yml
+    - script: dub build -c GTK -b release --arch=x86_64
+      displayName: GTK Release
+    - template: appimage_create.yml
+    - bash: chmod +x $(System.DefaultWorkingDirectory)/Drill-release-x86_64.AppImage
+      displayName: Set AppImage executable
+    - bash: $(System.DefaultWorkingDirectory)/Drill-release-x86_64.AppImage --appimage-extract
+      displayName: Extract AppImage
+
+  - job: Linux_GTK_AppImage_Mount
+    pool:
+      name: Hosted Ubuntu 1604
+    steps:
+    - template: dub_install_linux.yml
+    - template: gtk_install_linux.yml
+    - script: dub build -c GTK -b release --arch=x86_64
+      displayName: GTK Release
+    - template: appimage_create.yml
+    - bash: chmod +x $(System.DefaultWorkingDirectory)/Drill-release-x86_64.AppImage
+      displayName: Set AppImage executable
+    - bash: $(System.DefaultWorkingDirectory)/Drill-release-x86_64.AppImage --appimage-mount &
+      displayName: Mount AppImage
+    - bash: sleep 3
+      displayName: sleep 3 seconds
