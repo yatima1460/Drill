@@ -1,5 +1,5 @@
 steps:
-- powershell: Invoke-WebRequest -Uri http://downloads.dlang.org/releases/2.x/$(dmd_version)/dmd.$(dmd_version).windows.zip
+- powershell: Invoke-WebRequest -Uri http://downloads.dlang.org/releases/2.x/$(dmd_version)/dmd.$(dmd_version).windows.zip -OutFile $(System.DefaultWorkingDirectory)/dmd.$(dmd_version).windows.zip
   displayName: "Download dmd & dub"
 - bash: 7z x dmd.$(dmd_version).windows.zip
   displayName: "Extract dmd & dub"
