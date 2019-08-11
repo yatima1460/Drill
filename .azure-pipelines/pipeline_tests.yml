@@ -99,4 +99,3 @@ jobs:
   - script: dub build -c GTK -b release --arch=x86_64
     displayName: GTK Release
   - template: appimage_create.yml
-    displayName: GTK AppImage
