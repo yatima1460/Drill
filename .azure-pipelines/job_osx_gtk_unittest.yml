@@ -1,8 +1,9 @@
-job: OSX_GTK_Unittest
-pool:
-  name: Hosted macOS
-steps:
-- template: dub_install_osx.yml
-- template: gtk_install_osx.yml
-- script: dub run -c GTK -b unittest --arch=x86_64 -- unittest
-  displayName: GTK Unittest
+jobs:
+- job: OSX_GTK_Unittest
+  pool:
+    name: Hosted macOS
+  steps:
+  - template: dub_install_osx.yml
+  - template: gtk_install_osx.yml
+  - script: dub run -c GTK -b unittest --arch=x86_64 -- unittest
+    displayName: GTK Unittest

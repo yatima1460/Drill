@@ -1,7 +1,8 @@
-job: OSX_CLI_Release
-pool:
-  name: Hosted macOS
-steps:
-- template: dub_install_osx.yml
-- script: dub run -c CLI -b release --arch=x86_64
-  displayName: CLI Release
+jobs:
+- job: OSX_CLI_Release
+  pool:
+    name: Hosted macOS
+  steps:
+  - template: dub_install_osx.yml
+  - script: dub run -c CLI -b release --arch=x86_64
+    displayName: CLI Release
