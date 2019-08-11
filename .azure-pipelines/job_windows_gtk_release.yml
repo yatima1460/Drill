@@ -1,8 +1,9 @@
-job: Windows_GTK_Release
-pool:
-  name: Hosted VS2017
-steps:
-- template: dub_install_windows.yml
-- template: gtk_install_windows.yml
-- script: dub build -c GTK -b release --arch=x86_64
-  displayName: GTK Release
+jobs:
+- job: Windows_GTK_Release
+  pool:
+    name: Hosted VS2017
+  steps:
+  - template: dub_install_windows.yml
+  - template: gtk_install_windows.yml
+  - script: dub build -c GTK -b release --arch=x86_64
+    displayName: GTK Release
