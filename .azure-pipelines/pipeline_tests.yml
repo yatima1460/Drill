@@ -70,6 +70,15 @@ jobs:
   - script: dub build -c GTK -b unittest --arch=x86_64
     displayName: GTK Unittest
 
+- job: OSX_GTK_Release
+  pool:
+    name: Hosted macOS
+  steps:
+  - template: dub_install_osx.yml
+  - template: gtk_install_osx.yml
+  - script: dub build -c GTK -b release --arch=x86_64
+    displayName: GTK Release
+
 - job: Windows_GTK_Unittest
   pool:
     name: Hosted VS2017
@@ -78,6 +87,15 @@ jobs:
   - template: gtk_install_windows.yml
   - script: dub build -c GTK -b unittest --arch=x86_64
     displayName: GTK Unittest
+
+- job: Windows_GTK_Release
+  pool:
+    name: Hosted VS2017
+  steps:
+  - template: dub_install_windows.yml
+  - template: gtk_install_windows.yml
+  - script: dub build -c GTK -b release --arch=x86_64
+    displayName: GTK Release
 
 
 - job: Linux_GTK_Release
@@ -99,3 +117,32 @@ jobs:
   - script: dub build -c GTK -b release --arch=x86_64
     displayName: GTK Release
   - template: appimage_create.yml
+
+- job: Linux_GTK_AppImage_Extract
+  pool:
+    name: Hosted Ubuntu 1604
+  steps:
+  - template: dub_install_linux.yml
+  - template: gtk_install_linux.yml
+  - script: dub build -c GTK -b release --arch=x86_64
+    displayName: GTK Release
+  - template: appimage_create.yml
+  - bash: chmod +x $(System.DefaultWorkingDirectory)/Drill-release-x86_64.AppImage
+    displayName: Set AppImage executable
+  - bash: $(System.DefaultWorkingDirectory)/Drill-release-x86_64.AppImage --appimage-extract
+    displayName: Extract AppImage
+
+- job: Linux_GTK_AppImage_Mount
+  pool:
+    name: Hosted Ubuntu 1604
+  steps:
+  - template: dub_install_linux.yml
+  - template: gtk_install_linux.yml
+  - script: dub build -c GTK -b release --arch=x86_64
+    displayName: GTK Release
+  - template: appimage_create.yml
+  - bash: chmod +x $(System.DefaultWorkingDirectory)/Drill-release-x86_64.AppImage
+    displayName: Set AppImage executable
+  - bash: $(System.DefaultWorkingDirectory)/Drill-release-x86_64.AppImage --appimage-mount &
+    displayName: Mount AppImage
+  - bash: sleep 3
