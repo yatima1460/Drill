@@ -1,0 +1,3 @@
+steps:
+- powershell: Invoke-WebRequest -Uri https://github.com/yatima1460/GTK3-Windows/releases/download/20190809.4/GTK_x86_64_VS2019.zip -OutFile GTK_x86_64_VS2019.zip
+- bash: 7z x GTK_x86_64_VS2019.zip

@@ -1,0 +1,2 @@
+steps:
+ - script: sudo apt install -y libgtk-3-dev
