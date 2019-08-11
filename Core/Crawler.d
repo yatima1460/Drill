@@ -121,11 +121,12 @@ unittest
     assert(!f.isDirectory);
     assert(f.isFile);
     assert(f.dateModifiedString);
-    assert(canFind(f.containingFolder,"/Build/Drill-CLI-linux-x86_64-unittest"));
-    assert(f.fileName == "drill-search-cli");
-    assert(f.fileNameLower == "drill-search-cli");
-    assert(f.extension == "");
-    assert(canFind(f.fullPath,"/Build/Drill-CLI-linux-x86_64-unittest/drill-search-cli"),f.fullPath);
+    assert(canFind(f.containingFolder,"Build"));
+    assert(canFind(f.containingFolder,"unittest"));
+    assert(f.fileName == "drill-search-cli" || f.fileName == "drill-search-gtk");
+    assert(f.fileNameLower == "drill-search-cli" || f.fileName == "drill-search-gtk");
+    assert(f.extension == "" || f.extension == ".exe");
+    assert(canFind(f.fullPath, f.containingFolder));
     assert(!canFind(f.sizeString, "0 B"));
 }
 unittest
