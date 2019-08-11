@@ -3,6 +3,7 @@ steps:
   displayName: "Download dmd & dub"
 - powershell: Expand-Archive dmd2.zip -DestinationPath .
   displayName: "Extract dmd & dub"
-- script: move dmd2\\windows\\bin\\*.* $(System.DefaultWorkingDirectory)
-  displayName: "Install dmd & dub"
-# - script: set "PATH=%cd%/dmd2/windows/bin;%PATH%"
+# - script: move dmd2\\windows\\bin\\*.* $(System.DefaultWorkingDirectory)
+#   displayName: "Install dmd & dub"
+- script: set "PATH=$(System.DefaultWorkingDirectory)/dmd2/windows/bin;%PATH%"
+  displayName: "Set PATH"

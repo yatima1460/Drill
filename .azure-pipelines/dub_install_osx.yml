@@ -4,7 +4,8 @@ steps:
   displayName: 'Download dmd & dub'
 - script: 7z -aoa x dmd.$(dmd_version).osx.tar.xz
 - script: 7z -aoa x dmd.$(dmd_version).osx.tar
-- script: export D_LOCATION=$(System.DefaultWorkingDirectory)/dmd2/osx/bin
+- script: setenv D_LOCATION $(System.DefaultWorkingDirectory)/dmd2/osx/bin
 - script: chmod +x $D_LOCATION/dmd
 - script: chmod +x $D_LOCATION/dub
-- script: export PATH="$D_LOCATION:$PATH"
+- script: setenv PATH "$D_LOCATION:$PATH"
+  displayName: "Set PATH"
