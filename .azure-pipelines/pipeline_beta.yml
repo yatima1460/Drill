@@ -1,7 +1,16 @@
+
+# 
+
+variables:
+  dmd_version: 2.087.1
+
 trigger:
   branches:
     include:
     - master
+
+pr: none
+
 
 stages:
 - stage: CLI_Unittests

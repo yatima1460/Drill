@@ -11,6 +11,7 @@ pr:
     include:
     - '*' 
 
+
 jobs:
 - template: job_linux_cli_unittest.yml
 - template: job_windows_cli_unittest.yml
