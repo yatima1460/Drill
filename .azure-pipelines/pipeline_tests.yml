@@ -18,6 +18,7 @@ jobs:
   steps:
   - template: dub_install_osx.yml
   - script: dub build -c CLI -b unittest --arch=x86_64
+    displayName: CLI Unittest
 
 - job: Windows_CLI_Unittest
   pool:
@@ -25,6 +26,7 @@ jobs:
   steps:
   - template: dub_install_windows.yml
   - script: dub build -c CLI -b release --arch=x86_64
+    displayName: CLI Unittest
 
 - job: Linux_CLI_Release
   pool:
@@ -32,7 +34,7 @@ jobs:
   steps:
   - template: dub_install_linux.yml
   - script: dub build -c CLI -b release --arch=x86_64
-    displayName: CLI Unittest
+    displayName: CLI Release
 
 - job: OSX_CLI_Release
   pool:
@@ -40,6 +42,7 @@ jobs:
   steps:
   - template: dub_install_osx.yml
   - script: dub build -c CLI -b release --arch=x86_64
+    displayName: CLI Release
 
 - job: Windows_CLI_Release
   pool:
@@ -47,3 +50,4 @@ jobs:
   steps:
   - template: dub_install_windows.yml
   - script: dub build -c CLI -b unittest --arch=x86_64
+    displayName: CLI Release
