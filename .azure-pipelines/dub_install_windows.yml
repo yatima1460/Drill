@@ -1,0 +1,4 @@
+steps:
+- powershell: Invoke-WebRequest -Uri http://downloads.dlang.org/releases/2.x/$(dmd_version)/dmd.$(dmd_version).windows.zip -OutFile dmd2.zip
+- powershell: Expand-Archive dmd2.zip -DestinationPath .
+- script: set "PATH=%cd%/dmd2/windows/bin;%PATH%"

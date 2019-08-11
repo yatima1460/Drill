@@ -1,0 +1,8 @@
+steps:
+- script: wget http://downloads.dlang.org/releases/2.x/$(dmd_version)/dmd.$(dmd_version).osx.tar.xz
+- script: 7z -aoa x dmd.$(dmd_version).osx.tar.xz
+- script: 7z -aoa x dmd.$(dmd_version).osx.tar
+- script: export D_LOCATION=$PWD/dmd2/osx/bin
+- script: export PATH=$PATH:$D_LOCATION
+- script: chmod +x $D_LOCATION/dmd
+- script: chmod +x $D_LOCATION/dub
