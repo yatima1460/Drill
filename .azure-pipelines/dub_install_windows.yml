@@ -1,10 +1,7 @@
 steps:
-- script: choco install wget
-- bash: wget http://downloads.dlang.org/releases/2.x/$(dmd_version)/dmd.$(dmd_version).windows.zip
+- powershell: Invoke-WebRequest -Uri http://downloads.dlang.org/releases/2.x/$(dmd_version)/dmd.$(dmd_version).windows.zip
   displayName: "Download dmd & dub"
 - bash: 7z x dmd.$(dmd_version).windows.zip
   displayName: "Extract dmd & dub"
-# - script: move dmd2\\windows\\bin\\*.* $(System.DefaultWorkingDirectory)
-#   displayName: "Install dmd & dub"
 - script: echo "##vso[task.setvariable variable=PATH;]$(System.DefaultWorkingDirectory)/dmd2/windows/bin;%PATH%"
   displayName: "Set PATH"

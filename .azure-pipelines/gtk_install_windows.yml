@@ -1,6 +1,5 @@
 steps:
-- script: choco install wget
-- bash: wget https://github.com/yatima1460/GTK3-Windows/releases/download/20190809.4/GTK_x86_64_VS2019.zip -O GTK_x86_64_VS2019.zip
+- powershell: Invoke-WebRequest -Uri https://github.com/yatima1460/GTK3-Windows/releases/download/20190809.4/GTK_x86_64_VS2019.zip
   displayName: Download 20190809.4/GTK_x86_64_VS2019.zip
 - bash: 7z x GTK_x86_64_VS2019.zip
   displayName: Extract GTK_x86_64_VS2019.zip
