@@ -123,9 +123,19 @@ unittest
     assert(f.dateModifiedString);
     assert(canFind(f.containingFolder,"Build"));
     assert(canFind(f.containingFolder,"unittest"));
+
+version (Windows)
+    assert(f.fileName == "drill-search-cli.exe" || f.fileName == "drill-search-gtk.exe");
+else
     assert(f.fileName == "drill-search-cli" || f.fileName == "drill-search-gtk");
+    
     assert(f.fileNameLower == "drill-search-cli" || f.fileName == "drill-search-gtk");
-    assert(f.extension == "" || f.extension == ".exe");
+
+version (Windows)  
+    assert(f.extension == ".exe");
+else 
+    assert(f.extension == "");
+
     assert(canFind(f.fullPath, f.containingFolder));
     assert(!canFind(f.sizeString, "0 B"));
 }
