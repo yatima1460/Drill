@@ -5,6 +5,6 @@ steps:
 - script: 7z -aoa x dmd.$(dmd_version).osx.tar
 # - script: export D_LOCATION=$PWD/dmd2/osx/bin
 # - script: export PATH=$PATH:$D_LOCATION
-- script: mv dmd2/osx/bin/*.* /usr/bin
-- script: chmod +x /usr/bin/dmd
-- script: chmod +x /usr/bin/dub
+- script: sudo mv dmd2/osx/bin/*.* /usr/bin
+- script: sudo chmod +x /usr/bin/dmd
+- script: sudo chmod +x /usr/bin/dub
