@@ -1,6 +1,9 @@
 steps:
-- script: wget http://downloads.dlang.org/releases/2.x/$(dmd_version)/dmd_$(dmd_version)-0_amd64.deb
+- script: wget -c http://downloads.dlang.org/releases/2.x/$(dmd_version)/dmd.$(dmd_version).linux.tar.xz"
   displayName: 'Download dmd & dub'
-- script: sudo dpkg -i dmd_$(dmd_version)-0_amd64.deb
-  displayName: 'Install dmd & dub'
-
+- script: 7z x -aos dmd.$(dmd_version).linux.tar.xz
+- script: 7z x -aos dmd.$(dmd_version).linux.tar
+- script: export D_LOCATION=$(System.DefaultWorkingDirectory)/dmd2/linux/bin
+- script: chmod +x $D_LOCATION/dmd
+- script: chmod +x $D_LOCATION/dub
+- script: export PATH="$D_LOCATION:$PATH"
