@@ -6,6 +6,7 @@ variables:
 
 stages:
 - stage: CLI_Unittests
+  dependsOn: []
   jobs:
   
   - job: Linux_CLI_Unittest
@@ -33,6 +34,7 @@ stages:
       displayName: CLI Unittest
 
 - stage: GTK_Unittests
+  dependsOn: []
   jobs:
   - job: Linux_GTK_Unittest
     pool:
