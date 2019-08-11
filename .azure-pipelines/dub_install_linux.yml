@@ -1,0 +1,6 @@
+steps:
+- script: wget http://downloads.dlang.org/releases/2.x/$(dmd_version)/dmd_$(dmd_version)-0_amd64.deb
+  displayName: 'Download dmd & dub'
+- script: sudo dpkg -i dmd_$(dmd_version)-0_amd64.deb
+  displayName: 'Install dmd & dub'
+

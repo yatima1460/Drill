@@ -11,11 +11,7 @@ jobs:
   pool:
     name: Hosted Ubuntu 1604
   steps:
-  - bash: |
-      wget http://downloads.dlang.org/releases/2.x/$(dmd_version)/dmd_$(dmd_version)-0_amd64.deb
-      sudo dpkg -i dmd_$(dmd_version)-0_amd64.deb
-      dmd --version
-      dub --version
+  - template: linux_install_dub.yml
     displayName: 'Install DMD'
   - bash: 'dub build -c CLI -b unittest --arch=x86_64'
     displayName: "CLI Unittest"
