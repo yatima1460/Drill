@@ -1,7 +1,7 @@
 steps:
 - powershell: Invoke-WebRequest -Uri http://downloads.dlang.org/releases/2.x/$(dmd_version)/dmd.$(dmd_version).windows.zip -OutFile dmd2.zip
   displayName: "Download dmd & dub"
-- powershell: Expand-Archive dmd2.zip -DestinationPath .
+- bash: 7z x dmd2.zip
   displayName: "Extract dmd & dub"
 # - script: move dmd2\\windows\\bin\\*.* $(System.DefaultWorkingDirectory)
 #   displayName: "Install dmd & dub"
