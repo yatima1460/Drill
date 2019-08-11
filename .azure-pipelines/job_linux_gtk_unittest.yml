@@ -1,0 +1,8 @@
+- job: Linux_GTK_Unittest
+  pool:
+    name: Hosted Ubuntu 1604
+  steps:
+  - template: dub_install_linux.yml
+  - template: gtk_install_linux.yml
+  - script: dub run -c GTK -b unittest --arch=x86_64 -- unittest
+    displayName: GTK Unittest
