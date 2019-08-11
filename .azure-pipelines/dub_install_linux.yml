@@ -1,5 +1,5 @@
 steps:
-- script: wget -c http://downloads.dlang.org/releases/2.x/$(dmd_version)/dmd.$(dmd_version).linux.tar.xz -O $(System.DefaultWorkingDirectory)/dmd.$(dmd_version).linux.tar.xz 
+- script: wget -c http://downloads.dlang.org/releases/2.x/$(dmd_version)/dmd.$(dmd_version).linux.tar.xz
   displayName: 'Download dmd & dub'
 - script: 7z x -aos dmd.$(dmd_version).linux.tar.xz
   displayName: 7z -aoa x dmd.$(dmd_version).linux.tar.xz
