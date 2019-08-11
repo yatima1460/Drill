@@ -1,11 +1,14 @@
 trigger:
+  tags:
+    include:
+    - ^[0-9]+\.[0-9]+\.[0-9]+$
   branches:
     include:
     - master
 
+
 stages:
 - stage: CLI_Unittests
-  condition: always()
   dependsOn: []
   jobs:
   - template: job_linux_cli_unittest.yml
@@ -13,7 +16,6 @@ stages:
   - template: job_osx_cli_unittest.yml
   
 - stage: GTK_Unittests
-  condition: always()
   dependsOn: []
   jobs:
   - template: job_linux_gtk_unittest.yml
@@ -21,7 +23,6 @@ stages:
   - template: job_osx_gtk_unittest.yml
 
 - stage: CLI_Releases
-  condition: always()
   dependsOn: [CLI_Unittests]
   jobs:
   - template: job_linux_cli_unittest.yml
@@ -29,7 +30,6 @@ stages:
   - template: job_osx_cli_unittest.yml
 
 - stage: GTK_Releases
-  condition: always()
   dependsOn: [GTK_Unittests]
   jobs:
   - template: job_linux_gtk_release.yml
