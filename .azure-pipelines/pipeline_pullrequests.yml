@@ -4,6 +4,8 @@
 variables:
   dmd_version: 2.087.1
 
+trigger: none
+
 pr:
   branches:
     include:
