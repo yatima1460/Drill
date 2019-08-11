@@ -1,5 +1,5 @@
 steps:
-- script: wget -c http://downloads.dlang.org/releases/2.x/$(dmd_version)/dmd.$(dmd_version).linux.tar.xz"
+- script: wget -c http://downloads.dlang.org/releases/2.x/$(dmd_version)/dmd.$(dmd_version).linux.tar.xz
   displayName: 'Download dmd & dub'
 - script: 7z x -aos dmd.$(dmd_version).linux.tar.xz
 - script: 7z x -aos dmd.$(dmd_version).linux.tar
@@ -7,3 +7,4 @@ steps:
 - script: chmod +x $D_LOCATION/dmd
 - script: chmod +x $D_LOCATION/dub
 - script: export PATH="$D_LOCATION:$PATH"
+  displayName: "Set PATH"
