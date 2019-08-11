@@ -33,9 +33,9 @@ stages:
   condition: always()
   dependsOn: [CLI_Unittests]
   jobs:
-  - template: job_linux_cli_unittest.yml
-  - template: job_windows_cli_unittest.yml
-  - template: job_osx_cli_unittest.yml
+  - template: job_linux_cli_release.yml
+  - template: job_windows_cli_release.yml
+  - template: job_osx_cli_release.yml
 
 - stage: GTK_Releases
   condition: always()
@@ -54,4 +54,4 @@ stages:
     - script: dub build -c GTK -b release --arch=x86_64
       displayName: GTK Release
     - template: appimage_create.yml
-    - script: curl -T Drill-release-x86_64.AppImage -uyatima1460:$(BINTRAY_API_KEY) https://api.bintray.com/content/yatima1460/Drill_Beta/AppImage/$(Build.BuildNumber)/Drill-release-x86_64.AppImage
+    - script: curl -T Drill-release-x86_64.AppImage -uyatima1460:$(BINTRAY_API_KEY) https://api.bintray.com/content/yatima1460/Drill_Beta/AppImage_Beta/$(Build.BuildNumber)/Drill-$(Build.BuildNumber)-x86_64.AppImage
