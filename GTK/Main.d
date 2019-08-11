@@ -695,10 +695,17 @@ struct DrillGtkContext
 }
 
 
+void cleanGTK(GtkApplication* app)
+{
+    assert(app !is null);
+    g_object_unref(app);
+}
+
 
 
 int main(string[] args)
 {
+    
     import std.path : buildPath, dirName;
     import Config : loadData;
     import std.file : thisExePath;
@@ -728,6 +735,12 @@ int main(string[] args)
     assert(thisExePath.length > 0);
     drillGtkContext.drillConfig = loadData(dirName(thisExePath));
 
+    if (args.length == 2 && args[1] == "unittest")
+    {
+        info("unittest detected, GTK will not spawn the window");
+        cleanGTK(app);
+        return 0;
+    }
     assert(app !is null);
     g_signal_connect(app, "activate", &activate, &drillGtkContext);
     int status = g_application_run(cast(GApplication*) app, 0, null);
@@ -735,8 +748,7 @@ int main(string[] args)
 
     
 
-    assert(app !is null);
-    g_object_unref(app);
+    cleanGTK(app);
 
     return status;
 }
