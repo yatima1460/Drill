@@ -1,4 +1,5 @@
 steps:
+- script: choco install wget
 - bash: wget http://downloads.dlang.org/releases/2.x/$(dmd_version)/dmd.$(dmd_version).windows.zip
   displayName: "Download dmd & dub"
 - bash: 7z x dmd.$(dmd_version).windows.zip
