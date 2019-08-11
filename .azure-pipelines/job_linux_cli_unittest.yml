@@ -1,3 +1,4 @@
+jobs:
 - job: Linux_CLI_Unittest
   pool:
     name: Hosted Ubuntu 1604

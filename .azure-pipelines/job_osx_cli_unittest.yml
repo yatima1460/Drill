@@ -1,3 +1,4 @@
+jobs:
 - job: OSX_CLI_Unittest
   pool:
     name: Hosted macOS

@@ -1,3 +1,4 @@
+jobs:
 - job: OSX_GTK_Unittest
   pool:
     name: Hosted macOS
