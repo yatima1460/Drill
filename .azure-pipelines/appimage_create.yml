@@ -1,5 +1,5 @@
 steps:
-- script: rm -rf Drill.AppDir
+- script: sudo apt install -y appstream
 - script: mkdir -p Drill.AppDir
 - script: cp -R Build/Drill-GTK-linux-x86_64-release/* Drill.AppDir
 - script: mkdir -p Drill.AppDir/usr/share/metainfo
