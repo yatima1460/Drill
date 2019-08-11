@@ -1,3 +1,4 @@
+jobs:
 - job: OSX_CLI_Release
   pool:
     name: Hosted macOS
