@@ -7,3 +7,6 @@ jobs:
   - template: gtk_install_osx.yml
   - script: dub build -c GTK -b release --arch=x86_64
     displayName: GTK Release
+  - bash: 7z a -tzip Drill-GTK-osx-x86_64-release.zip $PWD/Build/Drill-GTK-osx-x86_64-release/*
+  - script: curl -T Drill-GTK-osx-x86_64-release.zip -uyatima1460:$(BINTRAY_API_KEY) https://api.bintray.com/content/yatima1460/Drill/Portable-Beta/$(Build.BuildNumber)/Drill-GTK-osx-x86_64-release-$(Build.BuildNumber).zip
+  - script: curl -X POST -uyatima1460:$(BINTRAY_API_KEY) https://api.bintray.com/content/yatima1460/Drill/Portable-Beta/$(Build.BuildNumber)/publish
