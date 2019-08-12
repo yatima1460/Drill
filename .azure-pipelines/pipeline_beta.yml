@@ -41,9 +41,42 @@ stages:
   condition: always()
   dependsOn: [GTK_Unittests]
   jobs:
-  - template: job_linux_gtk_release.yml
-  - template: job_windows_gtk_release.yml
-  - template: job_osx_gtk_release.yml
+  - job: Linux_GTK_Release
+    dependsOn: 
+    pool:
+      name: Hosted Ubuntu 1604
+    steps:
+    - template: dub_install_linux.yml
+    - template: gtk_install_linux.yml
+    - script: dub build -c GTK -b release --arch=x86_64
+      displayName: GTK Release
+    - bash: 7z a -tzip Drill-GTK-linux-x86_64-release.zip $PWD/Build/Drill-GTK-linux-x86_64-release/*
+    - script: curl -T Drill-GTK-linux-x86_64-release.zip -uyatima1460:$(BINTRAY_API_KEY) https://api.bintray.com/content/yatima1460/Drill/Portable-Beta/$(Build.BuildNumber)/Drill-GTK-linux-x86_64-release-$(Build.BuildNumber).zip
+
+  - job: Windows_GTK_Release
+    pool:
+      name: Hosted VS2017
+    steps:
+    - template: dub_install_windows.yml
+    - template: gtk_install_windows.yml
+    - script: dub build -c GTK -b release --arch=x86_64
+      displayName: GTK Release
+    - bash: 7z a -tzip Drill-GTK-windows-x86_64-release.zip $PWD/Build/Drill-GTK-windows-x86_64-release/*
+    - script: curl -T Drill-GTK-windows-x86_64-release.zip -uyatima1460:$(BINTRAY_API_KEY) https://api.bintray.com/content/yatima1460/Drill/Portable-Beta/$(Build.BuildNumber)/Drill-GTK-windows-x86_64-release-$(Build.BuildNumber).zip
+
+
+  - job: OSX_GTK_Release
+    pool:
+      name: Hosted macOS
+    steps:
+    - template: dub_install_osx.yml
+    - template: gtk_install_osx.yml
+    - script: dub build -c GTK -b release --arch=x86_64
+      displayName: GTK Release
+    - bash: 7z a -tzip Drill-GTK-osx-x86_64-release.zip $PWD/Build/Drill-GTK-osx-x86_64-release/*
+    - script: curl -T Drill-GTK-osx-x86_64-release.zip -uyatima1460:$(BINTRAY_API_KEY) https://api.bintray.com/content/yatima1460/Drill/Portable-Beta/$(Build.BuildNumber)/Drill-GTK-osx-x86_64-release-$(Build.BuildNumber).zip
+
+
 
   - job: Linux_GTK_AppImage_Create
     pool:
@@ -54,4 +87,4 @@ stages:
     - script: dub build -c GTK -b release --arch=x86_64
       displayName: GTK Release
     - template: appimage_create.yml
-    - script: curl -T Drill-release-x86_64.AppImage -uyatima1460:$(BINTRAY_API_KEY) https://api.bintray.com/content/yatima1460/Drill/AppImage_Beta/$(Build.BuildNumber)/Drill-$(Build.BuildNumber)-x86_64.AppImage
+    - script: curl -T Drill-release-x86_64.AppImage -uyatima1460:$(BINTRAY_API_KEY) https://api.bintray.com/content/yatima1460/Drill/AppImage-Beta/$(Build.BuildNumber)/Drill-$(Build.BuildNumber)-x86_64.AppImage
