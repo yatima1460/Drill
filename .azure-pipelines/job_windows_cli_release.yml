@@ -4,15 +4,11 @@ jobs:
     name: Hosted VS2017
   steps:
   - template: dub_install_windows.yml
-  - script: dub run -c CLI -b release --arch=x86_64
+  - powershell: $(Build.BuildNumber) | Out-File -encoding ascii AZURE_VERSION -NoNewline
+  - script: dub run -c CLI -b release-azure --arch=x86_64
     displayName: CLI Release
   - bash: 7z a -tzip Drill-$(Build.BuildNumber)-CLI-windows-x86_64.zip $PWD/Build/Drill-CLI-windows-x86_64-release/*
-  # - script: curl -T Drill-CLI-windows-x86_64-release.zip -uyatima1460:$(BINTRAY_API_KEY) https://api.bintray.com/content/yatima1460/Drill/Portable/$(Build.BuildNumber)/Drill-CLI-windows-x86_64-release-$(Build.BuildNumber).zip
-  # - script: curl -X POST -uyatima1460:$(BINTRAY_API_KEY) https://api.bintray.com/content/yatima1460/Drill/Portable/$(Build.BuildNumber)/publish
-  - task: PublishPipelineArtifact@1
-    inputs:
-      targetPath: Drill-$(Build.BuildNumber)-CLI-windows-x86_64.zip
-      artifact: Drill-$(Build.BuildNumber)-CLI-windows-x86_64.zip
   - template: upload_file.yml
     parameters:
       name: Drill-$(Build.BuildNumber)-CLI-windows-x86_64.zip
+      package: Portable-Beta

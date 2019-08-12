@@ -5,15 +5,11 @@ jobs:
   steps:
   - template: dub_install_windows.yml
   - template: gtk_install_windows.yml
-  - script: dub build -c GTK -b release --arch=x86_64
+  - powershell: $(Build.BuildNumber) | Out-File -encoding ascii AZURE_VERSION -NoNewline
+  - script: dub build -c GTK -b release-azure --arch=x86_64
     displayName: GTK Release
   - bash: 7z a -tzip Drill-$(Build.BuildNumber)-windows-x86_64.zip $PWD/Build/Drill-GTK-windows-x86_64-release/*
-  # - script: curl -T Drill-GTK-windows-x86_64-release.zip -uyatima1460:$(BINTRAY_API_KEY) https://api.bintray.com/content/yatima1460/Drill/Portable/$(Build.BuildNumber)/Drill-GTK-windows-x86_64-release-$(Build.BuildNumber).zip
-  # - script: curl -X POST -uyatima1460:$(BINTRAY_API_KEY) https://api.bintray.com/content/yatima1460/Drill/Portable/$(Build.BuildNumber)/publish
-  - task: PublishPipelineArtifact@1
-    inputs:
-      targetPath: Drill-$(Build.BuildNumber)-windows-x86_64.zip
-      artifact: Drill-$(Build.BuildNumber)-windows-x86_64.zip
   - template: upload_file.yml
     parameters:
       name: Drill-$(Build.BuildNumber)-windows-x86_64.zip
+      package: Portable-Beta
