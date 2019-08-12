@@ -21,7 +21,7 @@ stages:
   jobs:
   - template: job_linux_cli_release.yml
   - template: job_windows_cli_release.yml
-  - template: job_osx_cli_unittest.yml
+  - template: job_osx_cli_release.yml
 
 - stage: GTK_Releases
   dependsOn: [GTK_Unittests]

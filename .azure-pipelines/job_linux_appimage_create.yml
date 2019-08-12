@@ -7,7 +7,6 @@ jobs:
     inputs:
       buildType: 'current'
       artifactName: Drill-$(Build.BuildNumber)-linux-x86_64.zip
-      targetPath: Drill-$(Build.BuildNumber)-linux-x86_64.zip
   - bash: 7z x Drill-$(Build.BuildNumber)-linux-x86_64.zip -oDrill-$(Build.BuildNumber)-linux-x86_64
   - script: sudo apt install -y appstream
     displayName: Install appstreamcli
@@ -43,6 +42,21 @@ jobs:
     inputs:
       targetPath: Drill-$(Build.BuildNumber)-x86_64.AppImage
       artifact: Drill-$(Build.BuildNumber)-x86_64.AppImage
+  - task: GitHubRelease@0
+    inputs:
+      gitHubConnection: 'githubtoken'
+      repositoryName: '$(Build.Repository.Name)'
+      action: 'edit'
+      target: '$(Build.SourceVersion)'
+      tagSource: 'manual'
+      tag: $(Build.BuildNumber)-Beta
+      title: $(Build.BuildNumber)-Beta
+      releaseNotesSource: 'input'
+      releaseNotes: $(Build.BuildNumber)-Beta
+      isPreRelease: true
+      assetUploadMode: replace
+      addChangeLog: false
+      assets: Drill-$(Build.BuildNumber)-x86_64.AppImage
 
 
 
