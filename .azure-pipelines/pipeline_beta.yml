@@ -43,6 +43,7 @@ stages:
     - script: dub build -c CLI -b release --arch=x86_64
       displayName: CLI Release
     - bash: 7z a -tzip Drill-$(Build.BuildNumber)-CLI-linux-x86_64.zip $PWD/Build/Drill-CLI-linux-x86_64-release/*
+    # TODO: create .deb here
     - task: GitHubRelease@0
       inputs:
         gitHubConnection: 'githubtoken'
@@ -59,6 +60,7 @@ stages:
         addChangeLog: false
         assets: |       
           Drill-$(Build.BuildNumber)-CLI-linux-x86_64.zip
+          Drill-$(Build.BuildNumber)-CLI-linux-x86_64.deb
 
 
 - stage: GTK_Releases
@@ -77,6 +79,9 @@ stages:
       displayName: GTK Release
     - bash: 7z a -tzip Drill-$(Build.BuildNumber)-linux-x86_64.zip $PWD/Build/Drill-GTK-linux-x86_64-release/*
     - template: appimage_create.yml
+    - bash: mv Drill-release-x86_64.AppImage Drill-$(Build.BuildNumber)-x86_64.AppImage
+   #- template: deb_gtk_create.yml
+   #- bash: mv TODO.deb Drill-$(Build.BuildNumber)-linux-x86_64.deb
     - task: GitHubRelease@0
       inputs:
         gitHubConnection: 'githubtoken'
@@ -94,6 +99,7 @@ stages:
         assets: |
           Drill-$(Build.BuildNumber)-x86_64.AppImage          
           Drill-$(Build.BuildNumber)-linux-x86_64.zip
+          Drill-$(Build.BuildNumber)-linux-x86_64.deb
 
 
 
