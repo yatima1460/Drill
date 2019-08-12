@@ -13,18 +13,6 @@ jobs:
     inputs:
       targetPath: Drill-$(Build.BuildNumber)-CLI-linux-x86_64.zip
       artifact: Drill-$(Build.BuildNumber)-CLI-linux-x86_64.zip
-  - task: GitHubRelease@0
-    inputs:
-      gitHubConnection: 'githubtoken'
-      repositoryName: '$(Build.Repository.Name)'
-      action: 'edit'
-      target: '$(Build.SourceVersion)'
-      tagSource: 'manual'
-      tag: $(Build.BuildNumber)
-      title: $(Build.BuildNumber)
-      releaseNotesSource: 'input'
-      releaseNotes: $(Build.BuildNumber)
-      isPreRelease: true
-      assetUploadMode: replace
-      addChangeLog: false
-      assets: Drill-$(Build.BuildNumber)-CLI-linux-x86_64.zip
+  - template: upload_file.yml
+    parameters:
+      name: Drill-$(Build.BuildNumber)-CLI-linux-x86_64.zip

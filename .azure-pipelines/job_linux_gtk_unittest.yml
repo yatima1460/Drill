@@ -5,5 +5,5 @@ jobs:
   steps:
   - template: dub_install_linux.yml
   - template: gtk_install_linux.yml
-  - script: dub run -c GTK -b unittest --arch=x86_64 -- unittest
+  - script: dub test -c GTK --arch=x86_64
     displayName: GTK Unittest

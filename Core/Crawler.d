@@ -126,14 +126,14 @@ unittest
 
     version (Windows)
     {
-        assert(f.fileName == "drill-search-cli.exe" || f.fileName == "drill-search-gtk.exe");
-        assert(f.fileNameLower == "drill-search-cli.exe" || f.fileName == "drill-search-gtk.exe");
+        assert(f.fileName == "drill-test-CLI.exe" || f.fileName == "drill-test-GTK.exe",f.fileName);
+        assert(f.fileNameLower == "drill-test-cli.exe" || f.fileNameLower == "drill-test-gtk.exe",f.fileName);
         assert(f.extension == ".exe");
     }
     else
     {
-        assert(f.fileName == "drill-search-cli" || f.fileName == "drill-search-gtk");
-        assert(f.fileNameLower == "drill-search-cli" || f.fileName == "drill-search-gtk");
+        assert(f.fileName == "drill-test-CLI" || f.fileName == "drill-test-GTK",f.fileName);
+        assert(f.fileNameLower == "drill-test-cli" || f.fileNameLower == "drill-test-gtk",f.fileName);
         assert(f.extension == "");
     }
 
