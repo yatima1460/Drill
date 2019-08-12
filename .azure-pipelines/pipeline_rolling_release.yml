@@ -32,7 +32,7 @@ stages:
 
 - stage: GTK_Packages
   dependsOn: [GTK_Releases]
-  jobs: GTK_Releases
+  jobs: 
   - template: job_linux_appimage_create.yml
 
 # - stage: CLI_Search_Tests
