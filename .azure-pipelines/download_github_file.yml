@@ -1,0 +1,12 @@
+parameters:
+  name: '**' 
+
+steps:
+- task: DownloadGitHubRelease@0
+  inputs:
+    connection: githubtoken
+    userRepository: $(Build.Repository.Name)
+    defaultVersionType: specificTag
+    version: $(Build.BuildNumber)
+    itemPattern: ${{ parameters.name }}
+    downloadPath: $(System.DefaultWorkingDirectory)
