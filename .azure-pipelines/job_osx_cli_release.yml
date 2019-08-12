@@ -6,6 +6,11 @@ jobs:
   - template: dub_install_osx.yml
   - script: dub run -c CLI -b release --arch=x86_64
     displayName: CLI Release
-  - bash: 7z a -tzip Drill-CLI-osx-x86_64-release.zip $PWD/Build/Drill-CLI-osx-x86_64-release/*
-  - script: curl -T Drill-CLI-osx-x86_64-release.zip -uyatima1460:$(BINTRAY_API_KEY) https://api.bintray.com/content/yatima1460/Drill/Portable-Beta/$(Build.BuildNumber)/Drill-CLI-osx-x86_64-release-$(Build.BuildNumber).zip
-  - script: curl -X POST -uyatima1460:$(BINTRAY_API_KEY) https://api.bintray.com/content/yatima1460/Drill/Portable-Beta/$(Build.BuildNumber)/publish
+  - bash: 7z a -tzip Drill-$(Build.BuildNumber)-CLI-osx-x86_64.zip $PWD/Build/Drill-CLI-osx-x86_64-release/*
+  # - script: curl -T Drill-CLI-osx-x86_64-release.zip -uyatima1460:$(BINTRAY_API_KEY) https://api.bintray.com/content/yatima1460/Drill/Portable-Beta/$(Build.BuildNumber)/Drill-CLI-osx-x86_64-release-$(Build.BuildNumber).zip
+  # - script: curl -X POST -uyatima1460:$(BINTRAY_API_KEY) https://api.bintray.com/content/yatima1460/Drill/Portable-Beta/$(Build.BuildNumber)/publish
+
+  - task: PublishPipelineArtifact@1
+    inputs:
+      targetPath: Drill-$(Build.BuildNumber)-CLI-osx-x86_64.zip
+      artifact: Drill-$(Build.BuildNumber)-CLI-osx-x86_64.zip
