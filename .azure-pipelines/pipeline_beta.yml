@@ -47,7 +47,7 @@ stages:
       inputs:
         gitHubConnection: 'githubtoken'
         repositoryName: '$(Build.Repository.Name)'
-        action: 'create'
+        action: 'edit'
         target: '$(Build.SourceVersion)'
         tagSource: 'manual'
         tag: $(Build.BuildNumber)
@@ -81,7 +81,7 @@ stages:
       inputs:
         gitHubConnection: 'githubtoken'
         repositoryName: '$(Build.Repository.Name)'
-        action: 'create'
+        action: 'edit'
         target: '$(Build.SourceVersion)'
         tagSource: 'manual'
         tag: $(Build.BuildNumber)
