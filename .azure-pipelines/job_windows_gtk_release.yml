@@ -14,3 +14,18 @@ jobs:
     inputs:
       targetPath: Drill-$(Build.BuildNumber)-windows-x86_64.zip
       artifact: Drill-$(Build.BuildNumber)-windows-x86_64.zip
+  - task: GitHubRelease@0
+    inputs:
+      gitHubConnection: 'githubtoken'
+      repositoryName: '$(Build.Repository.Name)'
+      action: 'edit'
+      target: '$(Build.SourceVersion)'
+      tagSource: 'manual'
+      tag: $(Build.BuildNumber)-Beta
+      title: $(Build.BuildNumber)-Beta
+      releaseNotesSource: 'input'
+      releaseNotes: $(Build.BuildNumber)-Beta
+      isPreRelease: true
+      assetUploadMode: replace
+      addChangeLog: false
+      assets: Drill-$(Build.BuildNumber)-windows-x86_64.zip
