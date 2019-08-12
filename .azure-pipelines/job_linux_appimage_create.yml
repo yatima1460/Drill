@@ -3,14 +3,9 @@ jobs:
   pool:
     name: Hosted Ubuntu 1604
   steps:
-  - task: DownloadGitHubRelease@0
-    inputs:
-      connection: githubtoken
-      userRepository: $(Build.Repository.Name)
-      defaultVersionType: specificTag
-      version: $(Build.BuildNumber)
-      itemPattern: Drill-$(Build.BuildNumber)-linux-x86_64.zip
-      downloadPath: $(System.DefaultWorkingDirectory)
+  - template: download_github_file.yml
+    parameters:
+      name: Drill-$(Build.BuildNumber)-linux-x86_64.zip
   - bash: 7z x Drill-$(Build.BuildNumber)-linux-x86_64.zip -oDrill-$(Build.BuildNumber)-linux-x86_64
   - script: sudo apt install -y appstream
     displayName: Install appstreamcli
