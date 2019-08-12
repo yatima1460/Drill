@@ -49,10 +49,10 @@ jobs:
       action: 'edit'
       target: '$(Build.SourceVersion)'
       tagSource: 'manual'
-      tag: $(Build.BuildNumber)-Beta
-      title: $(Build.BuildNumber)-Beta
+      tag: $(Build.BuildNumber)
+      title: $(Build.BuildNumber)
       releaseNotesSource: 'input'
-      releaseNotes: $(Build.BuildNumber)-Beta
+      releaseNotes: $(Build.BuildNumber)
       isPreRelease: true
       assetUploadMode: replace
       addChangeLog: false
