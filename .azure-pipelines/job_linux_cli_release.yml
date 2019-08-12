@@ -7,8 +7,8 @@ jobs:
   - script: dub run -c CLI -b release --arch=x86_64
     displayName: CLI Release
   - bash: 7z a -tzip Drill-$(Build.BuildNumber)-CLI-linux-x86_64.zip $PWD/Build/Drill-CLI-linux-x86_64-release/*
-  # - script: curl -T Drill-$(Build.BuildNumber)-CLI-linux-x86_64.zip -uyatima1460:$(BINTRAY_API_KEY) https://api.bintray.com/content/yatima1460/Drill/Portable-Beta/$(Build.BuildNumber)/Drill-CLI-linux-x86_64-release-$(Build.BuildNumber).zip
-  # - script: curl -X POST -uyatima1460:$(BINTRAY_API_KEY) https://api.bintray.com/content/yatima1460/Drill/Portable-Beta/$(Build.BuildNumber)/publish
+  # - script: curl -T Drill-$(Build.BuildNumber)-CLI-linux-x86_64.zip -uyatima1460:$(BINTRAY_API_KEY) https://api.bintray.com/content/yatima1460/Drill/Portable/$(Build.BuildNumber)/Drill-CLI-linux-x86_64-release-$(Build.BuildNumber).zip
+  # - script: curl -X POST -uyatima1460:$(BINTRAY_API_KEY) https://api.bintray.com/content/yatima1460/Drill/Portable/$(Build.BuildNumber)/publish
   - task: PublishPipelineArtifact@1
     inputs:
       targetPath: Drill-$(Build.BuildNumber)-CLI-linux-x86_64.zip
@@ -20,10 +20,10 @@ jobs:
       action: 'edit'
       target: '$(Build.SourceVersion)'
       tagSource: 'manual'
-      tag: $(Build.BuildNumber)-Beta
-      title: $(Build.BuildNumber)-Beta
+      tag: $(Build.BuildNumber)
+      title: $(Build.BuildNumber)
       releaseNotesSource: 'input'
-      releaseNotes: $(Build.BuildNumber)-Beta
+      releaseNotes: $(Build.BuildNumber)
       isPreRelease: true
       assetUploadMode: replace
       addChangeLog: false
