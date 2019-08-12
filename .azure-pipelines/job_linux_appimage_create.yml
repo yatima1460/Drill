@@ -3,10 +3,14 @@ jobs:
   pool:
     name: Hosted Ubuntu 1604
   steps:
-  - task: DownloadPipelineArtifact@2
+  - task: DownloadGitHubRelease@0
     inputs:
-      buildType: 'current'
-      artifactName: Drill-$(Build.BuildNumber)-linux-x86_64.zip
+      connection: githubtoken
+      userRepository: $(Build.Repository.Name)
+      defaultVersionType: specificTag
+      version: $(Build.BuildNumber)
+      itemPattern: Drill-$(Build.BuildNumber)-linux-x86_64.zip
+      downloadPath: $(System.DefaultWorkingDirectory)
   - bash: 7z x Drill-$(Build.BuildNumber)-linux-x86_64.zip -oDrill-$(Build.BuildNumber)-linux-x86_64
   - script: sudo apt install -y appstream
     displayName: Install appstreamcli
