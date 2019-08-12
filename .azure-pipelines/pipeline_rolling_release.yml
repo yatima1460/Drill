@@ -48,9 +48,9 @@ stages:
 # - stage: AppImage_Tests
 #   dependsOn: [CLI_Releases]
 #   jobs:
-#   - template: job_linux_cli_name_test.yml
-#   - template: job_windows_cli_name_test.yml
-#   - template: job_osx_cli_name_test.yml
+#   - template: job_linux_appimage_test.yml
+#   - template: job_windows_appimage_test.yml
+#   - template: job_osx_appimage_test.yml
 
 
 # - stage: Publish

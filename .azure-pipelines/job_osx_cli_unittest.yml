@@ -4,5 +4,5 @@ jobs:
     name: Hosted macOS
   steps:
   - template: dub_install_osx.yml
-  - script: dub run -c CLI -b unittest --arch=x86_64
+  - script: dub test -c CLI --arch=x86_64
     displayName: CLI Unittest

@@ -82,6 +82,7 @@ int main(string[] args)
 
             // No search string
             case 1:
+                writeln("Drill CLI v" ~ VERSION ~ " - " ~ GITHUB_URL);
                 writeln("Pass a string as an argument for Drill to search");
                 writeln("Example use: drill-cli -ds \"foobar\"");
                 defaultGetoptPrinter("Options:", opt.options);

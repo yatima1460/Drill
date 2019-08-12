@@ -1,6 +1,8 @@
 
 
 
+static import std.process;
+
 
 immutable(string) DUB_JSON = import("dub.json");
 immutable(string) getDubStringValue(immutable(string) key)
@@ -12,10 +14,19 @@ immutable(string) getDubStringValue(immutable(string) key)
 }
 import std.datetime;
 
+static this()
+{
+    import std.path : baseName;
+    import std.file : thisExePath;
+    
+    //VERSION = baseName(thisExePath);
+}
+
 immutable(string) BUILD_TIME  = __TIMESTAMP__;
-immutable(string) VERSION = getDubStringValue("version");
+version (Azure) immutable(string) VERSION = import("AZURE_VERSION");
+else immutable(string) VERSION = "LOCAL_BUILD";
 immutable(string) AUTHOR_NAME = "Federico Santamorena";
 immutable(string) AUTHOR_URL  = "https://www.linkedin.com/in/yatima1460/";
 immutable(string) GITHUB_URL  = getDubStringValue("homepage");
-immutable(string) WEBSITE_URL = "https://www.drill.santamorena.me";
+immutable(string) WEBSITE_URL = "https://drill.software";
 

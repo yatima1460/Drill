@@ -1,6 +1,5 @@
 {
-    "name": "drill-search",
-    "version": "2.1.2",
+    "name": "drill",
     "authors": [
         "Federico Santamorena"
     ],
@@ -60,23 +59,41 @@
                 "StdLoggerDisableWarning",
                 "StdLoggerDisableError"
             ]
+        },
+        "release-azure": {
+            "buildOptions": [
+                "optimize",
+                "inline",
+                "noBoundsCheck",
+                "releaseMode"
+            ],
+            "versions": [
+                "StdLoggerDisableTrace",
+                "StdLoggerDisableInfo",
+                "StdLoggerDisableWarning",
+                "StdLoggerDisableError",
+                "Azure"
+            ]
         }
     },
     "configurations": [
         {
             "name": "CLI",
             "targetType": "executable",
-            "targetName": "drill-search-cli",
+            "targetName": "drill-cli",
             "mainSourceFile": "CLI/CLI.d",
             "targetPath": "Build/Drill-CLI-$PLATFORM-$ARCH-$BUILD_TYPE",
             "versions": [
                 "CLI"
+            ],
+            "importPaths": [
+                "Core"
             ]
         },
         {
             "name": "GTK",
             "targetType": "executable",
-            "targetName": "drill-search-gtk",
+            "targetName": "drill-gtk",
             "sourceFiles": [
                 "GTK/GTKBinds.d",
                 "GTK/ListStore.d",
@@ -114,6 +131,10 @@
             "versions": [
                 "GTK",
                 "UI"
+            ],
+            "importPaths": [
+                "Core",
+                "GTK"
             ]
         }
     ],

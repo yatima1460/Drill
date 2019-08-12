@@ -734,13 +734,6 @@ int main(string[] args)
     assert(thisExePath !is null);
     assert(thisExePath.length > 0);
     drillGtkContext.drillConfig = loadData(dirName(thisExePath));
-
-    if (args.length == 2 && args[1] == "unittest")
-    {
-        info("unittest detected, GTK will not spawn the window");
-        cleanGTK(app);
-        return 0;
-    }
     assert(app !is null);
     g_signal_connect(app, "activate", &activate, &drillGtkContext);
     int status = g_application_run(cast(GApplication*) app, 0, null);

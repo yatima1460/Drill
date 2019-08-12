@@ -10,24 +10,8 @@ jobs:
   # - script: curl -T Drill-CLI-osx-x86_64-release.zip -uyatima1460:$(BINTRAY_API_KEY) https://api.bintray.com/content/yatima1460/Drill/Portable/$(Build.BuildNumber)/Drill-CLI-osx-x86_64-release-$(Build.BuildNumber).zip
   # - script: curl -X POST -uyatima1460:$(BINTRAY_API_KEY) https://api.bintray.com/content/yatima1460/Drill/Portable/$(Build.BuildNumber)/publish
 
-  - task: PublishPipelineArtifact@1
-    inputs:
-      targetPath: Drill-$(Build.BuildNumber)-CLI-osx-x86_64.zip
-      artifact: Drill-$(Build.BuildNumber)-CLI-osx-x86_64.zip
+  - template: upload_file.yml
+    parameters:
+      name: Drill-$(Build.BuildNumber)-CLI-osx-x86_64.zip
 
-  - task: GitHubRelease@0
-    inputs:
-      gitHubConnection: 'githubtoken'
-      repositoryName: '$(Build.Repository.Name)'
-      action: 'edit'
-      target: '$(Build.SourceVersion)'
-      tagSource: 'manual'
-      tag: $(Build.BuildNumber)
-      title: $(Build.BuildNumber)
-      releaseNotesSource: 'input'
-      releaseNotes: $(Build.BuildNumber)
-      isPreRelease: true
-      assetUploadMode: replace
-      addChangeLog: false
-      assets: Drill-$(Build.BuildNumber)-CLI-osx-x86_64.zip
 
