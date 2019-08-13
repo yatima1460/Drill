@@ -150,15 +150,15 @@ stages:
       displayName: mkdir -p Drill.AppDir/usr/share/applications
     - script: cp Assets/GTK-Linux/drill.software.appdata.xml Drill.AppDir/usr/share/metainfo
       displayName: Copy appdata.xml to Drill.AppDir/usr/share/metainfo
-    - script: cp Assets/GTK-Linux/drill-search-gtk.desktop Drill.AppDir/usr/share/applications
+    - script: cp Assets/GTK-Linux/drill-gtk.desktop Drill.AppDir/usr/share/applications
       displayName: Copy .desktop to Drill.AppDir/usr/share/applications
-    - script: ln -s drill-search-gtk Drill.AppDir/AppRun
+    - script: ln -s drill-gtk Drill.AppDir/AppRun
       displayName: Link AppRun to Drill executable
     - script: chmod +x Drill.AppDir/AppRun
       displayName: Set AppRun executable
-    - script: chmod +x Drill.AppDir/drill-search-gtk
+    - script: chmod +x Drill.AppDir/drill-gtk
       displayName: Set Drill GTK binary executable
-    - script: cp Assets/GTK-Linux/drill-search-gtk.svg Drill.AppDir
+    - script: cp Assets/GTK-Linux/drill-gtk.svg Drill.AppDir
       displayName: Copy icon to AppDir
     - script: wget https://github.com/AppImage/AppImageKit/releases/download/12/appimagetool-x86_64.AppImage -O appimagetool-x86_64.AppImage
       displayName: Download AppImageTool
@@ -185,11 +185,16 @@ stages:
       displayName: GTK Release
     # Create portable .zip
     - bash: 7z a -tzip Drill-$(Build.BuildNumber)-windows-x86_64.zip $PWD/Build/Drill-GTK-windows-x86_64-release-azure/*
-    # TODO: create installer
     - task: PublishPipelineArtifact@1
       inputs:
         targetPath: Drill-$(Build.BuildNumber)-windows-x86_64.zip
         artifact: Drill-$(Build.BuildNumber)-windows-x86_64.zip
+    - bash: 7z -sfx a -tzip Drill-$(Build.BuildNumber)-windows-x86_64.sfx $PWD/Build/Drill-GTK-windows-x86_64-release-azure/*
+    - task: PublishPipelineArtifact@1
+      inputs:
+        targetPath: Drill-$(Build.BuildNumber)-windows-x86_64.sfx
+        artifact: Drill-$(Build.BuildNumber)-windows-x86_64.sfx
+    # TODO: create installer
 
   - job: OSX_GTK_Release
     pool:
