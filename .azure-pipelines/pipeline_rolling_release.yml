@@ -230,7 +230,7 @@ stages:
       inputs:
         buildType: current
         itemPattern: Drill-$(Build.BuildNumber)-CLI-linux-x86_64.zip
-        targetPath: $PWD
+        targetPath: $(System.DefaultWorkingDirectory)
     - bash: 7z x Drill-$(Build.BuildNumber)-CLI-linux-x86_64.zip
     - bash: chmod +x Drill-$(Build.BuildNumber)-CLI-linux-x86_64.zip/drill-cli
     - bash: Drill-$(Build.BuildNumber)-CLI-linux-x86_64/drill-cli .
@@ -243,7 +243,7 @@ stages:
       inputs:
         buildType: current
         itemPattern: Drill-$(Build.BuildNumber)-CLI-windows-x86_64.zip
-        targetPath: $PWD
+        targetPath: $(System.DefaultWorkingDirectory)
     - bash: 7z x Drill-$(Build.BuildNumber)-CLI-windows-x86_64.zip
     - bash: chmod +x Drill-$(Build.BuildNumber)-CLI-windows-x86_64.zip/drill-cli
     - bash: Drill-$(Build.BuildNumber)-CLI-windows-x86_64/drill-cli .
@@ -256,7 +256,7 @@ stages:
       inputs:
         buildType: 'current'
         itemPattern: Drill-$(Build.BuildNumber)-CLI-osx-x86_64.zip
-        targetPath: $PWD
+        targetPath: $(System.DefaultWorkingDirectory)
     - bash: 7z x Drill-$(Build.BuildNumber)-CLI-osx-x86_64.zip
     - bash: chmod +x Drill-$(Build.BuildNumber)-CLI-osx-x86_64.zip/drill-cli
     - bash: Drill-$(Build.BuildNumber)-CLI-osx-x86_64/drill-cli .
@@ -273,7 +273,7 @@ stages:
       inputs:
         buildType: current
         itemPattern: Drill-$(Build.BuildNumber)-CLI-linux-x86_64.zip
-        targetPath: $PWD
+        targetPath: $(System.DefaultWorkingDirectory)
     - bash: 7z x Drill-$(Build.BuildNumber)-CLI-linux-x86_64.zip
     - bash: chmod +x Drill-$(Build.BuildNumber)-CLI-linux-x86_64.zip/drill-cli
     - bash: Drill-$(Build.BuildNumber)-CLI-linux-x86_64/drill-cli content:.
@@ -286,7 +286,7 @@ stages:
       inputs:
         buildType: current
         itemPattern: Drill-$(Build.BuildNumber)-CLI-windows-x86_64.zip
-        targetPath: $PWD
+        targetPath: $(System.DefaultWorkingDirectory)
     - bash: 7z x Drill-$(Build.BuildNumber)-CLI-windows-x86_64.zip
     - bash: chmod +x Drill-$(Build.BuildNumber)-CLI-windows-x86_64.zip/drill-cli
     - bash: Drill-$(Build.BuildNumber)-CLI-windows-x86_64/drill-cli content:.
@@ -299,7 +299,7 @@ stages:
       inputs:
         buildType: 'current'
         itemPattern: Drill-$(Build.BuildNumber)-CLI-osx-x86_64.zip
-        targetPath: $PWD
+        targetPath: $(System.DefaultWorkingDirectory)
     - bash: 7z x Drill-$(Build.BuildNumber)-CLI-osx-x86_64.zip
     - bash: chmod +x Drill-$(Build.BuildNumber)-CLI-osx-x86_64.zip/drill-cli
     - bash: Drill-$(Build.BuildNumber)-CLI-osx-x86_64/drill-cli content:.
@@ -315,7 +315,7 @@ stages:
       inputs:
         buildType: current
         itemPattern: Drill-$(Build.BuildNumber)-x86_64.AppImage
-        targetPath: $PWD
+        targetPath: $(System.DefaultWorkingDirectory)
     - bash: chmod +x Drill-$(Build.BuildNumber)-x86_64.AppImage
     # GTK will return 2 if it can't connect to a display
     # but at least we know the AppImage started
@@ -329,7 +329,7 @@ stages:
       inputs:
         buildType: current
         itemPattern: Drill-$(Build.BuildNumber)-x86_64.AppImage
-        targetPath: $PWD
+        targetPath: $(System.DefaultWorkingDirectory)
     - bash: chmod +x Drill-$(Build.BuildNumber)-x86_64.AppImage
     - bash: ./Drill-$(Build.BuildNumber)-x86_64.AppImage --appimage-extract
     # GTK will return 2 if it can't connect to a display
@@ -344,7 +344,7 @@ stages:
       inputs:
         buildType: current
         itemPattern: Drill-$(Build.BuildNumber)-x86_64.AppImage
-        targetPath: $PWD
+        targetPath: $(System.DefaultWorkingDirectory)
     - bash: chmod +x Drill-$(Build.BuildNumber)-x86_64.AppImage
     - bash: ./Drill-$(Build.BuildNumber)-x86_64.AppImage --appimage-mount
     - bash: sleep 3
