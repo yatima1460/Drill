@@ -142,7 +142,7 @@ stages:
       displayName: Install appstreamcli
     - script: mkdir -p Drill.AppDir
       displayName: mkdir -p Drill.AppDir
-    - script: cp -R Build/Drill-linux-x86_64-release/* Drill.AppDir
+    - script: cp -R Build/Drill-linux-x86_64-release-azure/* Drill.AppDir
       displayName: Copy release build to AppDir
     - script: mkdir -p Drill.AppDir/usr/share/metainfo
       displayName: mkdir -p Drill.AppDir/usr/share/metainfo
