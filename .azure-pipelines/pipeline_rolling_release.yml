@@ -168,10 +168,16 @@ stages:
       displayName: Create AppImage
     - script: test -f Drill-$(Build.BuildNumber)-x86_64.AppImage
       displayName: test Drill-$(Build.BuildNumber)-x86_64.AppImage exists
-    - task: PublishPipelineArtifact@1
+
+    - task: PublishBuildArtifacts@1
       inputs:
-        targetPath: Drill-$(Build.BuildNumber)-x86_64.AppImage
-        artifact: AppImage
+        PathtoPublish: 'Drill-$(Build.BuildNumber)-x86_64.AppImage'
+        ArtifactName: 'Drill-$(Build.BuildNumber)-x86_64.AppImage'
+        publishLocation: 'Container'
+    # - task: PublishPipelineArtifact@1
+    #   inputs:
+    #     targetPath: Drill-$(Build.BuildNumber)-x86_64.AppImage
+    #     artifact: AppImage
     #TODO: create .deb
 
   - job: Windows_GTK_Release
@@ -314,7 +320,7 @@ stages:
     - task: DownloadPipelineArtifact@2
       inputs:
         buildType: current
-        itemPattern: AppImage
+        itemPattern: 'AppImage'
         targetPath: $(System.DefaultWorkingDirectory)
     - bash: chmod +x Drill-$(Build.BuildNumber)-x86_64.AppImage
     # GTK will return 2 if it can't connect to a display
@@ -325,11 +331,12 @@ stages:
     pool:
       name: Hosted Ubuntu 1604
     steps:
-    - task: DownloadPipelineArtifact@2
+    - task: DownloadBuildArtifacts@0
       inputs:
-        buildType: current
-        itemPattern: AppImage
-        targetPath: $(System.DefaultWorkingDirectory)
+        buildType: 'current'
+        downloadType: 'single'
+        itemPattern: 'Drill-$(Build.BuildNumber)-x86_64.AppImage'
+        downloadPath: '$(System.DefaultWorkingDirectory)'
     - bash: chmod +x Drill-$(Build.BuildNumber)-x86_64.AppImage
     - bash: ./Drill-$(Build.BuildNumber)-x86_64.AppImage --appimage-extract
     # GTK will return 2 if it can't connect to a display
