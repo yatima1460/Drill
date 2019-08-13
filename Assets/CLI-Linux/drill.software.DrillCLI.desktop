@@ -1,0 +1,11 @@
+[Desktop Entry]
+Name=Drill CLI
+Type=Application
+Comment=Search files without using indexing, but clever crawling
+Comment[it]=Cerca files senza indicizzare, ma con una ricerca intelligente
+Exec=./drill-cli
+TryExec=./drill-cli
+Icon=drill-cli
+Terminal=true
+Categories=Utility;
+Keywords=Search;FileSearch;File Search;Find;Search;
