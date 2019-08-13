@@ -1,8 +1,0 @@
-jobs:
-- job: Linux_CLI_Unittest
-  pool:
-    name: Hosted Ubuntu 1604
-  steps:
-  - template: dub_install_linux.yml
-  - script: dub test -c CLI --arch=x86_64
-    displayName: CLI Unittest
