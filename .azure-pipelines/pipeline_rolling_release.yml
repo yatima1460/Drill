@@ -150,7 +150,7 @@ stages:
       displayName: mkdir -p Drill.AppDir/usr/share/applications
     - script: cp Assets/GTK-Linux/drill.software.appdata.xml Drill.AppDir/usr/share/metainfo
       displayName: Copy appdata.xml to Drill.AppDir/usr/share/metainfo
-    - script: cp Assets/GTK-Linux/drill.software.Drill.desktop Drill.AppDir/usr/share/applications
+    - script: cp Assets/GTK-Linux/software.drill.Drill.desktop Drill.AppDir/usr/share/applications
       displayName: Copy .desktop to Drill.AppDir/usr/share/applications
     - script: ln -s drill-gtk Drill.AppDir/AppRun
       displayName: Link AppRun to Drill executable
