@@ -79,15 +79,12 @@ stages:
     - script: dub build -c CLI -b release-azure --arch=x86_64
       displayName: CLI Release
     - bash: 7z a -tzip Drill-$(Build.BuildNumber)-CLI-linux-x86_64.zip $PWD/Build/Drill-CLI-linux-x86_64-release-azure/*
-    # TODO: create CLI .deb here
-    - task: PublishPipelineArtifact@1
+    # TODO: create CLI .deb here    - task: PublishBuildArtifacts@1
+    - task: PublishBuildArtifacts@1
       inputs:
-        targetPath: Drill-$(Build.BuildNumber)-CLI-linux-x86_64.zip
-        artifact: Drill-$(Build.BuildNumber)-CLI-linux-x86_64.zip
-  # - task: PublishPipelineArtifact@1
-  #   inputs:
-  #     targetPath: Drill-$(Build.BuildNumber)-CLI-linux-x86_64.deb
-  #     artifact: Drill-$(Build.BuildNumber)-CLI-linux-x86_64.deb
+        PathtoPublish: Drill-$(Build.BuildNumber)-CLI-linux-x86_64.zi
+        ArtifactName: Drill-$(Build.BuildNumber)-CLI-linux-x86_64.zi
+        publishLocation: Container
 
   - job: Windows_CLI_Release
     pool:
@@ -98,10 +95,11 @@ stages:
     - script: dub run -c CLI -b release-azure --arch=x86_64
       displayName: CLI Release
     - bash: 7z a -tzip Drill-$(Build.BuildNumber)-CLI-windows-x86_64.zip $PWD/Build/Drill-CLI-windows-x86_64-release-azure/*
-    - task: PublishPipelineArtifact@1
+    - task: PublishBuildArtifacts@1
       inputs:
-        targetPath: Drill-$(Build.BuildNumber)-CLI-windows-x86_64.zip
-        artifact: Drill-$(Build.BuildNumber)-CLI-windows-x86_64.zip
+        PathtoPublish: Drill-$(Build.BuildNumber)-CLI-windows-x86_64.zip
+        ArtifactName: Drill-$(Build.BuildNumber)-CLI-windows-x86_64.zip
+        publishLocation: Container
 
   - job: OSX_CLI_Release
     pool:
@@ -112,10 +110,11 @@ stages:
     - script: dub build -c CLI -b release-azure --arch=x86_64
       displayName: CLI Release
     - bash: 7z a -tzip Drill-$(Build.BuildNumber)-CLI-osx-x86_64.zip $PWD/Build/Drill-CLI-osx-x86_64-release-azure/*
-    - task: PublishPipelineArtifact@1
+    - task: PublishBuildArtifacts@1
       inputs:
-        targetPath: Drill-$(Build.BuildNumber)-CLI-osx-x86_64.zip
-        artifact: Drill-$(Build.BuildNumber)-CLI-osx-x86_64.zip
+        PathtoPublish: Drill-$(Build.BuildNumber)-CLI-osx-x86_64.zip
+        ArtifactName: Drill-$(Build.BuildNumber)-CLI-osx-x86_64.zip
+        publishLocation: Container
 
 
 
@@ -133,10 +132,11 @@ stages:
       displayName: GTK Release
     # Create portable .zip
     - bash: 7z a -tzip Drill-$(Build.BuildNumber)-linux-x86_64.zip $PWD/Build/Drill-GTK-linux-x86_64-release-azure/*
-    - task: PublishPipelineArtifact@1
+    - task: PublishBuildArtifacts@1
       inputs:
-        targetPath: Drill-$(Build.BuildNumber)-linux-x86_64.zip
-        artifact: Drill-$(Build.BuildNumber)-linux-x86_64.zip
+        PathtoPublish: Drill-$(Build.BuildNumber)-linux-x86_64.zip
+        ArtifactName: Drill-$(Build.BuildNumber)-linux-x86_64.zip
+        publishLocation: Container
     # Build AppImage
     - script: sudo apt install -y appstream
       displayName: Install appstreamcli
@@ -171,14 +171,14 @@ stages:
 
     - task: PublishBuildArtifacts@1
       inputs:
-        PathtoPublish: 'Drill-$(Build.BuildNumber)-x86_64.AppImage'
-        ArtifactName: 'Drill-$(Build.BuildNumber)-x86_64.AppImage'
-        publishLocation: 'Container'
+        PathtoPublish: Drill-$(Build.BuildNumber)-x86_64.AppImage
+        ArtifactName: Drill-$(Build.BuildNumber)-x86_64.AppImage
+        publishLocation: Container
     # - task: PublishPipelineArtifact@1
     #   inputs:
     #     targetPath: Drill-$(Build.BuildNumber)-x86_64.AppImage
     #     artifact: AppImage
-    #TODO: create .deb
+    # TODO: create .deb
 
   - job: Windows_GTK_Release
     pool:
@@ -191,15 +191,17 @@ stages:
       displayName: GTK Release
     # Create portable .zip
     - bash: 7z a -tzip Drill-$(Build.BuildNumber)-windows-x86_64.zip $PWD/Build/Drill-GTK-windows-x86_64-release-azure/*
-    - task: PublishPipelineArtifact@1
+    - task: PublishBuildArtifacts@1
       inputs:
-        targetPath: Drill-$(Build.BuildNumber)-windows-x86_64.zip
-        artifact: Drill-$(Build.BuildNumber)-windows-x86_64.zip
+        PathtoPublish: 'Drill-$(Build.BuildNumber)-windows-x86_64.zip'
+        ArtifactName: 'Drill-$(Build.BuildNumber)-windows-x86_64.zip'
+        publishLocation: 'Container'
     - bash: 7z -sfx a -tzip Drill-$(Build.BuildNumber)-windows-x86_64.sfx $PWD/Build/Drill-GTK-windows-x86_64-release-azure/*
-    - task: PublishPipelineArtifact@1
+    - task: PublishBuildArtifacts@1
       inputs:
-        targetPath: Drill-$(Build.BuildNumber)-windows-x86_64.sfx
-        artifact: Drill-$(Build.BuildNumber)-windows-x86_64.sfx
+        PathtoPublish: 'Drill-$(Build.BuildNumber)-windows-x86_64.sfx'
+        ArtifactName: 'Drill-$(Build.BuildNumber)-windows-x86_64.sfx'
+        publishLocation: 'Container'
     # TODO: create installer
 
   - job: OSX_GTK_Release
@@ -214,10 +216,11 @@ stages:
     # Create portable .zip
     - bash: 7z a -tzip Drill-$(Build.BuildNumber)-osx-x86_64.zip $PWD/Build/Drill-GTK-osx-x86_64-release-azure/*
     # TODO: create .dmg
-    - task: PublishPipelineArtifact@1
+    - task: PublishBuildArtifacts@1
       inputs:
-        targetPath: Drill-$(Build.BuildNumber)-osx-x86_64.zip
-        artifact: Drill-$(Build.BuildNumber)-osx-x86_64.zip
+        PathtoPublish: Drill-$(Build.BuildNumber)-osx-x86_64.zip
+        ArtifactName: Drill-$(Build.BuildNumber)-osx-x86_64.zip
+        publishLocation: Container
 
 # - stage: GTK_Packages
 #   dependsOn: [GTK_Releases]
@@ -232,11 +235,12 @@ stages:
     pool:
       name: Hosted Ubuntu 1604
     steps:
-    - task: DownloadPipelineArtifact@2
+    - task: DownloadBuildArtifacts@0
       inputs:
-        buildType: current
-        itemPattern: Drill-$(Build.BuildNumber)-CLI-linux-x86_64.zip
-        targetPath: $(System.DefaultWorkingDirectory)
+        buildType: 'current'
+        downloadType: 'single'
+        downloadPath: '$(System.DefaultWorkingDirectory)'
+        artifactName: Drill-$(Build.BuildNumber)-CLI-linux-x86_64.zip
     - bash: 7z x Drill-$(Build.BuildNumber)-CLI-linux-x86_64.zip
     - bash: chmod +x Drill-$(Build.BuildNumber)-CLI-linux-x86_64.zip/drill-cli
     - bash: Drill-$(Build.BuildNumber)-CLI-linux-x86_64/drill-cli .
@@ -245,11 +249,12 @@ stages:
     pool:
       name: Hosted VS2017
     steps:
-    - task: DownloadPipelineArtifact@2
+    - task: DownloadBuildArtifacts@0
       inputs:
-        buildType: current
-        itemPattern: Drill-$(Build.BuildNumber)-CLI-windows-x86_64.zip
-        targetPath: $(System.DefaultWorkingDirectory)
+        buildType: 'current'
+        downloadType: 'single'
+        downloadPath: '$(System.DefaultWorkingDirectory)'
+        artifactName: Drill-$(Build.BuildNumber)-CLI-windows-x86_64.zip
     - bash: 7z x Drill-$(Build.BuildNumber)-CLI-windows-x86_64.zip
     - bash: chmod +x Drill-$(Build.BuildNumber)-CLI-windows-x86_64.zip/drill-cli
     - bash: Drill-$(Build.BuildNumber)-CLI-windows-x86_64/drill-cli .
@@ -258,11 +263,12 @@ stages:
     pool:
       name: Hosted macOS
     steps:
-    - task: DownloadPipelineArtifact@2
+    - task: DownloadBuildArtifacts@0
       inputs:
         buildType: 'current'
-        itemPattern: Drill-$(Build.BuildNumber)-CLI-osx-x86_64.zip
-        targetPath: $(System.DefaultWorkingDirectory)
+        downloadType: 'single'
+        downloadPath: '$(System.DefaultWorkingDirectory)'
+        artifactName: Drill-$(Build.BuildNumber)-CLI-osx-x86_64.zip
     - bash: 7z x Drill-$(Build.BuildNumber)-CLI-osx-x86_64.zip
     - bash: chmod +x Drill-$(Build.BuildNumber)-CLI-osx-x86_64.zip/drill-cli
     - bash: Drill-$(Build.BuildNumber)-CLI-osx-x86_64/drill-cli .
@@ -275,11 +281,12 @@ stages:
     pool:
       name: Hosted Ubuntu 1604
     steps:
-    - task: DownloadPipelineArtifact@2
+    - task: DownloadBuildArtifacts@0
       inputs:
-        buildType: current
-        itemPattern: Drill-$(Build.BuildNumber)-CLI-linux-x86_64.zip
-        targetPath: $(System.DefaultWorkingDirectory)
+        buildType: 'current'
+        downloadType: 'single'
+        downloadPath: '$(System.DefaultWorkingDirectory)'
+        artifactName: Drill-$(Build.BuildNumber)-CLI-linux-x86_64.zip
     - bash: 7z x Drill-$(Build.BuildNumber)-CLI-linux-x86_64.zip
     - bash: chmod +x Drill-$(Build.BuildNumber)-CLI-linux-x86_64.zip/drill-cli
     - bash: Drill-$(Build.BuildNumber)-CLI-linux-x86_64/drill-cli content:.
@@ -288,11 +295,12 @@ stages:
     pool:
       name: Hosted VS2017
     steps:
-    - task: DownloadPipelineArtifact@2
+    - task: DownloadBuildArtifacts@0
       inputs:
-        buildType: current
-        itemPattern: Drill-$(Build.BuildNumber)-CLI-windows-x86_64.zip
-        targetPath: $(System.DefaultWorkingDirectory)
+        buildType: 'current'
+        downloadType: 'single'
+        downloadPath: '$(System.DefaultWorkingDirectory)'
+        artifactName: Drill-$(Build.BuildNumber)-CLI-windows-x86_64.zip
     - bash: 7z x Drill-$(Build.BuildNumber)-CLI-windows-x86_64.zip
     - bash: chmod +x Drill-$(Build.BuildNumber)-CLI-windows-x86_64.zip/drill-cli
     - bash: Drill-$(Build.BuildNumber)-CLI-windows-x86_64/drill-cli content:.
@@ -301,11 +309,12 @@ stages:
     pool:
       name: Hosted macOS
     steps:
-    - task: DownloadPipelineArtifact@2
+    - task: DownloadBuildArtifacts@0
       inputs:
         buildType: 'current'
-        itemPattern: Drill-$(Build.BuildNumber)-CLI-osx-x86_64.zip
-        targetPath: $(System.DefaultWorkingDirectory)
+        downloadType: 'single'
+        downloadPath: '$(System.DefaultWorkingDirectory)'
+        artifactName: Drill-$(Build.BuildNumber)-CLI-osx-x86_64.zip
     - bash: 7z x Drill-$(Build.BuildNumber)-CLI-osx-x86_64.zip
     - bash: chmod +x Drill-$(Build.BuildNumber)-CLI-osx-x86_64.zip/drill-cli
     - bash: Drill-$(Build.BuildNumber)-CLI-osx-x86_64/drill-cli content:.
@@ -317,11 +326,12 @@ stages:
     pool:
       name: Hosted Ubuntu 1604
     steps:
-    - task: DownloadPipelineArtifact@2
+    - task: DownloadBuildArtifacts@0
       inputs:
-        buildType: current
-        itemPattern: 'AppImage'
-        targetPath: $(System.DefaultWorkingDirectory)
+        buildType: 'current'
+        downloadType: 'single'
+        downloadPath: '$(System.DefaultWorkingDirectory)'
+        artifactName: Drill-$(Build.BuildNumber)-x86_64.AppImage
     - bash: chmod +x Drill-$(Build.BuildNumber)-x86_64.AppImage
     # GTK will return 2 if it can't connect to a display
     # but at least we know the AppImage started
@@ -335,8 +345,8 @@ stages:
       inputs:
         buildType: 'current'
         downloadType: 'single'
-        itemPattern: 'Drill-$(Build.BuildNumber)-x86_64.AppImage'
         downloadPath: '$(System.DefaultWorkingDirectory)'
+        artifactName: Drill-$(Build.BuildNumber)-x86_64.AppImage
     - bash: chmod +x Drill-$(Build.BuildNumber)-x86_64.AppImage
     - bash: ./Drill-$(Build.BuildNumber)-x86_64.AppImage --appimage-extract
     # GTK will return 2 if it can't connect to a display
@@ -347,11 +357,12 @@ stages:
     pool:
       name: Hosted Ubuntu 1604
     steps:
-    - task: DownloadPipelineArtifact@2
+    - task: DownloadBuildArtifacts@0
       inputs:
-        buildType: current
-        itemPattern: AppImage
-        targetPath: $(System.DefaultWorkingDirectory)
+        buildType: 'current'
+        downloadType: 'single'
+        downloadPath: '$(System.DefaultWorkingDirectory)'
+        artifactName: Drill-$(Build.BuildNumber)-x86_64.AppImage
     - bash: chmod +x Drill-$(Build.BuildNumber)-x86_64.AppImage
     - bash: ./Drill-$(Build.BuildNumber)-x86_64.AppImage --appimage-mount
     - bash: sleep 3
