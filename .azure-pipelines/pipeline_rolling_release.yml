@@ -171,7 +171,7 @@ stages:
     - task: PublishPipelineArtifact@1
       inputs:
         targetPath: Drill-$(Build.BuildNumber)-x86_64.AppImage
-        artifact: Drill-$(Build.BuildNumber)-x86_64.AppImage
+        artifact: AppImage
     #TODO: create .deb
 
   - job: Windows_GTK_Release
@@ -314,7 +314,7 @@ stages:
     - task: DownloadPipelineArtifact@2
       inputs:
         buildType: current
-        itemPattern: Drill-$(Build.BuildNumber)-x86_64.AppImage
+        itemPattern: AppImage
         targetPath: $(System.DefaultWorkingDirectory)
     - bash: chmod +x Drill-$(Build.BuildNumber)-x86_64.AppImage
     # GTK will return 2 if it can't connect to a display
@@ -328,7 +328,7 @@ stages:
     - task: DownloadPipelineArtifact@2
       inputs:
         buildType: current
-        itemPattern: Drill-$(Build.BuildNumber)-x86_64.AppImage
+        itemPattern: AppImage
         targetPath: $(System.DefaultWorkingDirectory)
     - bash: chmod +x Drill-$(Build.BuildNumber)-x86_64.AppImage
     - bash: ./Drill-$(Build.BuildNumber)-x86_64.AppImage --appimage-extract
@@ -343,7 +343,7 @@ stages:
     - task: DownloadPipelineArtifact@2
       inputs:
         buildType: current
-        itemPattern: Drill-$(Build.BuildNumber)-x86_64.AppImage
+        itemPattern: AppImage
         targetPath: $(System.DefaultWorkingDirectory)
     - bash: chmod +x Drill-$(Build.BuildNumber)-x86_64.AppImage
     - bash: ./Drill-$(Build.BuildNumber)-x86_64.AppImage --appimage-mount
