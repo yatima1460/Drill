@@ -304,6 +304,23 @@ stages:
     - bash: chmod +x Drill-$(Build.BuildNumber)-CLI-osx-x86_64.zip/drill-cli
     - bash: Drill-$(Build.BuildNumber)-CLI-osx-x86_64/drill-cli content:.
 
+- stage: AppImage_Execute_Test
+  dependsOn: [GTK_Builds]
+  jobs:
+  - job: AppImage_Execute_Test
+    pool:
+      name: Hosted Ubuntu 1604
+    steps:
+    - task: DownloadPipelineArtifact@2
+      inputs:
+        buildType: current
+        itemPattern: Drill-$(Build.BuildNumber)-x86_64.AppImage
+        targetPath: $PWD
+    - bash: chmod +x Drill-$(Build.BuildNumber)-x86_64.AppImage
+    # GTK will return 2 if it can't connect to a display
+    # but at least we know the AppImage started
+    - bash: if [ ./Drill-$(Build.BuildNumber)-x86_64.AppImage -eq 2 ]; then return 0; fi;
+
 # - stage: AppImage_Tests
 #   dependsOn: [CLI_Releases]
 #   jobs:
