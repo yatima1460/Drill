@@ -218,15 +218,21 @@ stages:
 #   jobs: 
 #   - template: job_linux_appimage_create.yml
 
-# - stage: CLI_Search_Tests
-#   dependsOn: [CLI_Releases]
-#   jobs:
-#   - template: job_linux_cli_name_test.yml
-#   - template: job_windows_cli_name_test.yml
-#   - template: job_osx_cli_name_test.yml
-#   - template: job_linux_cli_content_test.yml
-#   - template: job_windows_cli_content_test.yml
-#   - template: job_osx_cli_content_test.yml
+- stage: CLI_Search_Tests
+  dependsOn: [CLI_Builds]
+  jobs:
+  - job: OSX_CLI_Search_Test
+    pool:
+      name: Hosted macOS
+    steps:
+    - task: DownloadPipelineArtifact@2
+      inputs:
+        buildType: 'current'
+        itemPattern: Drill-$(Build.BuildNumber)-CLI-osx-x86_64.zip
+        targetPath: $PWD
+    - bash: 7z x Drill-$(Build.BuildNumber)-CLI-osx-x86_64.zip
+    - bash: chmod +x Drill-$(Build.BuildNumber)-CLI-osx-x86_64.zip/drill-cli
+    - bash: Drill-$(Build.BuildNumber)-CLI-osx-x86_64/drill-cli .
 
 # - stage: AppImage_Tests
 #   dependsOn: [CLI_Releases]
