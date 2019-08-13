@@ -321,6 +321,40 @@ stages:
     # but at least we know the AppImage started
     - bash: if [ ./Drill-$(Build.BuildNumber)-x86_64.AppImage -eq 2 ]; then return 0; fi;
 
+- stage: AppImage_Extract_Test
+  dependsOn: [GTK_Builds]
+  jobs:
+  - job: AppImage_Execute_Test
+    pool:
+      name: Hosted Ubuntu 1604
+    steps:
+    - task: DownloadPipelineArtifact@2
+      inputs:
+        buildType: current
+        itemPattern: Drill-$(Build.BuildNumber)-x86_64.AppImage
+        targetPath: $PWD
+    - bash: chmod +x Drill-$(Build.BuildNumber)-x86_64.AppImage
+    - bash: ./Drill-$(Build.BuildNumber)-x86_64.AppImage --appimage-extract
+    # GTK will return 2 if it can't connect to a display
+    # but at least we know the AppImage started
+    - bash: if [ ./squashfs-root/drill-gtk -eq 2 ]; then return 0; fi;
+
+- stage: AppImage_Mount_Test
+  dependsOn: [GTK_Builds]
+  jobs:
+  - job: AppImage_Execute_Test
+    pool:
+      name: Hosted Ubuntu 1604
+    steps:
+    - task: DownloadPipelineArtifact@2
+      inputs:
+        buildType: current
+        itemPattern: Drill-$(Build.BuildNumber)-x86_64.AppImage
+        targetPath: $PWD
+    - bash: chmod +x Drill-$(Build.BuildNumber)-x86_64.AppImage
+    - bash: ./Drill-$(Build.BuildNumber)-x86_64.AppImage --appimage-mount
+    - bash: sleep 3
+
 # - stage: AppImage_Tests
 #   dependsOn: [CLI_Releases]
 #   jobs:
