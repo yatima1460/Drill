@@ -221,6 +221,33 @@ stages:
 - stage: CLI_Search_Tests
   dependsOn: [CLI_Builds]
   jobs:
+
+  - job: Linux_CLI_Search_Test
+    pool:
+      name: Hosted Ubuntu 1604
+    steps:
+    - task: DownloadPipelineArtifact@2
+      inputs:
+        buildType: current
+        itemPattern: Drill-$(Build.BuildNumber)-CLI-linux-x86_64.zip
+        targetPath: $PWD
+    - bash: 7z x Drill-$(Build.BuildNumber)-CLI-linux-x86_64.zip
+    - bash: chmod +x Drill-$(Build.BuildNumber)-CLI-linux-x86_64.zip/drill-cli
+    - bash: Drill-$(Build.BuildNumber)-CLI-linux-x86_64/drill-cli .
+
+  - job: Windows_CLI_Search_Test
+    pool:
+      name: Hosted VS2017
+    steps:
+    - task: DownloadPipelineArtifact@2
+      inputs:
+        buildType: current
+        itemPattern: Drill-$(Build.BuildNumber)-CLI-windows-x86_64.zip
+        targetPath: $PWD
+    - bash: 7z x Drill-$(Build.BuildNumber)-CLI-windows-x86_64.zip
+    - bash: chmod +x Drill-$(Build.BuildNumber)-CLI-windows-x86_64.zip/drill-cli
+    - bash: Drill-$(Build.BuildNumber)-CLI-windows-x86_64/drill-cli .
+
   - job: OSX_CLI_Search_Test
     pool:
       name: Hosted macOS
