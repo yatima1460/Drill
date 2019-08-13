@@ -91,7 +91,7 @@
             ],
             "copyFiles-linux": [
                 "Assets/CLI-Linux/software.drill.DrillCLI.desktop"
-            ],
+            ]
         },
         {
             "name": "GTK",
