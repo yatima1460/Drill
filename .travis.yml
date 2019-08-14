@@ -2,23 +2,27 @@
 language: bash
 
 os:
-- windows
-- linux
-- osx
+  - windows
+  - linux
+  - osx
+
+env:
+  - DMD_VERSION=2.087.1
 
 
 before_cache:
-  - brew cleanup
+  - if [ "$TRAVIS_OS_NAME" = "osx" ]; then brew cleanup; fi;
+  - DIR="$PWD/dmd2"
+  - if [! -d "$DIR" ]; then source ./.travis/install_d.bash; fi;
 
 cache:
   directories:
     - $HOME/Library/Caches/Homebrew
+    - $PWD/dmd2
 
 script:
-   - export DMD_VERSION=2.087.1
    # DO NOT USE "bash" here, but use "source"
    # so we can change global variables like PATH in sub-scripts
-   - source ./.travis/install_d.bash
    - dub test -c CLI
    - source ./.travis/install_gtk.bash
    - dub test -c GTK
