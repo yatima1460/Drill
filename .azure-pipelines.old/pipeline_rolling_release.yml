@@ -335,7 +335,8 @@ stages:
     - bash: chmod +x Drill-$(Build.BuildNumber)-x86_64.AppImage
     # GTK will return 2 if it can't connect to a display
     # but at least we know the AppImage started
-    - bash: if [ ./Drill-$(Build.BuildNumber)-x86_64.AppImage -eq 2 ]; then return 0; fi;
+    - bash: ./Drill-$(Build.BuildNumber)-x86_64.AppImage
+    - bash: if [ $? -eq 2 ]; then return 0; fi;
 
   - job: AppImage_Extract_Test
     pool:
@@ -351,7 +352,8 @@ stages:
     - bash: ./Drill-$(Build.BuildNumber)-x86_64.AppImage --appimage-extract
     # GTK will return 2 if it can't connect to a display
     # but at least we know the AppImage started
-    - bash: if [ ./squashfs-root/drill-gtk -eq 2 ]; then return 0; fi;
+    - bash: ./squashfs-root/drill-gtk
+    - bash: if [ $? -eq 2 ]; then return 0; fi;
 
   - job: AppImage_Mount_Test
     pool:
