@@ -117,7 +117,7 @@ unittest
 {
     import std.file : thisExePath;
     FileInfo f = buildFileInfo(DirEntry(thisExePath));
-    assert(f.thread == "");
+    assert(f.thread == "a");
     assert(!f.isDirectory);
     assert(f.isFile);
     assert(f.dateModifiedString);
