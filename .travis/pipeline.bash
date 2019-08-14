@@ -1,23 +1,25 @@
 #!/bin/bash
 
+set -e
+
 # Dependencies
 source .travis/install_d.bash
 source .travis/install_gtk.bash
 
 # Unittests
-dub test -c CLI || exit 1  &
-dub test -c GTK || exit 1  &
+dub test -c CLI &
+dub test -c GTK &
 wait
 
 # Builds
 echo $MAIN_VERSION.$TRAVIS_BUILD_NUMBER > TRAVIS_VERSION
-dub build -c CLI -b release-travis || exit 1 &
-dub build -c GTK -b release-travis || exit 1 &
+dub build -c CLI -b release-travis &
+dub build -c GTK -b release-travis &
 wait
 
 # Packages
-7z a -tzip Drill-$MAIN_VERSION.$TRAVIS_BUILD_NUMBER-CLI-$TRAVIS_OS_NAME-x86_64.zip $PWD/Build/Drill-GTK-$TRAVIS_OS_NAME-x86_64-release-travis/* || exit 1 &
-7z a -tzip Drill-$MAIN_VERSION.$TRAVIS_BUILD_NUMBER-GTK-$TRAVIS_OS_NAME-x86_64.zip $PWD/Build/Drill-CLI-$TRAVIS_OS_NAME-x86_64-release-travis/* || exit 1 &
+7z a -tzip Drill-$MAIN_VERSION.$TRAVIS_BUILD_NUMBER-CLI-$TRAVIS_OS_NAME-x86_64.zip $PWD/Build/Drill-GTK-$TRAVIS_OS_NAME-x86_64-release-travis/* &
+7z a -tzip Drill-$MAIN_VERSION.$TRAVIS_BUILD_NUMBER-GTK-$TRAVIS_OS_NAME-x86_64.zip $PWD/Build/Drill-CLI-$TRAVIS_OS_NAME-x86_64-release-travis/* &
 wait
 
 # if this is a pull request we stop here
