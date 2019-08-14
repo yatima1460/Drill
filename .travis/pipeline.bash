@@ -6,8 +6,8 @@ source .travis/install_d.bash
 # Unittests
 dub test -c CLI &
 source .travis/install_gtk.bash
-dub test -c GTK
-wait
+dub test -c GTK &
+
 
 # Builds
 echo $MAIN_VERSION.$TRAVIS_BUILD_NUMBER > TRAVIS_VERSION
@@ -21,8 +21,12 @@ if [ "$TRAVIS_PULL_REQUEST" != "false" ]; then
     travis_terminate 1; 
 fi
 
+# Install 7zip
 if [ "$TRAVIS_OS_NAME" = "linux" ]; then
     sudo apt install -y p7zip-full 1>/dev/null
+fi
+if [ "$TRAVIS_OS_NAME" = "osx" ]; then
+    brew install p7zip
 fi
 
 # Packages
