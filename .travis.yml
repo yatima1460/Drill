@@ -12,19 +12,26 @@ env:
 
 before_cache:
   - if [ "$TRAVIS_OS_NAME" = "osx" ]; then brew cleanup; fi;
-  - DIR="$PWD/dmd2"
-  - if [! -d "$DIR" ]; then source ./.travis/install_d.bash; fi;
+  # - DIR="$PWD/dmd2"
+  # - if [! -d "$DIR" ]; then source ./.travis/install_d.bash; fi;
 
 cache:
   directories:
     - $HOME/Library/Caches/Homebrew
-    - $PWD/dmd2
+    # - $PWD/dmd2
 
 script:
    # DO NOT USE "bash" here, but use "source"
    # so we can change global variables like PATH in sub-scripts
+   - source .travis/install_d.bash
    - dub test -c CLI
-   - source ./.travis/install_gtk.bash
+   - echo CLI Unittest
+   - source .travis/install_gtk.bash
    - dub test -c GTK
-   - if [ "$TRAVIS_PULL_REQUEST" != "false" ]; then bash ./.travis/pull_requests.bash; fi
+   - echo GTK Unittest
+   - dub build -c CLI -b release
+   - echo CLI Release
+   - dub build -c GTK -b release
+   - echo GTK Release
+  #  - if [ "$TRAVIS_PULL_REQUEST" != "false" ]; then bash ./.travis/pull_requests.bash; fi
    - if [ "$TRAVIS_PULL_REQUEST" = "false" ]; then bash ./.travis/rolling_release.bash; fi

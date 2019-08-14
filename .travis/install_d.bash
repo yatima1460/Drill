@@ -8,7 +8,7 @@ if [ "$TRAVIS_OS_NAME" = "linux" ]; then
     export DUB_LOCATION=$PWD/dmd2/linux/bin64
     chmod +x $DUB_LOCATION/dmd
     chmod +x $DUB_LOCATION/dub
-    export PATH=$DUB_LOCATION:$PATH
+    export "PATH=$DUB_LOCATION:$PATH"
 fi
 if [ "$TRAVIS_OS_NAME" = "windows" ]; then
     wget http://downloads.dlang.org/releases/2.x/$DMD_VERSION/dmd.$DMD_VERSION.windows.zip 
@@ -26,6 +26,6 @@ if [ "$TRAVIS_OS_NAME" = "osx" ]; then
     export DUB_LOCATION=$PWD/dmd2/osx/bin
     chmod +x $DUB_LOCATION/dmd
     chmod +x $DUB_LOCATION/dub
-    export PATH=$DUB_LOCATION:$PATH
+    export "PATH=$DUB_LOCATION:$PATH"
 fi
 echo "D installed for "$TRAVIS_OS_NAME""
