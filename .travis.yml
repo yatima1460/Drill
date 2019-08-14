@@ -12,14 +12,25 @@ env:
   - DMD_VERSION=2.087.1 MAIN_VERSION=2
 
 before_cache:
-  - if [ "$TRAVIS_OS_NAME" = "osx" ]; then brew cleanup; fi;
+  - brew cleanup
   # - DIR="$PWD/dmd2"
   # - if [! -d "$DIR" ]; then source ./.travis/install_d.bash; fi;
 
 cache:
   directories:
     - $HOME/Library/Caches/Homebrew
-    # - $PWD/dmd2
+    - /usr/local/Cellar/gtk+3
+    - /usr/local/opt/gtk+3
+    - /usr/local/Cellar/glib
+    - /usr/local/opt/glib
+    - /usr/local/Cellar/gobject-introspection
+    - /usr/local/opt/gobject-introspection
+    
+before_install:
+  - test -d /usr/local/opt/gtk+3/lib  || { rmdir /usr/local/opt/gtk+3; brew install gtk+3; }
+  - test -d /usr/local/opt/glib/lib   || { rmdir /usr/local/opt/glib; brew install glib; }
+  - test -d /usr/local/opt/gobject-introspection/lib  || { rmdir /usr/local/opt/gobject-introspection; brew install gobject-introspection; }
+
 
 script:
    # DO NOT USE "bash" here and inside sub-scripts, but use "source"
