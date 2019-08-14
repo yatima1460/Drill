@@ -21,6 +21,10 @@ if [ "$TRAVIS_PULL_REQUEST" != "false" ]; then
     travis_terminate 1; 
 fi
 
+if [ "$TRAVIS_OS_NAME" = "linux" ]; then
+    sudo apt install -y p7zip-full 1>/dev/null
+fi
+
 # Packages
 7z a -tzip Drill-$MAIN_VERSION.$TRAVIS_BUILD_NUMBER-CLI-$TRAVIS_OS_NAME-x86_64.zip $PWD/Build/Drill-GTK-$TRAVIS_OS_NAME-x86_64-release-travis/* &
 7z a -tzip Drill-$MAIN_VERSION.$TRAVIS_BUILD_NUMBER-GTK-$TRAVIS_OS_NAME-x86_64.zip $PWD/Build/Drill-CLI-$TRAVIS_OS_NAME-x86_64-release-travis/* &
