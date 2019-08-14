@@ -1,6 +1,7 @@
 #!/bin/bash
 
 if [ "$TRAVIS_OS_NAME" = "linux" ]; then
+    sudo apt update
     sudo apt install -y libgtk-3-dev
 fi
 if [ "$TRAVIS_OS_NAME" = "windows" ]; then
