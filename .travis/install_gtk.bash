@@ -12,8 +12,8 @@ if [ "$TRAVIS_OS_NAME" = "osx" ]; then
     # wget http://www.tarnyko.net/repo/gtk3_build_system/gtk+-bundle_3.6.4_20130630_macosx.tar.bz2
     # tar -xf gtk+-bundle_3.6.4_20130630_macosx.tar.bz2
     # sudo mv Gtk3.framework /Library/Frameworks
-    brew install gtk+3 1>/dev/null
-    brew install glib 1>/dev/null
-    brew install gobject-introspection 1>/dev/null
+    brew link gtk+3 1>/dev/null
+    brew link glib 1>/dev/null
+    brew link gobject-introspection 1>/dev/null
 fi
 echo "GTK installed for ""$TRAVIS_OS_NAME"
