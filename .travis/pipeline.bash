@@ -1,13 +1,12 @@
 #!/bin/bash
 
-# Dependencies
+# Install D compiler
 source .travis/install_d.bash
 
 # Unittests
 dub test -c CLI &
-source .travis/install_gtk.bash
-dub test -c GTK &
-
+bash .travis/install_gtk.bash && dub test -c GTK &
+wait
 
 # Builds
 echo $MAIN_VERSION.$TRAVIS_BUILD_NUMBER > TRAVIS_VERSION
@@ -18,7 +17,8 @@ wait
 # if this is a pull request we stop here
 if [ "$TRAVIS_PULL_REQUEST" != "false" ]; then 
     echo "Pull request detected, skipping building of packages"
-    travis_terminate 1; 
+    travis_terminate 0;
+    exit 0;
 fi
 
 # Install 7zip
@@ -33,15 +33,16 @@ fi
 7z a -tzip Drill-$MAIN_VERSION.$TRAVIS_BUILD_NUMBER-CLI-$TRAVIS_OS_NAME-x86_64.zip $PWD/Build/Drill-GTK-$TRAVIS_OS_NAME-x86_64-release-travis/* &
 7z a -tzip Drill-$MAIN_VERSION.$TRAVIS_BUILD_NUMBER-GTK-$TRAVIS_OS_NAME-x86_64.zip $PWD/Build/Drill-CLI-$TRAVIS_OS_NAME-x86_64-release-travis/* &
 if [ "$TRAVIS_OS_NAME" = "linux" ]; then
-    source .travis/create_appimage.bash
-    # TODO: .deb CLI
-    # TODO: .deb GTK
-    # TODO: .rpm CLI
-    # TODO: .rpm GTK
+    bash .travis/create_appimage.bash &
+    # source .travis/create_deb_cli.bash
+    # source .travis/create_deb_gtk.bash
+    # source .travis/create_rpm_cli.bash
+    # source .travis/create_rpm_gtk.bash
 fi
+wait
 
 # TODO: installer windows
-wait
+
 
 # Upload fresh beta packages
 
