@@ -22,6 +22,7 @@ static this()
     //VERSION = baseName(thisExePath);
 }
 
+import std.array : split;
 immutable(string) BUILD_TIME  = __TIMESTAMP__;
 version (Travis) immutable(string) VERSION = import("TRAVIS_VERSION").split("\n")[0];
 else immutable(string) VERSION = "LOCAL_BUILD";
