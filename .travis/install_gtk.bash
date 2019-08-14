@@ -16,4 +16,4 @@ if [ "$TRAVIS_OS_NAME" = "osx" ]; then
     brew install glib 1>/dev/null
     brew install gobject-introspection 1>/dev/null
 fi
-echo "GTK installed for "$TRAVIS_OS_NAME""
+echo "GTK installed for ""$TRAVIS_OS_NAME"
