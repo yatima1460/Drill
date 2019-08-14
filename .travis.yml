@@ -19,7 +19,7 @@ before_install:
   - if [ "$TRAVIS_OS_NAME" = "osx" ]; then test -d /usr/local/opt/p7zip/lib  || { rmdir /usr/local/opt/p7zip; brew install p7zip; }; fi;
 
 install:
-  - if [ ! -d dmd."$DMD_VERSION" ]; then source .travis/install_d.bash; fi;
+  - [ -d dmd."$DMD_VERSION" ] || source .travis/install_d.bash
   - bash .travis/install_gtk.bash
   # Install 7zip
   - if [ "$TRAVIS_OS_NAME" = "linux" ]; then sudo apt install -y p7zip-full 1>/dev/null; fi;
