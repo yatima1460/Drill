@@ -1,14 +1,15 @@
 #!/bin/bash
 
-set -e
+
 
 # Dependencies
 source .travis/install_d.bash
-source .travis/install_gtk.bash
+
 
 # Unittests
 dub test -c CLI &
-dub test -c GTK &
+source .travis/install_gtk.bash
+dub test -c GTK
 wait
 
 # Builds
