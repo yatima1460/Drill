@@ -27,9 +27,9 @@ cache:
     - /usr/local/opt/gobject-introspection
     
 before_install:
-  - if [ "$TRAVIS_OS_NAME" = "osx" ]; test -d /usr/local/opt/gtk+3/lib  || { rmdir /usr/local/opt/gtk+3; brew install gtk+3; }; fi;
-  - if [ "$TRAVIS_OS_NAME" = "osx" ]; test -d /usr/local/opt/glib/lib   || { rmdir /usr/local/opt/glib; brew install glib; }; fi;
-  - if [ "$TRAVIS_OS_NAME" = "osx" ]; test -d /usr/local/opt/gobject-introspection/lib  || { rmdir /usr/local/opt/gobject-introspection; brew install gobject-introspection; }; fi;
+  - if [ "$TRAVIS_OS_NAME" = "osx" ]; then test -d /usr/local/opt/gtk+3/lib  || { rmdir /usr/local/opt/gtk+3; brew install gtk+3; }; fi;
+  - if [ "$TRAVIS_OS_NAME" = "osx" ]; then test -d /usr/local/opt/glib/lib   || { rmdir /usr/local/opt/glib; brew install glib; }; fi;
+  - if [ "$TRAVIS_OS_NAME" = "osx" ]; then test -d /usr/local/opt/gobject-introspection/lib  || { rmdir /usr/local/opt/gobject-introspection; brew install gobject-introspection; }; fi;
 
 
 script:
