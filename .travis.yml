@@ -6,11 +6,21 @@ os:
 - linux
 - osx
 
+
+before_cache:
+  - brew cleanup
+
+cache:
+  directories:
+    - $HOME/Library/Caches/Homebrew
+
 script:
    - export DMD_VERSION=2.087.1
-   - bash ./.travis/install_d.bash
+   # DO NOT USE "bash" here, but use "source"
+   # so we can change global variables like PATH in sub-scripts
+   - source ./.travis/install_d.bash
    - dub test -c CLI
-   - bash ./.travis/install_gtk.bash
+   - source ./.travis/install_gtk.bash
    - dub test -c GTK
    - if [ "$TRAVIS_PULL_REQUEST" != "false" ]; then bash ./.travis/pull_requests.bash; fi
    - if [ "$TRAVIS_PULL_REQUEST" = "false" ]; then bash ./.travis/rolling_release.bash; fi
