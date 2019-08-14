@@ -1,6 +1,6 @@
 #!/bin/bash
 
-if [ "$TRAVIS_OS" = "linux" ]; then
+if [ "$TRAVIS_OS_NAME" = "linux" ]; then
     wget http://downloads.dlang.org/releases/2.x/$DMD_VERSION/dmd.$DMD_VERSION.linux.tar.xz
     7z x -aos dmd.$DMD_VERSION.linux.tar.xz
     7z x -aos dmd.$DMD_VERSION.linux.tar
@@ -9,12 +9,12 @@ if [ "$TRAVIS_OS" = "linux" ]; then
     chmod +x $DUB_LOCATION/dub
     export PATH=$DUB_LOCATION:$PATH
 fi
-if [ "$TRAVIS_OS" = "windows" ]; then
+if [ "$TRAVIS_OS_NAME" = "windows" ]; then
     wget http://downloads.dlang.org/releases/2.x/$DMD_VERSION/dmd.$DMD_VERSION.windows.zip 
     7z x dmd.$DMD_VERSION.windows.zip
     export PATH=/dmd2/windows/bin:$PATH
 fi
-if [ "$TRAVIS_OS" = "osx" ]; then
+if [ "$TRAVIS_OS_NAME" = "osx" ]; then
     brew install p7zip
     wget http://downloads.dlang.org/releases/2.x/$DMD_VERSION/dmd.$DMD_VERSION.osx.tar.xz
     7z -aoa x dmd.$DMD_VERSION.osx.tar.xz
@@ -24,4 +24,4 @@ if [ "$TRAVIS_OS" = "osx" ]; then
     chmod +x $DUB_LOCATION/dub
     export PATH=$DUB_LOCATION:$PATH
 fi
-echo "D installed for "$TRAVIS_OS""
+echo "D installed for "$TRAVIS_OS_NAME""
