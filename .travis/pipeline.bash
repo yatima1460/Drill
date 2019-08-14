@@ -1,9 +1,8 @@
 #!/bin/bash
 
 # Dependencies
-source .travis/install_d.bash &
-source .travis/install_gtk.bash &
-wait
+source .travis/install_d.bash
+source .travis/install_gtk.bash
 
 # Unittests
 dub test -c CLI &
