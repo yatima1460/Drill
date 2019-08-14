@@ -1,0 +1,14 @@
+
+os:
+- windows
+- linux
+- osx
+
+script:
+   - export DMD_VERSION=2.087.1
+   - bash ./.travis/install_d.bash
+   - dub test -c CLI
+   - bash ./.travis/install_gtk.bash
+   - dub test -c GTK
+   - if [ "$TRAVIS_PULL_REQUEST" != "false" ]; then bash ./.travis/pull_requests.bash; fi
+   - if [ "$TRAVIS_PULL_REQUEST" = "false" ]; then bash ./.travis/rolling_release.bash; fi

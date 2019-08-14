@@ -1,7 +1,0 @@
-steps:
-- bash: brew install gtk+3
-  displayName: brew install gtk+3
-- bash: brew install glib
-  displayName: brew install glib
-- bash: brew install gobject-introspection
-  displayName: brew install gobject-introspection
