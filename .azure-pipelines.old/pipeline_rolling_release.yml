@@ -139,35 +139,35 @@ stages:
         publishLocation: Container
     # Build AppImage
     - script: sudo apt install -y appstream
-      displayName: Install appstreamcli
+     
     - script: mkdir -p Drill.AppDir
-      displayName: mkdir -p Drill.AppDir
+      
     - script: cp -R $PWD/Build/Drill-GTK-linux-x86_64-release-azure/* Drill.AppDir
-      displayName: Copy release build to AppDir
+    
     - script: mkdir -p Drill.AppDir/usr/share/metainfo
-      displayName: mkdir -p Drill.AppDir/usr/share/metainfo
+     
     - script: mkdir -p Drill.AppDir/usr/share/applications
-      displayName: mkdir -p Drill.AppDir/usr/share/applications
+    
     - script: cp Assets/GTK-Linux/drill.software.appdata.xml Drill.AppDir/usr/share/metainfo
-      displayName: Copy appdata.xml to Drill.AppDir/usr/share/metainfo
+     
     - script: cp Assets/GTK-Linux/software.drill.Drill.desktop Drill.AppDir/usr/share/applications
-      displayName: Copy .desktop to Drill.AppDir/usr/share/applications
+     
     - script: ln -s drill-gtk Drill.AppDir/AppRun
-      displayName: Link AppRun to Drill executable
+   
     - script: chmod +x Drill.AppDir/AppRun
-      displayName: Set AppRun executable
+     
     - script: chmod +x Drill.AppDir/drill-gtk
-      displayName: Set Drill GTK binary executable
+     
     - script: cp Assets/GTK-Linux/drill-gtk.svg Drill.AppDir
-      displayName: Copy icon to AppDir
+     
     - script: wget https://github.com/AppImage/AppImageKit/releases/download/12/appimagetool-x86_64.AppImage -O appimagetool-x86_64.AppImage
-      displayName: Download AppImageTool
+     
     - script: chmod +x appimagetool-x86_64.AppImage
-      displayName: Make AppImageTool executable
+      
     - script: export ARCH=x86_64 && ./appimagetool-x86_64.AppImage Drill.AppDir Drill-$(Build.BuildNumber)-x86_64.AppImage
-      displayName: Create AppImage
+     
     - script: test -f Drill-$(Build.BuildNumber)-x86_64.AppImage
-      displayName: test Drill-$(Build.BuildNumber)-x86_64.AppImage exists
+
 
     - task: PublishBuildArtifacts@1
       inputs:

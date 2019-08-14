@@ -23,7 +23,7 @@ static this()
 }
 
 immutable(string) BUILD_TIME  = __TIMESTAMP__;
-version (Travis) immutable(string) VERSION = import("TRAVIS_VERSION");
+version (Travis) immutable(string) VERSION = import("TRAVIS_VERSION").split("\n")[0];
 else immutable(string) VERSION = "LOCAL_BUILD";
 immutable(string) AUTHOR_NAME = "Federico Santamorena";
 immutable(string) AUTHOR_URL  = "https://www.linkedin.com/in/yatima1460/";
