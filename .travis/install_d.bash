@@ -3,8 +3,8 @@
 if [ "$TRAVIS_OS_NAME" = "linux" ]; then
     sudo apt-get install -y p7zip-full
     wget -nv http://downloads.dlang.org/releases/2.x/$DMD_VERSION/dmd.$DMD_VERSION.linux.tar.xz
-    7z -bso0 -bsp0 x -aos dmd.$DMD_VERSION.linux.tar.xz
-    7z -bso0 -bsp0 x -aos dmd.$DMD_VERSION.linux.tar
+    7z x -aos dmd.$DMD_VERSION.linux.tar.xz 1>/dev/null
+    7z x -aos dmd.$DMD_VERSION.linux.tar 1>/dev/null
     export DUB_LOCATION=$PWD/dmd2/linux/bin64
     chmod +x $DUB_LOCATION/dmd
     chmod +x $DUB_LOCATION/dub
