@@ -60,7 +60,7 @@
                 "StdLoggerDisableError"
             ]
         },
-        "release-azure": {
+        "release-travis": {
             "buildOptions": [
                 "optimize",
                 "inline",
@@ -72,7 +72,7 @@
                 "StdLoggerDisableInfo",
                 "StdLoggerDisableWarning",
                 "StdLoggerDisableError",
-                "Azure"
+                "Travis"
             ]
         }
     },
