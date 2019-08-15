@@ -126,8 +126,8 @@ unittest
 
     version (Windows)
     {
-        assert(f.fileName == "drill-test-CLI.exe" || f.fileName == "drill-test-GTK.exe",f.fileName);
-        assert(f.fileNameLower == "drill-test-cli.exe" || f.fileNameLower == "drill-test-gtk.exe",f.fileName);
+        assert(f.fileName == "drill-test-WinAPI.exe",f.fileName);
+        assert(f.fileNameLower == "drill-test-winapi.exe",f.fileNameLower);
         assert(f.extension == ".exe");
     }
     else

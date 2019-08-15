@@ -5,13 +5,22 @@
 # Unittests
 dub test -c CLI &
 dub test -c GTK &
+if [ "$TRAVIS_OS_NAME" = "windows" ]; then
+    dub test -c WinAPI &
+fi
 wait
 
 # Builds
 echo "$MAIN_VERSION"."$TRAVIS_BUILD_NUMBER" > TRAVIS_VERSION
 dub build -c CLI -b release-travis &
 dub build -c GTK -b release-travis &
+if [ "$TRAVIS_OS_NAME" = "windows" ]; then
+    dub build -c WinAPI -b release-travis
+fi
 wait
+
+
+
 
 # if this is a pull request we stop here
 if [ "$TRAVIS_PULL_REQUEST" != "false" ]; then 
