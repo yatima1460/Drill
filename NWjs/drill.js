@@ -29,8 +29,8 @@ function addFile(icon,name,path,fileDateModifiedString)
     //"<img srcset=file:///usr/share/pixmaps/"+icon+".png>"+
     +"</div>"+
     "<div class=name>"+name+"</div>"+
-    "<div class=path>"+exec+"</div>"+
-    "<div class=date>"+desktopFileDateModifiedString+"</div>"+
+    "<div class=path>"+path+"</div>"+
+    "<div class=date>"+fileDateModifiedString+"</div>"+
     "</div>";
 
     console.log(name + " added");
@@ -63,23 +63,29 @@ window.onload = function() {
       console.log(search.value);
 
       var win = nw.Window.get();
-      win.setMinimumSize(1920/2,100);
+      win.setMinimumSize(1920/2,500);
 
       const { spawn } = require('child_process');
       //search.value
-      const ls = spawn('drill-cli.exe', []);
+      //const ls = spawn('Drill-CLI-windows-x86_64-release/drill-cli.exe', []);
 
-    ls.stdout.on('data', (data) => {
-    console.log(`stdout: ${data}`);
-    });
+      var exec = require('child_process').exec;
+      function execute(command, callback){
+          exec(command, function(error, stdout, stderr){ callback(stdout); });
+      };
 
-    ls.stderr.on('data', (data) => {
-    console.log(`stderr: ${data}`);
-    });
+      execute(process.cwd()+"/Drill-CLI-windows-x86_64-release/drill-cli.exe "+search.value, function(name)
+      {
+       // let search = document.getElementById("search");
+        //search.value = name;
 
-    ls.on('close', (code) => {
-    console.log(`child process exited with code ${code}`);
-    });
+        addFile("icon",name,"path","date");
+        //   console.log(name);
+        // execute("git config --global user.email", function(email){
+        //     callback(console.log({ name: name.replace("\n", ""), email: email.replace("\n", "") }));
+        // });
+      });
+
   };
 
   // bind ESC to exit Dhanos
