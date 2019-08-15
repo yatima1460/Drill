@@ -23,7 +23,7 @@ import Utils : sizeToHumanReadable, systime_to_string, getMountpoints;
 import FileInfo : FileInfo;
 import MatchingFunctions : MatchingFunction;
 
-alias CrawlerCallback = void function(  const(FileInfo) result, void* userObject);
+alias CrawlerCallback = void delegate(const(FileInfo) result, void* userObject) @safe;
 
 
 
@@ -289,13 +289,71 @@ in (currentDirectory.isDir())
 
 
 
+@safe void elaborateFile(DirEntry currentFile, const Regex!char[] blockListRegex,const Regex!char[] priorityListRegex, MatchingFunction matchingFunction,  DList!DirEntry queue, string searchString, CrawlerCallback resultCallback, void* userObject)
+in (resultCallback !is null)
+{
+    // FIXME: check the FIXME inside tryGetShallowFiles
+    if (currentFile.isSymlink())
+    {
+        trace("Symlink ignored: " ~ currentFile.name);
+        return;
+    }
+
+    /+
+        If the file is a directory now
+        we check its priority and then enqueue it
+    +/
+    if (currentFile.isDir())
+    {
+        if (matchesRegexList(blockListRegex, currentFile.name))
+        {
+            trace("File in blocklists: "~currentFile.name~" skipped.");
+            return;
+        }
+        if (matchesRegexList(priorityListRegex, currentFile.name))
+        {
+            trace("High priority: " ~ currentFile.name);
+            queue.insertFront(currentFile);
+        }
+        else
+        {
+            trace("Low priority: "~currentFile.name);
+            queue.insertBack(currentFile);
+        }
+    }
+
+        
+    /+
+        The file (normal file or folder) does match the search:
+        we send it to the callback result function
+    +/
+    if (matchingFunction(currentFile, searchString))
+    {
+        trace("Matching search" ~ currentFile.name);
+        immutable(FileInfo) fi = buildFileInfo(currentFile);
+        
+      
+        if (resultCallback is null)
+        {
+           
+            throw new Exception(
+                    "resultCallback can't be null before calling the callback");
+
+        }
+        
+        
+        resultCallback(fi,  userObject);
+       
+    }
+}
+
 
 void crawlDirectory(DirEntry currentDirectory, 
                     const Regex!char[] blockListRegex, 
                     const Regex!char[] priorityListRegex, 
                     const(string) searchString, 
-                    CrawlerCallback* resultCallback, 
-                    const(void*) userObject,
+                    CrawlerCallback resultCallback, 
+                    void* userObject,
                     DList!DirEntry queue,
                     MatchingFunction matchingFunction,
                     shared(bool)* running)
@@ -357,59 +415,7 @@ in (running !is null)
 
             try
             {
-                // FIXME: check the FIXME inside tryGetShallowFiles
-                if (currentFile.isSymlink())
-                {
-                    trace("Symlink ignored: " ~ currentDirectory.name);
-                    continue;
-                }
-
-                /+
-                    If the file is a directory now
-                    we check its priority and then enqueue it
-                +/
-                if (currentFile.isDir())
-                {
-                    if (matchesRegexList(blockListRegex, currentFile.name))
-                    {
-                        trace("File in blocklists: "~currentFile.name~" skipped.");
-                        continue;
-                    }
-                    if (matchesRegexList(priorityListRegex, currentFile.name))
-                    {
-                        trace("High priority: " ~ currentFile.name);
-                        queue.insertFront(currentFile);
-                    }
-                    else
-                    {
-                        trace("Low priority: "~currentFile.name);
-                        queue.insertBack(currentFile);
-                    }
-                }
-
-                   
-                /+
-                    The file (normal file or folder) does match the search:
-                    we send it to the callback result function
-                +/
-                if (matchingFunction(currentFile, searchString))
-                {
-                    trace("Matching search" ~ currentFile.name);
-                    immutable(FileInfo) fi = buildFileInfo(currentFile);
-                   
-                    writeln("owo1");
-                    if (resultCallback is null)
-                    {
-                         writeln("owo2.5");
-                         throw new Exception("resultCallback can't be null before calling the callback");
-                         writeln("owo2.75");
-                    }
-                        
-
-                         writeln("owo2");
-                    (*resultCallback)(fi, cast(void*) userObject);
-                     writeln("owo3");
-                }
+                elaborateFile(currentFile,blockListRegex,priorityListRegex, matchingFunction, queue, searchString, resultCallback, userObject);
             }
             catch (Exception e)
             {
@@ -642,7 +648,7 @@ public:
                 BLOCK_LIST_REGEX,
                 PRIORITY_LIST_REGEX,
                 SEARCH_STRING,
-                &resultCallback, 
+                resultCallback, 
                 cast(void*)userObject,
                 queue, 
                 matchingFunction,

@@ -319,7 +319,7 @@ out(app; app.name.length > 0) // out (app;app.exec !is null,"app exec can't be n
 
 version (linux) alias cleanExecLine = memoize!_cleanExecLine;
 
-string[] mergeAllTextFilesInDirectory(immutable(string) path) 
+@trusted string[] mergeAllTextFilesInDirectory(immutable(string) path) 
 {
 
     string[] temp_blocklist = [];
