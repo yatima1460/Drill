@@ -1,7 +1,3 @@
-
-
-
-
 import std.functional : memoize;
 import std.typecons : Tuple;
 import std.experimental.logger;

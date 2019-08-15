@@ -25,7 +25,8 @@
         "Core/FileInfo.d",
         "Core/ListData.d",
         "Core/Meta.d",
-        "Core/Utils.d"
+        "Core/Utils.d",
+        "Core/AppImage.d"
     ],
     "copyFiles": [
         "Assets"
