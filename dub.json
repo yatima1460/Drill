@@ -67,10 +67,18 @@
       "targetName": "Drill",
       "mainSourceFile": "WinAPI/WinAPI.d",
       "targetPath": "Build/Drill-WinAPI-$PLATFORM-$ARCH-$BUILD_TYPE",
-      "versions": ["CLI"],
+      "versions": ["UI","WinAPI"],
       "importPaths": ["Core"],
       "platforms": ["windows"],
-      "lflags-windows": ["/SUBSYSTEM:windows", "User32.lib", "Gdi32.lib"]
+      "lflags-windows": [
+        
+
+          "kernel32.lib",
+          "User32.lib", 
+          "Gdi32.lib",
+          "comdlg32.lib"
+          
+        ]
     },
     {
       "name": "CLI",
