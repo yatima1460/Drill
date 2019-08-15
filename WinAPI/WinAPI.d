@@ -6,17 +6,7 @@ import std.utf;
 
 import core.sys.windows.windows;
 
-RECT rect;
-int width = 1920 / 2;
-int height = 1080 / 2;
 
-int center_window(HWND parent_window, int width, int height)
-{
-    GetClientRect(parent_window, &rect);
-    rect.left = (rect.right / 2) - (width / 2);
-    rect.top = (rect.bottom / 2) - (height / 2);
-    return 0;
-}
 
 extern (Windows) int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
         PWSTR pCmdLine, int nCmdShow)
@@ -38,9 +28,9 @@ extern (Windows) int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 
     RegisterClassW(&wc);
 
-    center_window(GetDesktopWindow(), width, height);
+
     hwnd = CreateWindowW(wc.lpszClassName, "Drill", WS_OVERLAPPEDWINDOW | WS_VISIBLE,
-            rect.left, rect.top, width, height, NULL, NULL, hInstance, NULL);
+            0, 0, 1920/2, 1080/2, NULL, NULL, hInstance, NULL);
 
     ShowWindow(hwnd, nCmdShow);
     UpdateWindow(hwnd);
@@ -53,11 +43,17 @@ extern (Windows) int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     return cast(int) msg.wParam;
 }
 
+
+
 extern (Windows) LRESULT WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) nothrow
 {
 
     switch (msg)
     {
+         case WM_CREATE: 
+      
+            CenterWindow(hwnd);
+            break;      
     case WM_DESTROY:
 
         PostQuitMessage(0);
@@ -67,4 +63,20 @@ extern (Windows) LRESULT WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
     }
 
     return DefWindowProcW(hwnd, msg, wParam, lParam);
+}
+
+
+nothrow extern (Windows) void CenterWindow(HWND hwnd) {
+
+    RECT rc = {0};
+    
+    GetWindowRect(hwnd, &rc);
+    int win_w = rc.right - rc.left;
+    int win_h = rc.bottom - rc.top;
+
+    int screen_w = GetSystemMetrics(SM_CXSCREEN);
+    int screen_h = GetSystemMetrics(SM_CYSCREEN);
+    
+    SetWindowPos(hwnd, HWND_TOP, (screen_w - win_w)/2, 
+        (screen_h - win_h)/2, 0, 0, SWP_NOSIZE);
 }
