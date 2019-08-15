@@ -1,149 +1,120 @@
 {
-    "name": "drill",
-    "authors": [
-        "Federico Santamorena"
-    ],
-    "description": "Search files without indexing, but clever crawling.",
-    "copyright": "Copyright © 2019, Federico Santamorena",
-    "license": "GPL-2.0",
-    "homepage": "https://github.com/yatima1460/Drill",
-    "dflags": [
-        "-J=."
-    ],
-    "sourceFiles": [
-        "Core/ApplicationInfo.d",
-        "Core/Config.d",
-        "Core/Context.d",
-        "Core/Crawler.d",
-        "Core/FileInfo.d",
-        "Core/ListData.d",
-        "Core/Meta.d",
-        "Core/Utils.d"
-    ],
-    "copyFiles": [
-        "Assets/Core/BlockLists",
-        "Assets/Core/PriorityLists",
-        "Assets/Core/mime.types"
-    ],
-    "buildTypes": {
-        "debug": {
-            "buildOptions": [
-                "debugMode",
-                "debugInfo",
-                "stackStomping",
-                "alwaysStackFrame"
-            ]
-        },
-        "release-debug": {
-            "buildOptions": [
-                "optimize",
-                "debugInfo",
-                "inline",
-                "stackStomping",
-                "alwaysStackFrame"
-            ],
-            "versions": [
-                "StdLoggerDisableTrace"
-            ]
-        },
-        "release": {
-            "buildOptions": [
-                "optimize",
-                "inline",
-                "noBoundsCheck",
-                "releaseMode"
-            ],
-            "versions": [
-                "StdLoggerDisableTrace",
-                "StdLoggerDisableInfo",
-                "StdLoggerDisableWarning",
-                "StdLoggerDisableError"
-            ]
-        },
-        "release-travis": {
-            "buildOptions": [
-                "optimize",
-                "inline",
-                "noBoundsCheck",
-                "releaseMode"
-            ],
-            "versions": [
-                "StdLoggerDisableTrace",
-                "StdLoggerDisableInfo",
-                "StdLoggerDisableWarning",
-                "StdLoggerDisableError",
-                "Travis"
-            ]
-        }
+  "name": "drill",
+  "authors": ["Federico Santamorena"],
+  "description": "Search files without indexing, but clever crawling.",
+  "copyright": "Copyright © 2019, Federico Santamorena",
+  "license": "GPL-2.0",
+  "homepage": "https://github.com/yatima1460/Drill",
+  "dflags": ["-J=."],
+  "sourceFiles": [
+    "Core/ApplicationInfo.d",
+    "Core/Config.d",
+    "Core/Context.d",
+    "Core/Crawler.d",
+    "Core/FileInfo.d",
+    "Core/ListData.d",
+    "Core/Meta.d",
+    "Core/Utils.d"
+  ],
+  "copyFiles": [
+    "Assets/Core/BlockLists",
+    "Assets/Core/PriorityLists",
+    "Assets/Core/mime.types"
+  ],
+  "buildTypes": {
+    "debug": {
+      "buildOptions": [
+        "debugMode",
+        "debugInfo",
+        "stackStomping",
+        "alwaysStackFrame"
+      ]
     },
-    "configurations": [
-        {
-            "name": "CLI",
-            "targetType": "executable",
-            "targetName": "drill-cli",
-            "mainSourceFile": "CLI/CLI.d",
-            "targetPath": "Build/Drill-CLI-$PLATFORM-$ARCH-$BUILD_TYPE",
-            "versions": [
-                "CLI"
-            ],
-            "importPaths": [
-                "Core"
-            ],
-            "copyFiles-linux": [
-                "Assets/CLI-Linux/software.drill.DrillCLI.desktop"
-            ]
-        },
-        {
-            "name": "GTK",
-            "targetType": "executable",
-            "targetName": "drill-gtk",
-            "sourceFiles": [
-                "GTK/GTKBinds.d",
-                "GTK/ListStore.d",
-                "GTK/TreeView.d"
-            ],
-            "libs-posix": [
-                "gtk-3",
-                "gio-2.0"
-            ],
-            "libs-osx": [
-                "glib-2.0",
-                "gobject-2.0"
-            ],
-            "libs-windows": [
-                "GTK_x86_64_VS2019/installed/x64-windows/lib/gtk-3.0",
-                "GTK_x86_64_VS2019/installed/x64-windows/lib/glib-2.0",
-                "GTK_x86_64_VS2019/installed/x64-windows/lib/gio-2.0",
-                "GTK_x86_64_VS2019/installed/x64-windows/lib/gobject-2.0"
-            ],
-            "mainSourceFile": "GTK/Main.d",
-            "targetPath": "Build/Drill-GTK-$PLATFORM-$ARCH-$BUILD_TYPE",
-            "copyFiles": [
-                "Assets/GTK/IconsFallback",
-                "Assets/GTK/icon.png",
-                "Assets/GTK/ui.glade"
-            ],
-            "copyFiles-linux": [
-                "Assets/GTK-Linux/software.drill.Drill.desktop"
-            ],
-            "copyFiles-windows": [
-                "GTK_x86_64_VS2019/installed/x64-windows/bin/*.dll",
-                "Assets/GTK-Windows/etc",
-                "Assets/GTK-Windows/share"
-            ],
-            "versions": [
-                "GTK",
-                "UI"
-            ],
-            "importPaths": [
-                "Core",
-                "GTK"
-            ]
-        }
-    ],
-    "toolchainRequirements": {
-        "dmd": ">=2.086.0",
-        "gdc": "no",
-        "ldc": ">=1.15.0"
+    "release-debug": {
+      "buildOptions": [
+        "optimize",
+        "debugInfo",
+        "inline",
+        "stackStomping",
+        "alwaysStackFrame"
+      ],
+      "versions": ["StdLoggerDisableTrace"]
+    },
+    "release": {
+      "buildOptions": ["optimize", "inline", "noBoundsCheck", "releaseMode"],
+      "versions": [
+        "StdLoggerDisableTrace",
+        "StdLoggerDisableInfo",
+        "StdLoggerDisableWarning",
+        "StdLoggerDisableError"
+      ]
+    },
+    "release-travis": {
+      "buildOptions": ["optimize", "inline", "noBoundsCheck", "releaseMode"],
+      "versions": [
+        "StdLoggerDisableTrace",
+        "StdLoggerDisableInfo",
+        "StdLoggerDisableWarning",
+        "StdLoggerDisableError",
+        "Travis"
+      ]
     }
+  },
+  "configurations": [
+    {
+      "name": "WinAPI",
+      "targetType": "executable",
+      "targetName": "Drill",
+      "mainSourceFile": "WinAPI/WinAPI.d",
+      "targetPath": "Build/Drill-WinAPI-$PLATFORM-$ARCH-$BUILD_TYPE",
+      "versions": ["CLI"],
+      "importPaths": ["Core"],
+      "platforms": ["windows"],
+      "lflags-windows": ["/SUBSYSTEM:windows", "User32.lib", "Gdi32.lib"]
+    },
+    {
+      "name": "CLI",
+      "targetType": "executable",
+      "targetName": "drill-cli",
+      "mainSourceFile": "CLI/CLI.d",
+      "targetPath": "Build/Drill-CLI-$PLATFORM-$ARCH-$BUILD_TYPE",
+      "versions": ["CLI"],
+      "importPaths": ["Core"],
+      "copyFiles-linux": ["Assets/CLI-Linux/software.drill.DrillCLI.desktop"]
+    },
+    {
+      "name": "GTK",
+      "targetType": "executable",
+      "targetName": "drill-gtk",
+      "sourceFiles": ["GTK/GTKBinds.d", "GTK/ListStore.d", "GTK/TreeView.d"],
+      "libs-posix": ["gtk-3", "gio-2.0"],
+      "libs-osx": ["glib-2.0", "gobject-2.0"],
+      "libs-windows": [
+        "GTK_x86_64_VS2019/installed/x64-windows/lib/gtk-3.0",
+        "GTK_x86_64_VS2019/installed/x64-windows/lib/glib-2.0",
+        "GTK_x86_64_VS2019/installed/x64-windows/lib/gio-2.0",
+        "GTK_x86_64_VS2019/installed/x64-windows/lib/gobject-2.0"
+      ],
+      "mainSourceFile": "GTK/Main.d",
+      "targetPath": "Build/Drill-GTK-$PLATFORM-$ARCH-$BUILD_TYPE",
+      "copyFiles": [
+        "Assets/GTK/IconsFallback",
+        "Assets/GTK/icon.png",
+        "Assets/GTK/ui.glade"
+      ],
+      "copyFiles-linux": ["Assets/GTK-Linux/software.drill.Drill.desktop"],
+      "copyFiles-windows": [
+        "GTK_x86_64_VS2019/installed/x64-windows/bin/*.dll",
+        "Assets/GTK-Windows/etc",
+        "Assets/GTK-Windows/share"
+      ],
+      "versions": ["GTK", "UI"],
+      "importPaths": ["Core", "GTK"]
+    }
+  ],
+  "toolchainRequirements": {
+    "dmd": ">=2.086.0",
+    "gdc": "no",
+    "ldc": ">=1.15.0"
+  }
 }
