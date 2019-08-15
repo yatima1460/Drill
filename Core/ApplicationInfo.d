@@ -1,7 +1,7 @@
 /**
 Struct containing the data Drill found about installed applications
 */
-struct ApplicationInfo
+@safe struct ApplicationInfo
 {
 
     /++

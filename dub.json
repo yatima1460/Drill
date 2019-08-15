@@ -18,7 +18,8 @@
         "Core/FileInfo.d",
         "Core/ListData.d",
         "Core/Meta.d",
-        "Core/Utils.d"
+        "Core/Utils.d",
+        "Core/MatchingFunctions.d"
     ],
     "copyFiles": [
         "Assets/Core/BlockLists",
@@ -38,7 +39,6 @@
             "buildOptions": [
                 "optimize",
                 "debugInfo",
-                "inline",
                 "stackStomping",
                 "alwaysStackFrame"
             ],

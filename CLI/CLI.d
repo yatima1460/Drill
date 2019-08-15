@@ -10,10 +10,13 @@ import FileInfo : FileInfo;
 import Crawler : Crawler, CrawlerCallback;
 import std.path : buildPath;
 import Config : DrillConfig, loadData;
-import Context : DrillContext, startCrawling, waitForCrawlers;
+import Context : DrillContext, startCrawling;
 import Meta : VERSION, GITHUB_URL;
+import std.experimental.logger;
 
 // TODO: capture Ctrl-C and close crawlers?
+
+import core.atomic : atomicOp;
 
 void resultsFoundWithDate(const(FileInfo) result, void* userObject)
 {
@@ -39,81 +42,130 @@ void resultsFoundWithSizeAndDate(const(FileInfo) result, void* userObject)
     }
 }
 
-void resultsFoundBare(const(FileInfo) result, void* userObject)
+// import core.sync.mutex;
+
+// shared Mutex mtx;
+// static this()
+// {
+//     mtx = new shared Mutex();
+// }
+
+class DrillCLI
 {
-    synchronized
+
+    int number = -1;
+    DrillContext context;
+
+    @safe void resultsFoundBare(const(FileInfo) result, void* userObject)
+    in(context !is null)
     {
-        writeln(result.fullPath);
-    }
-}
 
-
-int main(string[] args)
-{
-    try
-    {
-        DrillConfig data = loadData(dirName(thisExePath));
-
-        bool date = false;
-        bool size = false;
-
-
-        auto opt = getopt(
-            args, 
-            config.bundling, config.passThrough, 
-            "date|d", "Show results date", &date, 
-            "size|s", "Show results size", &size);
-
-        if (opt.helpWanted)
+        synchronized
         {
-            writeln("Drill CLI v" ~ VERSION ~ " - " ~ GITHUB_URL);
-            writeln("Example use: drill-cli -ds \"foobar\"");
-            defaultGetoptPrinter("Options:", opt.options);
-            return 0;
+            // mtx.lock_nothrow();
+            if (number == 0)
+            {
+                //context.stopCrawlingSync();
+                return;
+            }
+            number--;
+
+            writeln(result.fullPath);
+
+            // mtx.unlock_nothrow();
+
         }
+    }
 
-        switch (args.length)
+    this(string[] args)
+    {
+
+        import core.stdc.stdlib : exit;
+
+        try
         {
+            DrillConfig data = loadData(dirName(thisExePath));
 
-            // What even is POSIX
+            bool date = false;
+            bool size = false;
+
+            auto opt = getopt(args, config.bundling, config.passThrough,
+                    "date|d", "Show results date", &date, "size|s",
+                    "Show results size", &size, "number|n", "Max results", &number);
+
+            if (opt.helpWanted)
+            {
+                writeln("Drill CLI v" ~ VERSION ~ " - " ~ GITHUB_URL);
+                writeln("Example use: drill-cli -ds \"foobar\"");
+                defaultGetoptPrinter("Options:", opt.options);
+                exit(0);
+            }
+
+            switch (args.length)
+            {
+
+                // What even is POSIX
             case 0:
-                stderr.writeln("Your operating system does not pass the executable path as first argument");
-                return 1;
+                stderr.writeln(
+                        "Your operating system does not pass the executable path as first argument");
+                exit(1);
+                break;
 
-            // No search string
+                // No search string
             case 1:
                 writeln("Drill CLI v" ~ VERSION ~ " - " ~ GITHUB_URL);
                 writeln("Pass a string as an argument for Drill to search");
                 writeln("Example use: drill-cli -ds \"foobar\"");
                 defaultGetoptPrinter("Options:", opt.options);
-                return 0;
+                exit(0);
+                break;
 
-            // Search string provided
+                // Search string provided
             case 2:
                 CrawlerCallback[bool][bool] printCallback;
-                printCallback[false][false] = &resultsFoundBare;
+                printCallback[false][false] = (&resultsFoundBare).funcptr;
                 printCallback[false][true] = &resultsFoundWithDate;
                 printCallback[true][false] = &resultsFoundWithSize;
                 printCallback[true][true] = &resultsFoundWithSizeAndDate;
-                DrillContext context = startCrawling(data, args[1], printCallback[size][date], null);
-                context.threads.waitForCrawlers();
-                return 0;
 
-            // More unnecessary arguments
+                context = startCrawling(data, args[1], printCallback[size][date], null);
+                context.waitForCrawlers();
+
+                info("Drill CLI finished cleanly");
+                exit(0);
+                break;
+
+                // More unnecessary arguments
             default:
                 stderr.writeln("Oops, you gave more arguments than expected.");
-                return 1;
+                exit(1);
+                break;
 
+            }
         }
+        catch (GetOptException e)
+        {
+            stderr.writefln("Error processing command line arguments: %s", e.msg);
+            exit(1);
+           
+        }
+        catch (Exception e)
+        {
+            stderr.writefln("Generic unknown error: %s", e.msg);
+            exit(1);
+            
+        }
+
     }
-    catch (GetOptException e)
-    {
-        stderr.writefln("Error processing command line arguments: %s", e.msg);
-        return 1;
-    }
-    catch (Exception e)
-    {
-        stderr.writefln("Generic unknown error: %s", e.msg);
-        return 1;
-    }
+
+}
+
+int main(string[] args)
+{
+    auto cli = new DrillCLI(args);
+    import core.memory : GC;
+
+    
+    GC.addRoot(&cli);
+    return 0;
 }

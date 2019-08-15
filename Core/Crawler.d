@@ -1,7 +1,10 @@
 
 
-import std.container : Array;
+
 import core.thread : Thread;
+import core.stdc.stdio;
+
+import std.container : Array;
 import std.stdio : writeln;
 import std.file : DirEntry, DirIterator, dirEntries, SpanMode;
 import std.algorithm : sort, map, filter, canFind;
@@ -11,41 +14,16 @@ import std.conv : to;
 import std.uni : toLower;
 import std.regex : Regex, regex, RegexMatch, match;
 import std.string : split, strip;
-
 import std.experimental.logger;
-
-import Utils : sizeToHumanReadable, systime_to_string;
-import FileInfo : FileInfo;
-
+import std.string : toStringz;
 import std.concurrency : spawn;
 import std.container.dlist : DList;
 
-
+import Utils : sizeToHumanReadable, systime_to_string, getMountpoints;
+import FileInfo : FileInfo;
+import MatchingFunctions : MatchingFunction;
 
 alias CrawlerCallback = void function(  const(FileInfo) result, void* userObject);
-
-
-
-
-unittest
-{
-    import Context : isTokenizedStringMatchingString;
-    assert(isTokenizedStringMatchingString(".","."));
-    assert(isTokenizedStringMatchingString("a","a"));
-
-    assert(isTokenizedStringMatchingString("aaaa","aaaaa"));
-    assert(!isTokenizedStringMatchingString("aaaaa","aaaa"));
-
-    assert(isTokenizedStringMatchingString("jojo 39","JoJo's Bizarre Adventures Golden Wind 39.mkv"));
-    assert(!isTokenizedStringMatchingString("jojo 38","JoJo's Bizarre Adventures Golden Wind 39.mkv"));
-    assert(isTokenizedStringMatchingString("jojo 3","JoJo's Bizarre Adventures Golden Wind 39.mkv"));
-    assert(!isTokenizedStringMatchingString("jojo3","JoJo's Bizarre Adventures Golden Wind 39.mkv"));
-    assert(isTokenizedStringMatchingString("jojo","JoJo's Bizarre Adventures Golden Wind 39.mkv"));
-    assert(isTokenizedStringMatchingString("39","JoJo's Bizarre Adventures Golden Wind 39.mkv"));
-    assert(isTokenizedStringMatchingString("olde","JoJo's Bizarre Adventures Golden Wind 39.mkv"));
-    assert(isTokenizedStringMatchingString("JoJo's Bizarre Adventures Golden Wind 39.mkv","JoJo's Bizarre Adventures Golden Wind 39.mkv"));
-    assert(isTokenizedStringMatchingString(".mkv","JoJo's Bizarre Adventures Golden Wind 39.mkv"));
-}
 
 
 
@@ -62,7 +40,7 @@ unittest
     Complexity:
         O(list)
 +/
-bool matchesRegexList(const(Regex!char[]) list, const(string) value)
+@safe bool matchesRegexList(const(Regex!char[]) list, const(string) value)
 in (value != null)
 {
     foreach (ref regexrule; list)
@@ -77,7 +55,7 @@ in (value != null)
         }
         catch(Exception e)
         {
-            error(e.message);
+            error(e.msg);
             continue;
         }
     }
@@ -113,7 +91,7 @@ in (value != null)
     return f;
 }
 
-unittest
+@safe unittest
 {
     import std.file : thisExePath;
     FileInfo f = buildFileInfo(DirEntry(thisExePath));
@@ -141,7 +119,8 @@ unittest
     assert(canFind(f.fullPath, f.containingFolder));
     assert(!canFind(f.sizeString, "0 B"));
 }
-unittest
+
+@safe unittest
 {
     FileInfo f = buildFileInfo(DirEntry("/"));
     assert(f.thread == "");
@@ -273,8 +252,7 @@ unittest
 //     return false;
 // }
 
- import core.stdc.stdio;
- import std.string : toStringz;
+
 
 /++
     Returns a lazy iterator for the files immediately inside a directory
@@ -311,7 +289,6 @@ in (currentDirectory.isDir())
 
 
 
-import Context : MatchingFunction;
 
 void crawlDirectory(DirEntry currentDirectory, 
                     const Regex!char[] blockListRegex, 
@@ -371,8 +348,12 @@ in (running !is null)
         foreach (DirEntry currentFile; files)
         {
             assert(running !is null);
-            if (!*running)
+            if (*running == false)
+            {
+                trace("Breaking file loop because 'running' is now false");
                 break;
+            }
+                
 
             try
             {
@@ -415,8 +396,19 @@ in (running !is null)
                 {
                     trace("Matching search" ~ currentFile.name);
                     immutable(FileInfo) fi = buildFileInfo(currentFile);
-                    assert(resultCallback !is null, "resultCallback can't be null before calling the callback");
+                   
+                    writeln("owo1");
+                    if (resultCallback is null)
+                    {
+                         writeln("owo2.5");
+                         throw new Exception("resultCallback can't be null before calling the callback");
+                         writeln("owo2.75");
+                    }
+                        
+
+                         writeln("owo2");
                     (*resultCallback)(fi, cast(void*) userObject);
+                     writeln("owo3");
                 }
             }
             catch (Exception e)
@@ -427,7 +419,7 @@ in (running !is null)
     }
     catch (Exception e)
     {
-        critical(currentDirectory.name," ",e.message);
+        critical(currentDirectory.name," ",e.msg);
     }
 }
 
@@ -443,25 +435,62 @@ class Crawler : Thread
     {
         ~this()
         {
-            import core.stdc.stdio;
+            
+
+            import core.stdc.stdio : printf;
             printf("Crawler destroyed\n");
         }
     }
 
-    import Context: MatchingFunction;
+import core.sync.barrier : Barrier;
 
 private:
     const(string) MOUNTPOINT;
+    invariant
+    {
+        assert(MOUNTPOINT !is null);
+        assert(MOUNTPOINT.length > 0);
+
+    }
+
     const(string) SEARCH_STRING;
+    invariant
+    {
+        assert(SEARCH_STRING !is null);
+        assert(SEARCH_STRING.length > 0);
+
+    }
  
     Regex!char[] BLOCK_LIST_REGEX;
+    invariant
+    {
+        assert(BLOCK_LIST_REGEX.length > 0);
+    }
+
     const(Regex!char[]) PRIORITY_LIST_REGEX;
+    invariant
+    {
+        assert(PRIORITY_LIST_REGEX.length > 0);
+    }
     
-    shared(bool) running;
+    shared(bool) shouldCrawl;
 
     const(MatchingFunction) matchingFunction;
+    invariant
+    {
+        assert(matchingFunction !is null);
+    }
 
     CrawlerCallback resultCallback;
+    
+
+    bool crawling;
+
+    Barrier barrier;
+    invariant
+    {
+        assert(barrier !is null);
+    }
 
     debug
     {
@@ -473,14 +502,15 @@ private:
 
 public:
 
-    this(
+    @safe this(
         const(string) MOUNTPOINT, 
-        const(Regex!char[]) BLOCK_LIST,
+        Regex!char[] BLOCK_LIST,
         const(Regex!char[]) PRIORITY_LIST_REGEX,
         in CrawlerCallback resultCallback, 
         in immutable(string) search,
         in void* userObject,
-        MatchingFunction matchingFunction
+        MatchingFunction matchingFunction,
+        Barrier barrier
     )
     in (MOUNTPOINT != null)
     in (MOUNTPOINT.length != 0)
@@ -494,41 +524,31 @@ public:
         super(&run);
         this.MOUNTPOINT = MOUNTPOINT;
 
-        info("Created",this.toString());
-        info("Search term '" ~ search ~ "'",this.toString());
-        info("Global blocklist.length = " ~ to!string(BLOCK_LIST.length),this.toString());
+        trace("Created", MOUNTPOINT);
+        trace("Search term '" ~ search ~ "'",MOUNTPOINT);
+        trace("Global blocklist.length = " ~ to!string(BLOCK_LIST.length),MOUNTPOINT);
 
        
-        info("Global priority list length = " ~ to!string(PRIORITY_LIST_REGEX.length),this.toString());
+        trace("Global priority list length = " ~ to!string(PRIORITY_LIST_REGEX.length),MOUNTPOINT);
         this.PRIORITY_LIST_REGEX = PRIORITY_LIST_REGEX;
 
         this.SEARCH_STRING = search;
         this.resultCallback = resultCallback;
-        this.BLOCK_LIST_REGEX = cast(Regex!char[])BLOCK_LIST;
+        this.BLOCK_LIST_REGEX = BLOCK_LIST;
 
 
-        this.running = true;
+        this.shouldCrawl = true;
 
         this.userObject = userObject;
         this.matchingFunction = matchingFunction;
+        this.barrier = barrier;
     }
 
-    private void noop_resultFound(const(FileInfo) result,void* v) const
+    @safe void stopAsync()
     {
-
-    }
-
-    void stopAsync()
-    {
-        infof("Crawler '%s' async stop requested",MOUNTPOINT);
-        this.resultCallback = (&this.noop_resultFound).funcptr;
-        this.running = false;
-    }
-
-    void stopSync() @system 
-    {
-        this.stopAsync();
-        this.join();
+        infof("Crawler '%s' async stop requested", MOUNTPOINT);
+        this.resultCallback = null;
+        this.shouldCrawl = false;
     }
 
     pure const @safe override string toString()
@@ -538,10 +558,9 @@ public:
 
     pure nothrow const @safe @nogc bool isCrawling()
     {
-        return this.running;
+        return this.crawling;
     }
 
-    import Utils : getMountpoints;
 
     /**
     NOTE: We don't really care about CPU time, Drill isn't CPU intensive but disk intensive,
@@ -558,10 +577,22 @@ public:
     in (MOUNTPOINT.length != 0, "the mountpoint string can't be empty")
     in (resultCallback != null, "the result callback can't be null")
     {
-        if (running == false)
+        crawling = true;
+        infof("Crawler %s waiting on the barrier", MOUNTPOINT);
+        barrier.wait();
+
+
+        if (shouldCrawl == false)
+        {
+            crawling = false;
+           
+            
             return;
+        }
+           
+       
     
-        info("Started");
+        infof("Crawler '%s' started", MOUNTPOINT);
 
         /+
             Every Crawler will have all the other mountpoints in its blocklist
@@ -584,13 +615,21 @@ public:
         }
         catch (Exception e)
         {
-            error(e.msg,this.toString());
-            this.running = false;
+            errorf("Trying to start crawler at mountpoint: '%s' failed with error: '%s'",MOUNTPOINT,e.msg);
+            this.shouldCrawl = false;
+            this.crawling = false;
+            
+            
             return;
         }
 
+
+        
+
+       
+
         // If the mountpoint root is ok we start to scan everything
-        while (!queue.empty() && running)
+        while (!queue.empty() && shouldCrawl)
         {
             // Pop a directory from the queue
             DirEntry currentDirectory = queue.front();
@@ -607,12 +646,19 @@ public:
                 cast(void*)userObject,
                 queue, 
                 matchingFunction,
-                &running
+                &shouldCrawl
             );
         }
 
+        scope(exit) 
+        {
+
+        crawling = false;
+
         // If this line is reached it means the crawler finished all the entire mountpoint to scan
-        this.running = false;
-        info("Finished its job");
+        this.shouldCrawl = false;
+         infof("Crawler '%s' finished its job", MOUNTPOINT);
+        }
+      
     }
 }

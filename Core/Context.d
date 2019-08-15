@@ -1,22 +1,49 @@
-import Config : DrillConfig;
-import FileInfo : FileInfo;
-import std.variant : Variant;
-import Crawler : Crawler;
+import core.stdc.stdio : printf;
+import core.stdc.stdlib : free;
+import core.memory : GC;
+import core.stdc.stdlib : exit; 
+import core.thread : ThreadException;
+
 import std.experimental.logger;
+import std.exception : enforce;
+import std.conv: to;
+import std.file : dirEntries, SpanMode, DirEntry, readText, FileException;
+import std.array : replace;
+import std.uni : toLower;
+import std.algorithm : canFind;
+import std.path : baseName, dirName, extension;
+import std.string : split, strip;
+import std.algorithm : sort, map, filter, canFind;
+import std.array : array;
+import std.regex : Regex, regex, RegexMatch, match;
+
+import Config : DrillConfig;
+import Config : loadMime;
+import Crawler : Crawler;
+import Crawler : CrawlerCallback;
+import Crawler : matchesRegexList;
+
+import FileInfo : FileInfo;
+import MatchingFunctions : MatchingFunction, isFileNameMatchingSearchString, isFileContentMatchingSearchString;
+import Utils : getMountpoints;
+
+import core.sync.barrier : Barrier;
 
 /++
     This struct represents an active Drill search, 
     it holds a pool of crawlers and the current state, 
     like the searched value
 +/
-pure nothrow @nogc struct DrillContext
+pure nothrow @nogc class DrillContext
 {
+      bool stopping;
+      Barrier barrier;
 
     /++
         The value to search in the crawling, will be checked as lowercase against lowercase filenames
     +/
     string searchValue;
-    invariant 
+    @safe invariant 
     { 
         assert(searchValue !is null, "Search value has become null in DrillContext"); 
         assert(searchValue.length > 0, "Search value has 0 length in DrillContext");
@@ -26,7 +53,7 @@ pure nothrow @nogc struct DrillContext
         A list of crawlers
     +/
     Crawler[] threads;
-    invariant
+    @safe invariant
     {
         assert(threads.length >= 0 && threads.length <= getMountpoints().length, "Crawlers length is over mountpoints length");
     }
@@ -35,224 +62,170 @@ pure nothrow @nogc struct DrillContext
         Optional userObject to pass to the resultCallback
     +/
     void* userObject;
-}
 
 
-/++
-    A crawler is active when it's scanning something.
-    If a crawler cleanly finished its job it's not considered active anymore.
-    If a crawler crashes (should never happen, generally only for permission problems) it's not considered active.
-    Minimum: 0
-    Maximum: length of total number of mountpoints unless the user started the crawlers manually
-
-    Returns: number of crawlers active
-+/
-pure nothrow @safe @nogc immutable(uint) activeCrawlersCount(const Crawler[] crawlers) 
-{
-    int active = 0;
-    foreach (thread; crawlers)
-        active += thread.isCrawling();
-    return active;
-}
-
-
-/++
-    Notifies the crawlers to stop and clears the crawlers array stored inside DrillContext
-    This function is non-blocking.
-    If no crawling is currently underway this function will do nothing.
-+/
-@system void stopCrawlingAsync(ref Crawler[] crawlers)
-{
-    info("Requested to stop all crawlers asynchronously");
-    import Crawler : Crawler; 
-    foreach (Crawler crawler; crawlers)
-        crawler.stopAsync();
-    crawlers = []; 
-    // FIXME: if nothing has a reference to a thread does the thread get GC-ed?
-}
-
-
-/++
-    This function will return only when all crawlers finished their jobs or were stopped
-    This function does not stop the crawlers!!!
-+/
-@system void waitForCrawlers(ref Crawler[] crawlers)
-{
-    import Crawler : Crawler; 
-    
-    import std.conv: to;
-    info("Waiting for "~to!string(activeCrawlersCount(crawlers))~" crawlers to stop");
-    foreach (Crawler crawler; crawlers)
+    /++
+        Notifies the crawlers to stop and clears the crawlers array stored inside DrillContext
+        This function is non-blocking.
+        If no crawling is currently underway this function will do nothing.
+    +/
+    @safe void stopCrawlingAsync()
     {
-        info("Waiting for crawler "~to!string(crawler)~" to stop");
-        import core.thread : ThreadException;
-        try
-        {
-            //FIXME: if for whatever reason the crawler is not started this will SEGFAULT
-            crawler.join();     
-            info("Crawler "~to!string(crawler)~" stopped");
-            crawler.destroy();
-        }
-        catch(ThreadException e)
-        {
-            critical("Thread "~crawler.toString()~" crashed when joining");
-            critical(e.msg);
-        }
-        
+        info("Requested to stop all crawlers asynchronously");
+        warning(this.threads.length == 0,"Requested to stop crawlers when the number of crawlers is 0");
+
+        foreach (Crawler crawler; this.threads)
+            crawler.stopAsync();
+        //drillContext.threads = []; 
+        // FIXME: if nothing has a reference to a thread does the thread get GC-ed?
     }
-    info("All crawlers stopped.");
 
-    crawlers = [];
-}
 
-import Config : loadMime;
-string[string] mime;
+    /++
+        A crawler is active when it's scanning something.
+        If a crawler cleanly finished its job it's not considered active anymore.
+        If a crawler crashes (should never happen, generally only for permission problems) it's not considered active.
+        Minimum: 0
+        Maximum: length of total number of mountpoints unless the user started the crawlers manually
 
-bool isFileContentMatchingSearchString(DirEntry file, const(string) searchString)
-{
-    version (GTK)
+        Returns: number of crawlers active
+    +/
+    @safe nothrow @nogc immutable(uint) activeCrawlersCount() 
     {
-        if (mime == null) mime = loadMime();
-    }
-    
-   // immutable(string[]) blacklistedExtensions = [".png",".jpg",".mp4",".psd",".lnk",".sai",".exe",".pdf",".mkv",".swf",".msi",".zip"];
-    import std.file : dirEntries, SpanMode, DirEntry, readText, FileException;
-
-    import std.array : replace;
-    try
-    {
-    
-        auto shouldBeScanned = false;
-
-
-          version (GTK)
+        int active = 0;
+        assert(this.threads !is null);
+        foreach (thread; this.threads)
         {
-
+            assert(thread !is null);
+            active += thread.isCrawling();
         }
-       
-        //if (allowedExtensions.canFind(extension(file.name)))
-        if (!file.isDir() 
-            // && file.size < 100*1024*1024 // 100 megabyte,
-            && (
-                extension(file.name) == ".md" // markdown is not in the RFC standard
-                || mime.get(extension(file.name).replace(".",""),"").canFind("text")
-            )
-           // && !blacklistedExtensions.canFind(extension(file.name))
-        ) 
+           
+        return active;
+    }
+
+
+
+    /++
+        This function will return only when all crawlers finished their jobs or were stopped
+        This function does not stop the crawlers!!!
+    +/
+    void waitForCrawlers()
+    {
+
+     
+        info("Waiting for crawlers to stop, "~to!string(this.activeCrawlersCount())~" are running now, "~to!string(this.threads.length)~" were spawned");
+        warning(this.threads.length == 0,"trying to wait crawlers when the number of crawlers is 0");
+
+        foreach (Crawler crawler; this.threads)
         {
-            bool found = false;
+            import core.thread : Thread;
+            if (Thread.getThis() == crawler)
+            {
+                infof("'%s' requested to stop the crawling",crawler);
+                //a crawler requested the stopping
+
+
+                continue;
+            }
+            
             try
             {
-                string fileRead = readText!string(file);
-                auto fileContent = toLower(fileRead);
-                found = fileContent.canFind(toLower(searchString));
+                //FIXME: if for whatever reason the crawler is not started this will SEGFAULT
+
+                infof("Waiting for crawler %s to stop...", to!string(crawler));
+                crawler.join();     
+                infof("Waiting for crawler %s concluded", to!string(crawler));
+                
+                //fatal(crawler.isRunning(), "trying to destroy a Crawler thread that is running");
+               // fatal(crawler.isCrawling(), "trying to destroy a Crawler that is crawling");
+
+                infof("Crawler %s will now be destroyed...", to!string(crawler));
+                crawler.destroy();
+                infof("Crawler %s has been destroyed", to!string(crawler));
             }
-            catch(Exception e)
+            catch(ThreadException e)
             {
-                try
-                {
-                    wstring fileRead = readText!wstring(file);
-                    auto fileContent = toLower(fileRead);
-                    found = fileContent.canFind(toLower(searchString));
-                }
-                catch(Exception e)
-                {
-                     try
-                    {
-                        dstring fileRead = readText!dstring(file);
-                        auto fileContent = toLower(fileRead);
-                        found = fileContent.canFind(toLower(searchString));
-                    }
-                    catch(Exception e)
-                    {
-                        warning(e.message);
-                        return false;
-                    }
-                    return false;
-                }
-               
-
+                critical("Thread "~crawler.toString()~" crashed when joining");
+                critical(e.msg);
             }
-
-
-            import core.stdc.stdlib : free;
-            import core.memory : GC;
-            GC.collect();
-            return found;
+            
         }
-        return false;
+        info("All crawlers stopped.");
+
+    //  crawlers = [];
     }
-    catch (Exception e)
+
+    import std.stdio : writeln;
+
+    /++
+    This function stops all the crawlers and will return only when all of them are stopped
+    +/
+    void stopCrawlingSync()
     {
-        critical("Can't find string: '",searchString,"' inside: '",file.name,"', error is: '",e.message,"'");
-        return false;
-    }
+        writeln("Requested to stop all crawlers synchronously");
+        
+        if (this.stopping)
+        {
+            writeln("Sync stop already requested");
+            
+        
+            return;
+        }
+        
     
-}
+        this.stopping = true;
 
-/++
-This function stops all the crawlers and will return only when all of them are stopped
-+/
-@system void stopCrawlingSync(ref Crawler[] crawlers)
-{
-    import Crawler : Crawler; 
-    foreach (Crawler crawler; crawlers)
-        crawler.stopAsync();
-    waitForCrawlers(crawlers);
-    info("all crawlers stopped");
-}
-import std.file : DirEntry;
+        foreach (Crawler crawler; this.threads)
+        {
+            assert(crawler !is null);
+            crawler.stopAsync();
+        }   
+           
+        this.waitForCrawlers();
 
-alias MatchingFunction = bool function(DirEntry file, const(string) searchString);
 
-import std.uni : toLower;
-import std.algorithm : canFind;
-import std.path : baseName, dirName, extension;
-import std.string : split, strip;
-
-pure @safe bool isTokenizedStringMatchingString(const(string) searchString, const(string) str)
-{
-    if (str.length < searchString.length) return false;
-    const string[] searchTokens = toLower(strip(searchString)).split(" ");
-    const string fileNameLower = toLower(baseName(str));
-    foreach (token; searchTokens)
-        if (!canFind(fileNameLower, token))
-            return false;
-    return true;
-}
-
-/++
-    Params:
-        searchString = the search string the user wrote in a Drill frontend
-        fileName = the complete file name without a fullpath, only the file name after the slash
-
-    Returns:
-        true if the file matches the search input
-
-    Complexity:
-        O(searchString*fileName)
-+/
-pure @safe bool isFileNameMatchingSearchString(DirEntry file, const(string) searchString) 
-in (searchString != null)
-in (searchString.length > 0)
-in (file.name != null)
-in (file.name.length > 0)
-{
-    return isTokenizedStringMatchingString(searchString, baseName(file.name));
+        debug foreach (Crawler crawler; this.threads)
+        {
+            assert(crawler.isRunning() == false);
+            assert(crawler.isCrawling() == false);
+        }   
+        assert(this.activeCrawlersCount() == 0,to!string(this.activeCrawlersCount()));
+        info("All crawlers stopped");
+    }
 }
 
 
 
 
-import Utils : getMountpoints;
-import Crawler : CrawlerCallback;
-import core.stdc.stdio : printf;
+
+
+
+
+
+// /++
+// This function stops all the crawlers and will return only when all of them are stopped
+// +/
+// @system void stopCrawlingSyncFromCrawler(ref Crawler[] crawlers)
+// {
+//     import Crawler : Crawler; 
+//     foreach (Crawler crawler; crawlers)
+//         crawler.stopAsync();
+//     waitForCrawlers(crawlers);
+//     info("all crawlers stopped");
+// }
+
+
+
+
+
+
+
+
+
+
 
         //printf("startCrawling foreach loop userObject:%p\n",userObject);
-import Crawler : matchesRegexList;
-import std.algorithm : sort, map, filter, canFind;
-import std.array : array;
-import std.regex : Regex, regex, RegexMatch, match;
+
 /++
 Starts the crawling, every crawler will filter on its own.
 Use the resultFound callback as an event to know when a crawler finds a new result.
@@ -262,12 +235,12 @@ Params:
     resultFound = the delegate that will be called when a crawler will find a new result
 +/
 
-DrillContext startCrawling(const(DrillConfig) config, immutable(string) searchValue, const(CrawlerCallback) resultCallback, const(void*) userObject)
+DrillContext startCrawling(const(DrillConfig) config, immutable(string) searchValue, const(CrawlerCallback) resultCallback, void* userObject)
 in (searchValue !is null, "the search string can't be null")
 in (searchValue.length > 0, "the search string can't be empty")
 in (resultCallback !is null, "the search callback can't be null")
 {
-    DrillContext c;
+    DrillContext c = new DrillContext();
 
     MatchingFunction matchingFunction = null;
     if (searchValue == "content:")
@@ -288,7 +261,7 @@ in (resultCallback !is null, "the search callback can't be null")
     assert(c.searchValue !is null);
     assert(c.searchValue.length > 0);
     
-    c.userObject = cast(void*)userObject;
+    c.userObject = userObject;
 
     if (c.userObject == null)
         warning("user_object is null");
@@ -297,21 +270,36 @@ in (resultCallback !is null, "the search callback can't be null")
     auto blocklistRegex = config.BLOCK_LIST.map!(x => regex(x,"i")).array;
 
     //getMountpoints.map!(x => !matchesRegexList(blocklistRegex,mountpoint))
-    foreach (immutable(string) mountpoint; getMountpoints())
+    auto mp = getMountpoints();
+    c.barrier = new Barrier(cast(uint)mp.length+1);
+
+    foreach (immutable(string) mountpoint; mp)
     {
         if (matchesRegexList(blocklistRegex, mountpoint))
         {
-            info("Crawler mountpoint is in the blocklist, the crawler will stop.",mountpoint);
+            trace("Crawler mountpoint is in the blocklist, the crawler will stop.",mountpoint);
+            c.barrier.wait();
             continue;
         }
-        Crawler crawler = new Crawler(mountpoint, blocklistRegex, config.PRIORITY_LIST_REGEX, resultCallback, c.searchValue, c.userObject, matchingFunction);
+        Crawler crawler = new Crawler(
+            mountpoint, 
+            blocklistRegex, 
+            config.PRIORITY_LIST_REGEX, 
+            resultCallback, 
+            c.searchValue, 
+            c.userObject, 
+            matchingFunction,
+            c.barrier
+        );
         crawler.isDaemon(false);
         crawler.name = mountpoint;
-        if (config.singlethread)
-            crawler.run();
-        else
-            crawler.start();
+        //crawler.run();
+      
+        crawler.start();
         c.threads ~= crawler;
     }
+    info("Waiting for all crawlers to run...");
+    c.barrier.wait(),
+    info("Finished spawning crawlers");
     return c;
 }

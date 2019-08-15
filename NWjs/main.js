@@ -8,19 +8,19 @@
 // tray.remove();
 // tray = null;
 
-nw.Window.open('drill.html', {}, 
-    function(win) 
-    {
+// nw.Window.open('drill.html', {}, 
+//     function(win) 
+//     {
         
       
-        //win.setPosition("center");
-        // win.width = 1920/2;
-        // win.height = 1080/2;
+//         //win.setPosition("center");
+//         // win.width = 1920/2;
+//         // win.height = 1080/2;
       
         
 
-    }
-);
+//     }
+// );
 
 
 

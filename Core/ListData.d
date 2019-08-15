@@ -2,7 +2,7 @@
 /++
     Basic data every result from Drill will have
 +/
-struct ListData
+@safe struct ListData
 {
     string name;
     string path;

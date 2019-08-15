@@ -1,8 +1,7 @@
 
 
 
-static import std.process;
-
+@safe pure:
 
 immutable(string) DUB_JSON = import("dub.json");
 immutable(string) getDubStringValue(immutable(string) key)
