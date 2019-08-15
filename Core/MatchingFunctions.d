@@ -11,7 +11,7 @@ import std.algorithm : canFind;
 import Utils : isTokenizedStringMatchingString;
 import std.file : readText, FileException;
 
-alias MatchingFunction = bool function(DirEntry file, const(string) searchString);
+alias MatchingFunction = bool function(DirEntry file, const(string) searchString) @safe  ;
 
 
 

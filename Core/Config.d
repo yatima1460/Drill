@@ -97,7 +97,7 @@ pure nothrow @safe char[] cleanLines(char[] x)
 // }
 
 // TODO: do this at compile time?
-string[string] loadMime()
+@trusted string[string] loadMime()
 {
        
     auto file = File(buildPath(dirName(thisExePath),"mime.types")); 
@@ -172,7 +172,7 @@ string[string] loadMime()
 /*
 Loads Drill data to be used in any crawling
 */
-DrillConfig loadData(immutable(string) assetsDirectory)
+@safe DrillConfig loadData(immutable(string) assetsDirectory)
 {
    
     

@@ -18,7 +18,7 @@ import std.experimental.logger;
 
 import core.atomic : atomicOp;
 
-void resultsFoundWithDate(const(FileInfo) result, void* userObject)
+@safe  void resultsFoundWithDate(const(FileInfo) result, void* userObject)
 {
     synchronized
     {
@@ -26,7 +26,7 @@ void resultsFoundWithDate(const(FileInfo) result, void* userObject)
     }
 }
 
-void resultsFoundWithSize(const(FileInfo) result, void* userObject)
+@safe  void resultsFoundWithSize(const(FileInfo) result, void* userObject)
 {
     synchronized
     {
@@ -34,7 +34,7 @@ void resultsFoundWithSize(const(FileInfo) result, void* userObject)
     }
 }
 
-void resultsFoundWithSizeAndDate(const(FileInfo) result, void* userObject)
+@safe  void resultsFoundWithSizeAndDate(const(FileInfo) result, void* userObject)
 {
     synchronized
     {
@@ -57,15 +57,16 @@ class DrillCLI
     DrillContext context;
 
     @safe void resultsFoundBare(const(FileInfo) result, void* userObject)
-    in(context !is null)
+    //in(context !is null)
     {
 
         synchronized
         {
+             
             // mtx.lock_nothrow();
             if (number == 0)
             {
-                //context.stopCrawlingSync();
+                context.stopCrawlingSync();
                 return;
             }
             number--;
@@ -76,11 +77,11 @@ class DrillCLI
 
         }
     }
-
+ import core.stdc.stdlib : exit;
     this(string[] args)
     {
 
-        import core.stdc.stdlib : exit;
+       
 
         try
         {
@@ -123,10 +124,10 @@ class DrillCLI
                 // Search string provided
             case 2:
                 CrawlerCallback[bool][bool] printCallback;
-                printCallback[false][false] = (&resultsFoundBare).funcptr;
-                printCallback[false][true] = &resultsFoundWithDate;
-                printCallback[true][false] = &resultsFoundWithSize;
-                printCallback[true][true] = &resultsFoundWithSizeAndDate;
+                printCallback[false][false] = &resultsFoundBare;
+                // printCallback[false][true] = &resultsFoundWithDate;
+                // printCallback[true][false] = &resultsFoundWithSize;
+                // printCallback[true][true] = &resultsFoundWithSizeAndDate;
 
                 context = startCrawling(data, args[1], printCallback[size][date], null);
                 context.waitForCrawlers();

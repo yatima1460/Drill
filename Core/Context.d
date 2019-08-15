@@ -109,7 +109,7 @@ pure nothrow @nogc class DrillContext
         This function will return only when all crawlers finished their jobs or were stopped
         This function does not stop the crawlers!!!
     +/
-    void waitForCrawlers()
+    @trusted void waitForCrawlers()
     {
 
      
@@ -133,20 +133,20 @@ pure nothrow @nogc class DrillContext
                 //FIXME: if for whatever reason the crawler is not started this will SEGFAULT
 
                 infof("Waiting for crawler %s to stop...", to!string(crawler));
-                crawler.join();     
+                if (crawler.isRunning())
+                    crawler.join();     
                 infof("Waiting for crawler %s concluded", to!string(crawler));
                 
                 //fatal(crawler.isRunning(), "trying to destroy a Crawler thread that is running");
                // fatal(crawler.isCrawling(), "trying to destroy a Crawler that is crawling");
 
-                infof("Crawler %s will now be destroyed...", to!string(crawler));
-                crawler.destroy();
-                infof("Crawler %s has been destroyed", to!string(crawler));
+                // infof("Crawler %s will now be destroyed...", to!string(crawler));
+                // crawler.destroy();
+                // infof("Crawler %s has been destroyed", to!string(crawler));
             }
             catch(ThreadException e)
             {
-                critical("Thread "~crawler.toString()~" crashed when joining");
-                critical(e.msg);
+                critical("Thread "~crawler.toString()~" crashed when joining with message: "~e.msg);
             }
             
         }
@@ -160,13 +160,13 @@ pure nothrow @nogc class DrillContext
     /++
     This function stops all the crawlers and will return only when all of them are stopped
     +/
-    void stopCrawlingSync()
+    @safe void stopCrawlingSync()
     {
-        writeln("Requested to stop all crawlers synchronously");
+        info("Requested to stop all crawlers synchronously");
         
         if (this.stopping)
         {
-            writeln("Sync stop already requested");
+            fatal("Sync stop already requested");
             
         
             return;
@@ -189,7 +189,10 @@ pure nothrow @nogc class DrillContext
             assert(crawler.isRunning() == false);
             assert(crawler.isCrawling() == false);
         }   
-        assert(this.activeCrawlersCount() == 0,to!string(this.activeCrawlersCount()));
+        
+
+
+        //assert(this.activeCrawlersCount() == 0,to!string(this.activeCrawlersCount()));
         info("All crawlers stopped");
     }
 }
@@ -235,7 +238,7 @@ Params:
     resultFound = the delegate that will be called when a crawler will find a new result
 +/
 
-DrillContext startCrawling(const(DrillConfig) config, immutable(string) searchValue, const(CrawlerCallback) resultCallback, void* userObject)
+@trusted DrillContext startCrawling(const(DrillConfig) config, immutable(string) searchValue, CrawlerCallback resultCallback, void* userObject)
 in (searchValue !is null, "the search string can't be null")
 in (searchValue.length > 0, "the search string can't be empty")
 in (resultCallback !is null, "the search callback can't be null")
