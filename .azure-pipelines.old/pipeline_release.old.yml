@@ -1,0 +1,48 @@
+
+# 
+
+variables:
+  dmd_version: 2.087.1
+
+trigger:
+  tags:
+    include:
+    - \*.*.*
+  branches:
+    include:
+    - master
+
+pr: none
+
+
+stages:
+- stage: CLI_Unittests
+  dependsOn: []
+  jobs:
+  - template: job_linux_cli_unittest.yml
+  - template: job_windows_cli_unittest.yml
+  - template: job_osx_cli_unittest.yml
+  
+- stage: GTK_Unittests
+  dependsOn: []
+  jobs:
+  - template: job_linux_gtk_unittest.yml
+  - template: job_windows_gtk_unittest.yml
+  - template: job_osx_gtk_unittest.yml
+
+- stage: CLI_Releases
+  dependsOn: [CLI_Unittests]
+  jobs:
+  - template: job_linux_cli_release.yml
+  - template: job_windows_cli_release.yml
+  - template: job_osx_cli_unittest.yml
+
+- stage: GTK_Releases
+  dependsOn: [GTK_Unittests]
+  jobs:
+  - template: job_linux_gtk_release.yml
+  - template: job_windows_gtk_release.yml
+  - template: job_osx_gtk_release.yml
+
+
+

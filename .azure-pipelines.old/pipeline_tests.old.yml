@@ -11,11 +11,7 @@ jobs:
   pool:
     name: Hosted Ubuntu 1604
   steps:
-  - bash: |
-      wget http://downloads.dlang.org/releases/2.x/$(dmd_version)/dmd_$(dmd_version)-0_amd64.deb
-      sudo dpkg -i dmd_$(dmd_version)-0_amd64.deb
-      dmd --version
-      dub --version
+  - template: linux_install_dub.yml
     displayName: 'Install DMD'
   - bash: 'dub build -c CLI -b unittest --arch=x86_64'
     displayName: "CLI Unittest"
@@ -41,10 +37,9 @@ jobs:
   - powershell: |
       Invoke-WebRequest -Uri http://downloads.dlang.org/releases/2.x/$(dmd_version)/dmd.$(dmd_version).windows.zip -OutFile dmd2.zip
       Expand-Archive dmd2.zip -DestinationPath .
-  - script: '%cd%/dmd2/windows/bin/dmd.exe --version'
-  - script: '%cd%/dmd2/windows/bin/dub.exe --version'
-  - bash: wget https://github.com/yatima1460/GTK3-Windows/releases/download/20190809.4/GTK_x86_64_VS2019.zip
-  - bash: 7z x GTK_x86_64_VS2019.zip
+  - powershell: |
+      Invoke-WebRequest -Uri https://github.com/yatima1460/GTK3-Windows/releases/download/20190809.4/GTK_x86_64_VS2019.zip -OutFile GTK_x86_64_VS2019.zip
+      Expand-Archive GTK_x86_64_VS2019.zip -DestinationPath .
   - script: '%cd%/dmd2/windows/bin/dub.exe build -c GTK -b unittest --arch=x86_64'
 
 - job: OSX_CLI_Unittest
@@ -148,7 +143,27 @@ jobs:
   - task: PublishPipelineArtifact@1
     inputs:
       targetPath: 'Build/Drill-GTK-linux-x86_64-release'
-      artifact: 'Drill-GTK-linux-x86_64-release' 
+      artifact: 'Drill-GTK-linux-x86_64-release'
+
+
+
+
+- job: Windows_GTK_Release
+  dependsOn: []
+  pool:
+    name: Hosted VS2017
+  steps:
+  - powershell: |
+      Invoke-WebRequest -Uri http://downloads.dlang.org/releases/2.x/$(dmd_version)/dmd.$(dmd_version).windows.zip -OutFile dmd2.zip
+      Expand-Archive dmd2.zip -DestinationPath .
+  - powershell: |
+      Invoke-WebRequest -Uri https://github.com/yatima1460/GTK3-Windows/releases/download/20190809.4/GTK_x86_64_VS2019.zip -OutFile GTK_x86_64_VS2019.zip
+      Expand-Archive GTK_x86_64_VS2019.zip -DestinationPath .
+  - script: '%cd%/dmd2/windows/bin/dub.exe build -c GTK -b release --arch=x86_64'
+  - task: PublishPipelineArtifact@1
+    inputs:
+      targetPath: 'Build/Drill-GTK-windows-x86_64-release'
+      artifact: 'Drill-GTK-windows-x86_64-release' 
 
 - job: OSX_GTK_Release
   dependsOn: []
@@ -201,6 +216,25 @@ jobs:
       targetPath: 'Drill-CLI-windows-x86_64-release.zip'
       artifact: 'Drill-CLI-windows-x86_64-release.zip'
 
+- job: Windows_GTK_Release_Zip
+  dependsOn: [Windows_GTK_Release]
+  pool:
+    name: Hosted Ubuntu 1604
+  steps:
+  - checkout: none
+  - task: DownloadPipelineArtifact@2
+    inputs:
+      buildType: 'current'
+      artifactName: 'Drill-GTK-windows-x86_64-release'
+      targetPath: '$(Pipeline.Workspace)/Drill-GTK-windows-x86_64-release'
+  - bash: 7z a -tzip Drill-GTK-windows-x86_64-release.zip $(Pipeline.Workspace)/Drill-GTK-windows-x86_64-release/*
+  - task: PublishPipelineArtifact@1
+    inputs:
+      targetPath: 'Drill-GTK-windows-x86_64-release.zip'
+      artifact: 'Drill-GTK-windows-x86_64-release.zip'
+
+
+
 - job: OSX_CLI_Release_Zip
   dependsOn: [OSX_CLI_Release]
   pool:
@@ -234,6 +268,38 @@ jobs:
     inputs:
       targetPath: 'Drill-GTK-linux-x86_64-release.zip'
       artifact: 'Drill-GTK-linux-x86_64-release.zip'
+
+
+- job: Linux_GTK_Release_AppImage
+  dependsOn: [Linux_GTK_Release]
+  pool:
+    name: Hosted Ubuntu 1604
+  steps:
+  - task: DownloadPipelineArtifact@2
+    inputs:
+      buildType: 'current'
+      artifactName: 'Drill-GTK-linux-x86_64-release'
+      targetPath: '$(System.DefaultWorkingDirectory)/Drill-GTK-linux-x86_64-release'
+  - bash: sudo apt install -y appstream
+  - bash: export PIPELINE_WORKSPACE=$(System.DefaultWorkingDirectory) && bash .azure-pipelines/create_appimage.sh
+  - task: PublishPipelineArtifact@1
+    inputs:
+      targetPath: '$(System.DefaultWorkingDirectory)/Drill-release-x86_64.AppImage'
+      artifact: 'Drill-release-x86_64.AppImage' 
+
+- job: Linux_GTK_Release_AppImage_Test
+  dependsOn: [Linux_GTK_Release_AppImage]
+  pool:
+    name: Hosted Ubuntu 1604
+  steps:
+  - task: DownloadPipelineArtifact@2
+    inputs:
+      buildType: 'current'
+      artifactName: 'Drill-release-x86_64.AppImage'
+      targetPath: '$(System.DefaultWorkingDirectory)'
+  - bash: chmod +x $(System.DefaultWorkingDirectory)/Drill-release-x86_64.AppImage
+  - bash: $(System.DefaultWorkingDirectory)/Drill-release-x86_64.AppImage --appimage-extract
+      
 
 - job: OSX_GTK_Release_Zip
   dependsOn: [OSX_GTK_Release]
@@ -326,10 +392,10 @@ jobs:
     inputs:
       buildType: 'current'
       artifactName: 'Drill-CLI-linux-x86_64-release'
-      targetPath: '$(Pipeline.Workspace)/Drill-CLI-linux-x86_64-release'
+      targetPath: '$(System.DefaultWorkingDirectory)/Drill-CLI-linux-x86_64-release'
   # Use the long path so we test if relative CWD works too in Drill
-  - bash: chmod +x $(Pipeline.Workspace)/Drill-CLI-linux-x86_64-release/drill-search-cli
-  - bash: $(Pipeline.Workspace)/Drill-CLI-linux-x86_64-release/drill-search-cli .
+  - bash: chmod +x $(System.DefaultWorkingDirectory)/Drill-CLI-linux-x86_64-release/drill-search-cli
+  - bash: $(System.DefaultWorkingDirectory)/Drill-CLI-linux-x86_64-release/drill-search-cli .
 
 - job: OSX_CLI_Name_Test
   timeoutInMinutes: 1
@@ -411,11 +477,14 @@ jobs:
 
 
 
+##
 
 
-- job: Publish_Beta
+- job: Publish_Alpha
   condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/master'))
   dependsOn:
+  - Linux_GTK_Release_AppImage_Test
+  - Linux_GTK_Release_AppImage
   - Linux_CLI_Unittest
   - Windows_CLI_Unittest
   - OSX_CLI_Unittest
@@ -425,10 +494,8 @@ jobs:
   - Windows_CLI_Release_Zip
   - OSX_CLI_Release_Zip
   - Linux_GTK_Release_Zip
+  - Windows_GTK_Release_Zip
   - OSX_GTK_Release_Zip
-  # - Linux_CLI_Stress_Test
-  # - OSX_CLI_Stress_Test
-  # - Windows_CLI_Stress_Test
   - Linux_CLI_Name_Test
   - OSX_CLI_Name_Test
   - Windows_CLI_Name_Test
@@ -457,22 +524,83 @@ jobs:
       target: '$(Build.SourceVersion)'
       tagSource: 'manual'
       tag: 'ContinuousIntegration'
-      title: '$(Build.BuildNumber) Beta'
+      title: '$(Build.BuildNumber) Alpha'
       releaseNotesSource: 'input'
       releaseNotes: 'Automated Build $(Build.BuildNumber)'
       isPreRelease: true
       assetUploadMode: replace
       addChangeLog: false
       assets: |
+        $(Build.BinariesDirectory)/Drill-release-x86_64.AppImage/Drill-release-x86_64.AppImage
         $(Build.BinariesDirectory)/Drill-CLI-linux-x86_64-release.zip/Drill-CLI-linux-x86_64-release.zip
         $(Build.BinariesDirectory)/Drill-CLI-windows-x86_64-release.zip/Drill-CLI-windows-x86_64-release.zip
         $(Build.BinariesDirectory)/Drill-CLI-osx-x86_64-release.zip/Drill-CLI-osx-x86_64-release.zip
         $(Build.BinariesDirectory)/Drill-GTK-linux-x86_64-release.zip/Drill-GTK-linux-x86_64-release.zip
+        $(Build.BinariesDirectory)/Drill-GTK-windows-x86_64-release.zip/Drill-GTK-windows-x86_64-release.zip
         $(Build.BinariesDirectory)/Drill-GTK-osx-x86_64-release.zip/Drill-GTK-osx-x86_64-release.zip
 
 
-
-
+- job: Publish_Beta
+  condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/master'))
+  dependsOn:
+  - Linux_GTK_Release_AppImage_Test
+  - Linux_GTK_Release_AppImage
+  - Linux_CLI_Unittest
+  - Windows_CLI_Unittest
+  - OSX_CLI_Unittest
+  - Linux_GTK_Unittest
+  - OSX_GTK_Unittest
+  - Linux_CLI_Release_Zip
+  - Windows_CLI_Release_Zip
+  - OSX_CLI_Release_Zip
+  - Linux_GTK_Release_Zip
+  - Windows_GTK_Release_Zip
+  - OSX_GTK_Release_Zip
+  - Linux_CLI_Name_Test
+  - OSX_CLI_Name_Test
+  - Windows_CLI_Name_Test
+  - Linux_CLI_Content_Test
+  - OSX_CLI_Content_Test
+  - Windows_CLI_Content_Test
+  pool:
+    name: Hosted Ubuntu 1604
+  steps:
+  - task: DownloadPipelineArtifact@2
+    inputs:
+      buildType: 'current'
+      targetPath: '$(System.DefaultWorkingDirectory)'
+  - bash: export DRILL_VERSION=$(python -c "import sys, json; f = open('dub.json'); print(json.load(f)['version']); f.close()") 
+  - bash: echo \##vso[task.setvariable variable=DRILL_VERSION]$DRILL_VERSION
+  - bash: |
+      mv Drill-release-x86_64.AppImage/Drill-release-x86_64.AppImage                 "Drill-$DRILL_VERSION-x86_64.AppImage"
+      mv Drill-CLI-linux-x86_64-release.zip/Drill-CLI-linux-x86_64-release.zip       "Drill-CLI-linux-x86_64-release-$DRILL_VERSION.zip"
+      mv Drill-CLI-windows-x86_64-release.zip/Drill-CLI-windows-x86_64-release.zip   "Drill-CLI-windows-x86_64-release-$DRILL_VERSION.zip"
+      mv Drill-CLI-osx-x86_64-release.zip/Drill-CLI-osx-x86_64-release.zip           "Drill-CLI-osx-x86_64-release-$DRILL_VERSION.zip"
+      mv Drill-GTK-linux-x86_64-release.zip/Drill-GTK-linux-x86_64-release.zip       "Drill-GTK-linux-x86_64-release-$DRILL_VERSION.zip"
+      mv Drill-GTK-windows-x86_64-release.zip/Drill-GTK-windows-x86_64-release.zip   "Drill-GTK-windows-x86_64-release-$DRILL_VERSION.zip"
+      mv Drill-GTK-osx-x86_64-release.zip/Drill-GTK-osx-x86_64-release.zip           "Drill-GTK-osx-x86_64-release-$DRILL_VERSION.zip"
+  - task: GitHubRelease@0
+    inputs:
+      gitHubConnection: 'githubtoken'
+      repositoryName: '$(Build.Repository.Name)'
+      action: 'create'
+      target: '$(Build.SourceVersion)'
+      tagSource: 'manual'
+      tag: $(DRILL_VERSION)
+      title: '$(DRILL_VERSION) Beta'
+      releaseNotesSource: 'input'
+      releaseNotes: 'Automated Build $(DRILL_VERSION)'
+      isPreRelease: true
+      assetUploadMode: replace
+      addChangeLog: false
+      assets: |
+        Drill-$(DRILL_VERSION)-x86_64.AppImage          
+        Drill-CLI-linux-x86_64-release-$(DRILL_VERSION).zip
+        Drill-CLI-windows-x86_64-release-$(DRILL_VERSION).zip  
+        Drill-CLI-osx-x86_64-release-$(DRILL_VERSION).zip
+        Drill-GTK-linux-x86_64-release-$(DRILL_VERSION).zip
+        Drill-GTK-windows-x86_64-release-$(DRILL_VERSION).zip  
+        Drill-GTK-osx-x86_64-release-$(DRILL_VERSION).zip
 # - stage: BuildCLIDebug
 #   displayName: Build CLI Debug
 #   dependsOn: UnittestCLI

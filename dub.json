@@ -1,6 +1,5 @@
 {
-    "name": "drill-search",
-    "version": "2.1.2",
+    "name": "drill",
     "authors": [
         "Federico Santamorena"
     ],
@@ -8,13 +7,7 @@
     "copyright": "Copyright © 2019, Federico Santamorena",
     "license": "GPL-2.0",
     "homepage": "https://github.com/yatima1460/Drill",
-    "dflags-posix": [
-        "-J=."
-    ],
-    "dflags-windows": [
-        "-L=.\\GTKWin\\lib",
-        "-L=.\\GTKWin\\debug",
-        "-L=.\\GTKWin\\bin",
+    "dflags": [
         "-J=."
     ],
     "sourceFiles": [
@@ -29,7 +22,9 @@
         "Core/AppImage.d"
     ],
     "copyFiles": [
-        "Assets"
+        "Assets/Core/BlockLists",
+        "Assets/Core/PriorityLists",
+        "Assets/Core/mime.types"
     ],
     "buildTypes": {
         "debug": {
@@ -65,20 +60,44 @@
                 "StdLoggerDisableWarning",
                 "StdLoggerDisableError"
             ]
+        },
+        "release-travis": {
+            "buildOptions": [
+                "optimize",
+                "inline",
+                "noBoundsCheck",
+                "releaseMode"
+            ],
+            "versions": [
+                "StdLoggerDisableTrace",
+                "StdLoggerDisableInfo",
+                "StdLoggerDisableWarning",
+                "StdLoggerDisableError",
+                "Travis"
+            ]
         }
     },
     "configurations": [
         {
             "name": "CLI",
             "targetType": "executable",
-            "targetName": "drill-search-cli",
+            "targetName": "drill-cli",
             "mainSourceFile": "CLI/CLI.d",
-            "targetPath": "Build/Drill-CLI-$PLATFORM-$ARCH-$BUILD_TYPE"
+            "targetPath": "Build/Drill-CLI-$PLATFORM-$ARCH-$BUILD_TYPE",
+            "versions": [
+                "CLI"
+            ],
+            "importPaths": [
+                "Core"
+            ],
+            "copyFiles-linux": [
+                "Assets/CLI-Linux/software.drill.DrillCLI.desktop"
+            ]
         },
         {
             "name": "GTK",
             "targetType": "executable",
-            "targetName": "drill-search-gtk",
+            "targetName": "drill-gtk",
             "sourceFiles": [
                 "GTK/GTKBinds.d",
                 "GTK/ListStore.d",
@@ -100,10 +119,26 @@
             ],
             "mainSourceFile": "GTK/Main.d",
             "targetPath": "Build/Drill-GTK-$PLATFORM-$ARCH-$BUILD_TYPE",
+            "copyFiles": [
+                "Assets/GTK/IconsFallback",
+                "Assets/GTK/icon.png",
+                "Assets/GTK/ui.glade"
+            ],
+            "copyFiles-linux": [
+                "Assets/GTK-Linux/software.drill.Drill.desktop"
+            ],
             "copyFiles-windows": [
                 "GTK_x86_64_VS2019/installed/x64-windows/bin/*.dll",
-                "GTK-Windows/etc",
-                "GTK-Windows/share"
+                "Assets/GTK-Windows/etc",
+                "Assets/GTK-Windows/share"
+            ],
+            "versions": [
+                "GTK",
+                "UI"
+            ],
+            "importPaths": [
+                "Core",
+                "GTK"
             ]
         }
     ],

@@ -1,0 +1,29 @@
+
+parameters:
+    package: ""
+
+
+steps:
+
+# GitHub
+- task: GitHubRelease@0
+  inputs:
+    gitHubConnection: 'githubtoken'
+    repositoryName: '$(Build.Repository.Name)'
+    action: 'edit'
+    target: '$(Build.SourceVersion)'
+    tagSource: 'manual'
+    tag: $(Build.BuildNumber)
+    title: $(Build.BuildNumber)
+    releaseNotesSource: 'input'
+    releaseNotes: $(Build.BuildNumber)
+    isPreRelease: true
+    assetUploadMode: replace
+    addChangeLog: false
+    assets: ${{ parameters.name }}
+
+# Bintray
+- script: curl -T ${{ parameters.name }} -uyatima1460:$(BINTRAY_API_KEY) https://api.bintray.com/content/yatima1460/Drill/${{ parameters.package }}/$(Build.BuildNumber)/${{ parameters.name }}
+  condition: and(failed(), eq(variables['parameters.package'], ''))
+- script: curl -X POST -uyatima1460:$(BINTRAY_API_KEY) https://api.bintray.com/content/yatima1460/Drill/${{ parameters.package }}/$(Build.BuildNumber)/publish
+  condition: and(failed(), eq(variables['parameters.package'], ''))

@@ -462,9 +462,9 @@ in(userObject != null)
     // this is done because otherwise --force would be needed to update
     // the compiling of the .glade file and would just slow down the
     // debug version UI tests
-    debug
-    {
-        immutable(char)* builderFile = toStringz(buildPath(dirName(thisExePath), "Assets/ui.glade"));
+    // debug
+    // {
+        immutable(char)* builderFile = toStringz(buildPath(dirName(thisExePath), "ui.glade"));
         if (builder.gtk_builder_add_from_file(builderFile, &error) == 0)
         {
             assert(error !is null);
@@ -474,19 +474,19 @@ in(userObject != null)
             assert(false, "glade file not found");
         }
      
-    }
-    else
-    {
-        const(char[]) builderFile = import("Assets/ui.glade");
-        if (builder.gtk_builder_add_from_string(&builderFile[0], builderFile.length, &error) == 0)
-        {
-            assert(error !is null);
-            g_printerr("Error loading file: %s\n", error.message);
-            assert(error !is null);
-            g_clear_error(&error);
-            assert(false, "glade file not found");
-        }
-    }
+    // }
+    // else
+    // {
+    //     const(char[]) builderFile = import("ui.glade");
+    //     if (builder.gtk_builder_add_from_string(&builderFile[0], builderFile.length, &error) == 0)
+    //     {
+    //         assert(error !is null);
+    //         g_printerr("Error loading file: %s\n", error.message);
+    //         assert(error !is null);
+    //         g_clear_error(&error);
+    //         assert(false, "glade file not found");
+    //     }
+    // }
 
     // builderFile.destroy();
 
@@ -497,7 +497,7 @@ in(userObject != null)
     context.window = cast(GtkWindow*) builder.gtk_builder_get_object("window");
     assert(context.window !is null);
 
-   if( gtk_window_set_icon_from_file(context.window,toStringz(buildPath(dirName(thisExePath),"Assets/icon.png")),&error) == 0)
+   if( gtk_window_set_icon_from_file(context.window,toStringz(buildPath(dirName(thisExePath),"icon.png")),&error) == 0)
     {
         assert(error !is null);
         g_printerr("Error loading file: %s\n", error.message);
@@ -695,10 +695,17 @@ struct DrillGtkContext
 }
 
 
+void cleanGTK(GtkApplication* app)
+{
+    assert(app !is null);
+    g_object_unref(app);
+}
+
 
 
 int main(string[] args)
 {
+    
     import std.path : buildPath, dirName;
     import Config : loadData;
     import std.file : thisExePath;
@@ -726,8 +733,7 @@ int main(string[] args)
 
     assert(thisExePath !is null);
     assert(thisExePath.length > 0);
-    drillGtkContext.drillConfig = loadData(buildPath(dirName(thisExePath), "Assets"));
-
+    drillGtkContext.drillConfig = loadData(dirName(thisExePath));
     assert(app !is null);
     g_signal_connect(app, "activate", &activate, &drillGtkContext);
     int status = g_application_run(cast(GApplication*) app, 0, null);
@@ -735,8 +741,7 @@ int main(string[] args)
 
     
 
-    assert(app !is null);
-    g_object_unref(app);
+    cleanGTK(app);
 
     return status;
 }

@@ -1,0 +1,113 @@
+
+# 
+
+variables:
+  dmd_version: 2.087.1
+
+trigger:
+  branches:
+    include:
+    - master
+
+pr: none
+
+
+stages:
+- stage: CLI_Unittests
+  condition: always()
+  dependsOn: []
+  jobs:
+  - template: job_linux_cli_unittest.yml
+  - template: job_windows_cli_unittest.yml
+  - template: job_osx_cli_unittest.yml
+  
+- stage: GTK_Unittests
+  condition: always()
+  dependsOn: []
+  jobs:
+  - template: job_linux_gtk_unittest.yml
+  - template: job_windows_gtk_unittest.yml
+  - template: job_osx_gtk_unittest.yml
+
+- stage: CLI_Releases
+  condition: always()
+  dependsOn: [CLI_Unittests]
+  jobs:
+  - template: job_windows_cli_release.yml
+  - template: job_osx_cli_release.yml
+  - job: Linux_CLI
+    pool:
+      name: Hosted Ubuntu 1604
+    steps:
+    - template: dub_install_linux.yml
+    - script: dub build -c CLI -b release --arch=x86_64
+      displayName: CLI Release
+    - bash: 7z a -tzip Drill-$(Build.BuildNumber)-CLI-linux-x86_64.zip $PWD/Build/Drill-CLI-linux-x86_64-release/*
+    # TODO: create .deb here
+    - task: GitHubRelease@0
+      inputs:
+        gitHubConnection: 'githubtoken'
+        repositoryName: '$(Build.Repository.Name)'
+        action: 'edit'
+        target: '$(Build.SourceVersion)'
+        tagSource: 'manual'
+        tag: $(Build.BuildNumber)
+        title: $(Build.BuildNumber)
+        releaseNotesSource: 'input'
+        releaseNotes: $(Build.BuildNumber)
+        isPreRelease: true
+        assetUploadMode: replace
+        addChangeLog: false
+        assets: |       
+          Drill-$(Build.BuildNumber)-CLI-linux-x86_64.zip
+          Drill-$(Build.BuildNumber)-CLI-linux-x86_64.deb
+
+
+- stage: GTK_Releases
+  condition: always()
+  dependsOn: [GTK_Unittests]
+  jobs:
+  - template: job_windows_gtk_release.yml
+  - template: job_osx_gtk_release.yml
+  - job: Linux_GTK
+    pool:
+      name: Hosted Ubuntu 1604
+    steps:
+    - template: dub_install_linux.yml
+    - template: gtk_install_linux.yml
+    - script: dub build -c GTK -b release --arch=x86_64
+      displayName: GTK Release
+    - bash: 7z a -tzip Drill-$(Build.BuildNumber)-linux-x86_64.zip $PWD/Build/Drill-GTK-linux-x86_64-release/*
+    - template: appimage_create.yml
+    - bash: mv Drill-release-x86_64.AppImage Drill-$(Build.BuildNumber)-x86_64.AppImage
+   #- template: deb_gtk_create.yml
+   #- bash: mv TODO.deb Drill-$(Build.BuildNumber)-linux-x86_64.deb
+    - task: GitHubRelease@0
+      inputs:
+        gitHubConnection: 'githubtoken'
+        repositoryName: '$(Build.Repository.Name)'
+        action: 'edit'
+        target: '$(Build.SourceVersion)'
+        tagSource: 'manual'
+        tag: $(Build.BuildNumber)
+        title: $(Build.BuildNumber)
+        releaseNotesSource: 'input'
+        releaseNotes: $(Build.BuildNumber)
+        isPreRelease: true
+        assetUploadMode: replace
+        addChangeLog: false
+        assets: |
+          Drill-$(Build.BuildNumber)-x86_64.AppImage          
+          Drill-$(Build.BuildNumber)-linux-x86_64.zip
+          Drill-$(Build.BuildNumber)-linux-x86_64.deb
+
+
+
+
+        #         Drill-$(Build.BuildNumber)-x86_64.AppImage          
+        # Drill-$(Build.BuildNumber)-CLI-linux-x86_64.zip
+        # Drill-$(Build.BuildNumber)-CLI-windows-x86_64.zip  
+        # Drill-$(Build.BuildNumber)-CLI-osx-x86_64.zip
+        # Drill-$(Build.BuildNumber)-linux-x86_64.zip
+        # Drill-$(Build.BuildNumber)-windows-x86_64.zip  
+        # Drill-$(Build.BuildNumber)-osx-x86_64.zip

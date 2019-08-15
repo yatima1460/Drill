@@ -121,11 +121,24 @@ unittest
     assert(!f.isDirectory);
     assert(f.isFile);
     assert(f.dateModifiedString);
-    assert(canFind(f.containingFolder,"/Build/Drill-CLI-linux-x86_64-unittest"));
-    assert(f.fileName == "drill-search-cli");
-    assert(f.fileNameLower == "drill-search-cli");
-    assert(f.extension == "");
-    assert(canFind(f.fullPath,"/Build/Drill-CLI-linux-x86_64-unittest/drill-search-cli"),f.fullPath);
+    assert(canFind(f.containingFolder,"Build"));
+    assert(canFind(f.containingFolder,"unittest"));
+
+    version (Windows)
+    {
+        assert(f.fileName == "drill-test-CLI.exe" || f.fileName == "drill-test-GTK.exe",f.fileName);
+        assert(f.fileNameLower == "drill-test-cli.exe" || f.fileNameLower == "drill-test-gtk.exe",f.fileName);
+        assert(f.extension == ".exe");
+    }
+    else
+    {
+        assert(f.fileName == "drill-test-CLI" || f.fileName == "drill-test-GTK",f.fileName);
+        assert(f.fileNameLower == "drill-test-cli" || f.fileNameLower == "drill-test-gtk",f.fileName);
+        assert(f.extension == "");
+    }
+
+
+    assert(canFind(f.fullPath, f.containingFolder));
     assert(!canFind(f.sizeString, "0 B"));
 }
 unittest
@@ -316,13 +329,26 @@ in (resultCallback !is null)
 in (matchingFunction !is null)
 in (running !is null)
 {
-
     /+
         NOTE:
-        A "File" in the more general term and in this function can be both a normal file and a directory
-        unless isDir() is checked
+        A "File" in the more general term and in this function can be 
+        both a normal file and a directory unless isDir() is checked
     +/
 
+    /+
+        README!!!
+        If we reach this point the directory we are scanning is already confirmed
+        to be scanned, a directory should be confirmed BEFORE adding it to the queue,
+        so the queue doesn't get saturated of useless directories that will be excluded later
+    +/
+
+    /+
+        README!!!
+        only directories should be checked against blocklists
+        files will slow down and it's useless to scan them,
+        who cares if a user will see an useless file,
+        but we care because they slow down the Drill crawling
+    +/
 
     /+
         We get a list of the shallow files inside
@@ -350,25 +376,24 @@ in (running !is null)
 
             try
             {
+                // FIXME: check the FIXME inside tryGetShallowFiles
                 if (currentFile.isSymlink())
                 {
                     trace("Symlink ignored: " ~ currentDirectory.name);
                     continue;
                 }
-        
-          
-                if (matchesRegexList(blockListRegex, currentFile.name))
-                {
-                    trace("File in blocklists: "~currentFile.name~" skipped.");
-                    continue;
-                }
 
-                 /+
+                /+
                     If the file is a directory now
                     we check its priority and then enqueue it
                 +/
                 if (currentFile.isDir())
                 {
+                    if (matchesRegexList(blockListRegex, currentFile.name))
+                    {
+                        trace("File in blocklists: "~currentFile.name~" skipped.");
+                        continue;
+                    }
                     if (matchesRegexList(priorityListRegex, currentFile.name))
                     {
                         trace("High priority: " ~ currentFile.name);
@@ -384,7 +409,7 @@ in (running !is null)
                    
                 /+
                     The file (normal file or folder) does match the search:
-                        we send it to the callback result function
+                    we send it to the callback result function
                 +/
                 if (matchingFunction(currentFile, searchString))
                 {
@@ -535,33 +560,24 @@ public:
     {
         if (running == false)
             return;
-        
-
-        
-
-         // Every Crawler will have all the other mountpoints in its blocklist
-        // In this way crawlers will not cross paths
-
-       
-        auto mountpointsMinusCurrentOne = getMountpoints()[].filter!(x => x != MOUNTPOINT).map!(x => "^" ~ x ~ "$");
-
-       // info("Adding these to the global blocklist: " ~ to!string(cp_tmp),this.toString());
-        //Array!string crawler_exclusion_list = Array!string(BLOCK_LIST);
-       // crawler_exclusion_list ~= cp_tmp;
-        //Regex!char[] exclusion_regexes = crawler_exclusion_list[].map!(x => regex(x,"i")).array;
-        this.BLOCK_LIST_REGEX ~= mountpointsMinusCurrentOne.map!(x => regex(x,"i")).array;
-        
-        //exclusion_regexes;
-
-       // info("New crawler custom blocklist.length = " ~ to!string(BLOCK_LIST_REGEX.length),this.toString());
+    
         info("Started");
+
+        /+
+            Every Crawler will have all the other mountpoints in its blocklist
+            In this way crawlers will not cross paths in the worst case scenario
+        +/
+        auto mountpointsMinusCurrentOne = getMountpoints()[].filter!(x => x != MOUNTPOINT).map!(x => "^" ~ x ~ "$");
+        this.BLOCK_LIST_REGEX ~= mountpointsMinusCurrentOne.map!(x => regex(x,"i")).array;
 
         // Use the queue as a stack to scan using a breadth-first algorithm
         DList!DirEntry queue;
 
-        // Try to insert the mountpoint in the queue as first element
-        // It could fail for permission or I/O reasons,
-        // and if it does we just terminate the crawler instantly
+        /+
+            Try to insert the mountpoint in the queue as first element
+            It could fail for permission or I/O reasons,
+            and if it does we just terminate the crawler instantly
+        +/
         try
         {
             queue.insertBack(DirEntry(MOUNTPOINT));
@@ -578,9 +594,10 @@ public:
         {
             // Pop a directory from the queue
             DirEntry currentDirectory = queue.front();
+            assert(currentDirectory.isDir());
+            assert(!matchesRegexList(this.BLOCK_LIST_REGEX, currentDirectory.name));
             queue.removeFront();
 
-            //trace("Directory: " ~ currentDirectory.name,this.toString());
             crawlDirectory(
                 currentDirectory,
                 BLOCK_LIST_REGEX,

@@ -28,7 +28,10 @@ import std.file : thisExePath;
     }
     bool singlethread;
 
-    string[string] mime;
+   
+string[string] mime;
+  
+    
 }
 
 version (linux)
@@ -82,7 +85,7 @@ char[] cleanLines(char[] x)
 string[string] loadMime()
 {
         import std.algorithm, std.stdio, std.string;
-    auto file = File(buildPath(dirName(thisExePath),"Assets/mime.types")); 
+    auto file = File(buildPath(dirName(thisExePath),"mime.types")); 
     import std.array : array;
     char[][] lines = file.byLine()
                         .filter!(x => !x.canFind("#"))
@@ -122,30 +125,36 @@ string[string] loadMime()
     import std.array : array, split;
     import std.file : dirEntries, SpanMode, DirEntry, readText, FileException;
 
-    auto assoc = dirEntries(buildPath(dirName(thisExePath),"Assets/IconsFallback"),"*.txt", SpanMode.shallow, false); 
-
-    foreach (fileFallback; assoc)
+    version (GTK)
     {
-        //writeln("fileFallback ",fileFallback," => ",assoc," assoc.");
-        auto fileAssoc = File(fileFallback); 
-        auto iconsFileAssoc = fileAssoc.byLine();
-        foreach (extName; iconsFileAssoc)
+
+    
+        auto assoc = dirEntries(buildPath(dirName(thisExePath),"IconsFallback"),"*.txt", SpanMode.shallow, false); 
+
+        foreach (fileFallback; assoc)
         {
-            string extWithoutDot = to!string(extName.replace(".",""));
-            if (icons.get(extWithoutDot,null) == null)
+            //writeln("fileFallback ",fileFallback," => ",assoc," assoc.");
+            auto fileAssoc = File(fileFallback); 
+            auto iconsFileAssoc = fileAssoc.byLine();
+            foreach (extName; iconsFileAssoc)
             {
-                import std.path : baseName;
-                import std.path : stripExtension;
-                icons[extWithoutDot] = baseName(stripExtension(fileFallback.name));
+                string extWithoutDot = to!string(extName.replace(".",""));
+                if (icons.get(extWithoutDot,null) == null)
+                {
+                    import std.path : baseName;
+                    import std.path : stripExtension;
+                    icons[extWithoutDot] = baseName(stripExtension(fileFallback.name));
+                }
             }
+
+
         }
 
 
-    }
-
-    foreach(key,value;icons)
-    {
-        info("Extension '",key,"' => '",value,"' icon.");
+        foreach(key,value;icons)
+        {
+            info("Extension '",key,"' => '",value,"' icon.");
+        }
     }
 
 
@@ -204,16 +213,23 @@ DrillConfig loadData(immutable(string) assetsDirectory)
         error("Error when trying to read priority lists, will default to an empty list");
     }
 
-    auto mime = loadMime();
 
-    // DrillConfig dd;
-    DrillConfig dd = {
-        assetsDirectory,
-        BLOCK_LIST,
-        PRIORITY_LIST,
-        PRIORITY_LIST_REGEX,
-        false,
-        mime
-    };
-    return dd;
+    
+    
+        auto mime = loadMime();
+
+            // DrillConfig dd;
+        DrillConfig dd = {
+            assetsDirectory,
+            BLOCK_LIST,
+            PRIORITY_LIST,
+            PRIORITY_LIST_REGEX,
+            false,
+            mime
+        };
+         return dd;
+
+
+
+   
 }

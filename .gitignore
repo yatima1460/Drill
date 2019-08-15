@@ -1,6 +1,7 @@
 # D
 .dub
 dub.selections.json
+*.def
 
 # Binaries
 /Build
@@ -21,3 +22,8 @@ dub.selections.json
 
 
 GTK_x86_64_VS*
+
+
+# AppImage
+Drill.AppDir
+*.AppImage*

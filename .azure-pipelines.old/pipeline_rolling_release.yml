@@ -1,0 +1,383 @@
+variables:
+  dmd_version: 2.087.1
+
+
+stages:
+
+
+- stage: CLI_Unittests
+  dependsOn: []
+  jobs:
+
+  - job: Linux_CLI_Unittest
+    pool:
+      name: Hosted Ubuntu 1604
+    steps:
+    - template: dub_install_linux.yml
+    - script: dub test -c CLI --arch=x86_64
+      displayName: CLI Unittest
+
+  - job: Windows_CLI_Unittest
+    pool:
+      name: Hosted VS2017
+    steps:
+    - template: dub_install_windows.yml
+    - script: dub test -c CLI --arch=x86_64
+      displayName: CLI Unittest
+
+  - job: OSX_CLI_Unittest
+    pool:
+      name: Hosted macOS
+    steps:
+    - template: dub_install_osx.yml
+    - script: dub test -c CLI --arch=x86_64
+      displayName: CLI Unittest
+
+
+- stage: GTK_Unittests
+  dependsOn: []
+  jobs:
+
+  - job: Linux_GTK_Unittest
+    pool:
+      name: Hosted Ubuntu 1604
+    steps:
+    - template: dub_install_linux.yml
+    - template: gtk_install_linux.yml
+    - script: dub test -c GTK --arch=x86_64
+      displayName: GTK Unittest
+
+  - job: OSX_GTK_Unittest
+    pool:
+      name: Hosted macOS
+    steps:
+    - template: dub_install_osx.yml
+    - template: gtk_install_osx.yml
+    - script: dub test -c GTK --arch=x86_64
+      displayName: GTK Unittest
+
+  - job: Windows_GTK_Unittest
+    pool:
+      name: Hosted VS2017
+    steps:
+    - template: dub_install_windows.yml
+    - template: gtk_install_windows.yml
+    - script: dub test -c GTK --arch=x86_64
+      displayName: GTK Unittest
+
+
+- stage: CLI_Builds
+  dependsOn: [CLI_Unittests]
+  jobs:
+  
+  - job: Linux_CLI_Release
+    pool:
+      name: Hosted Ubuntu 1604
+    steps:
+    - template: dub_install_linux.yml
+    - script: echo -n $(Build.BuildNumber) > AZURE_VERSION
+    - script: dub build -c CLI -b release-azure --arch=x86_64
+      displayName: CLI Release
+    - bash: 7z a -tzip Drill-$(Build.BuildNumber)-CLI-linux-x86_64.zip $PWD/Build/Drill-CLI-linux-x86_64-release-azure/*
+    # TODO: create CLI .deb here    - task: PublishBuildArtifacts@1
+    - task: PublishBuildArtifacts@1
+      inputs:
+        PathtoPublish: Drill-$(Build.BuildNumber)-CLI-linux-x86_64.zi
+        ArtifactName: Drill-$(Build.BuildNumber)-CLI-linux-x86_64.zi
+        publishLocation: Container
+
+  - job: Windows_CLI_Release
+    pool:
+      name: Hosted VS2017
+    steps:
+    - template: dub_install_windows.yml
+    - powershell: $(Build.BuildNumber) | Out-File -encoding ascii AZURE_VERSION -NoNewline
+    - script: dub run -c CLI -b release-azure --arch=x86_64
+      displayName: CLI Release
+    - bash: 7z a -tzip Drill-$(Build.BuildNumber)-CLI-windows-x86_64.zip $PWD/Build/Drill-CLI-windows-x86_64-release-azure/*
+    - task: PublishBuildArtifacts@1
+      inputs:
+        PathtoPublish: Drill-$(Build.BuildNumber)-CLI-windows-x86_64.zip
+        ArtifactName: Drill-$(Build.BuildNumber)-CLI-windows-x86_64.zip
+        publishLocation: Container
+
+  - job: OSX_CLI_Release
+    pool:
+      name: Hosted macOS
+    steps:
+    - template: dub_install_osx.yml
+    - script: echo -n $(Build.BuildNumber) > AZURE_VERSION
+    - script: dub build -c CLI -b release-azure --arch=x86_64
+      displayName: CLI Release
+    - bash: 7z a -tzip Drill-$(Build.BuildNumber)-CLI-osx-x86_64.zip $PWD/Build/Drill-CLI-osx-x86_64-release-azure/*
+    - task: PublishBuildArtifacts@1
+      inputs:
+        PathtoPublish: Drill-$(Build.BuildNumber)-CLI-osx-x86_64.zip
+        ArtifactName: Drill-$(Build.BuildNumber)-CLI-osx-x86_64.zip
+        publishLocation: Container
+
+
+
+- stage: GTK_Builds
+  dependsOn: [GTK_Unittests]
+  jobs:
+  - job: Linux_GTK_Release
+    pool:
+      name: Hosted Ubuntu 1604
+    steps:
+    - template: dub_install_linux.yml
+    - template: gtk_install_linux.yml
+    - script: echo -n $(Build.BuildNumber) > AZURE_VERSION
+    - script: dub build -c GTK -b release-azure --arch=x86_64
+      displayName: GTK Release
+    # Create portable .zip
+    - bash: 7z a -tzip Drill-$(Build.BuildNumber)-linux-x86_64.zip $PWD/Build/Drill-GTK-linux-x86_64-release-azure/*
+    - task: PublishBuildArtifacts@1
+      inputs:
+        PathtoPublish: Drill-$(Build.BuildNumber)-linux-x86_64.zip
+        ArtifactName: Drill-$(Build.BuildNumber)-linux-x86_64.zip
+        publishLocation: Container
+    # Build AppImage
+    - script: sudo apt install -y appstream
+     
+    - script: mkdir -p Drill.AppDir
+      
+    - script: cp -R $PWD/Build/Drill-GTK-linux-x86_64-release-azure/* Drill.AppDir
+    
+    - script: mkdir -p Drill.AppDir/usr/share/metainfo
+     
+    - script: mkdir -p Drill.AppDir/usr/share/applications
+    
+    - script: cp Assets/GTK-Linux/drill.software.appdata.xml Drill.AppDir/usr/share/metainfo
+     
+    - script: cp Assets/GTK-Linux/software.drill.Drill.desktop Drill.AppDir/usr/share/applications
+     
+    - script: ln -s drill-gtk Drill.AppDir/AppRun
+   
+    - script: chmod +x Drill.AppDir/AppRun
+     
+    - script: chmod +x Drill.AppDir/drill-gtk
+     
+    - script: cp Assets/GTK-Linux/drill-gtk.svg Drill.AppDir
+     
+    - script: wget https://github.com/AppImage/AppImageKit/releases/download/12/appimagetool-x86_64.AppImage -O appimagetool-x86_64.AppImage
+     
+    - script: chmod +x appimagetool-x86_64.AppImage
+      
+    - script: export ARCH=x86_64 && ./appimagetool-x86_64.AppImage Drill.AppDir Drill-$(Build.BuildNumber)-x86_64.AppImage
+     
+    - script: test -f Drill-$(Build.BuildNumber)-x86_64.AppImage
+
+
+    - task: PublishBuildArtifacts@1
+      inputs:
+        PathtoPublish: Drill-$(Build.BuildNumber)-x86_64.AppImage
+        ArtifactName: Drill-$(Build.BuildNumber)-x86_64.AppImage
+        publishLocation: Container
+    # - task: PublishPipelineArtifact@1
+    #   inputs:
+    #     targetPath: Drill-$(Build.BuildNumber)-x86_64.AppImage
+    #     artifact: AppImage
+    # TODO: create .deb
+
+  - job: Windows_GTK_Release
+    pool:
+      name: Hosted VS2017
+    steps:
+    - template: dub_install_windows.yml
+    - template: gtk_install_windows.yml
+    - powershell: $(Build.BuildNumber) | Out-File -encoding ascii AZURE_VERSION -NoNewline
+    - script: dub build -c GTK -b release-azure --arch=x86_64
+      displayName: GTK Release
+    # Create portable .zip
+    - bash: 7z a -tzip Drill-$(Build.BuildNumber)-windows-x86_64.zip $PWD/Build/Drill-GTK-windows-x86_64-release-azure/*
+    - task: PublishBuildArtifacts@1
+      inputs:
+        PathtoPublish: 'Drill-$(Build.BuildNumber)-windows-x86_64.zip'
+        ArtifactName: 'Drill-$(Build.BuildNumber)-windows-x86_64.zip'
+        publishLocation: 'Container'
+    - bash: 7z -sfx a -tzip Drill-$(Build.BuildNumber)-windows-x86_64.sfx $PWD/Build/Drill-GTK-windows-x86_64-release-azure/*
+    - task: PublishBuildArtifacts@1
+      inputs:
+        PathtoPublish: 'Drill-$(Build.BuildNumber)-windows-x86_64.sfx'
+        ArtifactName: 'Drill-$(Build.BuildNumber)-windows-x86_64.sfx'
+        publishLocation: 'Container'
+    # TODO: create installer
+
+  - job: OSX_GTK_Release
+    pool:
+      name: Hosted macOS
+    steps:
+    - template: dub_install_osx.yml
+    - template: gtk_install_osx.yml
+    - script: echo -n $(Build.BuildNumber) > AZURE_VERSION
+    - script: dub build -c GTK -b release-azure --arch=x86_64
+      displayName: GTK Release
+    # Create portable .zip
+    - bash: 7z a -tzip Drill-$(Build.BuildNumber)-osx-x86_64.zip $PWD/Build/Drill-GTK-osx-x86_64-release-azure/*
+    # TODO: create .dmg
+    - task: PublishBuildArtifacts@1
+      inputs:
+        PathtoPublish: Drill-$(Build.BuildNumber)-osx-x86_64.zip
+        ArtifactName: Drill-$(Build.BuildNumber)-osx-x86_64.zip
+        publishLocation: Container
+
+# - stage: GTK_Packages
+#   dependsOn: [GTK_Releases]
+#   jobs: 
+#   - template: job_linux_appimage_create.yml
+
+- stage: CLI_Search_Name_Tests
+  dependsOn: [CLI_Builds]
+  jobs:
+
+  - job: Linux_CLI_Search_Name_Test
+    pool:
+      name: Hosted Ubuntu 1604
+    steps:
+    - task: DownloadBuildArtifacts@0
+      inputs:
+        buildType: 'current'
+        downloadType: 'single'
+        downloadPath: '$(System.DefaultWorkingDirectory)'
+        artifactName: Drill-$(Build.BuildNumber)-CLI-linux-x86_64.zip
+    - bash: 7z x Drill-$(Build.BuildNumber)-CLI-linux-x86_64.zip
+    - bash: chmod +x Drill-$(Build.BuildNumber)-CLI-linux-x86_64.zip/drill-cli
+    - bash: Drill-$(Build.BuildNumber)-CLI-linux-x86_64/drill-cli .
+
+  - job: Windows_CLI_Search_Name_Test
+    pool:
+      name: Hosted VS2017
+    steps:
+    - task: DownloadBuildArtifacts@0
+      inputs:
+        buildType: 'current'
+        downloadType: 'single'
+        downloadPath: '$(System.DefaultWorkingDirectory)'
+        artifactName: Drill-$(Build.BuildNumber)-CLI-windows-x86_64.zip
+    - bash: 7z x Drill-$(Build.BuildNumber)-CLI-windows-x86_64.zip
+    - bash: chmod +x Drill-$(Build.BuildNumber)-CLI-windows-x86_64.zip/drill-cli
+    - bash: Drill-$(Build.BuildNumber)-CLI-windows-x86_64/drill-cli .
+
+  - job: OSX_CLI_Search_Name_Test
+    pool:
+      name: Hosted macOS
+    steps:
+    - task: DownloadBuildArtifacts@0
+      inputs:
+        buildType: 'current'
+        downloadType: 'single'
+        downloadPath: '$(System.DefaultWorkingDirectory)'
+        artifactName: Drill-$(Build.BuildNumber)-CLI-osx-x86_64.zip
+    - bash: 7z x Drill-$(Build.BuildNumber)-CLI-osx-x86_64.zip
+    - bash: chmod +x Drill-$(Build.BuildNumber)-CLI-osx-x86_64.zip/drill-cli
+    - bash: Drill-$(Build.BuildNumber)-CLI-osx-x86_64/drill-cli .
+
+
+- stage: CLI_Search_Content_Tests
+  dependsOn: [CLI_Builds]
+  jobs:
+  - job: Linux_CLI_Search_Content_Test
+    pool:
+      name: Hosted Ubuntu 1604
+    steps:
+    - task: DownloadBuildArtifacts@0
+      inputs:
+        buildType: 'current'
+        downloadType: 'single'
+        downloadPath: '$(System.DefaultWorkingDirectory)'
+        artifactName: Drill-$(Build.BuildNumber)-CLI-linux-x86_64.zip
+    - bash: 7z x Drill-$(Build.BuildNumber)-CLI-linux-x86_64.zip
+    - bash: chmod +x Drill-$(Build.BuildNumber)-CLI-linux-x86_64.zip/drill-cli
+    - bash: Drill-$(Build.BuildNumber)-CLI-linux-x86_64/drill-cli content:.
+
+  - job: Windows_CLI_Search_Content_Test
+    pool:
+      name: Hosted VS2017
+    steps:
+    - task: DownloadBuildArtifacts@0
+      inputs:
+        buildType: 'current'
+        downloadType: 'single'
+        downloadPath: '$(System.DefaultWorkingDirectory)'
+        artifactName: Drill-$(Build.BuildNumber)-CLI-windows-x86_64.zip
+    - bash: 7z x Drill-$(Build.BuildNumber)-CLI-windows-x86_64.zip
+    - bash: chmod +x Drill-$(Build.BuildNumber)-CLI-windows-x86_64.zip/drill-cli
+    - bash: Drill-$(Build.BuildNumber)-CLI-windows-x86_64/drill-cli content:.
+
+  - job: OSX_CLI_Search_Content_Test
+    pool:
+      name: Hosted macOS
+    steps:
+    - task: DownloadBuildArtifacts@0
+      inputs:
+        buildType: 'current'
+        downloadType: 'single'
+        downloadPath: '$(System.DefaultWorkingDirectory)'
+        artifactName: Drill-$(Build.BuildNumber)-CLI-osx-x86_64.zip
+    - bash: 7z x Drill-$(Build.BuildNumber)-CLI-osx-x86_64.zip
+    - bash: chmod +x Drill-$(Build.BuildNumber)-CLI-osx-x86_64.zip/drill-cli
+    - bash: Drill-$(Build.BuildNumber)-CLI-osx-x86_64/drill-cli content:.
+
+- stage: AppImage_Tests
+  dependsOn: [GTK_Builds]
+  jobs:
+  - job: AppImage_Execute_Test
+    pool:
+      name: Hosted Ubuntu 1604
+    steps:
+    - task: DownloadBuildArtifacts@0
+      inputs:
+        buildType: 'current'
+        downloadType: 'single'
+        downloadPath: '$(System.DefaultWorkingDirectory)'
+        artifactName: Drill-$(Build.BuildNumber)-x86_64.AppImage
+    - bash: chmod +x Drill-$(Build.BuildNumber)-x86_64.AppImage
+    # GTK will return 2 if it can't connect to a display
+    # but at least we know the AppImage started
+    - bash: ./Drill-$(Build.BuildNumber)-x86_64.AppImage
+    - bash: if [ $? -eq 2 ]; then return 0; fi;
+
+  - job: AppImage_Extract_Test
+    pool:
+      name: Hosted Ubuntu 1604
+    steps:
+    - task: DownloadBuildArtifacts@0
+      inputs:
+        buildType: 'current'
+        downloadType: 'single'
+        downloadPath: '$(System.DefaultWorkingDirectory)'
+        artifactName: Drill-$(Build.BuildNumber)-x86_64.AppImage
+    - bash: chmod +x Drill-$(Build.BuildNumber)-x86_64.AppImage
+    - bash: ./Drill-$(Build.BuildNumber)-x86_64.AppImage --appimage-extract
+    # GTK will return 2 if it can't connect to a display
+    # but at least we know the AppImage started
+    - bash: ./squashfs-root/drill-gtk
+    - bash: if [ $? -eq 2 ]; then return 0; fi;
+
+  - job: AppImage_Mount_Test
+    pool:
+      name: Hosted Ubuntu 1604
+    steps:
+    - task: DownloadBuildArtifacts@0
+      inputs:
+        buildType: 'current'
+        downloadType: 'single'
+        downloadPath: '$(System.DefaultWorkingDirectory)'
+        artifactName: Drill-$(Build.BuildNumber)-x86_64.AppImage
+    - bash: chmod +x Drill-$(Build.BuildNumber)-x86_64.AppImage
+    - bash: ./Drill-$(Build.BuildNumber)-x86_64.AppImage --appimage-mount
+    - bash: sleep 3
+
+# - stage: AppImage_Tests
+#   dependsOn: [CLI_Releases]
+#   jobs:
+#   - template: job_linux_appimage_test.yml
+#   - template: job_windows_appimage_test.yml
+#   - template: job_osx_appimage_test.yml
+
+
+# - stage: Publish
+#   jobs:
+#   - job: Publish_Beta
+#     condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/master'))

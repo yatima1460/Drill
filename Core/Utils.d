@@ -175,8 +175,10 @@ out(m; m.length != 0)
 }
 alias getMountpoints = memoize!_getMountpoints;
 
-
-@safe string _sizeToHumanReadable(in ulong bytes)
+/++
+    Given a size of a file in ulong bytes will return a human readable format
++/
+@safe string sizeToHumanReadable(in ulong bytes)
 out(m; m.length != 0)
 {
     immutable(string[]) sizes = ["B", "KB", "MB", "GB", "TB", "PB", "EB"];
@@ -191,13 +193,19 @@ out(m; m.length != 0)
 
     import std.format : format;
 
-    if (order >= sizes.length)
-        return format("%#.2f", len) ~ " ?B";
-    else
-        return format("%#.2f", len) ~ " " ~ sizes[order];
+    return format("%#.2f", len) ~ " " ~ sizes[order];
 }
 
-alias sizeToHumanReadable = memoize!_sizeToHumanReadable;
+unittest
+{
+    assert(sizeToHumanReadable(0) == "0.00 B",);
+    assert(sizeToHumanReadable(1023) == "1023.00 B");
+    assert(sizeToHumanReadable(1024) == "1.00 KB");
+    assert(sizeToHumanReadable(1024 * 1024) == "1.00 MB");
+    assert(sizeToHumanReadable(1024 * 1023) == "1023.00 KB");
+    // max value
+    assert(sizeToHumanReadable(18_446_744_073_709_551_615uL) == "16.00 EB");
+}
 
 import ApplicationInfo : ApplicationInfo;
 version(linux) immutable(ApplicationInfo) readDesktopFile(immutable(string) fullPath) @system
