@@ -1,9 +1,7 @@
 {
   "name": "Drill",
-  "main": "main.js",
   "main": "drill.html",
   "description": "The Universal Launcher",
-  
   "keywords": [
     "search",
     "file searcher",
@@ -26,5 +24,8 @@
   },
   "webkit": {
     "plugin": true
+  },
+  "dependencies": {
+    "@rauschma/stringio": "^1.4.0"
   }
 }

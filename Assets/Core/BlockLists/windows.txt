@@ -1,14 +1,16 @@
 
+\\\.
+
 [A-Z]:\\Windows$
 [A-Z]:\\System Volume Information
 
 [A-Z]:\\NVPACK
 [A-Z]:\\NVIDIA$
 [A-Z]:\\npm\\
-[A-Z]:\\$WINDOWS\.~BT
+[A-Z]:\\\$WINDOWS\.~BT
 [A-Z]:\\ProgramData
-[A-Z]:\\$Recycle\.Bin
-[A-Z]:\\$RECYCLE\.BIN
+[A-Z]:\\\$Recycle\.Bin
+[A-Z]:\\\$RECYCLE\.BIN
 [A-Z]:\\PenTabletDriver
 
 [A-Z]:\\Program Files
@@ -21,6 +23,11 @@ vcpkg$
 WindowsApps$
 \\desktop.ini$
 
+msys64
+\.ipfs
+cygwin
+
+MinGW
 
 [A-Z]:\\Packages\\
 
@@ -39,6 +46,7 @@ WindowsApps$
 [A-Z]:\\Modules
 [A-Z]:\\Users\installer\\
 [A-Z]:\\hostedtoolcache\\
+[A-Z]:\\Config\.Msi
 
 \\_tasks\\
 

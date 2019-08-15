@@ -1,4 +1,3 @@
-
 /**
 In this module go useful functions that are not strictly related to crawling
 */
@@ -8,20 +7,75 @@ import std.experimental.logger;
 import std.uni : toLower;
 import std.path : extension;
 import std.process : executeShell;
+import std.algorithm : canFind, filter, map;
+import std.process : spawnProcess;
+import std.stdio : stdin, stdout, stderr;
+import std.process : Config;
+import std.datetime : SysTime;
+import std.array : array, replace, split;
+import std.array : array, split;
+import std.algorithm : filter, canFind;
+import std.string : indexOf;
+import std.array : array, split;
+import std.algorithm : map, canFind, filter;
+import std.format : format;
+import std.algorithm : filter;
+import std.array : array, split;
+import std.file : dirEntries, SpanMode, DirEntry, readText, FileException;
+import std.algorithm : canFind;
+import std.array : array, split;
+import std.string : endsWith;
+import std.array : split;
+import std.array : array, split;
+import std.algorithm : map, canFind, filter;
+import std.path : baseName, dirName, extension;
+import std.string : split, strip;
 
+import ApplicationInfo : ApplicationInfo;
 
+pure @safe bool isTokenizedStringMatchingString(const(string) searchString, const(string) str)
+{
+    if (str.length < searchString.length)
+        return false;
+    const string[] searchTokens = toLower(strip(searchString)).split(" ");
+    const string fileNameLower = toLower(baseName(str));
+    foreach (token; searchTokens)
+        if (!canFind(fileNameLower, token))
+            return false;
+    return true;
+}
 
-version(linux) @system string[] getDesktopFiles()
+@safe unittest
+{
+    assert(isTokenizedStringMatchingString(".", "."));
+    assert(isTokenizedStringMatchingString("a", "a"));
+    assert(isTokenizedStringMatchingString("aaaa", "aaaaa"));
+    assert(!isTokenizedStringMatchingString("aaaaa", "aaaa"));
+    assert(isTokenizedStringMatchingString("jojo 39",
+            "JoJo's Bizarre Adventures Golden Wind 39.mkv"));
+    assert(!isTokenizedStringMatchingString("jojo 38",
+            "JoJo's Bizarre Adventures Golden Wind 39.mkv"));
+    assert(isTokenizedStringMatchingString("jojo 3",
+            "JoJo's Bizarre Adventures Golden Wind 39.mkv"));
+    assert(!isTokenizedStringMatchingString("jojo3",
+            "JoJo's Bizarre Adventures Golden Wind 39.mkv"));
+    assert(isTokenizedStringMatchingString("jojo", "JoJo's Bizarre Adventures Golden Wind 39.mkv"));
+    assert(isTokenizedStringMatchingString("39", "JoJo's Bizarre Adventures Golden Wind 39.mkv"));
+    assert(isTokenizedStringMatchingString("olde", "JoJo's Bizarre Adventures Golden Wind 39.mkv"));
+    assert(isTokenizedStringMatchingString("JoJo's Bizarre Adventures Golden Wind 39.mkv",
+            "JoJo's Bizarre Adventures Golden Wind 39.mkv"));
+    assert(isTokenizedStringMatchingString(".mkv", "JoJo's Bizarre Adventures Golden Wind 39.mkv"));
+}
+
+version (linux) string[] getDesktopFiles()
 {
     synchronized
     {
-        import std.algorithm : canFind, filter, map;
-        import std.array : array;
-        import std.file : dirEntries, SpanMode;
+
         try
         {
-            return dirEntries("/usr/share/applications", "*.desktop", SpanMode.depth)
-                .map!(a => a.name)
+            return dirEntries("/usr/share/applications", "*.desktop", SpanMode.depth).map!(
+                    a => a.name)
                 .filter!(name => !name.canFind('_'))
                 .array;
         }
@@ -33,10 +87,6 @@ version(linux) @system string[] getDesktopFiles()
     }
 }
 
-
-
-
-
 /**
 Opens a file using the current system implementation for file associations
 
@@ -45,10 +95,6 @@ Returns: true if successful
 @safe bool openFile(immutable string fullpath)
 {
     // FIXME: return false when no file association
-    import std.process : spawnProcess;
-    import std.stdio : stdin, stdout, stderr;
-    import std.process : Config;
-    import std.process : executeShell;
 
     try
     {
@@ -62,22 +108,22 @@ Returns: true if successful
             immutable auto ext = toLower(extension(fullpath));
             switch (ext)
             {
-                case ".appimage":
-                    info("File "~fullpath~" detected as .AppImage");
-                    immutable auto cmd = executeShell("chmod +x "~fullpath);
-                    if (cmd.status != 0)
-                    {
-                        critical("Can't set AppImage '"~fullpath~"' as executable.");
-                        // TODO: GTK messagebox here or throw a DrillException?
-                        return false;
-                    }
-                    spawnProcess([fullpath], null, Config.detached, null);
-                    return true;
+            case ".appimage":
+                info("File " ~ fullpath ~ " detected as .AppImage");
+                immutable auto cmd = executeShell("chmod +x " ~ fullpath);
+                if (cmd.status != 0)
+                {
+                    critical("Can't set AppImage '" ~ fullpath ~ "' as executable.");
+                    // TODO: GTK messagebox here or throw a DrillException?
+                    return false;
+                }
+                spawnProcess([fullpath], null, Config.detached, null);
+                return true;
 
-                default:
-                    info("Generic file "~fullpath~", will use xdg-open.");
-                    spawnProcess(["xdg-open", fullpath], null, Config.detached, null);
-                    return true;
+            default:
+                info("Generic file " ~ fullpath ~ ", will use xdg-open.");
+                spawnProcess(["xdg-open", fullpath], null, Config.detached, null);
+                return true;
             }
         }
         version (OSX)
@@ -93,15 +139,14 @@ Returns: true if successful
     }
 }
 
-import std.datetime : SysTime;
-@safe string _sysTimeToHumanReadable(in SysTime time)
-out (s; s.length != 0)
+@safe nothrow string _sysTimeToHumanReadable(in SysTime time)
+out(s; s.length != 0)
 {
-    import std.array : array, replace, split;
+
     return time.toISOExtString().replace("T", " ").replace("-", "/").split(".")[0];
 }
-alias systime_to_string = memoize!_sysTimeToHumanReadable;
 
+alias systime_to_string = memoize!_sysTimeToHumanReadable;
 
 /**
 Returns the mount points of the current system
@@ -109,11 +154,9 @@ It's not assured that every mount point is a physical disk
 
 Returns: immutable array of full paths
 */
-string[] _getMountpoints() @trusted
+@safe string[] _getMountpoints()
 out(m; m.length != 0)
 {
-    import std.process : executeShell;
-   
 
     synchronized
     {
@@ -131,12 +174,10 @@ out(m; m.length != 0)
                 critical("Can't retrieve mount points, will just scan '/'");
                 return ["/"];
             }
-            import std.array : array, split;
-            import std.algorithm : filter, canFind;
 
-            auto result = array(ls.output.split("\n").filter!(x => canFind(x, "/"))).idup;
+            auto result = array(ls.output.split("\n").filter!(x => canFind(x, "/")));
             //debug{logConsole("Mount points found: "~to!string(result));}
-            return cast(string[])result;
+            return result;
         }
         version (OSX)
         {
@@ -146,15 +187,13 @@ out(m; m.length != 0)
                 critical("Can't retrieve mount points, will just scan '/'");
                 return ["/"];
             }
-            import std.string : indexOf;
-            import std.array : array, split;
-            import std.algorithm : map, canFind, filter;
+
             immutable auto startColumn = indexOf(ls.output.split("\n")[0], 'M');
             auto result = array(ls.output.split("\n").filter!(x => x.length > startColumn)
                     .map!(x => x[startColumn .. $])
-                    .filter!(x => canFind(x, "/"))).idup;
+                    .filter!(x => canFind(x, "/")));
             //debug{logConsole("Mount points found: "~result);}
-            return cast(string[])result;
+            return result;
         }
         version (Windows)
         {
@@ -164,15 +203,14 @@ out(m; m.length != 0)
                 critical("Can't retrieve mount points, will just scan 'C:'");
                 return ["C:"];
             }
-            import std.array : array, split;
-            import std.algorithm : map, canFind, filter;
-            auto result = array(map!(x => x[0 .. 2])(ls.output.split("\n")
-                    .filter!(x => canFind(x, ":")))).idup;
+
+            string[] result = array(map!(x => x[0 .. 2])(ls.output.split("\n").filter!(x => canFind(x, ":"))));
             //debug{logConsole("Mount points found: "~result);}
-            return cast(string[])result;
+            return result;
         }
     }
 }
+
 alias getMountpoints = memoize!_getMountpoints;
 
 /++
@@ -184,19 +222,17 @@ out(m; m.length != 0)
     immutable(string[]) sizes = ["B", "KB", "MB", "GB", "TB", "PB", "EB"];
     double len = cast(double) bytes;
     int order = 0;
-    
+
     while (len >= 1024)
     {
         order++;
         len = len / 1024;
     }
 
-    import std.format : format;
-
     return format("%#.2f", len) ~ " " ~ sizes[order];
 }
 
-unittest
+@safe unittest
 {
     assert(sizeToHumanReadable(0) == "0.00 B",);
     assert(sizeToHumanReadable(1023) == "1023.00 B");
@@ -207,16 +243,13 @@ unittest
     assert(sizeToHumanReadable(18_446_744_073_709_551_615uL) == "16.00 EB");
 }
 
-import ApplicationInfo : ApplicationInfo;
-version(linux) immutable(ApplicationInfo) readDesktopFile(immutable(string) fullPath) @system
-in (fullPath !is null)
-in (fullPath.length > 0,"fullPath to the desktop file can't be zero length")
-out (app;app.name !is null,"app name can't be null: "~fullPath)
-out (app;app.name.length > 0)
-// out (app;app.exec !is null,"app exec can't be null: "~fullPath)
+version (linux) nothrow @safe immutable(ApplicationInfo) readDesktopFile(immutable(string) fullPath)
+in(fullPath !is null)
+in(fullPath.length > 0, "fullPath to the desktop file can't be zero length")
+out(app; app.name !is null, "app name can't be null: " ~ fullPath)
+out(app; app.name.length > 0) // out (app;app.exec !is null,"app exec can't be null: "~fullPath)
 // out (app;app.exec.length > 0,"app exec can't be length 0: "~fullPath)
 {
-    
 
     string[] desktopFileLines;
 
@@ -224,10 +257,6 @@ out (app;app.name.length > 0)
 
     try
     {
-        import std.algorithm : filter;
-
-        import std.array : array, split;
-        import std.file : dirEntries, SpanMode, DirEntry, readText, FileException;
 
         desktopFileLines = readText(fullPath).split("\n");
         desktopFileLines = desktopFileLines.filter!(x => x.length != 0).array;
@@ -243,8 +272,6 @@ out (app;app.name.length > 0)
     string[] execProcess;
     string name;
     string icon;
-
-    import std.algorithm : canFind;
 
     try
     {
@@ -284,36 +311,29 @@ out (app;app.name.length > 0)
     return ai;
 }
 
-version(linux) string[] _cleanExecLine(immutable(string) exec) pure @safe
+@safe nothrow pure version (linux) string[] _cleanExecLine(immutable(string) exec) pure @safe
 {
-    import std.algorithm : filter;
-    import std.array : array, split;
-    
+
     return exec.split(" ")[].filter!(x => x.length >= 1 && x[0 .. 1] != "%").array;
 }
-version(linux) alias cleanExecLine = memoize!_cleanExecLine;
 
+version (linux) alias cleanExecLine = memoize!_cleanExecLine;
 
-
-string[] mergeAllTextFilesInDirectory(immutable(string) path) @system 
+string[] mergeAllTextFilesInDirectory(immutable(string) path) 
 {
-    import std.file : dirEntries, SpanMode, DirEntry, readText, FileException;
 
     string[] temp_blocklist = [];
 
-    import std.algorithm : filter;
-    import std.string : endsWith;
-
-    auto blocklists_file = dirEntries(path, SpanMode.shallow, true).filter!(f => f.name.endsWith(".txt"));
+    auto blocklists_file = dirEntries(path, SpanMode.shallow, true).filter!(
+            f => f.name.endsWith(".txt"));
 
     foreach (string partial_blocklist; blocklists_file)
     {
-        import std.array : split;
+
         temp_blocklist ~= readText(partial_blocklist).split("\n");
     }
 
     // remove empty newlines
-    import std.algorithm : filter;
-    import std.array : array;
+
     return temp_blocklist.filter!(x => x.length != 0).array;
 }

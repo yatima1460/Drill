@@ -1,7 +1,7 @@
 {
   "files.associations": {
-    "**/.azure-pipelines/*.yml": "azure-pipelines"
-  }
-
+    "**/.azure-pipelines.old/*.yml": "azure-pipelines"
+  },
+  "debug.allowBreakpointsEverywhere":true
 }
 

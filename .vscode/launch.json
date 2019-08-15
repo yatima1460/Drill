@@ -4,6 +4,26 @@
     // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
+    {
+        "name": "CLI (gdb) Launch",
+        "type": "cppdbg",
+        "request": "launch",
+        "program":"${workspaceFolder}/Build/Drill-CLI-windows-x86_64-debug/drill-cli.exe",
+        "args": ["a","-n3"],
+        "stopAtEntry": false,
+        "cwd": "${workspaceFolder}",
+        "environment": [],
+        "externalConsole": false,
+        "MIMode": "gdb",
+        "miDebuggerPath": "C:\\WinBuilds\\bin\\gdb.exe",
+        "setupCommands": [
+            {
+                "description": "Enable pretty-printing for gdb",
+                "text": "-enable-pretty-printing",
+                "ignoreFailures": true
+            }
+        ]
+    },
         {
             "type": "nwjs",
             "request": "launch",

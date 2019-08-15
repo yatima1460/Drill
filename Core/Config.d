@@ -1,8 +1,27 @@
-import std.path : buildPath, dirName;
-
+import std.path : buildPath, dirName, expandTilde;
 import std.file : thisExePath;
+import std.regex: Regex;
+import std.conv : to;
+import std.algorithm : canFind;
+import std.array : replace;
+import std.algorithm, std.stdio, std.string;
+import std.array : array;
+import std.experimental.logger;
+import std.algorithm : filter;
+import std.array : array, split;
+import std.file : dirEntries, SpanMode, DirEntry, readText, FileException;
+import std.path : baseName;
+import std.path : stripExtension;
+import std.path : buildPath;
+import std.conv: to;
+import std.experimental.logger;
+import std.regex: Regex, regex;
+import std.algorithm : canFind, filter, map;
+import std.array : array;
 
-
+import Utils : mergeAllTextFilesInDirectory;
+import Utils : getMountpoints;
+import Meta : VERSION;
 // immutable(string) DEFAULT_BLOCK_LIST    = import("BlockLists.txt");
 // immutable(string) DEFAULT_PRIORITY_LIST = import("PriorityLists.txt");
 
@@ -20,7 +39,7 @@ import std.file : thisExePath;
     string[] BLOCK_LIST;
     string[] PRIORITY_LIST;
 
-    import std.regex: Regex;
+    
     Regex!char[] PRIORITY_LIST_REGEX;
     invariant
     {
@@ -35,20 +54,17 @@ string[string] mime;
 }
 
 version (linux)
-    {
-/**
+{
+    /**
 Returns the path where the config data is stored
 */
-public string getConfigPath()
-{
-    
-        import std.path : expandTilde;
+    @safe public string getConfigPath()
+    {
+
         return expandTilde("~/.config/drill-search");
-    
 
+    }
 }
-} 
-
 
 // private void createDefaultConfigFiles()
 // {
@@ -62,14 +78,13 @@ public string getConfigPath()
 // }
 
 
-import std.conv : to;
+
 
 
 // do not add "private" so we support old compilers
-char[] cleanLines(char[] x)
+pure nothrow @safe char[] cleanLines(char[] x)
 {
-    import std.algorithm : canFind;
-    import std.array : replace;
+   
     char[] s = x;
     while (s.canFind("  ")) 
         s = s.replace("  "," ");
@@ -84,9 +99,10 @@ char[] cleanLines(char[] x)
 // TODO: do this at compile time?
 string[string] loadMime()
 {
-        import std.algorithm, std.stdio, std.string;
+       
     auto file = File(buildPath(dirName(thisExePath),"mime.types")); 
-    import std.array : array;
+
+
     char[][] lines = file.byLine()
                         .filter!(x => !x.canFind("#"))
                         .map!strip
@@ -118,12 +134,6 @@ string[string] loadMime()
         }
     }
 
-    import std.experimental.logger;
-
-    import std.algorithm : filter;
-
-    import std.array : array, split;
-    import std.file : dirEntries, SpanMode, DirEntry, readText, FileException;
 
     version (GTK)
     {
@@ -141,8 +151,7 @@ string[string] loadMime()
                 string extWithoutDot = to!string(extName.replace(".",""));
                 if (icons.get(extWithoutDot,null) == null)
                 {
-                    import std.path : baseName;
-                    import std.path : stripExtension;
+                   
                     icons[extWithoutDot] = baseName(stripExtension(fileFallback.name));
                 }
             }
@@ -165,17 +174,7 @@ Loads Drill data to be used in any crawling
 */
 DrillConfig loadData(immutable(string) assetsDirectory)
 {
-    import std.path : buildPath;
-    import std.conv: to;
-    import std.experimental.logger;
-
-    import Utils : mergeAllTextFilesInDirectory;
-    import std.file : dirEntries, SpanMode, DirEntry, readText, FileException;
-    import Utils : getMountpoints;
-    import Meta : VERSION;
-    import std.regex: Regex, regex;
-    import std.algorithm : canFind, filter, map;
-    import std.array : array;
+   
     
     //Logger.logDebug("DrillAPI " ~ VERSION);
     //Logger.logDebug("Mount points found: "~to!string(getMountpoints()));
@@ -191,7 +190,7 @@ DrillConfig loadData(immutable(string) assetsDirectory)
     }
     catch (FileException fe)
     {
-        error(fe.message);
+        error(fe.msg);
         error("Error when trying to load block lists, will default to an empty list");
     }
 
@@ -209,7 +208,7 @@ DrillConfig loadData(immutable(string) assetsDirectory)
     }
     catch (FileException fe)
     {
-        error(fe.message);
+        error(fe.msg);
         error("Error when trying to read priority lists, will default to an empty list");
     }
 
