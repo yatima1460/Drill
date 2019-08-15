@@ -1,0 +1,30 @@
+{
+  "name": "Drill",
+  "main": "main.js",
+  "main": "drill.html",
+  "description": "The Universal Launcher",
+  
+  "keywords": [
+    "search",
+    "file searcher",
+    "utility"
+  ],
+  "window": {
+    "title": "Drill",
+    "fullscreen": false,
+    "icon": "drill.png",
+    "resizable": false,
+    "toolbar": false,
+    "frame": false,
+    "width": 960,
+    "height": 77,
+    "position": "center",
+    "min_width": 160,
+    "min_height": 77,
+    "max_width": 960,
+    "max_height": 140
+  },
+  "webkit": {
+    "plugin": true
+  }
+}
