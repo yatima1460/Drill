@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg width="48px" height="48px" viewBox="0 0 48 48" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <!-- Generator: Sketch 3.8.3 (29802) - http://www.bohemiancoding.com/sketch -->
+    <title>深度云扫描</title>
+    <desc>Created with Sketch.</desc>
+    <defs>
+        <filter x="-50%" y="-50%" width="200%" height="200%" filterUnits="objectBoundingBox" id="filter-1">
+            <feOffset dx="0" dy="1" in="SourceAlpha" result="shadowOffsetOuter1"></feOffset>
+            <feGaussianBlur stdDeviation="1" in="shadowOffsetOuter1" result="shadowBlurOuter1"></feGaussianBlur>
+            <feColorMatrix values="0 0 0 0 0   0 0 0 0 0   0 0 0 0 0  0 0 0 0.2 0" type="matrix" in="shadowBlurOuter1" result="shadowMatrixOuter1"></feColorMatrix>
+            <feMerge>
+                <feMergeNode in="shadowMatrixOuter1"></feMergeNode>
+                <feMergeNode in="SourceGraphic"></feMergeNode>
+            </feMerge>
+        </filter>
+        <linearGradient x1="50.0006818%" y1="2.22971221%" x2="50.0006818%" y2="98.9810734%" id="linearGradient-2">
+            <stop stop-color="#FAFDFF" offset="0%"></stop>
+            <stop stop-color="#E7F5FF" offset="56.66%"></stop>
+            <stop stop-color="#D6EEFF" offset="100%"></stop>
+        </linearGradient>
+    </defs>
+    <g id="Page-1" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <g id="深度云扫描">
+            <g id="Group-2" filter="url(#filter-1)" transform="translate(1.000000, 2.000000)">
+                <path d="M44.994,19.195 C44.994,15.199 42.269,11.831 38.54,10.761 C37.469,6.647 33.669,3.599 29.132,3.599 C27.812,3.599 26.556,3.859 25.408,4.325 C23.44,2.277 20.653,0.992 17.554,0.992 C11.65,0.992 6.86,5.635 6.769,11.393 C3.403,12.582 0.993,15.727 0.993,19.431 C0.993,24.128 4.862,27.937 9.65,27.98 L9.65,27.991 L36.284,27.991 L36.284,27.975 C41.118,27.832 44.994,23.961 44.994,19.195 L44.994,19.195 Z" id="Shape" fill="url(#linearGradient-2)"></path>
+                <circle id="Oval" fill="#8FC31F" cx="39.494" cy="22.51" r="1.5"></circle>
+                <path d="M7.49631508,37 C6.94606545,37 6.45562833,37.4437166 6.40121608,37.9878391 L6.19904991,40.0095009 C6.08911768,41.1088232 6.88926172,42 8.00174332,42 L35.9982567,42 C37.103789,42 37.9106099,41.1061002 37.8009499,40.0095009 L37.5987834,37.9878391 C37.5442265,37.4422706 37.0617737,37 36.5036843,37 L7.49631508,37 Z" id="Path-12" fill="#819CBB"></path>
+                <path d="M8.76208744,17.9826047 C8.89348292,16.8876423 9.89497885,16 10.9970047,16 L33.0029953,16 C34.1059106,16 35.1067716,16.8897632 35.2379126,17.9826047 L37.7620874,39.0173953 C37.8934829,40.1123577 37.1107383,41 35.9982567,41 L8.00174332,41 C6.89621101,41 6.10677159,40.1102368 6.23791256,39.0173953 L8.76208744,17.9826047 Z" id="Rectangle-10" fill="#ADC9EA"></path>
+                <polygon id="Rectangle-11" stroke="#145CB0" stroke-linecap="round" stroke-linejoin="round" fill="#0080FF" points="11.4230769 18.5 32.5769231 18.5 34.5 37.5 9.5 37.5"></polygon>
+                <polygon id="Combined-Shape" fill="#FFFFFF" points="12 27 12 28 10.5 28 11 25 12 25 12 26 32 26 32 25 33 25 33.5 28 32 28 32 27"></polygon>
+                <polygon id="Rectangle-11" stroke="#145CB0" stroke-linecap="round" stroke-linejoin="round" points="11.4230769 18.5 32.5769231 18.5 34.5 37.5 9.5 37.5"></polygon>
+                <path d="M14.9644095,21.4982674 C14.9840656,21.2230819 15.2199066,21 15.4982674,21 L28.5017326,21 C28.7769181,21 29.0157076,21.2199066 29.0355905,21.4982674 L29.9644095,34.5017326 C29.9840656,34.7769181 29.773819,35 29.5036068,35 L14.4963932,35 C14.2222428,35 14.0157076,34.7800934 14.0355905,34.5017326 L14.9644095,21.4982674 Z" id="Rectangle-18" fill="#FFFFFF" opacity="0.319029851"></path>
+            </g>
+        </g>
+    </g>
+</svg>

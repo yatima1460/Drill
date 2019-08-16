@@ -1,0 +1,9 @@
+.png
+.kra
+.psd
+.jpg
+.jpeg
+.gif
+.svg
+.tga
+.sai

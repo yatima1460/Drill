@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:xlink="http://www.w3.org/1999/xlink"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   width="128"
+   height="128"
+   viewBox="0 0 128 128"
+   version="1.1"
+   id="svg29"
+   sodipodi:docname="com.deepin.deepinid.Client.svg"
+   inkscape:version="0.92.1 r15371">
+  <metadata
+     id="metadata33">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title></dc:title>
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <sodipodi:namedview
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1"
+     objecttolerance="10"
+     gridtolerance="10"
+     guidetolerance="10"
+     inkscape:pageopacity="0"
+     inkscape:pageshadow="2"
+     inkscape:window-width="1861"
+     inkscape:window-height="1040"
+     id="namedview31"
+     showgrid="false"
+     showguides="false"
+     inkscape:snap-bbox="true"
+     inkscape:zoom="2.36"
+     inkscape:cx="4.2542373"
+     inkscape:cy="50"
+     inkscape:window-x="59"
+     inkscape:window-y="0"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="svg29" />
+  <defs
+     id="defs16">
+    <linearGradient
+       id="cloud-b"
+       x1="45.414755"
+       x2="45.414755"
+       y1="0"
+       y2="87.363454"
+       gradientTransform="scale(1.2110601,0.82572282)"
+       gradientUnits="userSpaceOnUse">
+      <stop
+         offset="0%"
+         stop-color="#61A2FF"
+         id="stop2" />
+      <stop
+         offset="100%"
+         stop-color="#0854F2"
+         id="stop4" />
+    </linearGradient>
+    <path
+       id="cloud-a"
+       d="M 62,0 C 77.794992,0 90.917176,11.443652 93.527785,26.492188 103.13601,29.978458 110,39.187644 110,50 110,63.807119 98.807119,75 85,75 76.347028,75 35.014934,75 25,75 11.192881,75 0,63.807119 0,50 0,36.192881 11.192881,25 25,25 c 1.936875,0 3.822304,0.220262 5.632607,0.637103 C 33.583184,11.012283 46.505564,0 62,0 Z"
+       inkscape:connector-curvature="0" />
+    <linearGradient
+       id="cloud-c"
+       x1="46.605019"
+       x2="46.605019"
+       y1="-16.188189"
+       y2="95.120895"
+       gradientTransform="scale(1.1576221,0.86383978)"
+       gradientUnits="userSpaceOnUse">
+      <stop
+         offset="0%"
+         stop-color="#72ACFF"
+         id="stop8" />
+      <stop
+         offset="100%"
+         stop-color="#3073FF"
+         id="stop10" />
+    </linearGradient>
+    <filter
+       id="cloud-d"
+       width="1.367"
+       height="1.5619999"
+       x="-0.184"
+       y="-0.28100002"
+       filterUnits="objectBoundingBox">
+      <feGaussianBlur
+         in="SourceGraphic"
+         stdDeviation="6"
+         id="feGaussianBlur13" />
+    </filter>
+  </defs>
+  <g
+     transform="translate(10.049001,25.992001)"
+     id="g27"
+     style="fill:none;fill-rule:evenodd">
+    <mask
+       id="cloud-e"
+       fill="#fff">
+      <use
+         xlink:href="#cloud-a"
+         id="use18"
+         x="0"
+         y="0"
+         width="100%"
+         height="100%" />
+    </mask>
+    <use
+       xlink:href="#cloud-a"
+       id="use21"
+       style="fill:url(#cloud-b)"
+       x="0"
+       y="0"
+       width="100%"
+       height="100%" />
+    <path
+       d="M 60.236364,4 C 74.308266,4 85.998939,13.765249 88.324754,26.606667 96.884811,29.581617 103,37.440123 103,46.666667 103,58.448741 93.02816,68 80.727273,68 73.018262,68 36.195123,68 27.272727,68 14.97184,68 5,58.448741 5,46.666667 5,34.884592 14.97184,25.333333 27.272727,25.333333 c 1.725579,0 3.405326,0.187957 5.018141,0.543662 C 34.919564,13.397148 46.432229,4 60.236364,4 Z"
+       mask="url(#cloud-e)"
+       id="path23"
+       inkscape:connector-curvature="0"
+       style="fill:url(#cloud-c);filter:url(#cloud-d)" />
+    <ellipse
+       cx="58"
+       cy="87"
+       rx="52"
+       ry="3"
+       id="ellipse25"
+       style="opacity:0.4;fill:#b3d2ff" />
+  </g>
+</svg>
