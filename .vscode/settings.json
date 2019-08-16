@@ -2,6 +2,7 @@
   "files.associations": {
     "**/.azure-pipelines.old/*.yml": "azure-pipelines"
   },
-  "debug.allowBreakpointsEverywhere":true
+  "debug.allowBreakpointsEverywhere": true,
+  "C_Cpp.default.configurationProvider": "vector-of-bool.cmake-tools"
 }
 
