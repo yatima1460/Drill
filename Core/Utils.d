@@ -250,7 +250,7 @@ out(app; app.name !is null, "app name can't be null: " ~ fullPath)
 out(app; app.name.length > 0) // out (app;app.exec !is null,"app exec can't be null: "~fullPath)
 // out (app;app.exec.length > 0,"app exec can't be length 0: "~fullPath)
 {
-
+   
     string[] desktopFileLines;
 
     string desktopFileDateModifiedString;

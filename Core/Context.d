@@ -34,7 +34,7 @@ import core.sync.barrier : Barrier;
     it holds a pool of crawlers and the current state, 
     like the searched value
 +/
-pure nothrow @nogc class DrillContext
+pure nothrow @nogc struct DrillContext
 {
       bool stopping;
       Barrier barrier;
@@ -118,6 +118,7 @@ pure nothrow @nogc class DrillContext
 
         foreach (Crawler crawler; this.threads)
         {
+            
             import core.thread : Thread;
             if (Thread.getThis() == crawler)
             {
@@ -243,7 +244,7 @@ in (searchValue !is null, "the search string can't be null")
 in (searchValue.length > 0, "the search string can't be empty")
 in (resultCallback !is null, "the search callback can't be null")
 {
-    DrillContext c = new DrillContext();
+    DrillContext c;
 
     MatchingFunction matchingFunction = null;
     if (searchValue == "content:")

@@ -583,6 +583,7 @@ public:
     in (MOUNTPOINT.length != 0, "the mountpoint string can't be empty")
     in (resultCallback != null, "the result callback can't be null")
     {
+     
         crawling = true;
         infof("Crawler %s waiting on the barrier", MOUNTPOINT);
         barrier.wait();
@@ -607,8 +608,13 @@ public:
         auto mountpointsMinusCurrentOne = getMountpoints()[].filter!(x => x != MOUNTPOINT).map!(x => "^" ~ x ~ "$");
         this.BLOCK_LIST_REGEX ~= mountpointsMinusCurrentOne.map!(x => regex(x,"i")).array;
 
+       
+
         // Use the queue as a stack to scan using a breadth-first algorithm
         DList!DirEntry queue;
+
+
+        
 
         /+
             Try to insert the mountpoint in the queue as first element

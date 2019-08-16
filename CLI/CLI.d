@@ -50,7 +50,7 @@ import core.atomic : atomicOp;
 //     mtx = new shared Mutex();
 // }
 
-class DrillCLI
+struct DrillCLI
 {
 
     int number = -1;
@@ -163,7 +163,10 @@ class DrillCLI
 
 int main(string[] args)
 {
-    auto cli = new DrillCLI(args);
+    DrillCLI cli = DrillCLI(args);
+
+
+
     import core.memory : GC;
 
     
