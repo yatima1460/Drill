@@ -37,7 +37,7 @@ install:
 script:
    # DO NOT USE "bash" here and inside sub-scripts, but use "source"
    # so we can change global variables like PATH in sub-scripts
-   - set -e
+  #  - set -e
    - cd core && make build && cd ../
    - cd cli && make build && cd ../
   #  - source .travis/pipeline.bash
