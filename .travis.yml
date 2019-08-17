@@ -8,20 +8,21 @@ os:
   - linux
   - osx
 
-env:
-  - MAIN_VERSION=3
+# env:
+#   - MAIN_VERSION=3
 
 
-before_install:
-  - if [ "$TRAVIS_OS_NAME" = "osx" ]; then test -d /usr/local/opt/gtk+3/lib  || { rmdir /usr/local/opt/gtk+3; brew install gtk+3; }; fi;
-  - if [ "$TRAVIS_OS_NAME" = "osx" ]; then test -d /usr/local/opt/glib/lib   || { rmdir /usr/local/opt/glib; brew install glib; }; fi;
-  - if [ "$TRAVIS_OS_NAME" = "osx" ]; then test -d /usr/local/opt/gobject-introspection/lib  || { rmdir /usr/local/opt/gobject-introspection; brew install gobject-introspection; }; fi;
-  - if [ "$TRAVIS_OS_NAME" = "osx" ]; then test -d /usr/local/opt/p7zip/lib  || { rmdir /usr/local/opt/p7zip; brew install p7zip; }; fi;
+# before_install:
+#   - if [ "$TRAVIS_OS_NAME" = "osx" ]; then test -d /usr/local/opt/gtk+3/lib  || { rmdir /usr/local/opt/gtk+3; brew install gtk+3; }; fi;
+#   - if [ "$TRAVIS_OS_NAME" = "osx" ]; then test -d /usr/local/opt/glib/lib   || { rmdir /usr/local/opt/glib; brew install glib; }; fi;
+#   - if [ "$TRAVIS_OS_NAME" = "osx" ]; then test -d /usr/local/opt/gobject-introspection/lib  || { rmdir /usr/local/opt/gobject-introspection; brew install gobject-introspection; }; fi;
+#   - if [ "$TRAVIS_OS_NAME" = "osx" ]; then test -d /usr/local/opt/p7zip/lib  || { rmdir /usr/local/opt/p7zip; brew install p7zip; }; fi;
 
 install:
   # - if [ ! -d dmd."$DMD_VERSION" ]; then source .travis/install_d.bash; fi;
-  - bash .travis/install_gtk.bash
+  # - bash .travis/install_gtk.bash
   # Install 7zip
+  - if [ "$TRAVIS_OS_NAME" = "windows" ]; then choco install make; fi;
   - if [ "$TRAVIS_OS_NAME" = "linux" ]; then sudo apt install -y p7zip-full 1>/dev/null; fi;
   - if [ "$TRAVIS_OS_NAME" = "osx" ]; then brew install p7zip; fi;
   - if [ "$TRAVIS_OS_NAME" = "linux" ]; then   sudo apt install -y appstream 1>/dev/null; fi;
@@ -35,20 +36,20 @@ script:
 
   #  - if [ "$TRAVIS_PULL_REQUEST" = "false" ]; then bash ./.travis/rolling_release.bash; fi
    
-before_cache:
-  - if [ "$TRAVIS_OS_NAME" = "osx" ]; then brew cleanup; fi;
+# before_cache:
+#   - if [ "$TRAVIS_OS_NAME" = "osx" ]; then brew cleanup; fi;
   # - DIR="$PWD/dmd2"
   # - if [! -d "$DIR" ]; then source ./.travis/install_d.bash; fi;
 
-cache:
-  directories:
-    - $HOME/Library/Caches/Homebrew
-    - /usr/local/Cellar/gtk+3
-    - /usr/local/opt/gtk+3
-    - /usr/local/Cellar/glib
-    - /usr/local/opt/glib
-    - /usr/local/Cellar/gobject-introspection
-    - /usr/local/opt/gobject-introspection
-    - /usr/local/Cellar/p7zip
-    - /usr/local/opt/p7zip
+# cache:
+#   directories:
+#     - $HOME/Library/Caches/Homebrew
+#     - /usr/local/Cellar/gtk+3
+#     - /usr/local/opt/gtk+3
+#     - /usr/local/Cellar/glib
+#     - /usr/local/opt/glib
+#     - /usr/local/Cellar/gobject-introspection
+#     - /usr/local/opt/gobject-introspection
+#     - /usr/local/Cellar/p7zip
+#     - /usr/local/opt/p7zip
     # - dmd."$DMD_VERSION"
