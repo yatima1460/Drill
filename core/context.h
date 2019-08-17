@@ -18,9 +18,13 @@
 #include "file_info.h"
 #include "config.h"
 
+#include "crawler.h"
+
 struct drill_context
 {
     char search_value[FILENAME_MAX];
+
+    struct crawler_context threads_context[DRILL_MAX_MOUNTPOINTS];
 
 #ifdef __linux__ 
     pthread_t threads[DRILL_MAX_MOUNTPOINTS];
