@@ -1,6 +1,10 @@
 #!/bin/bash
 
 
+if [ "$TRAVIS_OS_NAME" = "windows" ]; then
+    choco install make
+fi
+
 # Unittests
 
 
