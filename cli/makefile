@@ -10,6 +10,7 @@ build: cli.c drill_core.a
 .PHONY: clean
 clean:
 	rm -f cli.elf
+	cd ../core && make clean
 	echo Clean done
 
 .PHONY: run

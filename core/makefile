@@ -4,7 +4,7 @@
 FLAGS	 = -Wall -Wextra -pedantic -std=c11 #-Werror
 # LFLAGS	 = -lpthread
 
-.PHONY build
+.PHONY: build
 build: file_info.h matching_functions.h meta.h context.o config.o 
 	echo "Compiling Drill Core"
 	gcc -shared -fPIC -o drill_core.a file_info.h matching_functions.h meta.h context.h context.c config.c config.h $(FLAGS)
