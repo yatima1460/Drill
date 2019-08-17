@@ -10,7 +10,9 @@
 #include "matching_functions.h"
 #include "crawler.h"
 
-#include <mntent.h>
+#ifdef __linux__
+#   include <mntent.h>
+#endif
 
 
 
