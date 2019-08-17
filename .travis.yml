@@ -30,7 +30,7 @@ install:
   - if [ "$TRAVIS_OS_NAME" = "linux" ]; then sudo apt update 1>/dev/null; fi;
   - if [ "$TRAVIS_OS_NAME" = "linux" ]; then sudo apt install -y p7zip-full 1>/dev/null; fi;
   - if [ "$TRAVIS_OS_NAME" = "linux" ]; then sudo apt install -y appstream 1>/dev/null; fi;
-  - if [ "$TRAVIS_OS_NAME" = "osx" ]; then brew install p7zip; fi;
+  # - if [ "$TRAVIS_OS_NAME" = "osx" ]; then brew install p7zip; fi;
 
 
 
