@@ -6,7 +6,7 @@
 
 struct drill_config
 {
-
+    
 };
 
 

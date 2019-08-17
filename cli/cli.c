@@ -4,9 +4,11 @@
 
 #include <assert.h>
 
+
 void results_bare(struct file_info file_info, void* user_object)
 {
-    printf("%s \n",file_info.name);
+    
+    printf("%s \n",file_info.fullpath);
 }
 
 

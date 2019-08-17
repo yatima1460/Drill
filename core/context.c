@@ -26,7 +26,7 @@ void drill_wait_for_crawlers(struct drill_context drill_context)
     if (drill_context.threads_count == 0)
         fprintf(stderr, "warning: trying to wait when there is no need, 0 threads active\n");
 
-    for (int i = 0; i < drill_context.threads_count; i++)
+    for (unsigned int i = 0; i < drill_context.threads_count; i++)
     {
         // FIXME: if current_thread == thread continue
 
@@ -105,6 +105,8 @@ struct drill_context* drill_start_crawling(struct drill_config drill_config, cha
 
         strcpy(ctx->threads_context[ctx->threads_count].mountpoint, ent->mnt_dir);
 
+
+        ctx->threads_context[ctx->threads_count].result_callback = result_callback;
         //printf("Crawler with mountpoint '%s' will be spawned now\n", ctx.threads_context[ctx.threads_count].mountpoint);
 
         pthread_t thread;
