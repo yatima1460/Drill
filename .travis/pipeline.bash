@@ -6,16 +6,16 @@
 
 
 # Builds
-cd core && make build
-cd cli && make build
+# cd core && make build
+# cd cli && make build
 
 
-# if this is a pull request we stop here
-if [ "$TRAVIS_PULL_REQUEST" != "false" ]; then 
-    echo "Pull request detected, skipping building of packages"
-    travis_terminate 0;
-    exit 0;
-fi
+# # if this is a pull request we stop here
+# if [ "$TRAVIS_PULL_REQUEST" != "false" ]; then 
+#     echo "Pull request detected, skipping building of packages"
+#     travis_terminate 0;
+#     exit 0;
+# fi
 
 
 

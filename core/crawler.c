@@ -7,7 +7,7 @@
 #include <stdlib.h>
 
 #ifdef _WIN32 
-#   include <threads.h>
+#   include <windows.h>
 #else
 #   include <pthread.h>
 #endif

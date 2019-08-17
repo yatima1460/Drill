@@ -9,7 +9,7 @@
 // TODO: __STDC_NO_THREADS__
 
 #ifdef _WIN32 
-#   include <threads.h>
+#   include <windows.h>
 #else
 #   include <pthread.h>
 #endif

@@ -38,7 +38,9 @@ script:
    # DO NOT USE "bash" here and inside sub-scripts, but use "source"
    # so we can change global variables like PATH in sub-scripts
    - set -e
-   - source .travis/pipeline.bash
+   - cd core && make build
+   - cd cli && make build
+  #  - source .travis/pipeline.bash
 
   #  - if [ "$TRAVIS_PULL_REQUEST" = "false" ]; then bash ./.travis/rolling_release.bash; fi
    
