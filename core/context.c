@@ -39,24 +39,24 @@ void drill_wait_for_crawlers(struct drill_context drill_context)
 #ifdef _WIN32
         int result = -999;
         thrd_join(&thread, &result);
-        printf("Crawler '%s' returned %d at the join\n", drill_context.threads_context[i].mountpoint, (int)result);
+        printf("[%s] returned %d at the join\n", drill_context.threads_context[i].mountpoint, (int)result);
 #else
         void *retval = (void *)-999;
         pthread_join(thread, &retval);
-        printf("Crawler '%s' returned %ld at the join\n", drill_context.threads_context[i].mountpoint, (unsigned long)retval);
+        printf("[%s] returned %ld at the join\n", drill_context.threads_context[i].mountpoint, (unsigned long)retval);
 
 #endif
     }
 }
 
-struct drill_context drill_start_crawling(struct drill_config drill_config, char *search_value, void (*result_callback)(struct file_info file_info, void *user_object), void *user_object)
+struct drill_context* drill_start_crawling(struct drill_config drill_config, char *search_value, void (*result_callback)(struct file_info file_info, void *user_object), void *user_object)
 {
     assert(search_value != NULL);
     assert(result_callback != NULL);
     if (user_object == NULL)
         fprintf(stderr, "warning: user_object is null\n");
 
-    struct drill_context ctx = {0};
+    struct drill_context* ctx = malloc(sizeof(struct drill_context));
 
     // string is a search token, nothing to do
     if (strcmp(search_value, DRILL_CONTENT_SEARCH_TOKEN) == 0)
@@ -73,13 +73,13 @@ struct drill_context drill_start_crawling(struct drill_config drill_config, char
     else
     {
         matching_function = drill_is_file_name_matching_search;
-        memcpy(ctx.search_value, search_value, strlen(search_value));
+        memcpy(ctx->search_value, search_value, strlen(search_value));
     }
 
-    assert(ctx.search_value != NULL);
-    assert(strlen(ctx.search_value) > 0);
+    assert(ctx->search_value != NULL);
+    assert(strlen(ctx->search_value) > 0);
 
-    ctx.user_object = user_object;
+    ctx->user_object = user_object;
 
 //TODO: barrier
 //TODO: if crawler in blocklist do not spawn
@@ -103,18 +103,18 @@ struct drill_context drill_start_crawling(struct drill_config drill_config, char
 
         
 
-        strcpy(ctx.threads_context[ctx.threads_count].mountpoint, ent->mnt_dir);
+        strcpy(ctx->threads_context[ctx->threads_count].mountpoint, ent->mnt_dir);
 
         //printf("Crawler with mountpoint '%s' will be spawned now\n", ctx.threads_context[ctx.threads_count].mountpoint);
 
         pthread_t thread;
-        if (pthread_create(&ctx.threads[ctx.threads_count], NULL, crawler_run, &ctx.threads_context[ctx.threads_count])  != 0 )
+        if (pthread_create(&ctx->threads[ctx->threads_count], NULL, crawler_run, &ctx->threads_context[ctx->threads_count])  != 0 )
         {
             perror("pthread_create() error\n");
             exit(1);
         }
        
-        ctx.threads_count++;
+        ctx->threads_count++;
     }
     endmntent(aFile);
 #elif __APPLE__
@@ -125,18 +125,18 @@ struct drill_context drill_start_crawling(struct drill_config drill_config, char
     {
         while ((dir = readdir(d)) != NULL)
         {
-            strcpy(ctx.threads_context[ctx.threads_count].mountpoint, dir->d_name);
+            strcpy(ctx->threads_context[ctx->threads_count].mountpoint, dir->d_name);
 
             //printf("Crawler with mountpoint '%s' will be spawned now\n", ctx.threads_context[ctx.threads_count].mountpoint);
 
             pthread_t thread;
-            if (pthread_create(&ctx.threads[ctx.threads_count], NULL, crawler_run, &ctx.threads_context[ctx.threads_count]) != 0)
+            if (pthread_create(&ctx->threads[ctx->threads_count], NULL, crawler_run, &ctx->threads_context[ctx->threads_count]) != 0)
             {
                 perror("pthread_create() error\n");
                 exit(1);
             }
 
-            ctx.threads_count++;
+            ctx->threads_count++;
         }
         closedir(d);
     }

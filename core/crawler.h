@@ -6,7 +6,7 @@
 #include <stdbool.h>
 
 
-
+#include "file_info.h"
 
 struct crawler_context
 {

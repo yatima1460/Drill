@@ -7,7 +7,8 @@
     "meta.h": "c",
     "config.h": "c",
     "dirent.h": "c",
-    "crawler.h": "c"
+    "crawler.h": "c",
+    "file_info.h": "c"
   },
   "debug.allowBreakpointsEverywhere": true,
   "C_Cpp.default.configurationProvider": "vector-of-bool.cmake-tools",
