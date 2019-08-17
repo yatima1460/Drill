@@ -19,6 +19,7 @@
 // After this number they will just be ignored
 #define DRILL_MAX_MOUNTPOINTS 256
 
+#define DRILL_MAX_DIRECTORY_QUEUE 1024
 
 #define DRILL_VERSION "3.0.0"
 

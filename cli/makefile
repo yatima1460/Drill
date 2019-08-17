@@ -40,7 +40,11 @@ endif
 
 .PHONY: build
 build: cli.c drill_core.a
-	gcc -fPIC -o cli.elf cli.c ../core/drill_core.a $(FLAGS) -I../core $(LFLAGS)
+	echo building cli.elf...
+	gcc -g -fPIC -o cli.elf cli.c -I../core $(FLAGS) -L../core -ldrillcore  $(LFLAGS)
+	echo built cli.elf
+	# gcc -g -fPIC -o cli.elf cli.o   $(LFLAGS) -L../core
+	# echo linked cli.o with drill_core.a
 
 .PHONY: clean
 clean:

@@ -5,9 +5,10 @@ FLAGS	 =  -std=c11 -Wall -Wextra -pedantic -Wfatal-errors#-Werror
 # LFLAGS	 = -lpthread
 
 .PHONY: build
-build: file_info.h matching_functions.h meta.h context.o config.o crawler.o
+build: file_info.h matching_functions.h meta.h context.o config.o crawler.o 
 	echo "Compiling Drill Core"
-	gcc -shared -fPIC -o drill_core.a crawler.c context.c config.c $(FLAGS)
+	gcc -g -shared -fPIC crawler.c context.c config.c $(FLAGS)
+	gcc-ar cr libdrillcore.a crawler.o context.o config.o 
 
 .PHONY: clean
 clean:

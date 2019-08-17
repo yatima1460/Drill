@@ -8,14 +8,14 @@
         "name": "CLI (gdb) Launch",
         "type": "cppdbg",
         "request": "launch",
-        "program":"${workspaceFolder}/Build/Drill-CLI-windows-x86_64-debug/drill-cli.exe",
+        "program":"${workspaceFolder}/cli/cli.elf",
         "args": ["a","-n3"],
         "stopAtEntry": false,
         "cwd": "${workspaceFolder}",
         "environment": [],
         "externalConsole": false,
         "MIMode": "gdb",
-        "miDebuggerPath": "C:\\WinBuilds\\bin\\gdb.exe",
+        "miDebuggerPath": "gdb",
         "setupCommands": [
             {
                 "description": "Enable pretty-printing for gdb",

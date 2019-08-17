@@ -125,7 +125,18 @@ struct drill_context drill_start_crawling(struct drill_config drill_config, char
     {
         while ((dir = readdir(d)) != NULL)
         {
-            printf("%s\n", dir->d_name);
+            strcpy(ctx.threads_context[ctx.threads_count].mountpoint, dir->d_name);
+
+            //printf("Crawler with mountpoint '%s' will be spawned now\n", ctx.threads_context[ctx.threads_count].mountpoint);
+
+            pthread_t thread;
+            if (pthread_create(&ctx.threads[ctx.threads_count], NULL, crawler_run, &ctx.threads_context[ctx.threads_count]) != 0)
+            {
+                perror("pthread_create() error\n");
+                exit(1);
+            }
+
+            ctx.threads_count++;
         }
         closedir(d);
     }
