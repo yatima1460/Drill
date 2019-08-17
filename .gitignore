@@ -1,6 +1,6 @@
 
-# Created by https://www.gitignore.io/api/c,cmake
-# Edit at https://www.gitignore.io/?templates=c,cmake
+# Created by https://www.gitignore.io/api/c
+# Edit at https://www.gitignore.io/?templates=c
 
 ### C ###
 # Prerequisites
@@ -56,23 +56,4 @@ Module.symvers
 Mkfile.old
 dkms.conf
 
-### CMake ###
-CMakeLists.txt.user
-CMakeCache.txt
-CMakeFiles
-CMakeScripts
-Testing
-Makefile
-cmake_install.cmake
-install_manifest.txt
-compile_commands.json
-CTestTestfile.cmake
-_deps
-
-### CMake Patch ###
-# External projects
-*-prefix/
-
-# End of https://www.gitignore.io/api/c,cmake
-
-build
+# End of https://www.gitignore.io/api/c
