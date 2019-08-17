@@ -1,7 +1,7 @@
 
 language: C
 
-fast_finish: true
+# fast_finish: true
 
 os:
   - windows
