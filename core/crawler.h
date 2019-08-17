@@ -1,4 +1,5 @@
-#pragma once
+#ifndef CRAWLER_H
+#define CRAWLER_H
 
 
 #include <stdio.h>
@@ -13,3 +14,6 @@ struct crawler_context
 
 
 void* crawler_run(void* c_ctx);
+
+
+#endif

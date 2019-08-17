@@ -12,33 +12,38 @@
 
 #include <mntent.h>
 
+
+
+
+
+
+
+
 void drill_wait_for_crawlers(struct drill_context drill_context)
 {
     if (drill_context.threads_count == 0)
         fprintf(stderr, "warning: trying to wait when there is no need, 0 threads active\n");
+
     for (int i = 0; i < drill_context.threads_count; i++)
     {
         // FIXME: if current_thread == thread continue
 
-#ifdef __linux__
-        pthread_t thread = drill_context.threads[i];
-#else
+#ifdef _WIN32
         thrd_t thread = drill_context.threads[i];
+#else
+        pthread_t thread = drill_context.threads[i];
 #endif
 
-        
-
-#ifdef __linux__
-        void* retval = -999;
-        pthread_join(thread, &retval);
-         printf("Crawler '%s' returned %d at the join\n", drill_context.threads_context[i].mountpoint,(int)retval);
-#else
+#ifdef _WIN32
         int result = -999;
         thrd_join(&thread, &result);
-         printf("Crawler '%s' returned %d at the join\n", drill_context.threads_context[i].mountpoint,(int)result);
-#endif
+        printf("Crawler '%s' returned %d at the join\n", drill_context.threads_context[i].mountpoint, (int)result);
+#else
+        void *retval = (void *)-999;
+        pthread_join(thread, &retval);
+        printf("Crawler '%s' returned %ld at the join\n", drill_context.threads_context[i].mountpoint, (unsigned long)retval);
 
-       
+#endif
     }
 }
 
@@ -123,7 +128,7 @@ struct drill_context drill_start_crawling(struct drill_config drill_config, char
         closedir(d);
     }
 #elif _WIN32
-#error TODO
+#warning windows thread spawning to do
 #else
 #error NOT SUPPORTED
 #endif

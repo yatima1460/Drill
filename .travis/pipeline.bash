@@ -5,7 +5,8 @@
 
 
 # Builds
-cmake build
+cd core && make build
+cd cli && make build
 
 
 # if this is a pull request we stop here
@@ -20,14 +21,14 @@ fi
 # Packages
 
 
-if [ "$TRAVIS_OS_NAME" = "linux" ]; then
-    # bash .travis/create_appimage.bash &
-    # source .travis/create_deb_cli.bash
-    # source .travis/create_deb_gtk.bash
-    # source .travis/create_rpm_cli.bash
-    # source .travis/create_rpm_gtk.bash
-fi
-wait
+# if [ "$TRAVIS_OS_NAME" = "linux" ]; then
+#     # bash .travis/create_appimage.bash &
+#     # source .travis/create_deb_cli.bash
+#     # source .travis/create_deb_gtk.bash
+#     # source .travis/create_rpm_cli.bash
+#     # source .travis/create_rpm_gtk.bash
+# fi
+# wait
 
 # TODO: installer windows
 

@@ -1,4 +1,5 @@
-#pragma once
+#ifndef META_H
+#define META_H
 
 
 
@@ -20,3 +21,7 @@
 
 
 #define DRILL_VERSION "3.0.0"
+
+
+
+#endif

@@ -1,4 +1,5 @@
-#pragma once
+#ifndef CONTEXT_H
+#define CONTEXT_H
 
 
 #include <stdlib.h>
@@ -7,10 +8,10 @@
 
 // TODO: __STDC_NO_THREADS__
 
-#ifdef __linux__ 
-#   include <pthread.h>
-#else
+#ifdef _WIN32 
 #   include <threads.h>
+#else
+#   include <pthread.h>
 #endif
 
 #include "meta.h"
@@ -26,11 +27,13 @@ struct drill_context
 
     struct crawler_context threads_context[DRILL_MAX_MOUNTPOINTS];
 
-#ifdef __linux__ 
-    pthread_t threads[DRILL_MAX_MOUNTPOINTS];
-#else
+#ifdef _WIN32 
     thrd_t threads[DRILL_MAX_MOUNTPOINTS];
+#else
+    pthread_t threads[DRILL_MAX_MOUNTPOINTS];
 #endif
+
+
     unsigned int threads_count;
 
     void* user_object;
@@ -50,3 +53,8 @@ void drill_stop_crawling_sync(struct drill_context);
 
 void drill_wait_for_crawlers(struct drill_context);
 
+
+
+
+
+#endif

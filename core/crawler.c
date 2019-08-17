@@ -6,6 +6,11 @@
 
 #include <stdlib.h>
 
+#ifdef _WIN32 
+#   include <threads.h>
+#else
+#   include <pthread.h>
+#endif
 
 void* crawler_run(void* c_ctx)
 {

@@ -1,4 +1,4 @@
-FLAGS	 = -std=c11#-Wall -Wextra -pedantic  -Wfatal-errors #-Werror
+FLAGS	 = -std=c11 -Wall -Wextra -pedantic  -Wfatal-errors #-Werror
 
 
 

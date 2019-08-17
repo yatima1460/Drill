@@ -1,5 +1,5 @@
-#pragma once
-
+#ifndef FILE_INFO_H
+#define FILE_INFO_H
 
 #include <stdio.h>
 
@@ -10,3 +10,8 @@ struct file_info
 
 
 };
+
+
+
+
+#endif
