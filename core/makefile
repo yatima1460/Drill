@@ -1,7 +1,7 @@
 # CC = gcc
 # LD = gcc
 # OBJS = context.o config.o file_info.o matching_functions.o meta.o
-FLAGS	 = -Wall -Wextra -pedantic -std=c11 #-Werror
+FLAGS	 = -Wall -Wextra -pedantic -std=c11 -Wfatal-errors#-Werror
 # LFLAGS	 = -lpthread
 
 .PHONY: build

@@ -5,9 +5,12 @@
     "sstream": "cpp",
     "assert.h": "c",
     "meta.h": "c",
-    "config.h": "c"
+    "config.h": "c",
+    "dirent.h": "c"
   },
   "debug.allowBreakpointsEverywhere": true,
-  "C_Cpp.default.configurationProvider": "vector-of-bool.cmake-tools"
+  "C_Cpp.default.configurationProvider": "vector-of-bool.cmake-tools",
+  "editor.fontFamily": "monospace",
+  "editor.fontLigatures": true
 }
 

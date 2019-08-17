@@ -27,6 +27,7 @@ struct drill_context
 #else
     thrd_t threads[DRILL_MAX_MOUNTPOINTS];
 #endif
+    unsigned int threads_count;
 
     void* user_object;
 };

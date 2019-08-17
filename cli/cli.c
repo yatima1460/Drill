@@ -15,7 +15,7 @@ int main()
     struct drill_context ctx = drill_start_crawling(config,"owo",&result_callback,NULL);
 
 
-
+    drill_wait_for_crawlers(ctx);
 
 
     return EXIT_SUCCESS;

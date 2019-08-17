@@ -1,7 +1,7 @@
 
 #include <stdlib.h>
 #include <assert.h>
-
+#include <dirent.h>
 
 #include "context.h"
 #include "config.h"
@@ -13,8 +13,9 @@
 
 void drill_wait_for_crawlers(struct drill_context drill_context)
 {
-
-    for (size_t i = 0; i < DRILL_MAX_MOUNTPOINTS; i++)
+    if (drill_context.threads_count == 0)
+        fprintf(stderr,"warning: trying to wait when there is no need, 0 threads active\n");
+    for (size_t i = 0; i < drill_context.threads_count; i++)
     {
         // FIXME: if current_thread == thread continue
 
@@ -36,7 +37,7 @@ void drill_wait_for_crawlers(struct drill_context drill_context)
     }
 }
 
-struct drill_context drill_start_crawling(struct drill_config drill_config, char *search_value, void (*result_callback)(struct file_info file_info, void* user_object), void *user_object)
+struct drill_context drill_start_crawling(struct drill_config drill_config, char* search_value, void (*result_callback)(struct file_info file_info, void* user_object), void *user_object)
 {
     assert(search_value != NULL);
     assert(result_callback != NULL);
@@ -78,7 +79,7 @@ struct drill_context drill_start_crawling(struct drill_config drill_config, char
 
     //drill_get_mountpoints()
 
-
+#ifdef __linux__
     struct mntent *ent;
     FILE *aFile;
 
@@ -89,11 +90,28 @@ struct drill_context drill_start_crawling(struct drill_config drill_config, char
         exit(1);
     }
     while (NULL != (ent = getmntent(aFile))) {
-        printf("%s %s\n", ent->mnt_fsname, ent->mnt_dir);
+        printf("%s\n", ent->mnt_dir);
     }
     endmntent(aFile);
-
-
+#elif __APPLE__
+    DIR *d;
+    struct dirent *dir;
+    d = opendir("/Volumes");
+    if (d)
+    {
+        while ((dir = readdir(d)) != NULL)
+        {
+            printf("%s\n", dir->d_name);
+        }
+        closedir(d);
+    }
+#elif _WIN32
+#error TODO
+#else
+#error NOT SUPPORTED
+#endif
+    
+    return ctx;
 
 // #ifdef __linux__
 //     pthread_create(&thread, NULL, crawler_run, &x);

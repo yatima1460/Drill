@@ -1,4 +1,4 @@
-FLAGS	 = -Wall -Wextra -pedantic -std=c11 #-Werror
+FLAGS	 = -Wall -Wextra -pedantic -std=c11 -Wfatal-errors #-Werror
 # LFLAGS	 = -lpthread
 
 
