@@ -43,7 +43,7 @@ void drill_wait_for_crawlers(struct drill_context drill_context)
 #else
         void *retval = (void *)-999;
         pthread_join(thread, &retval);
-        printf("[%s] returned %ld at the join\n", drill_context.threads_context[i].mountpoint, (unsigned long)retval);
+        printf("[%s] returned %lu at the join\n", drill_context.threads_context[i].mountpoint, (unsigned long)retval);
 
 #endif
     }
@@ -109,6 +109,7 @@ struct drill_context* drill_start_crawling(struct drill_config drill_config, cha
         ctx->threads_context[ctx->threads_count].result_callback = result_callback;
         //printf("Crawler with mountpoint '%s' will be spawned now\n", ctx.threads_context[ctx.threads_count].mountpoint);
 
+        //crawler_run(&ctx->threads_context[ctx->threads_count]);
         pthread_t thread;
         if (pthread_create(&ctx->threads[ctx->threads_count], NULL, crawler_run, &ctx->threads_context[ctx->threads_count])  != 0 )
         {
@@ -120,9 +121,9 @@ struct drill_context* drill_start_crawling(struct drill_config drill_config, cha
     }
     endmntent(aFile);
 #elif __APPLE__
-    DIR *d;
+    
     struct dirent *dir;
-    d = opendir("/Volumes");
+    DIR *d = opendir("/Volumes");
     if (d)
     {
         while ((dir = readdir(d)) != NULL)

@@ -1,10 +1,10 @@
 cmake_minimum_required(VERSION 3.0.0)
 set (CMAKE_C_STANDARD 11)
 
-project(Drill VERSION 0.1.0)
+project(DrillCore VERSION 0.1.0)
 
-include(CTest)
-enable_testing()
+# include(CTest)
+# enable_testing()
 
 
 
