@@ -7,7 +7,7 @@ FLAGS	 =  -std=c11 -Wall -Wextra -pedantic -Wfatal-errors#-Werror
 .PHONY: build
 build: file_info.h matching_functions.h meta.h context.o config.o crawler.o
 	echo "Compiling Drill Core"
-	gcc -shared -fPIC -o drill_core.a crawler.c file_info.h matching_functions.h meta.h context.h context.c config.c config.h crawler.h $(FLAGS)
+	gcc -shared -fPIC -o drill_core.a crawler.c context.c config.c $(FLAGS)
 
 .PHONY: clean
 clean:

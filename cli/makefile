@@ -22,6 +22,7 @@ else
     endif
     ifeq ($(UNAME_S),Darwin)
         CCFLAGS += -D OSX
+		LFLAGS	 = -lpthread
     endif
     UNAME_P := $(shell uname -p)
     ifeq ($(UNAME_P),x86_64)
