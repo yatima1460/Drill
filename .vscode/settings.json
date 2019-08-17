@@ -1,6 +1,11 @@
 {
   "files.associations": {
-    "**/.azure-pipelines.old/*.yml": "azure-pipelines"
+    "**/.azure-pipelines.old/*.yml": "azure-pipelines",
+    "algorithm": "c",
+    "sstream": "cpp",
+    "assert.h": "c",
+    "meta.h": "c",
+    "config.h": "c"
   },
   "debug.allowBreakpointsEverywhere": true,
   "C_Cpp.default.configurationProvider": "vector-of-bool.cmake-tools"

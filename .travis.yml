@@ -1,5 +1,5 @@
 
-language: bash
+language: C
 
 fast_finish: true
 
@@ -9,7 +9,7 @@ os:
   - osx
 
 env:
-  - DMD_VERSION=2.087.1 MAIN_VERSION=2
+  - MAIN_VERSION=3
 
 
 before_install:
@@ -19,7 +19,7 @@ before_install:
   - if [ "$TRAVIS_OS_NAME" = "osx" ]; then test -d /usr/local/opt/p7zip/lib  || { rmdir /usr/local/opt/p7zip; brew install p7zip; }; fi;
 
 install:
-  - if [ ! -d dmd."$DMD_VERSION" ]; then source .travis/install_d.bash; fi;
+  # - if [ ! -d dmd."$DMD_VERSION" ]; then source .travis/install_d.bash; fi;
   - bash .travis/install_gtk.bash
   # Install 7zip
   - if [ "$TRAVIS_OS_NAME" = "linux" ]; then sudo apt install -y p7zip-full 1>/dev/null; fi;
@@ -51,4 +51,4 @@ cache:
     - /usr/local/opt/gobject-introspection
     - /usr/local/Cellar/p7zip
     - /usr/local/opt/p7zip
-    - dmd."$DMD_VERSION"
+    # - dmd."$DMD_VERSION"

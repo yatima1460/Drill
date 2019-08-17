@@ -1,17 +1,12 @@
 #!/bin/bash
 
 
-
 # Unittests
-dub test -c CLI &
-dub test -c GTK &
-wait
+
 
 # Builds
-echo "$MAIN_VERSION"."$TRAVIS_BUILD_NUMBER" > TRAVIS_VERSION
-dub build -c CLI -b release-travis &
-dub build -c GTK -b release-travis &
-wait
+cmake build
+
 
 # if this is a pull request we stop here
 if [ "$TRAVIS_PULL_REQUEST" != "false" ]; then 
@@ -23,10 +18,10 @@ fi
 
 
 # Packages
-7z a -mx0 -mmt2 -tzip Drill-"$MAIN_VERSION"."$TRAVIS_BUILD_NUMBER"-CLI-"$TRAVIS_OS_NAME"-x86_64.zip "$PWD"/Build/Drill-GTK-"$TRAVIS_OS_NAME"-x86_64-release-travis/* &
-7z a -mx0 -mmt2 -tzip Drill-"$MAIN_VERSION"."$TRAVIS_BUILD_NUMBER"-GTK-"$TRAVIS_OS_NAME"-x86_64.zip "$PWD"/Build/Drill-CLI-"$TRAVIS_OS_NAME"-x86_64-release-travis/* &
+
+
 if [ "$TRAVIS_OS_NAME" = "linux" ]; then
-    bash .travis/create_appimage.bash &
+    # bash .travis/create_appimage.bash &
     # source .travis/create_deb_cli.bash
     # source .travis/create_deb_gtk.bash
     # source .travis/create_rpm_cli.bash
