@@ -80,6 +80,8 @@ bool drill_is_file_name_matching_search(const char* const file_path, const struc
     {
         if(strstr(file_name_lower,pch) == 0)
         {
+            free(search_string_lower);
+            free(file_name_lower);
             return false;
         }
         pch = strtok (NULL, " ");
