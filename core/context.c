@@ -11,15 +11,8 @@
 #include "crawler.h"
 
 #ifdef __linux__
-#   include <mntent.h>
+#include <mntent.h>
 #endif
-
-
-
-
-
-
-
 
 void drill_wait_for_crawlers(struct drill_context drill_context)
 {
@@ -49,14 +42,14 @@ void drill_wait_for_crawlers(struct drill_context drill_context)
     }
 }
 
-struct drill_context* drill_start_crawling(struct drill_config drill_config, const char * const search_value, void (*result_callback)(struct file_info file_info, void *user_object), void *user_object)
+struct drill_context *drill_start_crawling(struct drill_config drill_config, const char *const search_value, void (*result_callback)(struct file_info file_info, void *user_object), void *user_object)
 {
     assert(search_value != NULL);
     assert(result_callback != NULL);
     if (user_object == NULL)
         fprintf(stderr, "warning: user_object is null\n");
 
-    struct drill_context* ctx = malloc(sizeof(struct drill_context));
+    struct drill_context *ctx = malloc(sizeof(struct drill_context));
 
     // string is a search token, nothing to do
     if (strcmp(search_value, DRILL_CONTENT_SEARCH_TOKEN) == 0)
@@ -101,7 +94,7 @@ struct drill_context* drill_start_crawling(struct drill_config drill_config, con
 
         //struct crawler_context c_ctx = {0};
 
-        memset(&ctx->threads_context[ctx->threads_count],0,sizeof(struct crawler_context));
+        memset(&ctx->threads_context[ctx->threads_count], 0, sizeof(struct crawler_context));
 
         strcpy(ctx->threads_context[ctx->threads_count].mountpoint, ent->mnt_dir);
 
@@ -112,17 +105,17 @@ struct drill_context* drill_start_crawling(struct drill_config drill_config, con
 
         //crawler_run(&ctx->threads_context[ctx->threads_count]);
         pthread_t thread;
-        if (pthread_create(&ctx->threads[ctx->threads_count], NULL, crawler_run, &ctx->threads_context[ctx->threads_count])  != 0 )
+        if (pthread_create(&ctx->threads[ctx->threads_count], NULL, crawler_run, &ctx->threads_context[ctx->threads_count]) != 0)
         {
             perror("pthread_create() error\n");
             exit(1);
         }
-       
+
         ctx->threads_count++;
     }
     endmntent(aFile);
 #elif __APPLE__
-    
+
     struct dirent *dir;
     DIR *d = opendir("/Volumes");
     if (d)

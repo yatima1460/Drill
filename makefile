@@ -33,25 +33,55 @@
 # FLAGS	 = -g -c -Wall
 # LFLAGS	 = -lpthread
 
-FLAGS	 = -Wall -Wextra -pedantic -std=c11 #-Werror
-# LFLAGS	 = -lpthread
+.PHONY: build
+build: build_cli
 
+.PHONY: run_cli
+run_cli: build_cli
+	cli/cli.elf
 
-core: core/file_info.h matching_functions.h meta.h context.o config.o 
-	echo "Compiling Drill Core"
-	gcc -shared -fPIC -o drill_core.a context.c config.c $(FLAGS)
+.PHONY: build_cli
+build_cli:
+	cd cli && cmake .
+	cd cli && cmake build .
+	cd cli && make
 
+.PHONY: build_core
+build_core: 
+	cd core && cmake .
+	cd core && cmake build .
+	cd core && make
+
+.PHONY: clean_cli
+clean_cli:
+	cd cli && make clean
+
+.PHONY: clean_core
+clean_core:
+	cd core && make clean
 
 .PHONY: clean
+clean: clean_cli clean_core
 
-# clean house
-clean:
-	rm -f *.gch drill-core.a
-	echo Clean done
+# FLAGS	 = -Wall -Wextra -pedantic -std=c11 #-Werror
+# # LFLAGS	 = -lpthread
 
-# run the program
-run: $(OUT)
-	./$(OUT)
+
+# core: core/file_info.h matching_functions.h meta.h context.o config.o 
+# 	echo "Compiling Drill Core"
+# 	gcc -shared -fPIC -o drill_core.a context.c config.c $(FLAGS)
+
+
+# .PHONY: clean
+
+# # clean house
+# clean:
+# 	rm -f *.gch drill-core.a
+# 	echo Clean done
+
+# # run the program
+# run: $(OUT)
+# 	./$(OUT)
 
 
 
