@@ -49,7 +49,7 @@ void drill_wait_for_crawlers(struct drill_context drill_context)
     }
 }
 
-struct drill_context* drill_start_crawling(struct drill_config drill_config, char *search_value, void (*result_callback)(struct file_info file_info, void *user_object), void *user_object)
+struct drill_context* drill_start_crawling(struct drill_config drill_config, const char * const search_value, void (*result_callback)(struct file_info file_info, void *user_object), void *user_object)
 {
     assert(search_value != NULL);
     assert(result_callback != NULL);
@@ -101,12 +101,13 @@ struct drill_context* drill_start_crawling(struct drill_config drill_config, cha
 
         //struct crawler_context c_ctx = {0};
 
-        
+        memset(&ctx->threads_context[ctx->threads_count],0,sizeof(struct crawler_context));
 
         strcpy(ctx->threads_context[ctx->threads_count].mountpoint, ent->mnt_dir);
 
-
         ctx->threads_context[ctx->threads_count].result_callback = result_callback;
+        ctx->threads_context[ctx->threads_count].matching_function = matching_function;
+        strcpy(ctx->threads_context[ctx->threads_count].search_string, search_value);
         //printf("Crawler with mountpoint '%s' will be spawned now\n", ctx.threads_context[ctx.threads_count].mountpoint);
 
         //crawler_run(&ctx->threads_context[ctx->threads_count]);

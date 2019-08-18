@@ -12,12 +12,16 @@ void results_bare(struct file_info file_info, void* user_object)
 }
 
 
-int main()
+
+
+
+int main(int argc, char const *argv[])
 {
     printf("%s v%s - %s\n", DRILL_NAME, DRILL_VERSION, DRILL_VCS);
     struct drill_config config;
 
-    struct drill_context* ctx = drill_start_crawling(config,"owo",&results_bare,NULL);
+    
+    struct drill_context* ctx = drill_start_crawling(config,argv[1],&results_bare,NULL);
     assert(ctx != NULL);
 
     drill_wait_for_crawlers(*ctx);

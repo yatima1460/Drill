@@ -175,7 +175,8 @@ void elaborate_file(const struct crawler_context *const c_ctx, const char *const
         we send it to the callback result function
     */
 
-    if (true)
+    assert(c_ctx->matching_function != NULL);
+    if ((*c_ctx->matching_function)(full_path, c_ctx->search_string))
     {
         struct file_info file_info;
         strcpy(file_info.name, file->d_name);

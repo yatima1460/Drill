@@ -43,7 +43,7 @@ struct drill_context
 
 
 
-struct drill_context* drill_start_crawling(struct drill_config drill_config, char* search_value, void (*result_callback)(struct file_info file_info, void* user_object), void* user_object);
+struct drill_context* drill_start_crawling(struct drill_config drill_config,const char* const search_value, void (*result_callback)(struct file_info file_info, void* user_object), void* user_object);
 
 unsigned int drill_active_crawlers_count(struct drill_context);
 
