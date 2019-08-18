@@ -20,7 +20,7 @@ int main(int argc, char const *argv[])
     printf("%s v%s - %s\n", DRILL_NAME, DRILL_VERSION, DRILL_VCS);
     struct drill_config config;
 
-    
+    printf("search string is: '%s'\n", argv[1]);
     struct drill_context* ctx = drill_start_crawling(config,argv[1],&results_bare,NULL);
     assert(ctx != NULL);
 

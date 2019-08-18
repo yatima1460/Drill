@@ -16,7 +16,7 @@ struct crawler_context
     void* user_object;
     void (*result_callback)(struct file_info file_info, void *user_object);
     bool running;
-    bool (*matching_function)(char* file_path, char* search_string);
+    bool (*matching_function)(char* file_path, const struct dirent *const file, char* search_string);
     char** queue;
     unsigned int queue_count;
     char search_string[FILENAME_MAX];
