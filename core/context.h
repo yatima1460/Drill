@@ -51,7 +51,7 @@ void drill_stop_crawling_async(struct drill_context);
 
 void drill_stop_crawling_sync(struct drill_context);
 
-void drill_wait_for_crawlers(struct drill_context);
+void drill_wait_for_crawlers(struct drill_context*);
 
 
 

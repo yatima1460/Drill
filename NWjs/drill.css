@@ -1,7 +1,9 @@
 
 
 html {
-    border: 1 solid black;
+    /* border: 1 solid black; */
+    padding: 0;
+    margin: 0;
 }
 html, body {
     margin: 0;
@@ -40,6 +42,7 @@ img {
     height: 4em;
     margin: auto;
     margin-left: 1em;
+    border: 1px solid black;
 }
 .logo img {
     
@@ -58,6 +61,7 @@ img {
     border-color: white;
     outline: none;
 
+    border: 1px solid black;
 }
 
 .icon {

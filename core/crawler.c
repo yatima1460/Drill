@@ -20,12 +20,14 @@
 #include <memory.h>
 #include <errno.h>
 
+#include "log.h"
+
 /*
     The string will be copied and added to the queue
 */
 void crawler_add_to_queue(struct crawler_context *const c_ctx, const char *const string)
 {
-    assert(errno == 0);
+    
     assert(c_ctx != NULL);
     assert(string != NULL);
     assert(strlen(string) > 0);
@@ -41,20 +43,20 @@ void crawler_add_to_queue(struct crawler_context *const c_ctx, const char *const
         
     size_t realloc_size = sizeof(char *) * (c_ctx->queue_count + sizeof(char *));
     c_ctx->queue = realloc(c_ctx->queue, realloc_size);
-    if (errno != 0)
-    {
-        fprintf(stderr,"[%s] realloc failed while adding item allocating %d bytes with error: %s\n",c_ctx->mountpoint,realloc_size,strerror(errno));
-        abort();
-    }
+    // if (errno != 0)
+    // {
+    //     fprintf(stderr,"[%s] realloc failed while adding item allocating %d bytes with error: %s\n",c_ctx->mountpoint,realloc_size,strerror(errno));
+    //     abort();
+    // }
         
     assert(c_ctx->queue != NULL);
     size_t malloc_size = sizeof(char) * FILENAME_MAX;
     c_ctx->queue[c_ctx->queue_count] = malloc(malloc_size);
-    if (errno != 0)
-    {
-        fprintf(stderr,"[%s] malloc failed while adding item allocating %d bytes with error: %s\n",c_ctx->mountpoint,malloc_size,strerror(errno));
-        abort();
-    }
+    // if (errno != 0)
+    // {
+    //     fprintf(stderr,"[%s] malloc failed while adding item allocating %d bytes with error: %s\n",c_ctx->mountpoint,malloc_size,strerror(errno));
+    //     abort();
+    // }
     assert(c_ctx->queue[c_ctx->queue_count] != NULL);
     strcpy(c_ctx->queue[c_ctx->queue_count], string);
     c_ctx->queue_count++;
@@ -62,7 +64,7 @@ void crawler_add_to_queue(struct crawler_context *const c_ctx, const char *const
 
 char *const crawler_pop_item(struct crawler_context *const c_ctx)
 {
-    assert(errno == 0);
+    
     assert(c_ctx != NULL);
     assert(c_ctx->queue_count > 0);
     char *popped = c_ctx->queue[c_ctx->queue_count - 1];
@@ -70,20 +72,21 @@ char *const crawler_pop_item(struct crawler_context *const c_ctx)
 #ifndef NDEBUG
     c_ctx->queue[c_ctx->queue_count - 1] = NULL;
 #endif
+    
     size_t realloc_size = sizeof(char *) * (sizeof(char *)*c_ctx->queue_count - sizeof(char *));
     c_ctx->queue = realloc(c_ctx->queue, realloc_size);
-    if (errno != 0)
-    {
-        fprintf(stderr,"[%s] realloc failed while popping out and setting the new size to %d bytes with error: %s\n",c_ctx->mountpoint,realloc_size,strerror(errno));
-        abort();
-    }
+    // if (errno != 0)
+    // {
+    //     fprintf(stderr,"[%s] realloc failed while popping out and setting the new size to %d bytes with error: %s\n",c_ctx->mountpoint,realloc_size,strerror(errno));
+    //     abort();
+    // }
     c_ctx->queue_count--;
     return popped;
 }
 
 void elaborate_file(const struct crawler_context *const c_ctx, const char *const current_directory, const struct dirent *const file)
 {
-    assert(errno == 0);
+    
     assert(c_ctx != NULL);
     assert(strlen(c_ctx->mountpoint) > 0);
     assert(current_directory != NULL);
@@ -176,6 +179,9 @@ void elaborate_file(const struct crawler_context *const c_ctx, const char *const
     */
 
     assert(c_ctx->matching_function != NULL);
+
+    
+
     if ((*c_ctx->matching_function)(full_path, file, c_ctx->search_string))
     {
         struct file_info file_info;
@@ -188,7 +194,7 @@ void elaborate_file(const struct crawler_context *const c_ctx, const char *const
         }
         else
         {
-            printf("[%s] warning: result_callback is null\n", c_ctx->mountpoint);
+            log_warn("[%s] warning: result_callback is null\n", c_ctx->mountpoint);
         }
     }
 
@@ -197,7 +203,7 @@ void elaborate_file(const struct crawler_context *const c_ctx, const char *const
 
 void crawl_directory(const struct crawler_context *const c_ctx, const char *const popped_directory_fullpath)
 {
-    assert(errno == 0);
+    
     assert(c_ctx != NULL);
     assert(strlen(c_ctx->mountpoint) > 0);
     assert(popped_directory_fullpath != NULL);
@@ -214,7 +220,7 @@ void crawl_directory(const struct crawler_context *const c_ctx, const char *cons
     const DIR *const d = opendir(popped_directory_fullpath);
     if (errno != 0)
     {
-        fprintf(stderr,"[%s] opendir failed while reading '%s' with error: %s\n",c_ctx->mountpoint,popped_directory_fullpath,strerror(errno));
+        log_error("[%s] opendir failed while reading '%s' with error: %s",c_ctx->mountpoint,popped_directory_fullpath,strerror(errno));
         errno = 0;
         return;
     }
@@ -228,13 +234,13 @@ void crawl_directory(const struct crawler_context *const c_ctx, const char *cons
         {
             if (errno != 0)
             {
-                fprintf(stderr,"[%s] readdir failed while reading '%s' with error: %s\n",c_ctx->mountpoint,file->d_name,strerror(errno));
-                abort();
+                log_fatal("[%s] readdir failed while reading '%s' with error: %s",c_ctx->mountpoint,file->d_name,strerror(errno));
+                pthread_exit(EXIT_FAILURE);
             }
             if (c_ctx->running == false)
             {
-                printf("[%s] is breaking file loop because requested exit\n", c_ctx->mountpoint);
-                pthread_exit(0);
+                log_error("[%s] is breaking file loop because requested exit\n", c_ctx->mountpoint);
+                pthread_exit(EXIT_SUCCESS);
             }
 
             if (strcmp(file->d_name, ".") == 0 || strcmp(file->d_name, "..") == 0)
@@ -270,12 +276,14 @@ void crawl_directory(const struct crawler_context *const c_ctx, const char *cons
 
 void *crawler_run(void *c_ctx_ptr)
 {
-  
+    
     assert(c_ctx_ptr != NULL);
     struct crawler_context *const c_ctx = (struct crawler_context *const)c_ctx_ptr;
     assert(strlen(c_ctx->mountpoint) > 0);
 
-    printf("[%s] crawler started\n", c_ctx->mountpoint);
+
+
+    log_debug("[%s] crawler started", c_ctx->mountpoint);
 
     c_ctx->running = true;
 
@@ -317,14 +325,15 @@ void *crawler_run(void *c_ctx_ptr)
 
     c_ctx->running = false;
 
-    printf("[%s] finished its job\n", c_ctx->mountpoint);
+    log_debug("[%s] finished its job", c_ctx->mountpoint);
 
     pthread_exit(0);
 }
 
 void crawler_stop_async(struct crawler_context *const c_ctx)
 {
-    printf("[%s] async stop requested\n", c_ctx->mountpoint);
+    
+    log_debug("[%s] async stop requested", c_ctx->mountpoint);
     c_ctx->result_callback = NULL;
     c_ctx->running = false;
 }

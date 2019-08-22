@@ -14,29 +14,32 @@
 #include <mntent.h>
 #endif
 
-void drill_wait_for_crawlers(struct drill_context drill_context)
+#include "log.h"
+
+void drill_wait_for_crawlers(struct drill_context* drill_context)
 {
-    if (drill_context.threads_count == 0)
+    
+    if (drill_context->threads_count == 0)
         fprintf(stderr, "warning: trying to wait when there is no need, 0 threads active\n");
 
-    for (unsigned int i = 0; i < drill_context.threads_count; i++)
+    for (unsigned int i = 0; i < drill_context->threads_count; i++)
     {
         // FIXME: if current_thread == thread continue
 
 #ifdef _WIN32
-        thrd_t thread = drill_context.threads[i];
+        thrd_t thread = drill_context->threads[i];
 #else
-        pthread_t thread = drill_context.threads[i];
+        pthread_t thread = drill_context->threads[i];
 #endif
 
 #ifdef _WIN32
         int result = -999;
         thrd_join(&thread, &result);
-        printf("[%s] returned %d at the join\n", drill_context.threads_context[i].mountpoint, (int)result);
+        log_debug("[%s] returned %d at the join", drill_context->threads_context[i].mountpoint, (int)result);
 #else
         void *retval = (void *)-999;
         pthread_join(thread, &retval);
-        printf("[%s] returned %lu at the join\n", drill_context.threads_context[i].mountpoint, (unsigned long)retval);
+        log_debug("[%s] returned %lu at the join", drill_context->threads_context[i].mountpoint, (unsigned long)retval);
 
 #endif
     }
@@ -44,6 +47,7 @@ void drill_wait_for_crawlers(struct drill_context drill_context)
 
 struct drill_context *drill_start_crawling(struct drill_config drill_config, const char *const search_value, void (*result_callback)(struct file_info file_info, void *user_object), void *user_object)
 {
+    
     assert(search_value != NULL);
     assert(result_callback != NULL);
     if (user_object == NULL)

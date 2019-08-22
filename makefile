@@ -38,7 +38,7 @@ build: build_cli
 
 .PHONY: run_cli
 run_cli: build_cli
-	cli/cli.elf
+	cli/cli.elf $(ARGS)
 
 .PHONY: build_cli
 build_cli:
@@ -56,12 +56,12 @@ build_core:
 clean_cli:
 	cd cli && make clean
 
-.PHONY: clean_core
-clean_core:
-	cd core && make clean
+# .PHONY: clean_core
+# clean_core:
+# 	cd core && make clean
 
 .PHONY: clean
-clean: clean_cli clean_core
+clean: clean_cli #clean_core
 
 # FLAGS	 = -Wall -Wextra -pedantic -std=c11 #-Werror
 # # LFLAGS	 = -lpthread
