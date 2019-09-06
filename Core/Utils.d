@@ -14,6 +14,7 @@ import std.stdio : stdin, stdout, stderr;
 import std.process : Config;
 import std.process : executeShell;
 import std.array : split;
+import std.conv : to;
 
 version(linux) @system string[] getDesktopFiles() 
 {
@@ -43,7 +44,9 @@ Opens a file using the current system implementation for file associations
 */
 void openFile(immutable string fullpath)
 {
-
+    // FIXME: return false when no file association
+    import std.stdio : stdin, stdout, stderr;
+    import std.process : browse, Config, executeShell, spawnProcess;
 
     try
     {
@@ -104,11 +107,11 @@ void openFile(immutable string fullpath)
                     }
                     spawnProcess([fullpath], null, Config.detached, null);
                  
-
+                    break;
                 default:
                     info("Generic file "~fullpath~", will use xdg-open.");
-                    spawnProcess(["xdg-open", fullpath], null, Config.detached, null);
-            
+                    () @trusted { browse(fullpath); } ();
+                   
             }
         }
         version (OSX)
