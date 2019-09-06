@@ -45,10 +45,8 @@ Returns: true if successful
 @safe bool openFile(immutable string fullpath)
 {
     // FIXME: return false when no file association
-    import std.process : spawnProcess;
     import std.stdio : stdin, stdout, stderr;
-    import std.process : Config;
-    import std.process : executeShell;
+    import std.process : browse, Config, executeShell, spawnProcess;
 
     try
     {
@@ -76,7 +74,7 @@ Returns: true if successful
 
                 default:
                     info("Generic file "~fullpath~", will use xdg-open.");
-                    spawnProcess(["xdg-open", fullpath], null, Config.detached, null);
+                    () @trusted { browse(fullpath); } ();
                     return true;
             }
         }
