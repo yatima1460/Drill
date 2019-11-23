@@ -59,6 +59,28 @@
             "mainSourceFile": "Source/Frontend/CLI/CLI.d"
         },
         {
+            "name": "NWjs",
+            "targetType": "executable",
+            "targetName": "drill-search-cli",
+            "sourcePaths": [
+                "Source/Backend/",
+                "Source/Frontend/CLI/"
+            ],
+            "importPaths": [
+                "Source/Backend"
+            ],
+            "targetPath": "Build/Drill-NWjs-$PLATFORM-$ARCH-$BUILD_TYPE",
+            "mainSourceFile": "Source/Frontend/CLI/CLI.d",
+            "copyFiles": [
+                "Assets",
+                "Source/Frontend/NWjs/*"
+            ],
+            "postBuildCommands": [
+                "cd Build/Drill-NWjs-$PLATFORM-$ARCH-$BUILD_TYPE && npm install && nw ."
+                
+            ]
+        },
+        {
             "name": "GTK",
             "targetType": "executable",
             "targetName": "drill-search-gtk",

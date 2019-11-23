@@ -181,9 +181,9 @@ out(m; m.length != 0)
     import std.format : format;
 
     if (order >= sizes.length)
-        return format("%#.2f", len) ~ " ?B";
+        return format("%#.2f", len) ~ "?B";
     else
-        return format("%#.2f", len) ~ " " ~ sizes[order];
+        return format("%#.2f", len) ~ "" ~ sizes[order];
 }
 
 alias sizeToHumanReadable = memoize!_sizeToHumanReadable;

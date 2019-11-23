@@ -1,0 +1,25 @@
+{
+  "name": "drill",
+  "main": "drill.html",
+  "description": "The Universal Launcher",
+  "chromium-args": "--enable-logging=stderr",
+  "keywords": [
+    "search",
+    "file searcher",
+    "utility"
+  ],
+  "window": {
+    "title": "Drill",
+    "fullscreen": false,
+    "icon": "drill.png",
+    "toolbar": false,
+    "frame": false,
+    "show": false
+  },
+  "webkit": {
+    "plugin": true
+  },
+  "dependencies": {
+    "@rauschma/stringio": "^1.4.0"
+  }
+}
