@@ -2,6 +2,7 @@
   "name": "Drill",
   "main": "drill.html",
   "description": "The Universal Launcher",
+  "chromium-args": "--enable-logging=stderr",
   "keywords": [
     "search",
     "file searcher",

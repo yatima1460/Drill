@@ -38,6 +38,7 @@ Search files without indexing, but clever crawling:
 - **Intended for desktop users**, no obscure Linux files and system files scans
 - Use priority lists to first scan important folders.
 - Betting on the future: slowly being optimized for SSDs/M.2 or fast RAID arrays
+- Main design principle is to never fail or hard crash or show messageboxes, worst case scenario will be slow but STILL RUNNING!!
 
 
 ![](https://raw.githubusercontent.com/yatima1460/Drill/gh-pages/screenshot.png)
@@ -53,11 +54,15 @@ If your distro doesn't ask you to mark the AppImage as executable or nothing hap
 
 If you want a version that doesn't require sudo and can be configurable download the .zip files.
 
-# UI Guide
+# Core Guide
 
-- Open                    = Left Double Click / Return / Enter / Space
-- ~~Open containing folder  = Contextual menu~~
+Ore                 = File
+DrillBit            = Thread running on a disk
+Rig                 = Threadpool for a specific disk
+Company             = Mega-threadpool managing all threadpools
 
+- Are you mentally insane for doing this to the code?
+  - Code needs to be fun! Also yes. Also abstracts the code, maybe??
 
 
 # Build and Run

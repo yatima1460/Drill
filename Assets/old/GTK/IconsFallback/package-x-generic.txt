@@ -1,0 +1,10 @@
+.zip
+.rar
+.gz
+.tar
+.deb
+.rpm
+.eopkg
+.apk
+.snap
+.7z

@@ -1,0 +1,9 @@
+^/run/gdm$
+^/run/firewalld$
+^/run/chrony$
+^/run/rpcbind$
+^/run/pptp$
+^/run/mdadm$
+^/run/httpd$
+^/run/setroubleshoot$
+^/run/media$

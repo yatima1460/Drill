@@ -10,6 +10,10 @@
     "dflags": [
         "-J=."
     ],
+    "sourceFiles-linux":
+    [
+        "Core/libDrillCore.a"
+    ],
     "sourceFiles": [
         "Core/ApplicationInfo.d",
         "Core/Config.d",
