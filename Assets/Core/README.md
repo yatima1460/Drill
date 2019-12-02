@@ -1,1 +1,0 @@
-mime.types is used to determine if a file should be scanned for text when using "content:searchstring"

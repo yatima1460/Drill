@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg width="48px" height="48px" viewBox="0 0 48 48" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <!-- Generator: Sketch 3.7.2 (28276) - http://www.bohemiancoding.com/sketch -->
+    <title>打开文件夹-48</title>
+    <desc>Created with Sketch.</desc>
+    <defs>
+        <filter x="-50%" y="-50%" width="200%" height="200%" filterUnits="objectBoundingBox" id="filter-1">
+            <feOffset dx="0" dy="1" in="SourceAlpha" result="shadowOffsetOuter1"></feOffset>
+            <feGaussianBlur stdDeviation="1" in="shadowOffsetOuter1" result="shadowBlurOuter1"></feGaussianBlur>
+            <feColorMatrix values="0 0 0 0 0   0 0 0 0 0   0 0 0 0 0  0 0 0 0.2 0" type="matrix" in="shadowBlurOuter1" result="shadowMatrixOuter1"></feColorMatrix>
+            <feMerge>
+                <feMergeNode in="shadowMatrixOuter1"></feMergeNode>
+                <feMergeNode in="SourceGraphic"></feMergeNode>
+            </feMerge>
+        </filter>
+        <linearGradient x1="50.02225%" y1="0%" x2="50.02225%" y2="100%" id="linearGradient-2">
+            <stop stop-color="#8EC5FF" offset="0%"></stop>
+            <stop stop-color="#70BCFF" offset="97%"></stop>
+            <stop stop-color="#0F70E6" offset="100%"></stop>
+        </linearGradient>
+    </defs>
+    <g id="Page-1" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <g id="打开文件夹-48">
+            <g id="Group-2" filter="url(#filter-1)" transform="translate(4.000000, 6.000000)">
+                <polygon id="Shape-2" fill="#31A4FC" points="0.009 2 22.181 2 24.246 0 36.009 0 36 36 5.68434189e-14 36"></polygon>
+                <polygon id="Rectangle-3" fill="#FFFFFF" points="4 7 39 7 36 34 1 34"></polygon>
+                <polygon id="Rectangle-path" fill="url(#linearGradient-2)" points="7 11 43 11 36 36 0 36"></polygon>
+                <polygon id="Rectangle-5" fill="#FFFFFF" points="15.5 26 27.5 26 27 28 15 28"></polygon>
+                <polygon id="Path-6" fill="#FFFFFF" points="16 24 28 24 23.5 18"></polygon>
+            </g>
+        </g>
+    </g>
+</svg>

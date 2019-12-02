@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="64px" height="64px" viewBox="0 0 64 64" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <!-- Generator: Sketch 47.1 (45422) - http://www.bohemiancoding.com/sketch -->
+    <title>window-scale</title>
+    <desc>Created with Sketch.</desc>
+    <defs></defs>
+    <g id="Page-1" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <g id="window-scale">
+            <image id="Bitmap" x="1" y="2" width="62" height="62" xlink:href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAD4AAAA+CAYAAABzwahEAAAAAXNSR0IArs4c6QAABQhJREFUaAXlmol2ozAMANu973v//yv3ProammEVAwWT5hVcvacaHFvWSLKhaS8vziuXhfnyvvj44qroKO+Lj9ffzjlSaznb47pU7DnGVrjccp2VeYhjru9O+OniJ5jopmqHVn0Q1ygixN+4RhEhnOt45zPG8c53ji1jVomLrpock5yvszj/8GDsT7S/Q9c6ic1HodkegTAIcbnadu84RmqkBMY5FMd+Hdpobk0I6ONQWgKKnhQAAcLOYnGOpWlGfoYFy3ixscqBrPnkMAd4twJdVZWl0wdbsw3QKPMsQzKMVi0c49cIa7h9qACTUG2rBjxDsyhOfD+01QufOMEAEHwUqQr8EnCBzTTQlBmlfdeCH+5/wIWfrYQacCILNMCU9lbEg869L/yN/s2Bm21LitJmoa0Jhxx+LYa/CVxoxmCQTG8ROtzqxFLHV68PHw2bKfAMTXlzkm6pvIck1z1kHt89fCfLfgyciQifaeBH17OPH1QlvqNmXqaegBNxTOhnIi37em+Cz5lh4D9wWXKJs1fI9LnfxvL6t3lNtp8e/B+U/FjGgecUZzB7e6/iGx4sN5Z6zjaD91jiZZJggIXKlq8bU2acDxnEAbHlR1fn/IIfcgjeTxHcaDCglWwLOZp1wRkEvPd7PdCEza0ssMHYiaDc0Em29/Cigr81AhNsA3CzTalv4beuGqglY2GCrc+6F4LzCLM0lhjcyxiZel5LXXAH7AWoxk9OeMH7w+w+gJPUSfAWnt1TVTDIONlGiMZ9AIf1Mu9xAjB4mWdUIwIbjF2iBYeNjpYPN9g6aGAF7zvobFwGGYfXQLTIfsTmjXu75czL1rEKTobp4LWuVYHNBPelTQfKl4util+cdvBk3Chw6rWecZ9aV5Y68HTyq1urAhuMfcYBFZxAGAz6WxG5JsF5ZX3eCm3igAm2I3Cybcb58FloawJTBh/scT7kgGvpkJMngx/tZ7LOl/Do69BWBBa5YOwkH2SWO1/MURotnPAwwAJTv7/jerSkebWjPJjwLXTP8j6cB5i/AfonpS7rOeMA0sle4FtJ3nT8D4O43J3gOwz+Q0Nf5pBMHWJknaDwGPgaukf5EE6TZcCPsg1MmXH6iIwTCMA7Oncm+IzvGfoIYSrjDmLyi1CCsZe/sLwMX1+F8jezXOazpQ7s0aCDIY3E7WaFfwTgQAPaA43DbSBTGQdeIQjc8zzklB81FP13LTy6PocCDDjbVV/LRE4ebjGnEyaonAdvQreYeTINNL4Bzbbk6aTvcXksUxnPo4wWLZl/G0okWWQLwn7+GGqmZ6Fxegk444ycpUPZM5fo3qWwn6lCtqCZHjy6xhxcAu5+z/AEgGc8J6gRHrN/rj5Lm5cU3jOEtrxn110Cno2U8Myn9Hm9pfStiLg8i/Am9imUNcksmfb0FhofZ6UWHIMlPLCcqLw00BKARYvHuKWCXcqatzHWI8Moa3l661d0zYtlPD/y/wjncMqjOIVSdvn9+EvcU4ZkYo2QFF6e2E7YZUsBKqzAVllVsIUIe1XiPFoUJ1ECQDmq9OEgzuo49wRDhwmecw0cLbYYxzzVuWVZV0GHvc5p2rVSBiBD5GBwbYUYLOdaorQEAwUsQ3rNZ46Py/VbysUxcopoJ0MJWraOyesJI3jZ+jktYnt9t+KnDq+YOjol2xMwt0xyjK0QueU6q4s5xvvVrYuvNjAzsbRf3pfTS7Dyvhy/+v4fra1pWYxQ1MYAAAAASUVORK5CYII="></image>
+            <circle id="Oval" fill="#5F5E6C" cx="32" cy="32" r="28"></circle>
+            <g id="Group" transform="translate(17.000000, 19.000000)">
+                <rect id="Rectangle-4" stroke="#FFFFFF" stroke-width="2" x="1" y="1" width="28" height="24" rx="2"></rect>
+                <rect id="Rectangle" fill="#FFFFFF" x="0" y="9.36" width="22" height="16.64" rx="2"></rect>
+            </g>
+        </g>
+    </g>
+</svg>

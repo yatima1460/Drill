@@ -39,12 +39,16 @@ var source;
 
 i = 0;
 async function echoReadable(readable) {
+    console.log("echoReadable");
     const { chunksToLinesAsync, chomp } = require('@rauschma/stringio');
     for await (const line of chunksToLinesAsync(readable)) { // (C)
         console.log('LINE: ' + chomp(line))
         addFile("icon", chomp(line), "path", "date");
         i += 1;
         console.log(i);
+
+        if (i > 10)
+        break;
       
     }
 }
@@ -88,9 +92,13 @@ function initPage()
 
        
         const { spawn } = require('child_process');
+        var path = require('path');
 
+        const exeLoc = /*path.join(process.cwd()+*/'/home/yatima1460/Desktop/drill/Build/Drill-CLI-linux-x86_64-release/drill-cli';/*);*/
 
-        source = spawn(process.cwd()+'/Drill-CLI-windows-x86_64-release/drill-cli.exe', [search.value],
+        console.log(exeLoc);
+
+        source = spawn(exeLoc, [search.value],
             { stdio: ['ignore', 'pipe', process.stderr] }
         ); // (A)
 

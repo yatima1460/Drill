@@ -31,3 +31,68 @@ Drill.AppDir
 
 /NWjs/Drill-CLI-windows-x86_64-release
 /NWjs/node_modules
+
+
+/Core/Makefile
+*.a
+
+CMakeFiles
+*.cmake
+
+
+
+# Created by https://www.gitignore.io/api/c++,cmake
+# Edit at https://www.gitignore.io/?templates=c++,cmake
+
+### C++ ###
+# Prerequisites
+*.d
+
+# Compiled Object files
+*.slo
+*.lo
+*.o
+*.obj
+
+# Precompiled Headers
+*.gch
+*.pch
+
+# Compiled Dynamic libraries
+*.so
+*.dylib
+*.dll
+
+# Fortran module files
+*.mod
+*.smod
+
+# Compiled Static libraries
+*.lai
+*.la
+*.a
+*.lib
+
+# Executables
+*.exe
+*.out
+*.app
+
+### CMake ###
+CMakeLists.txt.user
+CMakeCache.txt
+CMakeFiles
+CMakeScripts
+Testing
+Makefile
+cmake_install.cmake
+install_manifest.txt
+compile_commands.json
+CTestTestfile.cmake
+_deps
+
+### CMake Patch ###
+# External projects
+*-prefix/
+
+# End of https://www.gitignore.io/api/c++,cmake
