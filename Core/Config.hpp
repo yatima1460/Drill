@@ -3,6 +3,7 @@
 
 #include <vector>
 #include <string>
+#include <regex>
 
 #define DRILLBITS_PER_ORESITE 1
 
@@ -14,6 +15,9 @@ namespace Drill::Config
     {
         std::vector<std::string> blockLists;
         std::vector<std::string> priorityLists;
+
+        std::vector<std::regex> blocklistsRegex;
+        std::vector<std::regex> priorityListsRegex;
 
 
     };

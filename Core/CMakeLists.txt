@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.8.9)
+cmake_minimum_required(VERSION 3.0.0)
 project (DrillCore CXX)
 
 
@@ -10,9 +10,15 @@ add_subdirectory(spdlog)
 include_directories(spdlog/include)
 
 
-# if (CMAKE_BUILD_TYPE MATCHES Release)
-#     add_definitions(-DNDEBUG)
-# endif()
+if (CMAKE_BUILD_TYPE MATCHES Release)
+    message(STATUS "Drill_Release")
+    add_definitions(-DDrill_Release)
+endif()
+if (CMAKE_BUILD_TYPE MATCHES Debug)
+    message(STATUS "Drill_Debug")
+    add_definitions(-DDrill_Debug)
+endif()
+
 
 
 # if(NOT LINUX) should work, too, if you need that

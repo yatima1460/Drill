@@ -1,0 +1,340 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CodeBlocks_project_file>
+	<FileVersion major="1" minor="6"/>
+	<Project>
+		<Option title="spdlog"/>
+		<Option makefile_is_custom="1"/>
+		<Option compiler="gcc"/>
+		<Option virtualFolders="CMake Files\;CMake Files\CLI\;CMake Files\Core\;CMake Files\Core\spdlog\;CMake Files\Core\spdlog\cmake\;"/>
+		<Build>
+			<Target title="all">
+				<Option working_dir="/home/yatima1460/Desktop/drill/CLI/Core/spdlog"/>
+				<Option type="4"/>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j8 -f &quot;/home/yatima1460/Desktop/drill/CLI/Core/spdlog/Makefile&quot;  VERBOSE=1 all"/>
+					<CompileFile command="/usr/bin/make -j8 -f &quot;/home/yatima1460/Desktop/drill/CLI/Core/spdlog/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j8 -f &quot;/home/yatima1460/Desktop/drill/CLI/Core/spdlog/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j8 -f &quot;/home/yatima1460/Desktop/drill/CLI/Core/spdlog/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="spdlog">
+				<Option output="/home/yatima1460/Desktop/drill/CLI/Core/spdlog/libspdlog.a" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/home/yatima1460/Desktop/drill/CLI/Core/spdlog"/>
+				<Option object_output="./"/>
+				<Option type="2"/>
+				<Option compiler="gcc"/>
+				<Compiler>
+					<Add option="-DSPDLOG_COMPILED_LIB"/>
+					<Add option="-DDrill_Release"/>
+					<Add directory="/home/yatima1460/Desktop/drill/CLI/../Core"/>
+					<Add directory="/home/yatima1460/Desktop/drill/Core/spdlog/include"/>
+					<Add directory="/usr/include/c++/9"/>
+					<Add directory="/usr/include/x86_64-linux-gnu/c++/9"/>
+					<Add directory="/usr/include/c++/9/backward"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/9/include"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/9/include-fixed"/>
+					<Add directory="/usr/include/x86_64-linux-gnu"/>
+					<Add directory="/usr/include"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j8 -f &quot;/home/yatima1460/Desktop/drill/CLI/Core/spdlog/Makefile&quot;  VERBOSE=1 spdlog"/>
+					<CompileFile command="/usr/bin/make -j8 -f &quot;/home/yatima1460/Desktop/drill/CLI/Core/spdlog/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j8 -f &quot;/home/yatima1460/Desktop/drill/CLI/Core/spdlog/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j8 -f &quot;/home/yatima1460/Desktop/drill/CLI/Core/spdlog/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="spdlog/fast">
+				<Option output="/home/yatima1460/Desktop/drill/CLI/Core/spdlog/libspdlog.a" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/home/yatima1460/Desktop/drill/CLI/Core/spdlog"/>
+				<Option object_output="./"/>
+				<Option type="2"/>
+				<Option compiler="gcc"/>
+				<Compiler>
+					<Add option="-DSPDLOG_COMPILED_LIB"/>
+					<Add option="-DDrill_Release"/>
+					<Add directory="/home/yatima1460/Desktop/drill/CLI/../Core"/>
+					<Add directory="/home/yatima1460/Desktop/drill/Core/spdlog/include"/>
+					<Add directory="/usr/include/c++/9"/>
+					<Add directory="/usr/include/x86_64-linux-gnu/c++/9"/>
+					<Add directory="/usr/include/c++/9/backward"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/9/include"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/9/include-fixed"/>
+					<Add directory="/usr/include/x86_64-linux-gnu"/>
+					<Add directory="/usr/include"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j8 -f &quot;/home/yatima1460/Desktop/drill/CLI/Core/spdlog/Makefile&quot;  VERBOSE=1 spdlog/fast"/>
+					<CompileFile command="/usr/bin/make -j8 -f &quot;/home/yatima1460/Desktop/drill/CLI/Core/spdlog/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j8 -f &quot;/home/yatima1460/Desktop/drill/CLI/Core/spdlog/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j8 -f &quot;/home/yatima1460/Desktop/drill/CLI/Core/spdlog/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+		</Build>
+		<Unit filename="/home/yatima1460/Desktop/drill/Core/spdlog/include/spdlog/async.h">
+			<Option target="spdlog"/>
+		</Unit>
+		<Unit filename="/home/yatima1460/Desktop/drill/Core/spdlog/include/spdlog/async_logger-inl.h">
+			<Option target="spdlog"/>
+		</Unit>
+		<Unit filename="/home/yatima1460/Desktop/drill/Core/spdlog/include/spdlog/async_logger.h">
+			<Option target="spdlog"/>
+		</Unit>
+		<Unit filename="/home/yatima1460/Desktop/drill/Core/spdlog/include/spdlog/common-inl.h">
+			<Option target="spdlog"/>
+		</Unit>
+		<Unit filename="/home/yatima1460/Desktop/drill/Core/spdlog/include/spdlog/common.h">
+			<Option target="spdlog"/>
+		</Unit>
+		<Unit filename="/home/yatima1460/Desktop/drill/Core/spdlog/include/spdlog/details/backtracer-inl.h">
+			<Option target="spdlog"/>
+		</Unit>
+		<Unit filename="/home/yatima1460/Desktop/drill/Core/spdlog/include/spdlog/details/backtracer.h">
+			<Option target="spdlog"/>
+		</Unit>
+		<Unit filename="/home/yatima1460/Desktop/drill/Core/spdlog/include/spdlog/details/circular_q.h">
+			<Option target="spdlog"/>
+		</Unit>
+		<Unit filename="/home/yatima1460/Desktop/drill/Core/spdlog/include/spdlog/details/console_globals.h">
+			<Option target="spdlog"/>
+		</Unit>
+		<Unit filename="/home/yatima1460/Desktop/drill/Core/spdlog/include/spdlog/details/file_helper-inl.h">
+			<Option target="spdlog"/>
+		</Unit>
+		<Unit filename="/home/yatima1460/Desktop/drill/Core/spdlog/include/spdlog/details/file_helper.h">
+			<Option target="spdlog"/>
+		</Unit>
+		<Unit filename="/home/yatima1460/Desktop/drill/Core/spdlog/include/spdlog/details/fmt_helper.h">
+			<Option target="spdlog"/>
+		</Unit>
+		<Unit filename="/home/yatima1460/Desktop/drill/Core/spdlog/include/spdlog/details/log_msg-inl.h">
+			<Option target="spdlog"/>
+		</Unit>
+		<Unit filename="/home/yatima1460/Desktop/drill/Core/spdlog/include/spdlog/details/log_msg.h">
+			<Option target="spdlog"/>
+		</Unit>
+		<Unit filename="/home/yatima1460/Desktop/drill/Core/spdlog/include/spdlog/details/log_msg_buffer-inl.h">
+			<Option target="spdlog"/>
+		</Unit>
+		<Unit filename="/home/yatima1460/Desktop/drill/Core/spdlog/include/spdlog/details/log_msg_buffer.h">
+			<Option target="spdlog"/>
+		</Unit>
+		<Unit filename="/home/yatima1460/Desktop/drill/Core/spdlog/include/spdlog/details/mpmc_blocking_q.h">
+			<Option target="spdlog"/>
+		</Unit>
+		<Unit filename="/home/yatima1460/Desktop/drill/Core/spdlog/include/spdlog/details/null_mutex.h">
+			<Option target="spdlog"/>
+		</Unit>
+		<Unit filename="/home/yatima1460/Desktop/drill/Core/spdlog/include/spdlog/details/os-inl.h">
+			<Option target="spdlog"/>
+		</Unit>
+		<Unit filename="/home/yatima1460/Desktop/drill/Core/spdlog/include/spdlog/details/os.h">
+			<Option target="spdlog"/>
+		</Unit>
+		<Unit filename="/home/yatima1460/Desktop/drill/Core/spdlog/include/spdlog/details/pattern_formatter-inl.h">
+			<Option target="spdlog"/>
+		</Unit>
+		<Unit filename="/home/yatima1460/Desktop/drill/Core/spdlog/include/spdlog/details/pattern_formatter.h">
+			<Option target="spdlog"/>
+		</Unit>
+		<Unit filename="/home/yatima1460/Desktop/drill/Core/spdlog/include/spdlog/details/periodic_worker-inl.h">
+			<Option target="spdlog"/>
+		</Unit>
+		<Unit filename="/home/yatima1460/Desktop/drill/Core/spdlog/include/spdlog/details/periodic_worker.h">
+			<Option target="spdlog"/>
+		</Unit>
+		<Unit filename="/home/yatima1460/Desktop/drill/Core/spdlog/include/spdlog/details/registry-inl.h">
+			<Option target="spdlog"/>
+		</Unit>
+		<Unit filename="/home/yatima1460/Desktop/drill/Core/spdlog/include/spdlog/details/registry.h">
+			<Option target="spdlog"/>
+		</Unit>
+		<Unit filename="/home/yatima1460/Desktop/drill/Core/spdlog/include/spdlog/details/synchronous_factory.h">
+			<Option target="spdlog"/>
+		</Unit>
+		<Unit filename="/home/yatima1460/Desktop/drill/Core/spdlog/include/spdlog/details/thread_pool-inl.h">
+			<Option target="spdlog"/>
+		</Unit>
+		<Unit filename="/home/yatima1460/Desktop/drill/Core/spdlog/include/spdlog/details/thread_pool.h">
+			<Option target="spdlog"/>
+		</Unit>
+		<Unit filename="/home/yatima1460/Desktop/drill/Core/spdlog/include/spdlog/fmt/bin_to_hex.h">
+			<Option target="spdlog"/>
+		</Unit>
+		<Unit filename="/home/yatima1460/Desktop/drill/Core/spdlog/include/spdlog/fmt/bundled/chrono.h">
+			<Option target="spdlog"/>
+		</Unit>
+		<Unit filename="/home/yatima1460/Desktop/drill/Core/spdlog/include/spdlog/fmt/bundled/color.h">
+			<Option target="spdlog"/>
+		</Unit>
+		<Unit filename="/home/yatima1460/Desktop/drill/Core/spdlog/include/spdlog/fmt/bundled/compile.h">
+			<Option target="spdlog"/>
+		</Unit>
+		<Unit filename="/home/yatima1460/Desktop/drill/Core/spdlog/include/spdlog/fmt/bundled/core.h">
+			<Option target="spdlog"/>
+		</Unit>
+		<Unit filename="/home/yatima1460/Desktop/drill/Core/spdlog/include/spdlog/fmt/bundled/format-inl.h">
+			<Option target="spdlog"/>
+		</Unit>
+		<Unit filename="/home/yatima1460/Desktop/drill/Core/spdlog/include/spdlog/fmt/bundled/format.h">
+			<Option target="spdlog"/>
+		</Unit>
+		<Unit filename="/home/yatima1460/Desktop/drill/Core/spdlog/include/spdlog/fmt/bundled/locale.h">
+			<Option target="spdlog"/>
+		</Unit>
+		<Unit filename="/home/yatima1460/Desktop/drill/Core/spdlog/include/spdlog/fmt/bundled/ostream.h">
+			<Option target="spdlog"/>
+		</Unit>
+		<Unit filename="/home/yatima1460/Desktop/drill/Core/spdlog/include/spdlog/fmt/bundled/posix.h">
+			<Option target="spdlog"/>
+		</Unit>
+		<Unit filename="/home/yatima1460/Desktop/drill/Core/spdlog/include/spdlog/fmt/bundled/printf.h">
+			<Option target="spdlog"/>
+		</Unit>
+		<Unit filename="/home/yatima1460/Desktop/drill/Core/spdlog/include/spdlog/fmt/bundled/ranges.h">
+			<Option target="spdlog"/>
+		</Unit>
+		<Unit filename="/home/yatima1460/Desktop/drill/Core/spdlog/include/spdlog/fmt/bundled/safe-duration-cast.h">
+			<Option target="spdlog"/>
+		</Unit>
+		<Unit filename="/home/yatima1460/Desktop/drill/Core/spdlog/include/spdlog/fmt/fmt.h">
+			<Option target="spdlog"/>
+		</Unit>
+		<Unit filename="/home/yatima1460/Desktop/drill/Core/spdlog/include/spdlog/fmt/ostr.h">
+			<Option target="spdlog"/>
+		</Unit>
+		<Unit filename="/home/yatima1460/Desktop/drill/Core/spdlog/include/spdlog/formatter.h">
+			<Option target="spdlog"/>
+		</Unit>
+		<Unit filename="/home/yatima1460/Desktop/drill/Core/spdlog/include/spdlog/logger-inl.h">
+			<Option target="spdlog"/>
+		</Unit>
+		<Unit filename="/home/yatima1460/Desktop/drill/Core/spdlog/include/spdlog/logger.h">
+			<Option target="spdlog"/>
+		</Unit>
+		<Unit filename="/home/yatima1460/Desktop/drill/Core/spdlog/include/spdlog/sinks/android_sink.h">
+			<Option target="spdlog"/>
+		</Unit>
+		<Unit filename="/home/yatima1460/Desktop/drill/Core/spdlog/include/spdlog/sinks/ansicolor_sink-inl.h">
+			<Option target="spdlog"/>
+		</Unit>
+		<Unit filename="/home/yatima1460/Desktop/drill/Core/spdlog/include/spdlog/sinks/ansicolor_sink.h">
+			<Option target="spdlog"/>
+		</Unit>
+		<Unit filename="/home/yatima1460/Desktop/drill/Core/spdlog/include/spdlog/sinks/base_sink-inl.h">
+			<Option target="spdlog"/>
+		</Unit>
+		<Unit filename="/home/yatima1460/Desktop/drill/Core/spdlog/include/spdlog/sinks/base_sink.h">
+			<Option target="spdlog"/>
+		</Unit>
+		<Unit filename="/home/yatima1460/Desktop/drill/Core/spdlog/include/spdlog/sinks/basic_file_sink-inl.h">
+			<Option target="spdlog"/>
+		</Unit>
+		<Unit filename="/home/yatima1460/Desktop/drill/Core/spdlog/include/spdlog/sinks/basic_file_sink.h">
+			<Option target="spdlog"/>
+		</Unit>
+		<Unit filename="/home/yatima1460/Desktop/drill/Core/spdlog/include/spdlog/sinks/daily_file_sink.h">
+			<Option target="spdlog"/>
+		</Unit>
+		<Unit filename="/home/yatima1460/Desktop/drill/Core/spdlog/include/spdlog/sinks/dist_sink.h">
+			<Option target="spdlog"/>
+		</Unit>
+		<Unit filename="/home/yatima1460/Desktop/drill/Core/spdlog/include/spdlog/sinks/dup_filter_sink.h">
+			<Option target="spdlog"/>
+		</Unit>
+		<Unit filename="/home/yatima1460/Desktop/drill/Core/spdlog/include/spdlog/sinks/msvc_sink.h">
+			<Option target="spdlog"/>
+		</Unit>
+		<Unit filename="/home/yatima1460/Desktop/drill/Core/spdlog/include/spdlog/sinks/null_sink.h">
+			<Option target="spdlog"/>
+		</Unit>
+		<Unit filename="/home/yatima1460/Desktop/drill/Core/spdlog/include/spdlog/sinks/ostream_sink.h">
+			<Option target="spdlog"/>
+		</Unit>
+		<Unit filename="/home/yatima1460/Desktop/drill/Core/spdlog/include/spdlog/sinks/rotating_file_sink-inl.h">
+			<Option target="spdlog"/>
+		</Unit>
+		<Unit filename="/home/yatima1460/Desktop/drill/Core/spdlog/include/spdlog/sinks/rotating_file_sink.h">
+			<Option target="spdlog"/>
+		</Unit>
+		<Unit filename="/home/yatima1460/Desktop/drill/Core/spdlog/include/spdlog/sinks/sink-inl.h">
+			<Option target="spdlog"/>
+		</Unit>
+		<Unit filename="/home/yatima1460/Desktop/drill/Core/spdlog/include/spdlog/sinks/sink.h">
+			<Option target="spdlog"/>
+		</Unit>
+		<Unit filename="/home/yatima1460/Desktop/drill/Core/spdlog/include/spdlog/sinks/stdout_color_sinks-inl.h">
+			<Option target="spdlog"/>
+		</Unit>
+		<Unit filename="/home/yatima1460/Desktop/drill/Core/spdlog/include/spdlog/sinks/stdout_color_sinks.h">
+			<Option target="spdlog"/>
+		</Unit>
+		<Unit filename="/home/yatima1460/Desktop/drill/Core/spdlog/include/spdlog/sinks/stdout_sinks-inl.h">
+			<Option target="spdlog"/>
+		</Unit>
+		<Unit filename="/home/yatima1460/Desktop/drill/Core/spdlog/include/spdlog/sinks/stdout_sinks.h">
+			<Option target="spdlog"/>
+		</Unit>
+		<Unit filename="/home/yatima1460/Desktop/drill/Core/spdlog/include/spdlog/sinks/syslog_sink.h">
+			<Option target="spdlog"/>
+		</Unit>
+		<Unit filename="/home/yatima1460/Desktop/drill/Core/spdlog/include/spdlog/sinks/systemd_sink.h">
+			<Option target="spdlog"/>
+		</Unit>
+		<Unit filename="/home/yatima1460/Desktop/drill/Core/spdlog/include/spdlog/sinks/wincolor_sink-inl.h">
+			<Option target="spdlog"/>
+		</Unit>
+		<Unit filename="/home/yatima1460/Desktop/drill/Core/spdlog/include/spdlog/sinks/wincolor_sink.h">
+			<Option target="spdlog"/>
+		</Unit>
+		<Unit filename="/home/yatima1460/Desktop/drill/Core/spdlog/include/spdlog/spdlog-inl.h">
+			<Option target="spdlog"/>
+		</Unit>
+		<Unit filename="/home/yatima1460/Desktop/drill/Core/spdlog/include/spdlog/spdlog.h">
+			<Option target="spdlog"/>
+		</Unit>
+		<Unit filename="/home/yatima1460/Desktop/drill/Core/spdlog/include/spdlog/tweakme.h">
+			<Option target="spdlog"/>
+		</Unit>
+		<Unit filename="/home/yatima1460/Desktop/drill/Core/spdlog/include/spdlog/version.h">
+			<Option target="spdlog"/>
+		</Unit>
+		<Unit filename="/home/yatima1460/Desktop/drill/Core/spdlog/src/async.cpp">
+			<Option target="spdlog"/>
+		</Unit>
+		<Unit filename="/home/yatima1460/Desktop/drill/Core/spdlog/src/color_sinks.cpp">
+			<Option target="spdlog"/>
+		</Unit>
+		<Unit filename="/home/yatima1460/Desktop/drill/Core/spdlog/src/file_sinks.cpp">
+			<Option target="spdlog"/>
+		</Unit>
+		<Unit filename="/home/yatima1460/Desktop/drill/Core/spdlog/src/fmt.cpp">
+			<Option target="spdlog"/>
+		</Unit>
+		<Unit filename="/home/yatima1460/Desktop/drill/Core/spdlog/src/spdlog.cpp">
+			<Option target="spdlog"/>
+		</Unit>
+		<Unit filename="/home/yatima1460/Desktop/drill/Core/spdlog/src/stdout_sinks.cpp">
+			<Option target="spdlog"/>
+		</Unit>
+		<Unit filename="/home/yatima1460/Desktop/drill/CMakeLists.txt">
+			<Option virtualFolder="CMake Files\"/>
+		</Unit>
+		<Unit filename="/home/yatima1460/Desktop/drill/CLI/CMakeLists.txt">
+			<Option virtualFolder="CMake Files\CLI\"/>
+		</Unit>
+		<Unit filename="/home/yatima1460/Desktop/drill/Core/CMakeLists.txt">
+			<Option virtualFolder="CMake Files\Core\"/>
+		</Unit>
+		<Unit filename="/home/yatima1460/Desktop/drill/Core/spdlog/CMakeLists.txt">
+			<Option virtualFolder="CMake Files\Core\spdlog\"/>
+		</Unit>
+		<Unit filename="/home/yatima1460/Desktop/drill/Core/spdlog/cmake/ide.cmake">
+			<Option virtualFolder="CMake Files\Core\spdlog\cmake\"/>
+		</Unit>
+		<Unit filename="/home/yatima1460/Desktop/drill/Core/spdlog/cmake/utils.cmake">
+			<Option virtualFolder="CMake Files\Core\spdlog\cmake\"/>
+		</Unit>
+	</Project>
+</CodeBlocks_project_file>
