@@ -46,7 +46,9 @@
     "streambuf": "cpp",
     "typeinfo": "cpp",
     "ctime": "cpp",
-    "iomanip": "cpp"
+    "iomanip": "cpp",
+    "regex": "cpp",
+    "variant": "cpp"
   },
   "debug.allowBreakpointsEverywhere":true
 }

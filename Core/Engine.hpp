@@ -3,6 +3,7 @@
 #include <string>
 #include <vector>
 #include <thread>
+#include "Config.hpp"
 
 namespace Drill
 {
@@ -10,6 +11,7 @@ class Engine
 {
 
     std::vector<std::thread*> crawlers;
+    Config::DrillConfig configs;
     // string searchValue, CrawlerCallback resultCallback, void* userObject
 
     std::string searchValue;

@@ -31,7 +31,7 @@ public:
            
             log = spdlog::stdout_color_st(mountpoint); 
 
-            log->info("Crawler {0} created", mountpoint);
+            log->debug("Crawler {0} created", mountpoint);
 
         }
 

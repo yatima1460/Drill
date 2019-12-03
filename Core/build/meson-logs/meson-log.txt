@@ -1,0 +1,31 @@
+Build started at 2019-12-03T02:49:12.361705
+Main binary: /usr/bin/python3
+Build Options: 
+Python system: Linux
+The Meson build system
+Version: 0.52.0
+Source dir: /home/yatima1460/Desktop/drill/Core
+Build dir: /home/yatima1460/Desktop/drill/Core/build
+Build type: native build
+Project name: Core
+Project version: 3.0.0
+C++ compiler for the build machine: c++ (gcc 9.2.1 "c++ (Debian 9.2.1-19) 9.2.1 20191109")
+C++ linker for the build machine: GNU ld.bfd 2.33.1
+C++ compiler for the host machine: c++ (gcc 9.2.1 "c++ (Debian 9.2.1-19) 9.2.1 20191109")
+C++ linker for the host machine: GNU ld.bfd 2.33.1
+Build machine cpu family: x86_64
+Build machine cpu: x86_64
+Host machine cpu family: x86_64
+Host machine cpu: x86_64
+Target machine cpu family: x86_64
+Target machine cpu: x86_64
+Program scripts/extract_version.py found: YES (/home/yatima1460/Desktop/drill/Core/spdlog/scripts/extract_version.py)
+Running command: /home/yatima1460/Desktop/drill/Core/spdlog/scripts/extract_version.py
+--- stdout ---
+1.4.2
+
+--- stderr ---
+
+
+
+spdlog/meson.build:1:0: ERROR: Second call to project().
