@@ -2,5 +2,7 @@
 *.d linguist-vendored=false
 
 *.txt -crlf
-*.d -crlf
+*.cpp -crlf
+*.hpp -crlf
+*.svg -crlf
 *.yml -crlf
