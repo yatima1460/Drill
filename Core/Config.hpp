@@ -7,7 +7,7 @@
 
 #define DRILLBITS_PER_ORESITE 1
 
-namespace Drill::Config
+namespace Drill
 {
 
     

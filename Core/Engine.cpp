@@ -21,7 +21,7 @@ Engine::Engine(std::string searchValue) : searchValue(searchValue)
     spdlog::info("Welcome to Drill!");
     if (searchValue.length() == 0)
         spdlog::critical("search string is empty");
-    configs = Config::loadConfigs();
+    configs = loadConfigs();
 }
 
 void Engine::startDrilling()
@@ -61,7 +61,7 @@ void Engine::startDrilling()
         
 
         // Create thread object
-        std::thread *thread_object = new std::thread(&Crawler::run, Crawler(mountpoint));
+        std::thread *thread_object = new std::thread(&Crawler::run, Crawler(mountpoint,&configs));
 
         crawlers.push_back(thread_object);
         // create thread

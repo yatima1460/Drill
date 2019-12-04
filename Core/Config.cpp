@@ -34,7 +34,7 @@ void trim(std::string &s) {
     rtrim(s);
 }
 
-namespace Drill::Config
+namespace Drill
 {
 
 /**
@@ -96,6 +96,8 @@ DrillConfig loadConfigs()
 {
 
     DrillConfig dc;
+
+    
 
     if (!System::doesPathExist("~/.config/drill-search/BlockLists"))
     {
