@@ -101,6 +101,7 @@ _deps
 .vscode
 /build
 
-
+/CLI/DrillCLI
+*.cbp
 
 DartConfiguration.tcl
