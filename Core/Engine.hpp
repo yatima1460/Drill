@@ -11,7 +11,7 @@ class Engine
 {
 
     std::vector<std::thread*> crawlers;
-    Config::DrillConfig configs;
+    DrillConfig configs;
     // string searchValue, CrawlerCallback resultCallback, void* userObject
 
     std::string searchValue;

@@ -9,15 +9,25 @@
 
 
 #include <iostream>
+#include "FileInfo.hpp"
+
+#include "Config.hpp"
 
 
 namespace Drill
 {
+
+
+
     // Define the class of function object 
     class Crawler 
     { 
         std::shared_ptr<spdlog::logger> log;
         const std::string mountpoint;
+
+        DrillConfig* cfg;
+
+        std::vector<FileInfo> filesFound;
         
         // Overload () operator 
         // void operator()() 
@@ -26,20 +36,17 @@ namespace Drill
         // } 
 public:
 
-        Crawler(std::string mountpoint) : mountpoint(mountpoint)
-        {
-           
-            log = spdlog::stdout_color_st(mountpoint); 
-
-            log->debug("Crawler {0} created", mountpoint);
-
-        }
+        Crawler(std::string mountpoint, DrillConfig* cfg);
 
 
-        void run()
-        {
-            log->info("Crawler {0} running as thread", mountpoint);
-        }
+        /*
+        NOTE: We don't really care about CPU time, Drill isn't CPU intensive but disk intensive,
+        in this function it's not bad design that there are multiple IFs checking the same thing over and over again,
+        but it's done to stop the crawling as soon as possible to have more time to crawl important files.
+
+        ^^^ Is this really true? Maybe slow RAM and CPU can slow down too much the DMA requests too?
+        */
+        void run();
     };
 }
 
