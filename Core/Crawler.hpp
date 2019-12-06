@@ -22,6 +22,8 @@ namespace Drill
     // Define the class of function object 
     class Crawler 
     { 
+        bool running;
+
         std::shared_ptr<spdlog::logger> log;
         const std::string mountpoint;
 
@@ -32,6 +34,17 @@ namespace Drill
         const std::vector<std::string> mountpoints;
 
         std::vector<std::regex> crawlerBlocklist;
+
+        std::vector<FileInfo>* buffer;
+        std::vector<FileInfo> buffer1;
+        std::vector<FileInfo> buffer2;
+
+        /**
+         * @brief Swaps the internal buffers to save the results
+         * 
+         * @return std::vector<FileInfo>* the old buffer
+         */
+        std::vector<FileInfo> *  swapBuffers();
         
         // Overload () operator 
         // void operator()() 
@@ -42,6 +55,11 @@ public:
 
         Crawler(const std::string mountpoint, const DrillConfig cfg, const std::vector<std::string> mountpoints);
 
+
+        std::vector<FileInfo> getResults();
+
+
+        bool isRunning() const;
 
         /*
         NOTE: We don't really care about CPU time, Drill isn't CPU intensive but disk intensive,

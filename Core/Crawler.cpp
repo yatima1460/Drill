@@ -18,11 +18,54 @@ Crawler::Crawler(const std::string mountpoint, const DrillConfig cfg,const std::
     log->debug("Crawler `{0}` created on the main thread", mountpoint);
 
     this->crawlerConfigs = cfg;
+
+    buffer = &buffer1;
+    
+}
+
+std::vector<FileInfo> *  Crawler::swapBuffers()
+{
+
+    if (buffer == &buffer1)
+    {
+        buffer = &buffer2;
+        return &buffer1;
+    }
+    if (buffer == &buffer2)
+    {
+        buffer = &buffer1;
+        return &buffer2;
+    }
+
+    throw std::logic_error("buffer pointer is invalid");
+}
+
+std::vector<FileInfo> Crawler::getResults()
+{
+    assert(buffer != nullptr);
+
+
+
+    std::vector<FileInfo> * tocpy = swapBuffers();
+  
+
+    const std::vector<FileInfo> cpy = *tocpy;
+
+    tocpy->clear();
+    
+    return cpy;
+}
+
+bool Crawler::isRunning() const
+{
+    return running;
 }
 
 void Crawler::run()
 {
     assert(!mountpoint.empty());
+
+    running = true;
     //assert(cfg != nullptr);
 
     log->info("Crawler `{0}` running as thread", mountpoint);
@@ -131,7 +174,10 @@ void Crawler::run()
                 // TODO: add matching functions like `content:`, error if null
                 if (std::string(entry.path().filename().c_str()).find("1080p") != std::string::npos)
                 {
-                    log->info(fi.path);
+                    log->trace(fi.path);
+
+                    assert(buffer != nullptr);
+                    buffer->push_back(fi);
                 }
             }
         }
@@ -142,6 +188,10 @@ void Crawler::run()
     }
 
     log->info("Finished crawling mountpoint `{0}`, exiting thread", mountpoint);
+
+    running = false;
+    //TODO: try catch all to prevent this from being set
+    
 }
 
 } // namespace Drill

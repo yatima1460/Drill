@@ -4,10 +4,41 @@
 
 #include <spdlog/spdlog.h>
 #include <thread>
-#include "Crawler.hpp"
+
 
 namespace Drill
 {
+
+    std::vector<FileInfo> Engine::getResults()
+    {
+        
+        std::vector<FileInfo> results;
+        for (size_t i = 0; i < crawlersObjects.size(); i++)
+        {
+
+            const auto vector2 = crawlersObjects[i]->getResults();
+            results.insert( results.end(), vector2.begin(), vector2.end() );
+
+
+        }
+        return results;
+    }
+
+
+bool Engine::isCrawling()
+{
+    bool atLeastOneRunning = false;
+    for (size_t i = 0; i < crawlers.size(); i++)
+    {
+        if (crawlersObjects[i]->isRunning())
+        {
+            atLeastOneRunning = true;
+            break;
+        }
+    }
+
+    return atLeastOneRunning;
+}
 
 Engine::Engine(std::string searchValue) : searchValue(searchValue)
 {
@@ -69,7 +100,10 @@ void Engine::startDrilling()
         {
             spdlog::info("Mountpoint `{0}` not in blocklist...", mountpoint);
             // Create thread object
-            std::thread *thread_object = new std::thread(&Crawler::run, Crawler(mountpoint, configs, mountpoints));
+
+            auto crawlerObject = new Crawler(mountpoint, configs, mountpoints);
+            crawlersObjects.push_back(crawlerObject);
+            std::thread *thread_object = new std::thread(&Crawler::run, crawlerObject);
 
             crawlers.push_back(thread_object);
         }
@@ -79,11 +113,20 @@ void Engine::startDrilling()
         // create thread
     }
 
+
+
+
+    
+        
+}
+
+void Engine::waitDrilling()
+{
     for (auto *crawler : crawlers)
     {
         crawler->join();
         spdlog::info("Crawler joined", crawler->native_handle());
     }
-        
 }
+
 } // namespace Drill
