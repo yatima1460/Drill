@@ -102,6 +102,12 @@ _deps
 /build
 
 /CLI/DrillCLI
+/CLI/Core
 *.cbp
+/Tests/Core
+/Tests/googletest-build
+/Tests/googletest-download
+/Tests/googletest-src
+/Tests/lib
 
 DartConfiguration.tcl
