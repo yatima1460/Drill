@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.0.0)
 project (DrillCore CXX)
 
 
-add_definitions("-Wall" "-Wextra" "-g" )
+add_definitions("-Wall" "-Wextra" "-g" "-std=c++17")
 file(GLOB SRC_FILES *.cpp)
 
 add_subdirectory(spdlog)
