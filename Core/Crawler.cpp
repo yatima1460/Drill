@@ -13,7 +13,11 @@ Crawler::Crawler(const std::string mountpoint, const DrillConfig cfg,const std::
     assert(!mountpoint.empty());
     //assert(cfg != nullptr);
 
-    log = spdlog::stdout_color_st(mountpoint);
+ // rotating_sink = make_shared<spdlog::sinks::rotating_file_sink_mt> ("log_filename", "log", 1024*1024, 5);
+
+    this->log = std::make_unique<spdlog::logger>(mountpoint);
+
+    //log = spdlog::stdout_color_st(mountpoint);
     log->set_level(spdlog::level::info);
     log->debug("Crawler `{0}` created on the main thread", mountpoint);
 
@@ -191,7 +195,18 @@ void Crawler::run()
 
     running = false;
     //TODO: try catch all to prevent this from being set
+
+
+
+
+  
     
 }
+
+
+    Crawler::~Crawler()
+    {
+        //spdlog::drop(mountpoint);
+    }
 
 } // namespace Drill

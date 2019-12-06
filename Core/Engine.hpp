@@ -38,5 +38,7 @@ public:
     void stopDrillingSync();
 
     void stopDrillingAsync();
+
+    ~Engine();
 };
 } // namespace Drill
