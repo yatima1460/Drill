@@ -21,11 +21,12 @@
     "plugin": true
   },
   "dependencies": {
-    "@rauschma/stringio": "^1.4.0"
+    "@rauschma/stringio": "^1.4.0",
+    "bindings": "^1.5.0"
   },
   "license": "GPL-2.0",
   "repository": {
-    "type" : "git",
-    "url" : "https://github.com/yatima1460/Drill.git"
+    "type": "git",
+    "url": "https://github.com/yatima1460/Drill.git"
   }
 }
