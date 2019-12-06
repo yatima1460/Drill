@@ -13,7 +13,9 @@ Engine::Engine(std::string searchValue) : searchValue(searchValue)
 {
 
     // #ifndef NDEBUG
-    spdlog::set_level(spdlog::level::info);
+    spdlog::set_level(spdlog::level::debug);
+
+    
     // #else
     //     spdlog::set_level(spdlog::level::warn);
     // #endif
@@ -44,26 +46,36 @@ void Engine::startDrilling()
             spdlog::warn("Found {0} duplicate entries in mountpoints, removed", oldSize - mountpoints.size());
     }
 
+
+    // std::vector<std::regex> mountpointsRegex;
+    // for (const auto mountpoint : mountpoints)
+    // {
+    //     mountpointsRegex.push_back(std::regex(mountpoint));
+    // }
+
+    // mountpointsRegex[0].
+
     for (const auto mountpoint : mountpoints)
     {
-        spdlog::debug("Found mountpoint {0}", mountpoint);
+        spdlog::debug("Found mountpoint `{0}`", mountpoint);
 
         // if in blocklists continue
         if (isInRegexList(configs.blocklistsRegex, mountpoint))
         {
-            spdlog::debug("Mountpoint {0} in blocklist, skipping...");
+            spdlog::debug("Mountpoint `{0}` in blocklist, skipping...", mountpoint);
             continue;
         }
         else
         {
-            spdlog::trace("Mountpoint {0} not in blocklist, skipping...");
+            spdlog::info("Mountpoint `{0}` not in blocklist...", mountpoint);
+            // Create thread object
+            std::thread *thread_object = new std::thread(&Crawler::run, Crawler(mountpoint, configs, mountpoints));
+
+            crawlers.push_back(thread_object);
         }
         
 
-        // Create thread object
-        std::thread *thread_object = new std::thread(&Crawler::run, Crawler(mountpoint,&configs));
-
-        crawlers.push_back(thread_object);
+        
         // create thread
     }
 
