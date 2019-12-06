@@ -1,0 +1,22 @@
+name: Linux_GTK
+
+on: [push]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v1
+    - run: export VERSION=$(cat VERSION)
+    - run: bash .github/install_gtk.bash
+    - run: bash .github/install_d.bash
+    - run: make build_gtk
+    - run: sudo apt install -y appstream 1>/dev/null
+    - run: bash .github/create_appimage.bash
+    - run: 7z a -mx0 -mmt2 -tzip Drill-"$VERSION"-GTK-Linux-x86_64.zip Build/GTK/*
+
+
+   
+      

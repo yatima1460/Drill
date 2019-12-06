@@ -1,5 +1,5 @@
 {
-  "name": "Drill",
+  "name": "drill",
   "main": "drill.html",
   "description": "The Universal Launcher",
   "chromium-args": "--enable-logging=stderr",
@@ -12,21 +12,20 @@
     "title": "Drill",
     "fullscreen": false,
     "icon": "drill.png",
-    "resizable": false,
     "toolbar": false,
     "frame": false,
-    "width": 960,
-    "height": 77,
-    "position": "center",
-    "min_width": 160,
-    "min_height": 77,
-    "max_width": 960,
-    "max_height": 140
+    "show": false,
+    "background-color": "#FFFFFF"
   },
   "webkit": {
     "plugin": true
   },
   "dependencies": {
     "@rauschma/stringio": "^1.4.0"
+  },
+  "license": "GPL-2.0",
+  "repository": {
+    "type" : "git",
+    "url" : "https://github.com/yatima1460/Drill.git"
   }
 }

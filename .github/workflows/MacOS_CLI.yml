@@ -1,0 +1,16 @@
+name: MacOS_CLI
+
+on: [push]
+
+jobs:
+  build:
+
+    runs-on: macos-latest
+    
+    steps:
+    - uses: actions/checkout@v1
+    - run: echo ::set-env name=VERSION::$(cat VERSION)
+    - run: bash .github/install_d.bash
+    - run: make build_cli
+    - run: 7z a -mx0 -mmt2 -tzip Drill-${{ env.VERSION }}-CLI-MacOS-x86_64.zip Build/CLI/*
+      

@@ -1,0 +1,20 @@
+name: Windows_CLI
+
+on: [push]
+
+jobs:
+  build:
+
+    runs-on: windows-latest
+    
+    steps:
+    - uses: actions/checkout@v1
+    - run: echo ::set-env name=VERSION::$(cat VERSION)
+    - run: DMD_VERSION="2.087.1"
+    - uses: wei/wget@v1
+      with:
+        args: -O sample.html http://downloads.dlang.org/releases/2.x/"$DMD_VERSION"/dmd."$DMD_VERSION".windows.zip 
+    - run: bash .github/install_d.bash
+    - run: make build_cli
+    - run: 7z a -mx0 -mmt2 -tzip Drill-${{ env.VERSION }}-CLI-Windows-x86_64.zip Build/CLI/*
+      

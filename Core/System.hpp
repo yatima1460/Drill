@@ -16,7 +16,7 @@ namespace Drill::System
 
     std::string getHomeFolder();
 
-
+    
     bool doesPathExist(const std::string &s);
 }
 

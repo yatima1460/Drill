@@ -2,7 +2,7 @@
 
 
 mkdir -p Drill.AppDir
-cp -R "$PWD"/Build/Drill-GTK-linux-x86_64-release-travis/* Drill.AppDir
+cp -R "$PWD"/Build/GTK-github/* Drill.AppDir
 mkdir -p Drill.AppDir/usr/share/metainfo
 mkdir -p Drill.AppDir/usr/share/applications
 cp Assets/GTK-Linux/drill.software.appdata.xml Drill.AppDir/usr/share/metainfo
