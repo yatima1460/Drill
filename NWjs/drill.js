@@ -1,4 +1,12 @@
 
+let native = require('bindings')('drill-search-node-bindings')
+
+console.log(native)
+
+console.log(native.helloWorld())
+
+
+
 
 function addFile(icon, name, path, size, fileDateModifiedString) {
     console.log(name + " addFile");

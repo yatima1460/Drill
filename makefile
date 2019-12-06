@@ -14,23 +14,34 @@ build_cli:
 	@echo Building Drill $(VERSION) CLI... OK
 
 .PHONY: build_nwjs
-build_nwjs: build_cli
+build_nwjs: 
 ifeq (, $(shell which npm))
 	$(error "No npm in $(PATH), consider installing it")
 endif
 	@echo Cleaning previous NWjs build...
 	@rm -rf Build/NWjs
 	@echo Cleaning previous NWjs build... OK
-	@echo Building NWjs...
+
 	@mkdir -p Build/NWjs
+
+	
+	@echo Building NWAddon...
+	@cd NWAddon && nw-gyp rebuild --target=0.42.6 --arch=x64
+	@echo Building NWAddon... OK
+	@echo Copying NWAddon files... 
+	@cp -r NWAddon/build Build/NWjs
+	@echo Copying NWAddon files... OK
+
+	@echo Building NWjs...
 	@cp -r NWjs/* Build/NWjs
-	@echo Installing NPM modules...  > /dev/null
+	@echo Installing NPM modules... 
 	@cd Build/NWjs && npm install && cd ../../
 	@echo Installing NPM modules... OK
 	@echo Building NWjs... OK
-	@echo Copying Drill files...
-	@cp -r Build/CLI/* Build/NWjs
-	@echo Copying Drill files... OK
+	
+	
+
+
 
 .PHONY: run_gtk
 run_gtk: build_gtk
