@@ -8,23 +8,33 @@
 namespace Drill
 {
 
-Crawler::Crawler(std::string mountpoint, DrillConfig *cfg) : mountpoint(mountpoint)
+Crawler::Crawler(const std::string mountpoint, const DrillConfig cfg,const std::vector<std::string> mountpoints) : mountpoint(mountpoint), mountpoints(mountpoints)
 {
     assert(!mountpoint.empty());
-    assert(cfg != nullptr);
+    //assert(cfg != nullptr);
 
     log = spdlog::stdout_color_st(mountpoint);
-    log->debug("Crawler {0} created", mountpoint);
+    log->set_level(spdlog::level::info);
+    log->debug("Crawler `{0}` created on the main thread", mountpoint);
 
-    this->cfg = cfg;
+    
+
+    // crawlerBlocklist = cfg->blocklistsRegex;
+
+    this->crawlerConfigs = cfg;
+
+    
+   
+
+    //this->cfg = cfg;
 }
 
 void Crawler::run()
 {
     assert(!mountpoint.empty());
-    assert(cfg != nullptr);
+    //assert(cfg != nullptr);
 
-    log->info("Crawler {0} running as thread", mountpoint);
+    log->info("Crawler `{0}` running as thread", mountpoint);
 
 
 
@@ -34,19 +44,33 @@ void Crawler::run()
     /*
     Every Crawler will have all the other mountpoints in its blocklist
     In this way crawlers will not cross paths in the worst case scenario
+    of mount shenanigans
     */
-    //TODO:  other mountpoints in its blocklist
-
-
+    for (const auto mnt : mountpoints)
+    {
+        if (mnt != mountpoint)
+        {
+            const std::string mountpointRegexStr = "^"+mnt+"$";
+            crawlerConfigs.blocklistsRegex.push_back(std::regex(mountpointRegexStr));
+            log->info("added `{0}` to blocklists", mountpointRegexStr);
+        }
+        else
+        {
+            log->debug("`{0}` skipped adding to blocklists, it's the crawler mountpoint", mnt);
+        }
+        
+            
+    }
 
     queue.push_back(mountpoint);
-
-
+    log->debug("`{0}` mountpoint added to queue", mountpoint);
 
     while (!queue.empty())
     {
         auto directory = queue.back();
         queue.pop_back();
+
+
 
         /*
         README!!!
@@ -83,7 +107,7 @@ void Crawler::run()
                     entry.is_socket() ||
                     entry.is_other())
                 {
-                    log->trace("Special symlink/block/character/fifo/socket/other file ignored: {0}", entry.path().c_str());
+                    log->trace("Special symlink/block/character/fifo/socket/other file ignored: `{0}`", entry.path().c_str());
                     continue;
                 }
 
@@ -91,9 +115,9 @@ void Crawler::run()
 
                 if (entry.is_directory())
                 {
-                    if (isInRegexList(cfg->blocklistsRegex, entry.path().c_str()))
+                    if (isInRegexList(crawlerConfigs.blocklistsRegex, entry.path().c_str()))
                     {
-                        log->trace("Skipping directory {0} because in blocklists", entry.path().c_str());
+                        log->trace("Skipping directory `{0}` because in blocklists", entry.path().c_str());
                         continue;
                     }
 
@@ -104,7 +128,9 @@ void Crawler::run()
                     // }
                     // else
                     // {
-                        queue.push_back(entry.path().c_str());
+                    queue.push_back(entry.path().c_str());
+                    log->trace("Directory `{0}` added to queue, not in blocklists", entry.path().c_str());
+
                     // }
                 }
 

@@ -35,12 +35,12 @@ bool isInRegexList(const std::vector<std::regex>& list, const std::string& str)
 
     if (list.empty())
     {
-        spdlog::warn("isInRegexList: empty regex list as input for string `{0}`", str);
+        //spdlog::warn("isInRegexList: empty regex list as input for string `{0}`", str);
         return false;
     }
     if (str.empty())
     {
-        spdlog::warn("isInRegexList: empty string");
+        //spdlog::warn("isInRegexList: empty string");
         return false;
     }
 
@@ -49,7 +49,11 @@ bool isInRegexList(const std::vector<std::regex>& list, const std::string& str)
     for (const auto& regex : list)
     {
         if (std::regex_search(str, regex))
+        {
+            //spdlog::trace("isInRegexList: `{0}`", str);
             return true;
+        }
+            
     }
 
 

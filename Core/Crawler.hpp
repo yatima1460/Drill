@@ -25,9 +25,13 @@ namespace Drill
         std::shared_ptr<spdlog::logger> log;
         const std::string mountpoint;
 
-        DrillConfig* cfg;
+        DrillConfig crawlerConfigs;
 
         std::vector<FileInfo> filesFound;
+
+        const std::vector<std::string> mountpoints;
+
+        std::vector<std::regex> crawlerBlocklist;
         
         // Overload () operator 
         // void operator()() 
@@ -36,7 +40,7 @@ namespace Drill
         // } 
 public:
 
-        Crawler(std::string mountpoint, DrillConfig* cfg);
+        Crawler(const std::string mountpoint, const DrillConfig cfg, const std::vector<std::string> mountpoints);
 
 
         /*
