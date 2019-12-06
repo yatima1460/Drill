@@ -167,14 +167,25 @@ function initPage() {
             window.moveTo(monitor_w/2 - w/2, monitor_h/2-monitor_h / 30);
             win.resizeTo(w, h);
 
-            
+
+            console.log("aaaaaaaa");
+
+            var i = 0;
+            hideNoResultsMessage();
+            // for (i = 0; i < 100; i++) {
+            //     addFile("null",i,i,i,i);
+            //   }
+
+              function doStuff() {
+                addFile("null",Math.random(),Math.random(),Math.random(),Math.random());
+             }
+             setInterval(doStuff, 100);
+            // const { spawn } = require('child_process');
+            // source = spawn(process.cwd() + '/drill-cli', ["-ds",search.value],
+            //     { stdio: ['ignore', 'pipe', process.stderr] }
+            // ); // (A)
     
-            const { spawn } = require('child_process');
-            source = spawn(process.cwd() + '/drill-cli', ["-ds",search.value],
-                { stdio: ['ignore', 'pipe', process.stderr] }
-            ); // (A)
-    
-            echoReadable(source.stdout);
+            // echoReadable(source.stdout);
         }
         else
         {
