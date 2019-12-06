@@ -11,7 +11,7 @@ assignees: ''
 Which distro do you have?
 
 **Build Version**
-- Appimage? CLI? GTK? Which version?
+- Appimage? CLI? GTK? NWjs? Which version?
 
 **Describe the bug**
 A clear and concise description of what the bug is.

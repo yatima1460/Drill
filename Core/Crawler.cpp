@@ -17,16 +17,7 @@ Crawler::Crawler(const std::string mountpoint, const DrillConfig cfg,const std::
     log->set_level(spdlog::level::info);
     log->debug("Crawler `{0}` created on the main thread", mountpoint);
 
-    
-
-    // crawlerBlocklist = cfg->blocklistsRegex;
-
     this->crawlerConfigs = cfg;
-
-    
-   
-
-    //this->cfg = cfg;
 }
 
 void Crawler::run()

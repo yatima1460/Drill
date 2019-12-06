@@ -1,23 +1,12 @@
 # Drill
 
-|Stage | Job              |Linux  | Windows | OSX  |
-|-|-------------------|---|---|---|
-|Unittest| CLI      |  ![](https://dev.azure.com/yatima1460/Drill/_apis/build/status/yatima1460.Drill?branchName=master&jobName=Linux_CLI_Unittest) | ![](https://dev.azure.com/yatima1460/Drill/_apis/build/status/yatima1460.Drill?branchName=master&jobName=Windows_CLI_Unittest) | ![](https://dev.azure.com/yatima1460/Drill/_apis/build/status/yatima1460.Drill?branchName=master&jobName=OSX_CLI_Unittest)|
-|| GTK      |  ![](https://dev.azure.com/yatima1460/Drill/_apis/build/status/yatima1460.Drill?branchName=master&jobName=Linux_GTK_Unittest) | ![](https://dev.azure.com/yatima1460/Drill/_apis/build/status/yatima1460.Drill?branchName=master&jobName=Windows_GTK_Unittest) | ![](https://dev.azure.com/yatima1460/Drill/_apis/build/status/yatima1460.Drill?branchName=master&jobName=OSX_GTK_Unittest) |
-|Build| CLI       |  ![](https://dev.azure.com/yatima1460/Drill/_apis/build/status/yatima1460.Drill?branchName=master&jobName=Linux_CLI_Release) | ![](https://dev.azure.com/yatima1460/Drill/_apis/build/status/yatima1460.Drill?branchName=master&jobName=Windows_CLI_Release) | ![](https://dev.azure.com/yatima1460/Drill/_apis/build/status/yatima1460.Drill?branchName=master&jobName=OSX_CLI_Release)|
-|| GTK       |  ![](https://dev.azure.com/yatima1460/Drill/_apis/build/status/yatima1460.Drill?branchName=master&jobName=Linux_GTK_Release) | ![](https://dev.azure.com/yatima1460/Drill/_apis/build/status/yatima1460.Drill?branchName=master&jobName=Windows_GTK_Release) | ![](https://dev.azure.com/yatima1460/Drill/_apis/build/status/yatima1460.Drill?branchName=master&jobName=OSX_GTK_Release)|
-|Test| CLI .deb          |  ![](https://dev.azure.com/yatima1460/Drill/_apis/build/status/yatima1460.Drill?branchName=master&jobName=Linux_CLI_Release_Deb_Test) | N/A | N/A |
-|| GTK .deb         |  ![](https://dev.azure.com/yatima1460/Drill/_apis/build/status/yatima1460.Drill?branchName=master&jobName=Linux_GTK_Release_Deb_Test) | N/A | N/A |
-|| .AppImage     |  ![](https://dev.azure.com/yatima1460/Drill/_apis/build/status/yatima1460.Drill?branchName=master&jobName=Linux_GTK_Release_AppImage_Test) | N/A | N/A |
-|| Search Time   |  ![](https://dev.azure.com/yatima1460/Drill/_apis/build/status/yatima1460.Drill?branchName=master&jobName=Linux_CLI_Name_Test) | ![](https://dev.azure.com/yatima1460/Drill/_apis/build/status/yatima1460.Drill?branchName=master&jobName=Windows_CLI_Name_Test) | ![](https://dev.azure.com/yatima1460/Drill/_apis/build/status/yatima1460.Drill?branchName=master&jobName=OSX_CLI_Name_Test) |
-|| Search Content Time   |  ![](https://dev.azure.com/yatima1460/Drill/_apis/build/status/yatima1460.Drill?branchName=master&jobName=Linux_CLI_Content_Test) | ![](https://dev.azure.com/yatima1460/Drill/_apis/build/status/yatima1460.Drill?branchName=master&jobName=Windows_CLI_Content_Test) | ![](https://dev.azure.com/yatima1460/Drill/_apis/build/status/yatima1460.Drill?branchName=master&jobName=OSX_CLI_Content_Test) |
-
-| | Result |
-|---|---|
-| Publish Beta| ![](https://dev.azure.com/yatima1460/Drill/_apis/build/status/yatima1460.Drill?branchName=master&jobName=Publish_Beta)  |
-| Pipeline| [![Build Status](https://dev.azure.com/yatima1460/Drill/_apis/build/status/yatima1460.Drill?branchName=master)](https://dev.azure.com/yatima1460/Drill/_build/latest?definitionId=6&branchName=master) |
-
-
+|Project|Linux|Windows|MacOS|
+|-------|-----|-------|-----|
+| Core | [![Actions Status](https://github.com/yatima1460/Drill/workflows/Linux_Core/badge.svg)](https://github.com/yatima1460/Drill/actions) | [![Actions Status](https://github.com/yatima1460/Drill/workflows/Windows_Core/badge.svg)](https://github.com/yatima1460/Drill/actions) | [![Actions Status](https://github.com/yatima1460/Drill/workflows/MacOS_Core/badge.svg)](https://github.com/yatima1460/Drill/actions)|
+| Core Test | [![Actions Status](https://github.com/yatima1460/Drill/workflows/TestLinux/badge.svg)](https://github.com/yatima1460/Drill/actions) |[![Actions Status](https://github.com/yatima1460/Drill/workflows/TestWindows/badge.svg)](https://github.com/yatima1460/Drill/actions) | [![Actions Status](https://github.com/yatima1460/Drill/workflows/TestMacOS/badge.svg)](https://github.com/yatima1460/Drill/actions)|
+| CLI | [![Actions Status](https://github.com/yatima1460/Drill/workflows/Linux_CLI/badge.svg)](https://github.com/yatima1460/Drill/actions) | [![Actions Status](https://github.com/yatima1460/Drill/workflows/Windows_CLI/badge.svg)](https://github.com/yatima1460/Drill/actions) | [![Actions Status](https://github.com/yatima1460/Drill/workflows/MacOS_CLI/badge.svg)](https://github.com/yatima1460/Drill/actions) |
+| GTK | [![Actions Status](https://github.com/yatima1460/Drill/workflows/Linux_GTK/badge.svg)](https://github.com/yatima1460/Drill/actions) |[![Actions Status](https://github.com/yatima1460/Drill/workflows/Windows_GTK/badge.svg)](https://github.com/yatima1460/Drill/actions) | [![Actions Status](https://github.com/yatima1460/Drill/workflows/MacOS_GTK/badge.svg)](https://github.com/yatima1460/Drill/actions) |
+| NWjs | [![Actions Status](https://github.com/yatima1460/Drill/workflows/Linux_NWjs/badge.svg)](https://github.com/yatima1460/Drill/actions) |[![Actions Status](https://github.com/yatima1460/Drill/workflows/Windows_NWjs/badge.svg)](https://github.com/yatima1460/Drill/actions) | [![Actions Status](https://github.com/yatima1460/Drill/workflows/MacOS_NWjs/badge.svg)](https://github.com/yatima1460/Drill/actions) |
 
 [![Financial Contributors on Open Collective](https://opencollective.com/Drill/all/badge.svg?label=financial+contributors)](https://opencollective.com/Drill) [![GitHub issues](https://img.shields.io/github/issues/yatima1460/Drill.svg)](https://github.com/yatima1460/Drill/issues)
 [![GitHub forks](https://img.shields.io/github/forks/yatima1460/Drill.svg)](https://github.com/yatima1460/Drill/network)
@@ -38,7 +27,6 @@ Search files without indexing, but clever crawling:
 - **Intended for desktop users**, no obscure Linux files and system files scans
 - Use priority lists to first scan important folders.
 - Betting on the future: slowly being optimized for SSDs/M.2 or fast RAID arrays
-- Main design principle is to never fail or hard crash or show messageboxes, worst case scenario will be slow but STILL RUNNING!!
 
 
 ![](https://raw.githubusercontent.com/yatima1460/Drill/gh-pages/screenshot.png)
@@ -54,15 +42,11 @@ If your distro doesn't ask you to mark the AppImage as executable or nothing hap
 
 If you want a version that doesn't require sudo and can be configurable download the .zip files.
 
-# Core Guide
+# UI Guide
 
-Ore                 = File
-DrillBit            = Thread running on a disk
-Rig                 = Threadpool for a specific disk
-Company             = Mega-threadpool managing all threadpools
+- Open                    = Left Double Click / Return / Enter / Space
+- ~~Open containing folder  = Contextual menu~~
 
-- Are you mentally insane for doing this to the code?
-  - Code needs to be fun! Also yes. Also abstracts the code, maybe??
 
 
 # Build and Run
