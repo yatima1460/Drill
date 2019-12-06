@@ -27,6 +27,7 @@ namespace Drill
 
 Engine::~Engine()
 {
+    // TODO: stop drilling?
     for (const Crawler* c : crawlersObjects)
     {
         delete c;
