@@ -5,7 +5,15 @@ html, body {
     padding: 0;
     overflow: hidden;
    
+    
 }
+
+
+
+html {
+    overflow: scroll;
+}
+ 
 
 img {
     -webkit-user-drag: none;
@@ -88,6 +96,8 @@ a {
 #results {
     display: none;
     padding: 0.2em;
+
+    
 }
 
 
