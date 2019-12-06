@@ -24,7 +24,7 @@ namespace Drill
     { 
         bool running;
 
-        std::shared_ptr<spdlog::logger> log;
+        std::unique_ptr<spdlog::logger> log;
         const std::string mountpoint;
 
         DrillConfig crawlerConfigs;
@@ -69,6 +69,9 @@ public:
         ^^^ Is this really true? Maybe slow RAM and CPU can slow down too much the DMA requests too?
         */
         void run();
+
+
+        ~Crawler();
     };
 }
 

@@ -24,6 +24,10 @@ endif
 
 	@mkdir -p Build/NWjs
 
+	@echo Building Core...
+	@cd Core && cmake . && make -j8
+	@echo Building Core... OK
+
 	
 	@echo Building NWAddon...
 	@cd NWAddon && nw-gyp rebuild --target=0.42.6 --arch=x64

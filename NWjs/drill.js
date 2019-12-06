@@ -1,9 +1,14 @@
 
 let native = require('bindings')('drill-search-node-bindings')
 
-console.log(native)
+console.log(native);
 
-console.log(native.helloWorld())
+console.log(native.helloWorld());
+
+
+console.log(Object.keys(native));
+
+console.log(native.isCrawling());
 
 
 
@@ -184,10 +189,39 @@ function initPage() {
             //     addFile("null",i,i,i,i);
             //   }
 
-              function doStuff() {
-                addFile("null",Math.random(),Math.random(),Math.random(),Math.random());
-             }
-             setInterval(doStuff, 100);
+            
+            native.createContext(search.value);
+
+            native.startDrilling();
+
+            function doStuff() {
+                 //addFile("null",Math.random(),Math.random(),Math.random(),Math.random());
+                 const results = native.getResults();
+                 results.forEach(function(entry) {
+                    console.log(entry);
+                    addFile("null",entry,Math.random(),Math.random(),Math.random());
+                });
+
+                 if (!native.isCrawling())
+                 {
+                    setInterval(doStuff, 0);
+                    //native.waitDrilling();
+                 }
+                
+            }
+             setInterval(doStuff, 10);
+
+
+
+
+            // while (native.isCrawling())
+            // {
+               
+
+                
+               
+               
+            // };
             // const { spawn } = require('child_process');
             // source = spawn(process.cwd() + '/drill-cli', ["-ds",search.value],
             //     { stdio: ['ignore', 'pipe', process.stderr] }

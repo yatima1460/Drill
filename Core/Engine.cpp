@@ -25,6 +25,19 @@ namespace Drill
     }
 
 
+Engine::~Engine()
+{
+    for (const Crawler* c : crawlersObjects)
+    {
+        delete c;
+    }
+    for (const std::thread* c : crawlers)
+    {
+        delete c;
+    }
+    //spdlog::drop_all();
+}
+
 bool Engine::isCrawling()
 {
     bool atLeastOneRunning = false;
@@ -39,6 +52,7 @@ bool Engine::isCrawling()
 
     return atLeastOneRunning;
 }
+
 
 Engine::Engine(std::string searchValue) : searchValue(searchValue)
 {
