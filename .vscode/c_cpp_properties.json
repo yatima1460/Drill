@@ -1,0 +1,13 @@
+{
+  "configurations": [
+    {
+      "name": "Linux",
+      "includePath": [
+        "${workspaceFolder}/**",
+        "/usr/include/nodejs/src",
+        "/usr/include/v8"
+      ]
+    }
+  ],
+  "version": 4
+}
