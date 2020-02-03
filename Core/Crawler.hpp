@@ -56,7 +56,7 @@ public:
         Crawler(const std::string mountpoint, const DrillConfig cfg, const std::vector<std::string> mountpoints);
 
 
-        std::vector<FileInfo> getResults();
+        std::vector<FileInfo> pickupResults();
 
 
         bool isRunning() const;

@@ -9,14 +9,14 @@
 namespace Drill
 {
 
-    std::vector<FileInfo> Engine::getResults()
+    std::vector<FileInfo> Engine::pickupAllResults()
     {
         
         std::vector<FileInfo> results;
         for (size_t i = 0; i < crawlersObjects.size(); i++)
         {
 
-            const auto vector2 = crawlersObjects[i]->getResults();
+            const auto vector2 = crawlersObjects[i]->pickupResults();
             results.insert( results.end(), vector2.begin(), vector2.end() );
 
 
@@ -55,7 +55,7 @@ bool Engine::isCrawling()
 }
 
 
-Engine::Engine(std::string searchValue) : searchValue(searchValue)
+Engine::Engine(std::string searchValue) : SEARCH_STRING(searchValue)
 {
 
     // #ifndef NDEBUG

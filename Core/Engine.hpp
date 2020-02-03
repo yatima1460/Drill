@@ -15,12 +15,16 @@ class Engine
 
     std::vector<std::thread*> crawlers;
     std::vector<Crawler*> crawlersObjects;
+
     DrillConfig configs;
     // string searchValue, CrawlerCallback resultCallback, void* userObject
 
-    std::string searchValue;
+  
 
 public:
+
+    const std::string SEARCH_STRING;
+
     Engine(std::string searchValue);
 
     void startDrilling();
@@ -29,7 +33,7 @@ public:
 
     // void
 
-    std::vector<FileInfo> getResults();
+    std::vector<FileInfo> pickupAllResults();
 
     bool isCrawling();
     
