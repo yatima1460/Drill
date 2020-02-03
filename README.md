@@ -50,6 +50,8 @@ If you want a version that doesn't require sudo or FUSE download the .zip files.
 
 ## UI
 
+`sudo apt install npm`
+`sudo npm install -g nw`
 `cd NWjs && cmake . && make -j8`
 
 ## CLI
