@@ -1,6 +1,6 @@
 
-# Created by https://www.gitignore.io/api/c++,cmake
-# Edit at https://www.gitignore.io/?templates=c++,cmake
+# Created by https://www.gitignore.io/api/qt,c++,cmake
+# Edit at https://www.gitignore.io/?templates=qt,c++,cmake
 
 ### C++ ###
 # Prerequisites
@@ -53,7 +53,48 @@ _deps
 # External projects
 *-prefix/
 
-# End of https://www.gitignore.io/api/c++,cmake
+### Qt ###
+# C++ objects and libs
 
+# Qt-es
+object_script.*.Release
+object_script.*.Debug
+*_plugin_import.cpp
+/.qmake.cache
+/.qmake.stash
+*.pro.user
+*.pro.user.*
+*.qbs.user
+*.qbs.user.*
+*.moc
+moc_*.cpp
+moc_*.h
+qrc_*.cpp
+ui_*.h
+*.qmlc
+*.jsc
+Makefile*
+*build-*
 
+# Qt unit tests
+target_wrapper.*
+
+# QtCreator
+*.autosave
+
+# QtCreator Qml
+*.qmlproject.user
+*.qmlproject.user.*
+
+# QtCreator CMake
+CMakeLists.txt.user*
+
+# QtCreator 4.8< compilation database
+
+# QtCreator local machine specific files for imported projects
+*creator.user*
+
+# End of https://www.gitignore.io/api/qt,c++,cmake
+
+Qt/DrillQt_autogen
 CLI/DrillCLI
