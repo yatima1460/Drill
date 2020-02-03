@@ -40,86 +40,45 @@ If your distro doesn't ask you to mark the AppImage as executable or nothing hap
 - `chmod +x appimage_name_you_downloaded.AppImage`
 - `./appimage_name_you_downloaded.AppImage`
 
-If you want a version that doesn't require sudo and can be configurable download the .zip files.
-
-# UI Guide
-
-- Open                    = Left Double Click / Return / Enter / Space
-- ~~Open containing folder  = Contextual menu~~
-
-
+If you want a version that doesn't require sudo or FUSE download the .zip files.
 
 # Build and Run
 
-**Some dependencies don't build with GDC!!!**
-**Use DMD or LDC!!!**
+`git clone https://github.com/yatima1460/Drill.git`
+`git submodule update --init --recursive`
 
 
-## IMPORTANT
+## UI
 
-- If you omit `-b release` a slower debug version with infinite logs (NOT recommended) will be created
-- Note: `-b release-debug` is somewhat in between a debug and a release version, it's compiled with fast code but it has debug checks enabled and some logs
-- Then build a configuration, check the possible ones inside `dub.json`:
-    - `dub build -b release -c CLI`
-    - `dub build -b release -c GTK` 
-        - requires libgtk-3-dev
-    - etc...
-- Output will be inside `./Build`
+`cd NWjs && cmake . && make -j8`
+
+## CLI
+
+`cd CLI && cmake . && make -j8`
+
+etc..
 
 ## Build prerequisites
 
-
 ### Linux
 
-- Install DMD
-    - on Linux download the .deb, don't install it from apt,
-      be sure GDC doesn't get installed as backend compiler
-    - https://dlang.org/download.html#dmd
+```
+sudo apt-get update
+sudo apt-get install build-essential cmake
+```
 
 ### OSX
 
-```bash
-brew install gpgme
-curl -fsS https://dlang.org/install.sh | bash -s dmd
-
-# for the GTK version
-brew install gtk+3
-brew install glib
-brew install gobject-introspection
-source ~/dlang/dmd-$(dmd_version)/activate && dub build -c GTK -b release --arch=x86_64
-```
+DO A PULL REQUEST TO FILL THIS EMPTY SECTION
 
 ### Windows
 
-- Install https://dlang.org/download.html#dmd
-- https://github.com/yatima1460/GTK3-Windows
-
-### How to use Windows Visual Studio
-
-- Install DMD
-- Install Visual Studio 2017
-- Install VisualD
-- dub generate visuald
-- Open the project & Build Solution
-
+DO A PULL REQUEST TO FILL THIS EMPTY SECTION
 
 
 ### Debugging
 
-Help! GDB crashes/halts!!!
-
-D uses `SIGUSR1` and `SIGUSR2` to let the GC communicate with the threads.
-
-Set GDB or your debugger to ignore them:
-
-```
-handle SIGUSR1 print nostop pass
-handle SIGUSR2 print nostop pass
-```
-If you want to do this automagically add them to .gdbinit in `/home/username/.gdbinit`
-Remember to pass the signals otherwise the threads will lock, ONLY ignore the stop in your debugger.
-
-https://dlang.org/library/core/thread/thread_set_gc_signals.html
+I used more C but I don't think it should be the case with C++, but remember that with C and `calloc` + GDB what happens is that GDB overwrites the `calloc` function and produces a non zero filled buffer for debugging purposes(???), so don't trust `calloc` when debugging with GDB if you will ever use it.
 
 # What is this
 
@@ -139,7 +98,7 @@ Second change is excluding some obvious folders while crawling like `Windows` an
 * Use your goddamn RAM: The third change is caching everything, I don't care about your RAM, I will use even 8GB of your RAM if this provides me a faster way to find your files, unused RAM is wasted RAM, even truer the more time passes.
 
 # Contributing
-Read the Issues and check the labels for high priority ones
+Don't make me swear like Linus Torvalds
 
 # TODOs
 
@@ -154,9 +113,9 @@ Read the Issues and check the labels for high priority ones
     - Metadata searching and new tokens (mp3, etc...)
     - No GC in Backend
 
-- ncurses
+- ncurses?
 
-- GTK
+- UI
     - Open containing folder with right click 
     - Alternate row colors
     - Error messagebox if opening file fails
@@ -164,6 +123,8 @@ Read the Issues and check the labels for high priority ones
     - Snap
     - Flatpak
     - Drag and drop?
+
+- CLI
 
 
 ## Contributors

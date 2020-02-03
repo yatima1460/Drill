@@ -44,7 +44,7 @@ std::vector<FileInfo> *  Crawler::swapBuffers()
     throw std::logic_error("buffer pointer is invalid");
 }
 
-std::vector<FileInfo> Crawler::getResults()
+std::vector<FileInfo> Crawler::pickupResults()
 {
     assert(buffer != nullptr);
 

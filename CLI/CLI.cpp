@@ -35,7 +35,7 @@ int main(int argc, char const *argv[])
 
     while(context.isCrawling())
     {
-        const auto results = context.getResults();
+        const auto results = context.pickupAllResults();
 
         for (const auto result : results)
         {
