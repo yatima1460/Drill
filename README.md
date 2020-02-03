@@ -5,8 +5,7 @@
 | Core | [![Actions Status](https://github.com/yatima1460/Drill/workflows/Linux_Core/badge.svg)](https://github.com/yatima1460/Drill/actions) | [![Actions Status](https://github.com/yatima1460/Drill/workflows/Windows_Core/badge.svg)](https://github.com/yatima1460/Drill/actions) | [![Actions Status](https://github.com/yatima1460/Drill/workflows/MacOS_Core/badge.svg)](https://github.com/yatima1460/Drill/actions)|
 | Core Test | [![Actions Status](https://github.com/yatima1460/Drill/workflows/TestLinux/badge.svg)](https://github.com/yatima1460/Drill/actions) |[![Actions Status](https://github.com/yatima1460/Drill/workflows/TestWindows/badge.svg)](https://github.com/yatima1460/Drill/actions) | [![Actions Status](https://github.com/yatima1460/Drill/workflows/TestMacOS/badge.svg)](https://github.com/yatima1460/Drill/actions)|
 | CLI | [![Actions Status](https://github.com/yatima1460/Drill/workflows/Linux_CLI/badge.svg)](https://github.com/yatima1460/Drill/actions) | [![Actions Status](https://github.com/yatima1460/Drill/workflows/Windows_CLI/badge.svg)](https://github.com/yatima1460/Drill/actions) | [![Actions Status](https://github.com/yatima1460/Drill/workflows/MacOS_CLI/badge.svg)](https://github.com/yatima1460/Drill/actions) |
-| GTK | [![Actions Status](https://github.com/yatima1460/Drill/workflows/Linux_GTK/badge.svg)](https://github.com/yatima1460/Drill/actions) |[![Actions Status](https://github.com/yatima1460/Drill/workflows/Windows_GTK/badge.svg)](https://github.com/yatima1460/Drill/actions) | [![Actions Status](https://github.com/yatima1460/Drill/workflows/MacOS_GTK/badge.svg)](https://github.com/yatima1460/Drill/actions) |
-| NWjs | [![Actions Status](https://github.com/yatima1460/Drill/workflows/Linux_NWjs/badge.svg)](https://github.com/yatima1460/Drill/actions) |[![Actions Status](https://github.com/yatima1460/Drill/workflows/Windows_NWjs/badge.svg)](https://github.com/yatima1460/Drill/actions) | [![Actions Status](https://github.com/yatima1460/Drill/workflows/MacOS_NWjs/badge.svg)](https://github.com/yatima1460/Drill/actions) |
+| Qt | [![Actions Status](https://github.com/yatima1460/Drill/workflows/Linux_Qt/badge.svg)](https://github.com/yatima1460/Drill/actions) |[![Actions Status](https://github.com/yatima1460/Drill/workflows/Windows_Qt/badge.svg)](https://github.com/yatima1460/Drill/actions) | [![Actions Status](https://github.com/yatima1460/Drill/workflows/MacOS_Qt/badge.svg)](https://github.com/yatima1460/Drill/actions) |
 
 [![Financial Contributors on Open Collective](https://opencollective.com/Drill/all/badge.svg?label=financial+contributors)](https://opencollective.com/Drill) [![GitHub issues](https://img.shields.io/github/issues/yatima1460/Drill.svg)](https://github.com/yatima1460/Drill/issues)
 [![GitHub forks](https://img.shields.io/github/forks/yatima1460/Drill.svg)](https://github.com/yatima1460/Drill/network)
@@ -50,9 +49,7 @@ If you want a version that doesn't require sudo or FUSE download the .zip files.
 
 ## UI
 
-`sudo apt install npm`
-`sudo npm install -g nw`
-`cd NWjs && cmake . && make -j8`
+TODO
 
 ## CLI
 
