@@ -1,6 +1,7 @@
 #pragma once
 
 #include <filesystem>
+#include <string>
 
 struct FileInfo
 {
@@ -18,7 +19,7 @@ struct FileInfo
 
         if (!is_directory)
             file_size = e.file_size();
-        path = e.path().c_str();
+        path = std::string(e.path().c_str());
         last_write_time = e.last_write_time();
     }
 };

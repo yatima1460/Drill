@@ -1,8 +1,17 @@
 cmake_minimum_required(VERSION 3.0.0)
 project (DrillCore CXX)
 
+if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+  # using Clang
+elseif (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+  # using GCC
+  add_definitions("-Wall" "-Wextra" "-g" "-std=c++17" "-fPIC")
+elseif (CMAKE_CXX_COMPILER_ID STREQUAL "Intel")
+  # using Intel C++
+elseif (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+  # using Visual Studio C++
+endif()
 
-add_definitions("-Wall" "-Wextra" "-g" "-std=c++17" "-fPIC")
 file(GLOB SRC_FILES *.cpp)
 
 add_subdirectory(spdlog)
@@ -40,6 +49,6 @@ endif()
 
 add_library(DrillCore ${SRC_FILES} ${SUBSYSTEM})
 
-set_property(TARGET DrillCore PROPERTY CXX_STANDARD 20)
+set_property(TARGET DrillCore PROPERTY CXX_STANDARD 17)
 
 
