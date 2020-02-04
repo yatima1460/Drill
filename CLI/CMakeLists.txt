@@ -2,9 +2,22 @@ cmake_minimum_required(VERSION 2.8.9)
 
 project (DrillCLI CXX)
 
-add_definitions("-Wall" "-Wextra" "-g" "-std=c++17")
+
+if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+  # using Clang
+elseif (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+  # using GCC
+  add_definitions("-Wall" "-Wextra" "-g" "-std=c++17")
+elseif (CMAKE_CXX_COMPILER_ID STREQUAL "Intel")
+  # using Intel C++
+elseif (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+  # using Visual Studio C++
+endif()
+
 
 add_executable(DrillCLI CLI.cpp)
+set_property(TARGET DrillCLI PROPERTY CXX_STANDARD 17)
+
 
 include_directories(../Core)
 include_directories(../Core/spdlog/include)
