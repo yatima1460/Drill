@@ -1,0 +1,80 @@
+
+# Discussed at https://travis-ci.community/t/python-support-on-windows/241/18
+language: python            # this works for Linux but is an error on macOS or Windows
+matrix:
+  include:
+    - name: "Python 3.7.1 on Xenial Linux"
+      python: 3.7           # this works for Linux but is ignored on macOS or Windows
+      dist: bionic          # required for Python >= 3.7
+    
+    - name: "Python 3.7.2 on macOS"
+      os: osx
+      osx_image: xcode10.2  # Python 3.7.2 running on macOS 10.14.3
+      language: shell       # 'language: python' is an error on Travis CI macOS
+      # python: 3.7         # 'python:' is ignored on Travis CI macOS
+      before_install: python3 --version ; pip3 --version ; sw_vers
+    
+    - name: "Python 3.7.3 on Windows"
+      os: windows           # Windows 10.0.17134 N/A Build 17134
+      language: shell       # 'language: python' is an error on Travis CI Windows
+      # python: 3.7         # 'python:' is ignored on Travis CI Windows
+      before_install:
+        - choco install python  # this install takes at least 1 min 30 sec
+        - python -m pip install --upgrade pip
+      env: PATH=/c/Python37:/c/Python37/Scripts:$PATH
+install: pip3 install --upgrade pip  # all three OSes agree about 'pip3'
+
+# 'python' points to Python 2.7 on macOS but points to Python 3.7 on Linux and Windows
+# 'python3' is a 'command not found' error on Windows but 'py' works on Windows only
+script: python3 build.py || python build.py
+
+
+
+addons:
+
+  #linux
+  apt:
+    update: true
+    packages:
+      - libgcc1
+      - libgtk-3-dev
+      - desktop-file-utils
+      - p7zip-full
+      - build-essential
+      - snapd
+
+  #osx
+  homebrew:
+    update: true
+    packages:
+      - p7zip
+      - gtk+3
+
+before_deploy:
+ - git config --local user.name "Federico Santamorena"
+ - git config --local user.email "federico@santamorena.me"
+ - echo $TRAVIS_BUILD_NUMBER > DRILL_VERSION
+ - git tag $TRAVIS_BUILD_NUMBER
+ - ls -lh Output
+
+deploy:
+  provider: releases
+  skip_cleanup: true
+  draft: false
+  prerelease: true
+  name: $DRILL_VERSION
+  body: $TRAVIS_COMMIT_MESSAGE
+  target_commitish: $TRAVIS_COMMIT
+  file_glob: true
+  api_key:
+    secure: $GITHUB_TOKEN
+  file: 
+    - Output/*.*
+  on:
+    repo: yatima1460/Drill
+    tags: false
+
+notifications:
+  email:
+    on_success: never
+    on_failure: always
