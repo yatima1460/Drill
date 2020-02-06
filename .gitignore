@@ -11,7 +11,7 @@ dub.selections.json
 
 
 /vcpkg
-
+DRILL_VERSION
 
 # Travis
 /dmd2
