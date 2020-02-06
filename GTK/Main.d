@@ -21,6 +21,7 @@ import FileInfo : FileInfo;
 
 import std.experimental.logger;
 
+import std.string : fromStringz;
 
 // TODO: icons on filenames
 // TODO: right click menu and update screenshot with it
@@ -88,6 +89,149 @@ in(data != null)
     }
     return false;
 }
+
+
+extern(C) gboolean row_right_click(GtkWidget *btn, GdkEventButton *event, gpointer userObject)
+{
+   
+   //3 is right mouse btn
+       
+    if (event.type == GdkEventType.GDK_BUTTON_PRESS  &&  event.button == 3)
+    {
+        info("right pressed");
+
+
+        
+
+        DrillGtkContext* context = cast(DrillGtkContext*) userObject;
+
+        GtkTreeIter iter;
+        
+        GtkTreeSelection *selection = gtk_tree_view_get_selection (context.treeview);
+        GtkTreeModel* model = gtk_tree_view_get_model(context.treeview);
+        gtk_tree_selection_get_selected (selection, &model, &iter); 
+
+
+        gchar *cpath;
+        gchar *csize;
+        gtk_tree_model_get (model, &iter, 2, &cpath, -1);
+        gtk_tree_model_get (model, &iter, 3, &csize, -1);
+
+        info(fromStringz(csize));
+
+
+        GtkWidget* menu = gtk_menu_new ();
+        
+        switch (fromStringz(csize))
+        {
+        case " ":
+
+            GtkWidget* menu_item_open = gtk_menu_item_new_with_label("Open");
+            extern(C) void menu_item_open_clicked (GtkMenuItem *menuitem, gpointer user_data)
+            {
+                 version(linux)
+                {
+                      import std.process : spawnProcess;
+                      import Utils : cleanExecLine;
+                        import std.process : Config;
+                        spawnProcess(cleanExecLine(to!string(fromStringz(cast(gchar*)user_data))), null, Config.detached, null);
+                }
+            }
+            g_signal_connect(cast(GtkMenuItem*)menu_item_open, "activate", &menu_item_open_clicked, cpath);
+           
+            gtk_menu_shell_append(cast(GtkMenuShell*) menu, menu_item_open);
+            gtk_widget_show (menu_item_open);
+
+            break;
+
+        default:
+
+            GtkWidget* menu_item_open = gtk_menu_item_new_with_label("Open");
+
+
+
+
+            gtk_menu_shell_append(cast(GtkMenuShell*) menu, menu_item_open);
+            GtkWidget* menu_item_open_containing_folder = gtk_menu_item_new_with_label("Open containing folder");
+
+
+            extern(C) void menu_item_open_containing_folder_clicked (GtkMenuItem *menuitem, gpointer user_data)
+            {
+                 version(linux)
+                {
+                      import std.process : spawnProcess;
+                      import Utils : cleanExecLine;
+                        import std.process : Config;
+                            import Utils : openFile;
+                        openFile(to!string(fromStringz(cast(gchar*)user_data)));
+                }
+            }
+
+            g_signal_connect(cast(GtkMenuItem*)menu_item_open_containing_folder, "activate", &menu_item_open_containing_folder_clicked, cpath);
+            //  GtkWidget* menu_item_run_in_terminal = gtk_menu_item_new_with_label("Run in terminal");
+            GtkWidget* menu_item_copy_path = gtk_menu_item_new_with_label("Copy full path");
+             GtkWidget* menu_item_copy_name = gtk_menu_item_new_with_label("Copy file name");
+          
+            // GtkWidget* menu_item_delete = gtk_menu_item_new_with_label("Delete");
+            gtk_menu_shell_append(cast(GtkMenuShell*) menu, menu_item_open_containing_folder);
+            //  gtk_menu_shell_append(cast(GtkMenuShell*) menu, menu_item_run_in_terminal);
+                gtk_menu_shell_append(cast(GtkMenuShell*) menu, menu_item_copy_path);
+             gtk_menu_shell_append(cast(GtkMenuShell*) menu, menu_item_copy_name);
+        
+           
+            // gtk_menu_shell_append(cast(GtkMenuShell*) menu, menu_item_delete);
+            
+        // gtk_widget_show (menu_item_open);
+        gtk_widget_show (menu_item_open_containing_folder);
+        //   gtk_widget_show (menu_item_copy_path);
+        //  gtk_widget_show (menu_item_run_in_terminal);
+        //   gtk_widget_show (menu_item_copy_name);
+
+        }
+
+        // assert(menu is! null);
+        
+        // assert(menu_item_open is! null);
+       
+        // GtkMenuItem* menu_item_open = gtk_menu_item_new_with_label ("Open in terminal");
+
+
+       
+
+
+      
+        //GtkLabel* l = gtk_label_new("owo");
+
+        // assert(menu is! null);
+        // assert(menu_item_open is! null);
+        // gtk_menu_attach(menu, menu_item_open, 0, 2, 0, 2);
+        // gtk_menu_attach(menu, menu_item_open_containing_folder, 0, 3, 0, 3);
+         // gtk_menu_attach(cast(GtkMenu*)menu, cast(GtkMenuItem*)menu_item_copy_path, 0, 4, 0, 4);
+
+
+        // gtk_menu_add(menu_item);
+        // gtk_menu_show_all();
+        
+        // Gtk.MenuItem menu_item = new Gtk.MenuItem.with_label ("Add file");
+        // menu.attach_to_widget (treeView, null);
+        // menu.add (menu_item);
+        // menu.show_all ();
+        // menu.popup (null, null, null, event.button, event.time);
+
+        gtk_menu_popup_at_pointer(cast(GtkMenu*)menu, event);
+        return true;
+    }
+
+    return false;
+
+
+}
+
+extern(C) void row_changed (GtkTreeSelection *treeselection,
+               gpointer          user_data)
+               {
+                   info("owo");
+               }
 
 /++
     Callback called by GTK when the user double clicks a row
@@ -564,6 +708,16 @@ in(userObject != null)
     assert(context !is null);
     assert(context.treeview !is null);
     g_signal_connect(context.treeview, "row-activated", &row_activated, context);
+
+      // Event when a row is selected
+    assert(context !is null);
+    assert(context.treeview !is null);
+    g_signal_connect(context.treeview, "changed", &row_changed, context);
+
+    // Event when right click on a row
+    assert(context !is null);
+    assert(context.treeview !is null);
+    g_signal_connect(context.treeview, "button-press-event", &row_right_click, context);
 
     // Set empty ListStore to the TreeView
     assert(context !is null);

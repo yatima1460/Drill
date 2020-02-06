@@ -3,18 +3,52 @@
 */
 extern (C) pure nothrow @trusted @nogc
 {
-    gboolean
-gtk_window_set_icon_from_file (GtkWindow *window,
-                               const gchar *filename,
-                               GError **err);
 
-    guint
-gtk_builder_add_from_string (GtkBuilder *builder,
-                             const gchar *buffer,
-                             gsize length,
-                             GError **error);
+    struct GdkDevice;
+
+    // It's actually a Union of all Event types
+    alias GdkEvent = void;
+
+
+    struct GtkMenu;
+    struct GtkMenuItem;
+    struct GtkMenuShell;
+    struct GtkTreeSelection;
+
+    GtkTreeSelection * gtk_tree_view_get_selection (GtkTreeView*);
+
+    gboolean gtk_tree_selection_get_selected( GtkTreeSelection *,GtkTreeModel**, GtkTreeIter*);
+
+    void gtk_widget_show(GtkWidget*);
+
+    void
+gtk_menu_shell_append (GtkMenuShell *menu_shell,
+                       GtkWidget *child);
+
+    GtkWidget * gtk_menu_new ();
+    GtkWidget * gtk_menu_item_new ();
+    GtkWidget * gtk_menu_item_new_with_label (const gchar * name);
+
+    GtkLabel* gtk_label_new(const gchar * name);
+    
+    //   void gtk_menu_add(GtkMenuItem * menu_item);
+        // void gtk_menu_show_all();
+
+    void
+gtk_menu_attach (GtkMenu *menu,
+                 GtkMenuItem *child,
+                 guint left_attach,
+                 guint right_attach,
+                 guint top_attach,
+                 guint bottom_attach);
+
+    gboolean gtk_window_set_icon_from_file(GtkWindow * window, const gchar * filename,
+            GError *  * err);
+
+    guint gtk_builder_add_from_string(GtkBuilder * builder, const gchar * buffer,
+            gsize length, GError *  * error);
     alias gdouble = double;
-    alias gpointer = void*;
+    alias gpointer = void * ;
     alias gboolean = bool;
     alias gint8 = byte;
     alias guint32 = uint;
@@ -25,31 +59,48 @@ gtk_builder_add_from_string (GtkBuilder *builder,
     alias guint8 = ubyte;
     alias gsize = ulong;
 
-    void gtk_widget_destroy(GtkWidget*);
-    void gtk_window_set_application(GtkWindow* self, GtkApplication* application);
-    alias GSourceFunc = void*;
+    void gtk_widget_destroy(GtkWidget * );
+    void gtk_window_set_application(GtkWindow * self, GtkApplication * application);
+    alias GSourceFunc = void * ;
     struct GAsyncQueue;
     guint g_idle_add(GSourceFunc func, gpointer data);
     guint g_timeout_add(guint interval, GSourceFunc func, gpointer data);
 
-    gpointer g_async_queue_try_pop(GAsyncQueue* queue);
-    GAsyncQueue* g_async_queue_new();
-
+    gpointer g_async_queue_try_pop(GAsyncQueue * queue);
+    GAsyncQueue * g_async_queue_new();
 
     struct GdkEventKey
     {
         GdkEventType type;
-        GdkWindow* window;
+        GdkWindow * window;
         gint8 send_event;
         guint32 time;
         guint state;
         guint keyval;
         gint length;
-        gchar* string;
+        gchar * string;
         guint16 hardware_keycode;
         guint8 group;
         bool is_modifier;
     };
+
+    struct GdkEventButton
+    {
+        GdkEventType type;
+        GdkWindow * window;
+        gint8 send_event;
+        guint32 time;
+        gdouble x;
+        gdouble y;
+        gdouble * axes;
+        guint state;
+        guint button;
+        GdkDevice * device;
+        gdouble x_root, y_root;
+    };
+
+
+    
 
     struct GtkApplication;
     enum GApplicationFlags
@@ -180,6 +231,10 @@ gtk_builder_add_from_string (GtkBuilder *builder,
     void gtk_window_set_keep_above(GtkWindow* w, bool);
 
     immutable(int) GDK_KEY_Escape = 0xff1b;
+
+
+
+    void gtk_menu_popup_at_pointer (GtkMenu *menu, const GdkEvent *trigger_event);
 
     enum GdkEventType
     {
