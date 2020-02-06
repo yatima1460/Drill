@@ -5,13 +5,15 @@ matrix:
   include:
     - name: "Python 3.7.1 on Xenial Linux"
       python: 3.7           # this works for Linux but is ignored on macOS or Windows
-      dist: xenial          # required for Python >= 3.7
+      dist: bionic          # required for Python >= 3.7
+    
     - name: "Python 3.7.2 on macOS"
       os: osx
       osx_image: xcode10.2  # Python 3.7.2 running on macOS 10.14.3
       language: shell       # 'language: python' is an error on Travis CI macOS
       # python: 3.7         # 'python:' is ignored on Travis CI macOS
       before_install: python3 --version ; pip3 --version ; sw_vers
+    
     - name: "Python 3.7.3 on Windows"
       os: windows           # Windows 10.0.17134 N/A Build 17134
       language: shell       # 'language: python' is an error on Travis CI Windows
@@ -21,9 +23,10 @@ matrix:
         - python -m pip install --upgrade pip
       env: PATH=/c/Python37:/c/Python37/Scripts:$PATH
 install: pip3 install --upgrade pip  # all three OSes agree about 'pip3'
+
 # 'python' points to Python 2.7 on macOS but points to Python 3.7 on Linux and Windows
 # 'python3' is a 'command not found' error on Windows but 'py' works on Windows only
-script: python3 .travis.py || python .travis.py
+script: python3 build.py || python build.py
 
 
 
@@ -47,17 +50,11 @@ addons:
       - p7zip
       - gtk+3
 
-
-
-  ## linux
-  # - if [ "$TRAVIS_OS_NAME" = "linux" ]; then sudo snap install ldc2 --classic --channel=edge; fi
-  # - if [ "$TRAVIS_OS_NAME" = "linux" ]; then sudo snap install dmd --classic; fi
-  # - if [ "$TRAVIS_OS_NAME" = "linux" ]; then sudo snap install dub --classic; fi
-
 before_deploy:
  - git config --local user.name "Federico Santamorena"
  - git config --local user.email "federico@santamorena.me"
- - export DRILL_VERSION=$(python -c "import sys, json; f = open('dub.json'); print(json.load(f)['version']); f.close()") 
+ - echo $TRAVIS_BUILD_NUMBER > DRILL_VERSION
+ - git tag $TRAVIS_BUILD_NUMBER
  - ls -lh Output
 
 deploy:
@@ -75,7 +72,7 @@ deploy:
     - Output/*.*
   on:
     repo: yatima1460/Drill
-    tags: true
+    tags: false
 
 notifications:
   email:
