@@ -3,11 +3,11 @@
 language: python            # this works for Linux but is an error on macOS or Windows
 matrix:
   include:
-    - name: "Python 3.7.1 on Xenial Linux"
+    - name: "Python 3.7.1 on Bionic Ubuntu"
       python: 3.7           # this works for Linux but is ignored on macOS or Windows
       dist: bionic          # required for Python >= 3.7
     
-    - name: "Python 3.7.2 on macOS"
+    - name: "Python 3.7.2 on macOS xcode10."
       os: osx
       osx_image: xcode10.2  # Python 3.7.2 running on macOS 10.14.3
       language: shell       # 'language: python' is an error on Travis CI macOS
@@ -62,7 +62,7 @@ deploy:
   skip_cleanup: true
   draft: false
   prerelease: true
-  name: $DRILL_VERSION
+  name: v$TRAVIS_BUILD_NUMBER
   body: $TRAVIS_COMMIT_MESSAGE
   target_commitish: $TRAVIS_COMMIT
   file_glob: true
