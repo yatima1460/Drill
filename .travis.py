@@ -6,7 +6,7 @@
 
 # TODO: name-version-architecture.ext
 
-DMD_VERSION = "2.087.0"
+DMD_VERSION = "2.090.0"
 
 
 from subprocess import call, check_output
