@@ -9,15 +9,16 @@ import std.uni : toLower;
 import std.path : extension;
 import std.process : executeShell;
 import GTKBinds;
-
+import std.process : spawnProcess;
+import std.stdio : stdin, stdout, stderr;
+import std.process : Config;
+import std.process : executeShell;
+import std.array : split;
 
 version(linux) @system string[] getDesktopFiles() 
 {
     synchronized
     {
-        
-        import std.array : split;
-     
         // TODO: replace executeShell with a system call to get the list of files, executeShell is SLOW
         immutable auto ls = executeShell("ls /usr/share/applications/*.desktop | grep -v _");
         if (ls.status == 0)
@@ -38,22 +39,17 @@ version(linux) @system string[] getDesktopFiles()
 /**
 Opens a file using the current system implementation for file associations
 
-Returns: true if successful
+
 */
-bool openFile(immutable string fullpath)
+void openFile(immutable string fullpath)
 {
-    // FIXME: return false when no file association
-    import std.process : spawnProcess;
-    import std.stdio : stdin, stdout, stderr;
-    import std.process : Config;
-    import std.process : executeShell;
+
 
     try
     {
         version (Windows)
         {
             spawnProcess(["explorer", fullpath], null, Config.detached, null);
-            return true;
         }
         version (linux)
         {
@@ -64,6 +60,33 @@ bool openFile(immutable string fullpath)
             {
                 case ".appimage":
                     info("File "~fullpath~" detected as .AppImage");
+
+                    // Check if AppImage bit executable is set
+                    immutable auto stat = executeShell("stat -c \"%a\""~fullpath);
+                    if (stat.status != 0)
+                    {
+
+                        // Drill knows it's executable, run it
+                        if (to!int(stat.output[0]) % 2 == 1)
+                        {
+
+                        }
+                      
+                    }
+                    else
+                    {
+                        // We don't know, let's warn the user and run it
+                        import std.string : toStringz;
+                        auto dialog = gtk_message_dialog_new (null,
+                                                        GtkDialogFlags.GTK_DIALOG_MODAL,
+                                                        GtkMessageType.GTK_MESSAGE_ERROR,
+                                                        GtkButtonsType.GTK_BUTTONS_OK,
+
+                                                        toStringz("Drill couldn't find out if '"~fullpath~"' AppImage is executable, will try to run it anyways..."));
+                        gtk_dialog_run (cast(GtkDialog*)dialog);
+                        gtk_widget_destroy (dialog);
+
+                    }
                     immutable auto cmd = executeShell("chmod +x "~fullpath);
                     if (cmd.status != 0)
                     {
@@ -80,24 +103,30 @@ bool openFile(immutable string fullpath)
                        
                     }
                     spawnProcess([fullpath], null, Config.detached, null);
-                    return true;
+                 
 
                 default:
                     info("Generic file "~fullpath~", will use xdg-open.");
                     spawnProcess(["xdg-open", fullpath], null, Config.detached, null);
-                    return true;
+            
             }
         }
         version (OSX)
         {
             spawnProcess(["open", fullpath], null, Config.detached, null);
-            return true;
         }
     }
     catch (Exception e)
     {
         error(e.msg);
-        return false;
+        import std.string : toStringz;
+        auto dialog = gtk_message_dialog_new (null,
+                                        GtkDialogFlags.GTK_DIALOG_MODAL,
+                                        GtkMessageType.GTK_MESSAGE_ERROR,
+                                        GtkButtonsType.GTK_BUTTONS_CLOSE,
+                                        toStringz(e.msg));
+        gtk_dialog_run (cast(GtkDialog*)dialog);
+        gtk_widget_destroy (dialog);
     }
 }
 
