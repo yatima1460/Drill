@@ -54,7 +54,7 @@ before_deploy:
  - git config --local user.name "Federico Santamorena"
  - git config --local user.email "federico@santamorena.me"
  - echo $TRAVIS_BUILD_NUMBER > DRILL_VERSION
- - git tag $TRAVIS_BUILD_NUMBER
+ - git tag v$TRAVIS_BUILD_NUMBER
  - ls -lh Output
 
 deploy:
