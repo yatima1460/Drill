@@ -8,7 +8,7 @@ import std.experimental.logger;
 import std.uni : toLower;
 import std.path : extension;
 import std.process : executeShell;
-
+import GTKBinds;
 
 
 version(linux) @system string[] getDesktopFiles() 
@@ -40,7 +40,7 @@ Opens a file using the current system implementation for file associations
 
 Returns: true if successful
 */
-@safe bool openFile(immutable string fullpath)
+bool openFile(immutable string fullpath)
 {
     // FIXME: return false when no file association
     import std.process : spawnProcess;
@@ -58,6 +58,8 @@ Returns: true if successful
         version (linux)
         {
             immutable auto ext = toLower(extension(fullpath));
+
+            // FIXME: folders ending in .AppImage are broken
             switch (ext)
             {
                 case ".appimage":
@@ -65,9 +67,17 @@ Returns: true if successful
                     immutable auto cmd = executeShell("chmod +x "~fullpath);
                     if (cmd.status != 0)
                     {
-                        critical("Can't set AppImage '"~fullpath~"' as executable.");
-                        // TODO: GTK messagebox here or throw a DrillException?
-                        return false;
+                        error("Can't set AppImage '"~fullpath~"' as executable.");
+                        import std.string : toStringz;
+                        auto dialog = gtk_message_dialog_new (null,
+                                                        GtkDialogFlags.GTK_DIALOG_MODAL,
+                                                        GtkMessageType.GTK_MESSAGE_ERROR,
+                                                        GtkButtonsType.GTK_BUTTONS_CLOSE,
+
+                                                        toStringz("Can't set AppImage '"~fullpath~"' as executable."));
+                        gtk_dialog_run (cast(GtkDialog*)dialog);
+                        gtk_widget_destroy (dialog);
+                       
                     }
                     spawnProcess([fullpath], null, Config.detached, null);
                     return true;
