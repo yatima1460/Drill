@@ -1,119 +1,49 @@
 
 html {
   font-family: 'Red Hat Text', sans-serif;
-/* 1 */
--ms-text-size-adjust: 100%;
-/* 2 */
--webkit-text-size-adjust: 100%;
-/* 2 */ 
-margin: auto;
-width:100%;
-
-font-size: 1.1em;
-
+  margin: auto;
+  
 }
 
 body {
   color:  rgb(21, 21, 21)
 }
 
-  .buttons {
-      display: flex;
-      flex-direction: row;
+.downloads {
 
-      /* margin-bottom: 1rem;
-color: black;
-background-color: white;
-border-color: black;
-border-style: solid;
-border-width: 0.05em;
-border-radius: 0.3rem;
-transition: color 0.2s, background-color 0.2s, border-color 0.2s; 
-
-  */
+  display: flex;
+  flex-direction: row;
+}
 
 
-      align-items: flex-start;
+.category {
+display: flex;
+flex-direction: column;
+flex-basis: 100%;
+text-align: center;
 
-      margin-top: 2em;
+min-width: 15vw;
 
-  }
+}
 
-
-  .logo {
-      display: block;
-      text-indent: -9999px;
-    
-      background-repeat: no-repeat;
-      
-      margin: 1em;
-     
-
-      
-     
-      background-size:contain;
-
-      height: 5em;
+.logo {
+  display: block;
+  text-indent: -9999px;
+  background-repeat: no-repeat;
+  margin: 1em;
+  background-size:contain;
+  height: 5em;
+}
 
 
-  }
+.content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
 
 
 
- 
-
-
-
-  .content {
-      display: flex;
-      flex-direction: column;
-
-
-      align-items: center;
-
-      
-  }
-
-
-
-
-  .download {
-      display: flex;
-      flex-direction: column;
-      min-width: 15em;
-
-
-      /*
-color: black;
-background-color: white;
-border-color: black;
-border-style: solid;
-border-width: 0.05em;
-border-radius: 0.3rem;
-transition: color 0.2s, background-color 0.2s, border-color 0.2s; 
-
-  */
-
-      text-align: center;
-      justify-content: center;
-      align-content: center;
-      align-items: center;
-          
-      
-
-  
-
-
-  }
-
-  .download-icon {
-     display: flex;
-      width: 2em;
-      height: 2em;
-
-  }
-
- 
 
 a {
   text-decoration: none;
@@ -126,110 +56,89 @@ a:hover {
   color: rgb(84, 0, 0);
 }
 
-  .link-button {
-      display: flex;
-      flex-direction: column;
 
-      background-color: rgb(21, 21, 21);
-      color: white;
-      height: 5vw;
-      border: 0;
+.downloadLink {
+  font-weight: bold;
+  text-decoration: underline;
+  line-height: 1.5em;
+}
 
-
-      margin: 0.1em;
-      min-width: 15em;
-
-      text-align: center;
-      justify-content: center;
-      align-content: center;
-      align-items: center;
-
-      cursor: pointer;
-  }
-
-  .link-button:hover{
-      background-color: rgb(176, 0, 0);
-  }
+ 
 
 
+.title {
+    display: flex;
+    flex-direction: row;
 
-  .title {
-      display: flex;
-      flex-direction: row;
+    text-align: center;
+    justify-content: center;
+    align-content: center;
+    align-items: center;
+    padding-top: 2em;
 
-      text-align: center;
-      justify-content: center;
-      align-content: center;
-      align-items: center;
-      padding-top: 2em;
+    margin: 0;
+    padding: 0;
 
-      margin: 0;
-      padding: 0;
+}
 
-  }
+.title h1 {
+    font-size: 3em;
+    margin: 0;
+    padding: 0;
+}
 
-  .title h1 {
-      font-size: 3em;
-      margin: 0;
-      padding: 0;
-  }
-
-  .title img {
-      float: left;
-      width: 6em;
-      height: 6em;
-      background: white;
-      margin: 0;
-      padding: 0;
-  }
+.title img {
+    float: left;
+    width: 6em;
+    height: 6em;
+    background: white;
+    margin: 0;
+    padding: 0;
+}
 
 
-  .project-name {
-      margin-top: 0;
-      margin-bottom: 0.1rem;
-      color: black;
-      font-weight: 100;
+.project-name {
+    margin-top: 0;
+    margin-bottom: 0.1rem;
+    color: black;
+    font-weight: 100;
 
-      font-weight: lighter;
-  }
+    font-weight: lighter;
+}
 
-  .project-tagline {
-      text-align: center;
-      text-decoration: none;
-      font-size: 1em;
-      font-weight: lighter;
-      /* text-rendering: optimizeLegibility; */
-  }
+.project-tagline {
+    text-align: center;
+    text-decoration: none;
+    font-size: 1em;
+    font-weight: lighter;
+    /* text-rendering: optimizeLegibility; */
+}
 
-  .screenshot {
-      max-width: 30vw;
-     
-  }
+.screenshot {
+    max-width: 30vw;
+    
+}
 
 
 @media all and (orientation: portrait) {
-.desktop-only {
-display: none;
-}
-}
 
+  /* Hide things like the GitHub ribbon */
+  .desktop-only {
+    display: none;
+  }
 
-
-.disabled {
- 
-  text-decoration: line-through;
-  cursor: not-allowed;
- 
-  color: rgb(51, 51, 51);
+  .downloads {
+    flex-direction: column;
+  }
   
-}
-
-.disabled:hover {
-  color: rgb(51, 51, 51);
-  text-decoration: line-through;
 
 }
 
-.buttons {
-  display: none;
+
+
+
+
+
+.releaseDescription {
+  font-size: 0.8em;
 }
