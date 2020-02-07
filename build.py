@@ -176,8 +176,16 @@ def createZips():
     '''
     You need to install p7zip-full or p7zip and p7zip-plugins
     '''
-    shell("7z a -tzip Output/"+FILENAME_GTK_PRE_NAME+"-v"+DRILL_VERSION+"-"+ARCHITECTURE+".zip ./Build/Drill-GTK-linux-x86_64-release/*")
-    shell("7z a -tzip Output/"+FILENAME_CLI_PRE_NAME+"-v"+DRILL_VERSION+"-"+ARCHITECTURE+".zip ./Build/Drill-CLI-linux-x86_64-release/*")
+    if platform == "linux" or platform == "linux2":
+        OS_NAME = "linux"
+    elif platform == "darwin": 
+        OS_NAME = "osx"
+    elif platform == "win32":
+        OS_NAME = "windows"
+    else:
+        OS_NAME = "OS_NOT_SUPPORTED"
+    shell("7z a -tzip Output/"+FILENAME_GTK_PRE_NAME+"-v"+DRILL_VERSION+"-"+ARCHITECTURE+"-"+OS_NAME+".zip ./Build/Drill-GTK-"+OS_NAME+"-x86_64-release/*")
+    shell("7z a -tzip Output/"+FILENAME_CLI_PRE_NAME+"-v"+DRILL_VERSION+"-"+ARCHITECTURE+"-"+OS_NAME+".zip ./Build/Drill-CLI-"+OS_NAME+"-x86_64-release/*")
     print(".zips created")
 
 def packageDeb():

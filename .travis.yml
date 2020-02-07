@@ -73,6 +73,9 @@ deploy:
   on:
     repo: yatima1460/Drill
     tags: false
+    branches:
+    only:
+      - master
 
 notifications:
   email:
