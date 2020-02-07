@@ -709,11 +709,6 @@ in(userObject != null)
     assert(context.treeview !is null);
     g_signal_connect(context.treeview, "row-activated", &row_activated, context);
 
-      // Event when a row is selected
-    assert(context !is null);
-    assert(context.treeview !is null);
-    g_signal_connect(context.treeview, "changed", &row_changed, context);
-
     // Event when right click on a row
     assert(context !is null);
     assert(context.treeview !is null);
@@ -754,31 +749,17 @@ in(userObject != null)
 
 
     // Set bottom credits label
-    import Meta : GITHUB_URL, AUTHOR_URL, AUTHOR_NAME, VERSION;
-    import std.conv : to;
-    import std.compiler : name, vendor, version_major, version_minor, D_major;
 
-    debug
-    {
-        immutable(string) COMPILER_META = " " ~ name ~ " Compiler Vendor: " ~ to!string(
-                vendor) ~ " Compiler version: v" ~ to!string(version_major) ~ "." ~ to!string(
-                version_minor) ~ " D version:" ~ to!string(D_major);
-    }
-    else
-    {
-        immutable(string) COMPILER_META = "";
-    }
 
-    version (LDC) immutable(string) COMPILER = "LLVM " ~ COMPILER_META;
-    version (DigitalMars) immutable(string) COMPILER = "DMD" ~ COMPILER_META;
-    version (GNU) immutable(string) COMPILER = "GNU" ~ COMPILER_META;
-    version (SDC) immutable(string) COMPILER = "SDC" ~ COMPILER_META;
+
+
+  
 
     assert(context !is null);
     assert(context.credits !is null);
-    (cast(GtkLabel*) context.credits).gtk_label_set_markup(toStringz(
-            "<a href=\"" ~ GITHUB_URL ~ "\">Drill</a>" ~ " is maintained by " ~ "<a href=\""
-            ~ AUTHOR_URL ~ "\">" ~ AUTHOR_NAME ~ "</a>" ~ " v" ~ VERSION ~ "-" ~ COMPILER));
+
+    import Meta: CREDITS_STRING;
+    (cast(GtkLabel*) context.credits).gtk_label_set_markup(toStringz(CREDITS_STRING));
 
     // Destroy the builder
     assert(builder !is null);
