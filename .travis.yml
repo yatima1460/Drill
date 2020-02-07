@@ -72,10 +72,8 @@ deploy:
     - Output/*.*
   on:
     repo: yatima1460/Drill
-    tags: false
-    branches:
-    only:
-      - master
+    tags: true
+    branch: master
 
 notifications:
   email:
