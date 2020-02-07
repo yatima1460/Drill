@@ -177,15 +177,17 @@ def createZips():
     You need to install p7zip-full or p7zip and p7zip-plugins
     '''
     if platform == "linux" or platform == "linux2":
-        OS_NAME = "linux"
+        shell("7z a -tzip Output/"+FILENAME_CLI_PRE_NAME+"-v"+DRILL_VERSION+"-"+ARCHITECTURE+"-Linux.zip ./Build/Drill-CLI-linux-x86_64-release/*")
+        shell("7z a -tzip Output/"+FILENAME_GTK_PRE_NAME+"-v"+DRILL_VERSION+"-"+ARCHITECTURE+"-Linux.zip ./Build/Drill-GTK-linux-x86_64-release/*")
     elif platform == "darwin": 
-        OS_NAME = "osx"
+        shell("7z a -tzip Output/"+FILENAME_CLI_PRE_NAME+"-v"+DRILL_VERSION+"-"+ARCHITECTURE+"-OSX.zip ./Build/Drill-CLI-osx-x86_64-release/*")
+        shell("7z a -tzip Output/"+FILENAME_GTK_PRE_NAME+"-v"+DRILL_VERSION+"-"+ARCHITECTURE+"-OSX.zip ./Build/Drill-GTK-osx-x86_64-release/*")
     elif platform == "win32":
-        OS_NAME = "windows"
+        shell("7z a -tzip Output/"+FILENAME_CLI_PRE_NAME+"-v"+DRILL_VERSION+"-"+ARCHITECTURE+"-Windows.zip ./Build/Drill-CLI-windows-x86_64-release/*")
     else:
-        OS_NAME = "OS_NOT_SUPPORTED"
-    shell("7z a -tzip Output/"+FILENAME_GTK_PRE_NAME+"-v"+DRILL_VERSION+"-"+ARCHITECTURE+"-"+OS_NAME+".zip ./Build/Drill-GTK-"+OS_NAME+"-x86_64-release/*")
-    shell("7z a -tzip Output/"+FILENAME_CLI_PRE_NAME+"-v"+DRILL_VERSION+"-"+ARCHITECTURE+"-"+OS_NAME+".zip ./Build/Drill-CLI-"+OS_NAME+"-x86_64-release/*")
+        print("OS_NOT_SUPPORTED FOR ZIPS CREATION")
+        exit(1)
+  
     print(".zips created")
 
 def packageDeb():
