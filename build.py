@@ -47,7 +47,7 @@ Description: '''+DRILL_DESCRIPTION
 # CLI #
 #######
 
-FILENAME_CLI_PRE_NAME = "Drill-CLI"
+FILENAME_CLI_PRE_NAME = "DrillCLI"
 
 DEB_CLI_PACKAGE_NAME = "drill-search-cli"
 DEB_CLI_DEPENDENCIES = "libgcc1"
@@ -176,8 +176,8 @@ def createZips():
     '''
     You need to install p7zip-full or p7zip and p7zip-plugins
     '''
-    shell("7z a -tzip Output/"+FILENAME_GTK_PRE_NAME+"-"+DRILL_VERSION+"-"+ARCHITECTURE+".zip ./Build/Drill-GTK-linux-x86_64-release/*")
-    shell("7z a -tzip Output/"+FILENAME_CLI_PRE_NAME+"-"+DRILL_VERSION+"-"+ARCHITECTURE+".zip ./Build/Drill-CLI-linux-x86_64-release/*")
+    shell("7z a -tzip Output/"+FILENAME_GTK_PRE_NAME+"-v"+DRILL_VERSION+"-"+ARCHITECTURE+".zip ./Build/Drill-GTK-linux-x86_64-release/*")
+    shell("7z a -tzip Output/"+FILENAME_CLI_PRE_NAME+"-v"+DRILL_VERSION+"-"+ARCHITECTURE+".zip ./Build/Drill-CLI-linux-x86_64-release/*")
     print(".zips created")
 
 def packageDeb():
@@ -209,7 +209,7 @@ def packageDeb():
         # build the .deb file
         shell("dpkg-deb --build DEBFILE/CLI/")
 
-        DEB_CLI_NAME = FILENAME_CLI_PRE_NAME+"-"+DRILL_VERSION+"-"+ARCHITECTURE+".deb"
+        DEB_CLI_NAME = FILENAME_CLI_PRE_NAME+"-v"+DRILL_VERSION+"-"+ARCHITECTURE+".deb"
         shell("mv DEBFILE/CLI.deb Output/"+DEB_CLI_NAME)
         assert(os.path.exists("Output/"+DEB_CLI_NAME))
         if 'TRAVIS_OS_NAME' in os.environ:
@@ -258,7 +258,7 @@ def packageDeb():
         # Build the .deb file
         shell("dpkg-deb --build DEBFILE/GTK/")
 
-        DEB_GTK_NAME = FILENAME_GTK_PRE_NAME+"-"+DRILL_VERSION+"-"+ARCHITECTURE+".deb"
+        DEB_GTK_NAME = FILENAME_GTK_PRE_NAME+"-v"+DRILL_VERSION+"-"+ARCHITECTURE+".deb"
         shell("mv DEBFILE/GTK.deb Output/"+DEB_GTK_NAME)
         assert(os.path.exists("Output/"+DEB_GTK_NAME))
         if 'TRAVIS_OS_NAME' in os.environ:
@@ -306,7 +306,7 @@ script:
     shell("bash -ex ./pkg2appimage APP_IMAGE_SCRIPT.yml")
 
     
-    APPIMAGE_NAME = FILENAME_GTK_PRE_NAME+"-"+DRILL_VERSION+"-"+ARCHITECTURE+".AppImage"
+    APPIMAGE_NAME = FILENAME_GTK_PRE_NAME+"-v"+DRILL_VERSION+"-"+ARCHITECTURE+".AppImage"
 
 
     shell("mv out/*.AppImage Output/"+APPIMAGE_NAME)
