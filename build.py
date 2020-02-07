@@ -12,6 +12,9 @@
 # BUILD VARIABLES
 ###################################################
 
+
+ARCHITECTURE = "x86_64"
+
 OUTPUT_FOLDER = "Output"
 
 # When built locally and not on Travis what number to use
@@ -37,9 +40,14 @@ Installed-Size: 2048
 License: GPL-2
 Description: '''+DRILL_DESCRIPTION
 
+
+
+
 #######
 # CLI #
 #######
+
+FILENAME_CLI_PRE_NAME = "Drill-CLI"
 
 DEB_CLI_PACKAGE_NAME = "drill-search-cli"
 DEB_CLI_DEPENDENCIES = "libgcc1"
@@ -47,6 +55,8 @@ DEB_CLI_DEPENDENCIES = "libgcc1"
 #######
 # GTK #
 #######
+
+FILENAME_GTK_PRE_NAME = "Drill"
 
 DEB_GTK_PACKAGE_NAME = "drill-search-gtk"
 DEB_GTK_DEPENDENCIES = "libgtk-3-0 (>= 3.22.30),libgcc1"
@@ -62,6 +72,8 @@ Terminal=false
 Categories=Utility;
 Keywords=Search;FileSearch;File Search;Find;Search;
 '''
+
+
 
 ###################################################
 ###################################################
@@ -138,7 +150,7 @@ def buildCLI(dub):
     '''
     Builds the CLI version of Drill
     '''
-    shell(dub+" build -b release -c CLI --force --parallel --verbose")
+    shell(dub+" build -b release -c CLI --force --parallel --verbose --arch="+ARCHITECTURE)
     print("buildCLI",dub," done")
 
 def buildUI(dub):
@@ -147,7 +159,7 @@ def buildUI(dub):
     '''
     # Linux
     if platform == "linux" or platform == "linux2":
-        shell(dub+" build -b release -c GTK --force --parallel --verbose")
+        shell(dub+" build -b release -c GTK --force --parallel --verbose --arch="+ARCHITECTURE)
     # OS X
     elif platform == "darwin":
         NotImplementedError()
@@ -164,10 +176,8 @@ def createZips():
     '''
     You need to install p7zip-full or p7zip and p7zip-plugins
     '''
-    for filename in os.listdir('Build'):
-        zip_name = filename+"-"+DRILL_VERSION+".zip"
-        shell("7z a -tzip Output/"+zip_name+" ./Build/"+filename+"/*")
-        assert(os.path.exists("Output/"+zip_name))
+    shell("7z a -tzip Output/"+FILENAME_GTK_PRE_NAME+"-"+DRILL_VERSION+"-"+ARCHITECTURE+".zip ./Build/Drill-GTK-linux-x86_64-release/*")
+    shell("7z a -tzip Output/"+FILENAME_CLI_PRE_NAME+"-"+DRILL_VERSION+"-"+ARCHITECTURE+".zip ./Build/Drill-CLI-linux-x86_64-release/*")
     print(".zips created")
 
 def packageDeb():
@@ -198,11 +208,13 @@ def packageDeb():
             text_file.write(CLI_CONTROL_FILE+"\n")
         # build the .deb file
         shell("dpkg-deb --build DEBFILE/CLI/")
-        shell("mv DEBFILE/CLI.deb Output/Drill-CLI-linux-x86_64-release-"+DRILL_VERSION+".deb")
-        assert(os.path.exists("Output/Drill-CLI-linux-x86_64-release-"+DRILL_VERSION+".deb"))
+
+        DEB_CLI_NAME = FILENAME_CLI_PRE_NAME+"-"+DRILL_VERSION+"-"+ARCHITECTURE+".deb"
+        shell("mv DEBFILE/CLI.deb Output/"+DEB_CLI_NAME)
+        assert(os.path.exists("Output/"+DEB_CLI_NAME))
         if 'TRAVIS_OS_NAME' in os.environ:
             print("Travis OS detected, trying to install the CLI .deb")
-            shell("sudo dpkg -i Output/Drill-CLI-linux-x86_64-release-"+DRILL_VERSION+".deb")
+            shell("sudo dpkg -i Output/"+DEB_CLI_NAME)
         print("CLI .deb done")
         shell("rm -rf DEBFILE/CLI")
         print("CLI .deb cleanup")
@@ -245,11 +257,13 @@ def packageDeb():
 
         # Build the .deb file
         shell("dpkg-deb --build DEBFILE/GTK/")
-        shell("mv DEBFILE/GTK.deb Output/Drill-GTK-linux-x86_64-release-"+DRILL_VERSION+".deb")
-        assert(os.path.exists("Output/Drill-GTK-linux-x86_64-release-"+DRILL_VERSION+".deb"))
+
+        DEB_GTK_NAME = FILENAME_GTK_PRE_NAME+"-"+DRILL_VERSION+"-"+ARCHITECTURE+".deb"
+        shell("mv DEBFILE/GTK.deb Output/"+DEB_GTK_NAME)
+        assert(os.path.exists("Output/"+DEB_GTK_NAME))
         if 'TRAVIS_OS_NAME' in os.environ:
             print("Travis OS detected, trying to install the GTK .deb")
-            shell("sudo dpkg -i Output/Drill-GTK-linux-x86_64-release-"+DRILL_VERSION+".deb")
+            shell("sudo dpkg -i Output/"+DEB_GTK_NAME)
         print("GTK .deb done")
         shell("rm -rf DEBFILE/GTK")
         print("GTK .deb cleanup")
@@ -290,8 +304,13 @@ script:
     with open("APP_IMAGE_SCRIPT.yml", "w") as text_file:
             text_file.write(APP_IMAGE_SCRIPT)
     shell("bash -ex ./pkg2appimage APP_IMAGE_SCRIPT.yml")
-    shell("mv out/*.AppImage Output/Drill-GTK-linux-x86_64-release-"+DRILL_VERSION+".AppImage")
-    assert(os.path.exists("Output/Drill-GTK-linux-x86_64-release-"+DRILL_VERSION+".AppImage"))
+
+    
+    APPIMAGE_NAME = FILENAME_GTK_PRE_NAME+"-"+DRILL_VERSION+"-"+ARCHITECTURE+".AppImage"
+
+
+    shell("mv out/*.AppImage Output/"+APPIMAGE_NAME)
+    assert(os.path.exists("Output/"+APPIMAGE_NAME))
     print("AppImage done.")
     shell("rm -rf Drill")
     shell("rmdir out")
