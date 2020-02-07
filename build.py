@@ -1,80 +1,33 @@
 #! py -3
 
-# This software builds all Drill stuff based on the current OS
-# The first argument in input is the version number that 
-# will be used in the format major.minor
+###################################################
+#
+# Just run `python build.py`
+# 
+#
+# appimage only: `python build.py appimage`
+# deb only: `python build.py deb`
+#
+###################################################
+# BUILD VARIABLES
+###################################################
 
-# TODO: name-version-architecture.ext
+OUTPUT_FOLDER = "Output"
 
+# When built locally and not on Travis what number to use
+# Remember: .deb files like only numeric values
+LOCAL_VERSION_NUMBER = "0"
+
+# DUB local command
+dub = "dub"
+
+# DMD + DUB version to download if not found locally
+COMPILER = "dmd"
 DMD_VERSION = "2.090.0"
 
+DRILL_DESCRIPTION = "Search files without indexing, but clever crawling"
 
-from subprocess import call, check_output
-from argparse import ArgumentParser
-from os.path import dirname, exists
-from shutil import rmtree, copyfile
-from os import remove, makedirs
-from glob import glob
-from sys import platform, argv
-import os
-
-import sys
-
-import json
-
-# with open('dub.json') as json_file:
-#     data = json.load(json_file)
-#     DRILL_VERSION = data["version"]
-
-
-try:
-    DRILL_VERSION = os.environ['TRAVIS_BUILD_NUMBER']
-except KeyError:
-    DRILL_VERSION = "0.0.0"
-
-
-with open("DRILL_VERSION","w") as drill_version:
-    drill_version.write(DRILL_VERSION)
-
-
-SOURCE_URL = "https://github.com/yatima1460/Drill/archive/"+DRILL_VERSION+".tar.gz"
-
-
-RPM_SPEC_FILE = '''
-Name:       drill-search-cli
-Version:    1
-Release:    1
-Summary:    Search files without indexing, but clever crawling
-License:    GPL-2
-Source:     drill-search-cli
-
-%description
-I was stressed on Linux because I couldn't find the files I needed, file searchers based on system indexing (updatedb) are prone to breaking and hard to configure for the average user, so did an all nighter and started this.
-Drill is a modern file searcher for Linux that tries to fix the old problem of slow searching and indexing. Nowadays even some SSDs are used for storage and every PC has nearly a minimum of 8GB of RAM and quad-core; knowing this it's time to design a future-proof file searcher that doesn't care about weak systems and uses the full multithreaded power in a clever way to find your files in the fastest possible way.
-Heuristics: The first change was the algorithm, a lot of file searchers use depth-first algorithms, this is a very stupid choice and everyone that implemented it is a moron, why? You see, normal humans don't create nested folders too much and you will probably get lost inside "black hole folders" or artificial archives (created by software); a breadth-first algorithm that scans your hard disks by depth has a higher chance to find the files you need. Second change is excluding some obvious folders while crawling like Windows and node_modules, the average user doesn't care about .dlls and all the system files, and generally even devs too don't care, and if you need to find a system file you already know what you are doing and you should not use a UI tool.
-Clever multithreading: The second change is clever multithreading, I've never seen a file searcher that starts a thread per disk and it's 2019. The limitation for file searchers is 99% of the time just the disk speed, not the CPU or RAM, then why everyone just scans the disks sequentially????
-Use your goddamn RAM: The third change is caching everything, I don't care about your RAM, I will use even 8GB of your RAM if this provides me a faster way to find your files, unused RAM is wasted RAM, even truer the more time passes.
-
-%prep
-%setup -q
-
-%source
-
-
-%build
-dub -b build
-
-%install
-# install -m 755 drill-search-cli %{buildroot}/drill-search-cli
-
-%files
-/Build/Drill-CLI-linux-x86_64-release/drill-search-cli
-'''
-
-
-CLI_CONTROL_FILE = '''Package: drill-search-cli
-Section: utils
-Depends: libgcc1
+DEB_CONTROL_FILE = '''Section: utils
 Priority: optional
 Architecture: amd64
 Maintainer: Federico Santamorena <federico@santamorena.me>
@@ -82,24 +35,26 @@ Homepage: https://github.com/yatima1460/Drill
 Source: https://github.com/yatima1460/Drill
 Installed-Size: 2048
 License: GPL-2
-Description: Search files without indexing, but clever crawling'''
+Description: '''+DRILL_DESCRIPTION
 
-GTK_CONTROL_FILE = '''Package: drill-search-gtk
-Section: utils
-Depends: libgtk-3-0 (>= 3.16.0),libgcc1
-Priority: optional
-Architecture: amd64
-Maintainer: Federico Santamorena <federico@santamorena.me>
-Homepage: https://github.com/yatima1460/Drill
-Source: https://github.com/yatima1460/Drill
-Installed-Size: 2048
-License: GPL-2
-Description: Search files without indexing, but clever crawling'''
+#######
+# CLI #
+#######
+
+DEB_CLI_PACKAGE_NAME = "drill-search-cli"
+DEB_CLI_DEPENDENCIES = "libgcc1"
+
+#######
+# GTK #
+#######
+
+DEB_GTK_PACKAGE_NAME = "drill-search-gtk"
+DEB_GTK_DEPENDENCIES = "libgtk-3-0 (>= 3.22.30),libgcc1"
 
 GTK_DESKTOP_FILE = '''[Desktop Entry]
 Name=Drill
 Type=Application
-Comment=Search files without using indexing, but clever crawling
+Comment='''+DRILL_DESCRIPTION+'''
 Icon=drill-search-gtk
 Exec=/usr/bin/drill-search-gtk
 TryExec=/usr/bin/drill-search-gtk
@@ -108,45 +63,57 @@ Categories=Utility;
 Keywords=Search;FileSearch;File Search;Find;Search;
 '''
 
+###################################################
+###################################################
+###################################################
+
+from subprocess import call, check_output
+from argparse import ArgumentParser
+from os.path import dirname, exists
+from shutil import rmtree, copyfile
+from os import remove, makedirs
+from glob import glob
+from sys import platform, argv
+from distutils.spawn import find_executable
+import os
+import sys
+
 def shell(string):
-    
+    '''
+    Wrapper around os.system to execute shell commands
+    Terminates this script instantly with a message if a shell command fails
+    '''
     exit_code = os.system(string)
     #print("\n[.travis.py] "+string)
     if exit_code != 0:
         sys.stderr.write("\nERROR: Command '"+string+"' exited with code "+str(exit_code)+"\n")
         exit(exit_code)
 
-def installD(compiler="dmd"):
+
+def installD():
     '''
     Installs D and returns dub location
     '''
-    if compiler == "gdc":
-        NotImplementedError("Drill does not support GDC")
+    if COMPILER == "gdc":
+        NotImplementedError("Drill does not support compiling with GDC")
+    if COMPILER == "ldc":
+        NotImplementedError("Drill does not support downloading LDC")
 
+    # Linux
     if platform == "linux" or platform == "linux2":
-        # if compiler == "dmd":
         shell("wget -c http://downloads.dlang.org/releases/2.x/"+DMD_VERSION+"/dmd."+DMD_VERSION+".linux.tar.xz")
         shell("7z x -aos dmd."+DMD_VERSION+".linux.tar.xz")
         shell("7z x -aos dmd."+DMD_VERSION+".linux.tar")
-        print("dub/dmd extracted")
         dub = "dmd2/linux/bin64/dub"
-        print("dub location is: ", dub)
         shell("chmod +x "+dub)
-        print("dub set as executable")
         shell("./"+dub+" --version")
         shell("chmod +x dmd2/linux/bin64/dmd")
-        print("dmd set as executable")
         shell("./"+dub+" --version")
         shell("./dmd2/linux/bin64/dmd --version")
         return "./"+dub
-        # if compiler == "ldc2":
-        #     NotImplementedError()
-        #     shell("curl -fsS https://dlang.org/install.sh | bash -s ldc")
-        #     shell("source ~/dlang/ldc-1.16.0/activate")
-        #     return "dub"
-        
-    elif platform == "darwin":
+
     # OS X
+    elif platform == "darwin":
         shell("wget http://downloads.dlang.org/releases/2.x/"+DMD_VERSION+"/dmd."+DMD_VERSION+".osx.tar.xz")
         shell("7z -aoa x dmd."+DMD_VERSION+".osx.tar.xz")
         shell("7z -aoa x dmd."+DMD_VERSION+".osx.tar")
@@ -154,30 +121,40 @@ def installD(compiler="dmd"):
         shell("chmod +x "+dub)
         shell("chmod +x \"$PWD\"/dmd2/osx/bin/dmd")
         return dub
+        
+    # Windows
+    # Remember the executable will end in .exe
     elif platform == "win32":
-    # Windows...
+
         shell("wget http://downloads.dlang.org/releases/2.x/"+DMD_VERSION+"/dmd."+DMD_VERSION+".windows.7z")
         shell("7z x dmd."+DMD_VERSION+".windows.7z")
         cwd = os.getcwd()
         return cwd+"/dmd2/windows/bin/dub.exe"
     else:
         NotImplementedError("Your OS is not supported.")
-        
+   
 
 def buildCLI(dub):
-    shell(dub+" build -b release -c CLI --force --verbose")
+    '''
+    Builds the CLI version of Drill
+    '''
+    shell(dub+" build -b release -c CLI --force --parallel --verbose")
     print("buildCLI",dub," done")
 
 def buildUI(dub):
-    
+    '''
+    Builds the UI version of Drill
+    '''
+    # Linux
     if platform == "linux" or platform == "linux2":
-        shell(dub+" build -b release -c GTK --force --verbose")
-    elif platform == "darwin":
+        shell(dub+" build -b release -c GTK --force --parallel --verbose")
     # OS X
+    elif platform == "darwin":
         NotImplementedError()
+    # Windows
+    # Remember the executable will end in .exe
     elif platform == "win32":
-    # Windows...
-        #remember it will end in .exe
+        
         NotImplementedError()
     else:
         NotImplementedError()
@@ -196,7 +173,6 @@ def createZips():
 def packageDeb():
 
     def packageCLIDeb():
-        global CLI_CONTROL_FILE
         DEB_PACKAGE_NAME="drill-search-cli"
         CLI_BUILD_DIR="Drill-CLI-linux-x86_64-release"
         BUILD_DIR="Build/"+CLI_BUILD_DIR
@@ -215,7 +191,11 @@ def packageDeb():
         # make .deb metadata
         shell("mkdir -p DEBFILE/CLI/DEBIAN")
         with open("DEBFILE/CLI/DEBIAN/control", "w") as text_file:
-            text_file.write(CLI_CONTROL_FILE+"\nVersion: "+DRILL_VERSION+"\n")
+            CLI_CONTROL_FILE = DEB_CONTROL_FILE     \
+            + "\nVersion: "+DRILL_VERSION           \
+            + "\nDepends: "+ DEB_CLI_DEPENDENCIES   \
+            + "\nPackage: "+ DEB_CLI_PACKAGE_NAME   
+            text_file.write(CLI_CONTROL_FILE+"\n")
         # build the .deb file
         shell("dpkg-deb --build DEBFILE/CLI/")
         shell("mv DEBFILE/CLI.deb Output/Drill-CLI-linux-x86_64-release-"+DRILL_VERSION+".deb")
@@ -228,35 +208,42 @@ def packageDeb():
         print("CLI .deb cleanup")
 
     def packageGTKDeb():
-        global GTK_DESKTOP_FILE
-        global GTK_CONTROL_FILE
-        DEB_PACKAGE_NAME="drill-search-gtk"
         GTK_BUILD_DIR="Drill-GTK-linux-x86_64-release"
         BUILD_DIR = "Build/"+GTK_BUILD_DIR
-        assert(os.path.exists(BUILD_DIR+"/"+DEB_PACKAGE_NAME))
-        # install binary redirect for /usr/bin and set it executable
+        assert(os.path.exists(BUILD_DIR+"/"+DEB_GTK_PACKAGE_NAME))
+
+        # Install binary redirect for /usr/bin and set it executable
         shell("mkdir -p DEBFILE/GTK/usr/bin")
-        with open("DEBFILE/GTK/usr/bin/"+DEB_PACKAGE_NAME, "w") as text_file:
-            text_file.write("#!/bin/bash\n/opt/"+DEB_PACKAGE_NAME+"/"+DEB_PACKAGE_NAME)
-        shell("chmod +x DEBFILE/GTK/usr/bin/"+DEB_PACKAGE_NAME)
-        # copy all files and install in /opt
+        with open("DEBFILE/GTK/usr/bin/"+DEB_GTK_PACKAGE_NAME, "w") as text_file:
+            text_file.write("#!/bin/bash\n/opt/"+DEB_GTK_PACKAGE_NAME+"/"+DEB_GTK_PACKAGE_NAME)
+        shell("chmod +x DEBFILE/GTK/usr/bin/"+DEB_GTK_PACKAGE_NAME)
+
+        # Copy all files and install in /opt
         shell("mkdir -p DEBFILE/GTK/opt/")
-        shell("cp -r "+BUILD_DIR+"/ DEBFILE/GTK/opt/"+DEB_PACKAGE_NAME)
-        shell("chmod +x DEBFILE/GTK/opt/"+DEB_PACKAGE_NAME+"/"+DEB_PACKAGE_NAME)
-        # make .deb metadata
+        shell("cp -r "+BUILD_DIR+"/ DEBFILE/GTK/opt/"+DEB_GTK_PACKAGE_NAME)
+        shell("chmod +x DEBFILE/GTK/opt/"+DEB_GTK_PACKAGE_NAME+"/"+DEB_GTK_PACKAGE_NAME)
+
+        # Create .deb control file
         shell("mkdir -p DEBFILE/GTK/DEBIAN")
         with open("DEBFILE/GTK/DEBIAN/control", "w") as text_file:
-            text_file.write(GTK_CONTROL_FILE+"\nVersion: "+DRILL_VERSION+"\n")
-        # add desktop file
+            GTK_CONTROL_FILE = DEB_CONTROL_FILE     \
+            + "\nVersion: "+DRILL_VERSION           \
+            + "\nDepends: "+ DEB_GTK_DEPENDENCIES   \
+            + "\nPackage: "+ DEB_GTK_PACKAGE_NAME   
+            text_file.write(GTK_CONTROL_FILE+"\n")
+
+        # Add desktop file
         shell("mkdir -p DEBFILE/GTK/usr/share/applications")
         desktop_file = "DEBFILE/GTK/usr/share/applications/drill-search-gtk.desktop"
         with open(desktop_file, "w") as text_file:
             text_file.write(GTK_DESKTOP_FILE)
         shell("desktop-file-validate "+desktop_file)
-        # add icon
+
+        # Add icon
         shell("mkdir -p DEBFILE/GTK/usr/share/pixmaps")
         shell("cp Assets/icon.svg DEBFILE/GTK/usr/share/pixmaps/drill-search-gtk.svg")
-        # build the .deb file
+
+        # Build the .deb file
         shell("dpkg-deb --build DEBFILE/GTK/")
         shell("mv DEBFILE/GTK.deb Output/Drill-GTK-linux-x86_64-release-"+DRILL_VERSION+".deb")
         assert(os.path.exists("Output/Drill-GTK-linux-x86_64-release-"+DRILL_VERSION+".deb"))
@@ -272,7 +259,6 @@ def packageDeb():
 
 
 def packageAppImage():
-    global GTK_DESKTOP_FILE
     shell("wget -c https://raw.githubusercontent.com/probonopd/AppImages/master/pkg2appimage")
 
     appimage_dir = "Drill"
@@ -292,12 +278,6 @@ def packageAppImage():
     shell("cp Assets/icon.svg "+appimage_dir+"/drill-search-gtk.svg")
     print("AppImage icon copied.")
 
-    # copy files
-    # shell("cp -r Build/Drill-GTK-linux-x86_64-release/* "+appimage_dir)
-    # shell("chmod +x "+appimage_dir+"/drill-search-gtk")
-    # print("AppImage files copied.")
-    
-    #create appimage
     APP_IMAGE_SCRIPT = '''
 app: Drill
 script: 
@@ -306,8 +286,7 @@ script:
  - mv ../drill-search-gtk.svg .
  - cp -r ../../Build/Drill-GTK-linux-x86_64-release/* usr/bin
 '''
-#  - mv ../drill-search-gtk ./usr/drill-search-gtk
-#  - mv ../drill-search-gtk.bash ./usr/bin/drill-search-gtk
+
     with open("APP_IMAGE_SCRIPT.yml", "w") as text_file:
             text_file.write(APP_IMAGE_SCRIPT)
     shell("bash -ex ./pkg2appimage APP_IMAGE_SCRIPT.yml")
@@ -323,85 +302,51 @@ script:
 def packagePortables():
     if platform == "linux" or platform == "linux2":
         packageAppImage()
-
-def packageRpm():
-    with open("drill-search-gtk.spec", "w") as text_file:
-        text_file.write(RPM_SPEC_FILE)
-    shell("rpmbuild -ba drill-search-gtk.spec")
-
-
-def packageSnap():
-    shell("sudo snap install --classic snapcraft")
-    shell("mkdir -p mysnaps/drill-search-gtk/snap")
-    os.chdir("mysnaps")
-    shell("snapcraft init")
-    SNAP_FILE = '''name: drill-search-gtk # you probably want to 'snapcraft register <name>'
-version: '0.1' # just for humans, typically '1.2+git' or '1.3.2'
-summary: Single-line elevator pitch for your amazing snap # 79 char long summary
-description: |
-  This is my-snap's description. You have a paragraph or two to tell the
-  most important story about your snap. Keep it under 100 words though,
-  we live in tweetspace and your description wants to look good in the snap
-  store.
-
-grade: devel # must be 'stable' to release into 'candidate' and 'stable' channels
-confinement: devmode # use 'strict' once you have the right plugs and slots
-parts:
-  gtk:
-    source: '''+SOURCE_URL+'''
-    plugin: autotools
-'''
-
-    shell("snapcraft")
-
-
-    os.chdir("../")
-
-
+        #packageSnap()
+        #packageFlatpak()
 
 def packageInstallers():
     if platform == "linux" or platform == "linux2":
         packageDeb()
         # packageRpm()
-        # packageSnap()
 
 if __name__ == "__main__":
-    if len(argv) == 1:
+
+    # Get version to build
+    try:
+        DRILL_VERSION = os.environ['TRAVIS_BUILD_NUMBER']
+    except KeyError:
+        DRILL_VERSION = LOCAL_VERSION_NUMBER
+
+    # Write version to build to DRILL_VERSION file so every tool can easily read it
+    with open("DRILL_VERSION","w") as drill_version:
+        drill_version.write(DRILL_VERSION)
+
+    # Install D if not found
+    if find_executable("dub") is None:
         dub = installD()
+
+    # Create output folder
+    if not os.path.exists(OUTPUT_FOLDER):
+        os.mkdir(OUTPUT_FOLDER)
+
+    if len(argv) == 1:
         buildCLI(dub)
         buildUI(dub)
         createZips()
         packagePortables()
         packageInstallers()
         print("All builds done.")
-    # useful args for local testing
+
+    # Useful args for local testing
     if len(argv) == 2:
         if argv[1] == "appimage":
-            dub = installD()
             buildUI(dub)
             packageAppImage()
             exit(0)
         if argv[1] == "deb":
-            dub = installD()
             buildCLI(dub)
             buildUI(dub)
             packageDeb()
             exit(0)
-        if argv[1] == "snap":
-            exit(1)
-    if platform == "linux" or platform == "linux2":
-        shell("rm dmd."+DMD_VERSION+".linux.tar")
-        shell("rm dmd."+DMD_VERSION+".linux.tar.xz")
-    if platform == "darwin":
-        # TODO: add OSX cleanup
-        pass
-    if platform == "windows":
-        # TODO: add Windows cleanup
-        pass
-    shell("rm -rf dmd2")
-    print("dmd cleanup done.")
-
-        
-
-    
-
+    print("Bye!")
