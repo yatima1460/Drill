@@ -1,0 +1,32 @@
+name: RollingReleaser
+
+push:
+    branches:
+      - master
+
+jobs:
+  linux:
+
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v1
+    - run: python build.py
+
+      
+  # windows:
+
+  #   runs-on: windows-latest
+    
+  #   steps:
+  #   - uses: actions/checkout@v1
+  #   - run: python build.py
+
+
+  # macos:
+
+  #   runs-on: macos-latest
+    
+  #   steps:
+  #   - uses: actions/checkout@v1
+  #   - run: python build.py
