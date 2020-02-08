@@ -1,4 +1,4 @@
-name: PullRequestCheck
+name: PullRequestChecker
 
 on: pull_request
 
@@ -11,4 +11,3 @@ jobs:
     - uses: actions/checkout@v1
     - run: python build.py
 
-      
