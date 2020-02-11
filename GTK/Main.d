@@ -15,6 +15,8 @@ import ApplicationInfo : ApplicationInfo, getApplications;
 import Context : DrillContext, startCrawling, stopCrawlingSync, stopCrawlingAsync;
 import Config : loadData;
 
+import UI_Utils :  openFile;
+
 import GTKBinds;
 import ListStore : appendApplication, appendFileInfo;
 import FileInfo : FileInfo;
@@ -162,7 +164,7 @@ extern(C) gboolean row_right_click(GtkWidget *btn, GdkEventButton *event, gpoint
                       import std.process : spawnProcess;
                       import Utils : cleanExecLine;
                         import std.process : Config;
-                            import Utils : openFile;
+                           
                         openFile(to!string(fromStringz(cast(gchar*)user_data)));
                 }
             }
@@ -247,7 +249,7 @@ in(userObject !is null)
     import std.array : array, split;
     import std.conv : to;
     import core.stdc.stdio : printf;
-    import Utils : openFile;
+   
     import std.process : spawnProcess;
     import std.process : Config;
    
