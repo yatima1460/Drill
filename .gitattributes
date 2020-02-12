@@ -1,3 +1,5 @@
 *.txt -crlf
 *.d -crlf
 *.yml -crlf
+*.cpp -crlf
+*.hpp -crlf
