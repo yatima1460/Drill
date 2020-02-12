@@ -17,8 +17,9 @@ LINK_DIRECTORIES(${GTK3_LIBRARY_DIRS})
 # Add other flags to the compiler
 ADD_DEFINITIONS(${GTK3_CFLAGS_OTHER})
 
+file( GLOB SRCS *.cpp *.hpp )
 
-add_executable(DrillGTK Main.cpp)
+add_executable(DrillGTK ${SRCS})
 
 
 # Link the target to the GTK+ libraries
