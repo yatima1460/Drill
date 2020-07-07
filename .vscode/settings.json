@@ -2,5 +2,8 @@
     "gulp.autoDetect":"off",
     "jake.autoDetect":"off",
     "npm.autoDetect": "off",
-    "git.ignoreLimitWarning": true
+    "git.ignoreLimitWarning": true,
+    "files.associations": {
+        "system_error": "cpp"
+    }
 }
