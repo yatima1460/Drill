@@ -9,7 +9,7 @@
 [![Twitter](https://img.shields.io/twitter/url/https/github.com/yatima1460/Drill.svg?style=social)](https://twitter.com/intent/tweet?text=Wow:&url=https%3A%2F%2Fgithub.com%2Fyatima1460%2FDrill)
 
 Get notified for latest releases
-[![Telegram](docs/icons/telegram_icon.png?sanitize=true)](https://telegram.me/drill_search)
+[![Telegram](https://raw.githubusercontent.com/yatima1460/Drill/gh-pages/icons/telegram_icon.png?sanitize=true)](https://telegram.me/drill_search)
 
 # TL;DR: What is this
 
@@ -17,7 +17,7 @@ Search files without indexing, but clever crawling:
 - At least 1 thread per mount point
 - Use as much RAM as possible for caching stuff
 - Try to avoid "black hole folders" using a regex based blocklist in which the crawler will never come out and never scan useful files (`node_modules`,`Windows`,etc)
-- **Intended for desktop users**, no obscure Linux files and system files scans
+- **Designed for average users**, no obscure Linux files and system files scans
 - Use priority lists to first scan important folders.
 - Betting on the future: slowly being optimized for SSDs/M.2 or fast RAID arrays
 
