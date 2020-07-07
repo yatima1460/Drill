@@ -79,3 +79,7 @@ _deps
 
 GTKCpp/Assets
 GTKCpp/DrillGTK
+
+
+.vscode
+.vs
