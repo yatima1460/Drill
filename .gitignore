@@ -83,3 +83,5 @@ GTKCpp/DrillGTK
 
 .vscode
 .vs
+/out
+*.aps
