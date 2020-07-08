@@ -6,6 +6,7 @@
 #include <Richedit.h>
 #include <CommCtrl.h>
 #include <windowsx.h>
+#include <uxtheme.h>
 
 // these are used to ID the controls/windows, and are used to execute an event (e.g. click)
 #define ID_EDITCHILD 110 // The edit control (need one of these for each edit control)
@@ -14,7 +15,7 @@
 #define IDM_EDCOPY 113
 #define IDM_EDPASTE 114
 #define IDM_EDDEL 115
-#define GWL_HINSTANCE 6 // required in the definition of the edit control
+//#define GWL_HINSTANCE 6 // required in the definition of the edit control
 
 #define ID_DRILL_ICON 999
 
@@ -82,7 +83,7 @@ bool invalidUI;
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 
-	HWND hwndStatusBar;
+	//HWND hwndStatusBar;
 	int edit_box_height = 40;
 
 	if (invalidUI)
@@ -104,7 +105,9 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		// 	0, 0, screen_w / 2, edit_box_height,
 		// 	hwnd, (HMENU)ID_EDIT, NULL, NULL);
 
-		LoadLibrary(TEXT("Msftedit.dll"));
+
+
+
 
 		hwndEdit = CreateWindowEx(0, MSFTEDIT_CLASS, TEXT(""),
 								  /* ES_MULTILINE |*/ WS_VISIBLE | WS_CHILD | WS_BORDER | WS_TABSTOP,
@@ -178,6 +181,11 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 								 (HMENU)IDC_LIST, NULL, NULL);
 
 		AutoResizeControls(hwnd, hwndEdit, hwndList, edit_box_height);
+
+		//auto theme = "WINDOW";
+		SetWindowTheme(hwnd, L"WINDOW", nullptr);
+
+
 
 		CenterWindow(hwnd);
 		break;
@@ -275,6 +283,9 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR pCmdLine, int nCmdShow)
 {
+	LoadLibrary(TEXT("Msftedit.dll"));
+	
+
 	MSG msg;
 	HWND hwnd;
 	WNDCLASSW wc;

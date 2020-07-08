@@ -5,3 +5,7 @@ project(DrillWin32)
 
 
 add_executable(DrillWin32 WIN32  ui.cpp windows.rc)
+
+
+
+target_link_libraries(DrillWin32 UxTheme.lib)
