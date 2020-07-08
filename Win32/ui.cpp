@@ -37,7 +37,7 @@ void AutoResizeControls(const HWND hwnd, const HWND hwndEdit, const HWND hwndLis
 	RECT r = {0};
 	GetClientRect(hwnd, &r);
 	SetWindowPos(hwndEdit, NULL, 0, 0, r.right, edit_box_height, NULL);
-	SetWindowPos(hwndList, NULL, 0, edit_box_height, r.right - 1, r.bottom - edit_box_height, NULL);
+	SetWindowPos(hwndList, NULL, 0, edit_box_height, r.right, r.bottom - edit_box_height, NULL);
 }
 
 // const TCHAR lpszLatin[] = L"Text edit box test";
@@ -114,6 +114,9 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 								  0, 0, screen_w / 2, edit_box_height,
 								  hwnd, NULL, (HINSTANCE)GetWindowLong(hwnd, GWL_HINSTANCE), NULL);
 
+		LONG lExStyle = GetWindowLong(hwndEdit, GWL_EXSTYLE);
+lExStyle &= ~WS_EX_CLIENTEDGE;
+SetWindowLong(hwndEdit, GWL_EXSTYLE, lExStyle);
 		//    HWND hwndStatus;
 		//     RECT rcClient;
 		//     HLOCAL hloc;
@@ -180,6 +183,11 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 								 0, edit_box_height, screen_w, screen_h - edit_box_height, hwnd,
 								 (HMENU)IDC_LIST, NULL, NULL);
 
+
+
+		LONG lExStyleList = GetWindowLong(hwndList, GWL_EXSTYLE);
+lExStyleList &= ~WS_EX_CLIENTEDGE;
+SetWindowLong(hwndList, GWL_EXSTYLE, lExStyleList);
 		AutoResizeControls(hwnd, hwndEdit, hwndList, edit_box_height);
 
 		//auto theme = "WINDOW";
