@@ -15,7 +15,7 @@
 #define IDM_EDCOPY 113
 #define IDM_EDPASTE 114
 #define IDM_EDDEL 115
-//#define GWL_HINSTANCE 6 // required in the definition of the edit control
+#define GWL_HINSTANCE 6 // required in the definition of the edit control
 
 #define ID_DRILL_ICON 999
 
@@ -25,22 +25,22 @@ HWND hEdit;	   // handle for the Edit control
 
 // Colour definitions (used to set/change the main window's colour)
 // for RGB values: https://www.rapidtables.com/web/color/RGB_Color.html
-HBRUSH hBrushBlack = CreateSolidBrush(RGB(0, 0, 0));
-HBRUSH hBrushWhite = CreateSolidBrush(RGB(255, 255, 255));
-HBRUSH hBrushLightGrey = CreateSolidBrush(RGB(200, 200, 200));
+// HBRUSH hBrushBlack = CreateSolidBrush(RGB(0, 0, 0));
+// HBRUSH hBrushWhite = CreateSolidBrush(RGB(255, 255, 255));
+// HBRUSH hBrushLightGrey = CreateSolidBrush(RGB(200, 200, 200));
 
 const int ID_EDIT = 1;
 const int IDC_LIST = 2;
 
-void AutoResizeControls(const HWND hwnd, const HWND hwndEdit, const HWND hwndList, const int edit_box_height)
-{
-	RECT r = {0};
-	GetClientRect(hwnd, &r);
-	SetWindowPos(hwndEdit, NULL, 0, 0, r.right, edit_box_height, NULL);
-	SetWindowPos(hwndList, NULL, 0, edit_box_height, r.right, r.bottom - edit_box_height, NULL);
-}
+// void AutoResizeControls(const HWND hwnd, const HWND hwndEdit, const HWND hwndList, const int edit_box_height)
+// {
+// 	RECT r = {0};
+// 	GetClientRect(hwnd, &r);
+// 	SetWindowPos(hwndEdit, NULL, 0, 0, r.right, edit_box_height, NULL);
+// 	SetWindowPos(hwndList, NULL, 0, edit_box_height, r.right, r.bottom - edit_box_height, NULL);
+// }
 
-// const TCHAR lpszLatin[] = L"Text edit box test";
+
 int enableVisualStyles(void)
 {
 	wchar_t dir[MAX_PATH];
@@ -61,9 +61,11 @@ int enableVisualStyles(void)
 	return (int)ulpActivationCookie;
 }
 
+/**
+ *	Centers a window given a handle
+ */
 void CenterWindow(const HWND hwnd)
 {
-
 	RECT rc = {0};
 
 	GetWindowRect(hwnd, &rc);
@@ -76,129 +78,88 @@ void CenterWindow(const HWND hwnd)
 	SetWindowPos(hwnd, HWND_TOP, (screen_w - win_w) / 2, (screen_h - win_h) / 2, 0, 0, SWP_NOSIZE);
 }
 
+// The event callback is being called continuously, saving those as global variables..
 HWND hwndEdit;
 HWND hwndList;
-bool invalidUI;
 
-LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+HWND CreateListControl(const HWND mainWindow, const int edit_box_height)
 {
+	int screen_h = GetSystemMetrics(SM_CYSCREEN);
+	int screen_w = GetSystemMetrics(SM_CXSCREEN);
+	const auto hwndList = CreateWindowW(L"ListBox", NULL, WS_BORDER | WS_CHILD | WS_VISIBLE | LBS_NOTIFY,
+								 0, edit_box_height, screen_w, screen_h - edit_box_height, mainWindow,
+								 (HMENU)IDC_LIST, NULL, NULL);
 
-	//HWND hwndStatusBar;
-	int edit_box_height = 40;
+		LONG lExStyleList = GetWindowLong(hwndList, GWL_EXSTYLE);
+		lExStyleList &= ~WS_EX_CLIENTEDGE;
+		SetWindowLong(hwndList, GWL_EXSTYLE, lExStyleList);
+		RECT r = {0};
+		GetClientRect(mainWindow, &r);
+		SetWindowPos(hwndList, nullptr, 0, edit_box_height, r.right, r.bottom - edit_box_height, 0);
 
-	if (invalidUI)
-	{
-		AutoResizeControls(hwnd, hwndEdit, hwndList, edit_box_height);
-		invalidUI = false;
-	}
+	return hwndList;
+
+}
+
+HWND CreateEditControl(const HWND mainWindow, const int height)
+{
+	// Load dynamic library for modern text input
+	LoadLibrary(TEXT("Msftedit.dll"));
+
+	int screen_w = GetSystemMetrics(SM_CXSCREEN);
+	int screen_h = GetSystemMetrics(SM_CYSCREEN);
+	const auto hwndEdit = CreateWindowEx(0, MSFTEDIT_CLASS, TEXT(""), WS_VISIBLE | WS_CHILD | WS_BORDER | WS_TABSTOP,
+										 0, 0, screen_w / 2, height,
+										 mainWindow, nullptr, (HINSTANCE)GetWindowLong(mainWindow, GWL_HINSTANCE), nullptr);
+
+	LONG lExStyle = GetWindowLong(hwndEdit, GWL_EXSTYLE);
+	lExStyle &= ~WS_EX_CLIENTEDGE;
+	SetWindowLong(hwndEdit, GWL_EXSTYLE, lExStyle);
+
+	CHARFORMAT boldfont;
+
+	boldfont.cbSize = sizeof(CHARFORMAT);
+	boldfont.crTextColor = RGB(0, 0, 0);
+	boldfont.dwMask = CFM_COLOR | CFM_SIZE | CFM_BOLD | CFM_CHARSET;
+	boldfont.yHeight = 350;
+	boldfont.dwEffects = CFE_DISABLED; /* Text will be BOLD*/
+	boldfont.bCharSet = DEFAULT_CHARSET;
+	SendMessage(hwndEdit, EM_SETCHARFORMAT, SCF_ALL, (LPARAM)&boldfont);
+
+	RECT r = {0};
+	GetClientRect(mainWindow, &r);
+	SetWindowPos(hwndEdit, nullptr, 0, 0, r.right, height, 0);
+
+	return hwndEdit;
+}
+
+/**
+ * 	Callback receiving the window events
+ */
+LRESULT CALLBACK WindowProc(HWND handleWindow, UINT uMsg, WPARAM wParam, LPARAM lParam)
+{
+	const int EDIT_BOX_HEIGHT = 40;
 
 	switch (uMsg)
 	{
+
+	// Event when the window is created the first time
 	case WM_CREATE:
 	{
-		//enableVisualStyles();
-
-		int screen_w = GetSystemMetrics(SM_CXSCREEN);
-		int screen_h = GetSystemMetrics(SM_CYSCREEN);
-		// hwndEdit = CreateWindowW(L"Edit", NULL,
-		// 	WS_CHILD | WS_VISIBLE | WS_BORDER,
-		// 	0, 0, screen_w / 2, edit_box_height,
-		// 	hwnd, (HMENU)ID_EDIT, NULL, NULL);
-
-
-
-
-
-		hwndEdit = CreateWindowEx(0, MSFTEDIT_CLASS, TEXT(""),
-								  /* ES_MULTILINE |*/ WS_VISIBLE | WS_CHILD | WS_BORDER | WS_TABSTOP,
-								  0, 0, screen_w / 2, edit_box_height,
-								  hwnd, NULL, (HINSTANCE)GetWindowLong(hwnd, GWL_HINSTANCE), NULL);
-
-		LONG lExStyle = GetWindowLong(hwndEdit, GWL_EXSTYLE);
-lExStyle &= ~WS_EX_CLIENTEDGE;
-SetWindowLong(hwndEdit, GWL_EXSTYLE, lExStyle);
-		//    HWND hwndStatus;
-		//     RECT rcClient;
-		//     HLOCAL hloc;
-		//     PINT paParts;
-		//     int i, nWidth;
-
-		// Ensure that the common control DLL is loaded.
-		//  InitCommonControls();
-		// Create the status bar.
-		//     hwndStatusBar = CreateWindowEx(
-		//         0,                       // no extended styles
-		//         STATUSCLASSNAME,         // name of status bar class
-		//         (PCTSTR) NULL,           // no text when first created
-		//         SBARS_SIZEGRIP |         // includes a sizing grip
-		//         WS_CHILD | WS_VISIBLE,   // creates a visible child window
-		//         0, 0, 0, 0,              // ignores size and position
-		//         hwnd,              // handle to parent window
-		//         (HMENU) NULL,       // child window identifier
-		//         (HINSTANCE)GetWindowLong(hwnd, GWL_HINSTANCE),                   // handle to application instance
-		//         NULL);                   // no window creation data
-
-		// // Get the coordinates of the parent window's client area.
-		//     GetClientRect(hwnd, &rcClient);
-
-		// 	const int cParts = 1;
-
-		//     // Allocate an array for holding the right edge coordinates.
-		//     hloc = LocalAlloc(LHND, sizeof(int) * cParts);
-		//     paParts = (PINT) LocalLock(hloc);
-
-		//     // Calculate the right edge coordinate for each part, and
-		//     // copy the coordinates to the array.
-		//     nWidth = rcClient.right / cParts;
-		//     int rightEdge = nWidth;
-		//     for (i = 0; i < cParts; i++) {
-		//        paParts[i] = rightEdge;
-		//        rightEdge += nWidth;
-		//     }
-
-		//     // Tell the status bar to create the window parts.
-		//     SendMessage(hwndStatus, SB_SETPARTS, (WPARAM) cParts, (LPARAM) paParts);
-
-		//     // Free the array, and return.
-		//     LocalUnlock(hloc);
-		//     LocalFree(hloc);
-
-		CHARFORMAT boldfont;
-
-		boldfont.cbSize = sizeof(CHARFORMAT);
-		boldfont.crTextColor = RGB(0, 0, 0);
-		boldfont.dwMask = CFM_COLOR | CFM_SIZE | CFM_BOLD | CFM_CHARSET;
-		boldfont.yHeight = 350;
-		//boldfont.dwEffects = CFE_BOLD;			/* Text will be BOLD*/
-		boldfont.bCharSet = DEFAULT_CHARSET;
-		SendMessage(hwndEdit, EM_SETCHARFORMAT, SCF_ALL, (LPARAM)&boldfont);
-
-		// SendMessage(hwndEdit, WM_SETTEXT, 0, (LPARAM)lpszLatin);
+		// Create the search bar
+		hwndEdit = CreateEditControl(handleWindow, EDIT_BOX_HEIGHT);
 		SetFocus(hwndEdit);
-		//SendMessage(hwndEdit, EM_SETFONTSIZE , 36, 0);
-		// HWND hWndEdit = CreateWindowEx(WS_EX_CLIENTEDGE, TEXT("Edit"), TEXT("test"),
-		//                             WS_CHILD | WS_VISIBLE, 0, 0, 140,
-		//                             40, hwnd, NULL, NULL, NULL);
-		hwndList = CreateWindowW(L"ListBox", NULL, WS_BORDER | WS_CHILD | WS_VISIBLE | LBS_NOTIFY,
-								 0, edit_box_height, screen_w, screen_h - edit_box_height, hwnd,
-								 (HMENU)IDC_LIST, NULL, NULL);
+		
+		// Create the list with results
+		hwndList = CreateListControl(handleWindow, EDIT_BOX_HEIGHT);
+	
+		// Center the window
+		CenterWindow(handleWindow);
 
-
-
-		LONG lExStyleList = GetWindowLong(hwndList, GWL_EXSTYLE);
-lExStyleList &= ~WS_EX_CLIENTEDGE;
-SetWindowLong(hwndList, GWL_EXSTYLE, lExStyleList);
-		AutoResizeControls(hwnd, hwndEdit, hwndList, edit_box_height);
-
-		//auto theme = "WINDOW";
-		SetWindowTheme(hwnd, L"WINDOW", nullptr);
-
-
-
-		CenterWindow(hwnd);
 		break;
 	}
 
+	// Event when right clicking and wanting to spawn a context menu
 	case WM_CONTEXTMENU:
 	{
 #define IDC_PASTE 102
@@ -207,11 +168,12 @@ SetWindowLong(hwndList, GWL_EXSTYLE, lExStyleList);
 		{
 			auto m_hMenu = CreatePopupMenu();
 			InsertMenu(m_hMenu, 0, MF_BYCOMMAND | MF_STRING | MF_ENABLED, IDC_PASTE, L"Paste");
-			TrackPopupMenu(m_hMenu, TPM_TOPALIGN | TPM_LEFTALIGN, GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam), 0, hwnd, NULL);
+			TrackPopupMenu(m_hMenu, TPM_TOPALIGN | TPM_LEFTALIGN, GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam), 0, handleWindow, NULL);
 		}
 		break;
 	}
 
+	// Event when some virtual input commands are spawned (closing with the [X] or like Ctrl-V)
 	case WM_COMMAND:
 	{
 
@@ -248,7 +210,7 @@ SetWindowLong(hwndList, GWL_EXSTYLE, lExStyleList);
 			PostQuitMessage(0);
 			break;
 		default:
-			return DefWindowProc(hwnd, uMsg, wParam, lParam);
+			return DefWindowProc(handleWindow, uMsg, wParam, lParam);
 		}
 		abort();
 	}
@@ -257,14 +219,14 @@ SetWindowLong(hwndList, GWL_EXSTYLE, lExStyleList);
 
 		if (wParam == SC_MAXIMIZE || wParam == SC_RESTORE)
 		{
-			invalidUI = true;
+			
 		}
 		break;
 	}
 	case WM_SIZING:
 	{
 
-		invalidUI = true;
+		
 		// SendMessage(hwndEdit, EM_WIDTH, SCF_ALL, (LPARAM)&boldfont);
 		break;
 	}
@@ -274,6 +236,7 @@ SetWindowLong(hwndList, GWL_EXSTYLE, lExStyleList);
 		return 0;
 	}
 
+	// Event when the window is being destroyed
 	case WM_DESTROY:
 	{
 		PostQuitMessage(0);
@@ -286,52 +249,54 @@ SetWindowLong(hwndList, GWL_EXSTYLE, lExStyleList);
 	}
 	}
 
-	return DefWindowProcW(hwnd, uMsg, wParam, lParam);
+	return DefWindowProcW(handleWindow, uMsg, wParam, lParam);
 }
 
-int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR pCmdLine, int nCmdShow)
+
+int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
-	LoadLibrary(TEXT("Msftedit.dll"));
-	
-
-	MSG msg;
-	HWND hwnd;
+	// Set window meta-data
 	WNDCLASSW wc;
-
 	wc.style = CS_VREDRAW | CS_HREDRAW;
-
 	wc.cbClsExtra = 0;
 	wc.cbWndExtra = 0;
 	wc.lpszClassName = L"Drill Window";
 	wc.hInstance = hInstance;
 	wc.hbrBackground = GetSysColorBrush(COLOR_3DFACE);
 	wc.lpszMenuName = NULL;
+	// Set window callback receiving events
 	wc.lpfnWndProc = &WindowProc;
-	wc.hCursor = LoadCursor(NULL, IDC_ARROW);
+	// Load default arrow cursor
+	wc.hCursor = LoadCursor(hInstance, IDC_ARROW);
+	// Load icon as embedded resource (.ico baked inside .exe)
 	wc.hIcon = static_cast<HICON>(LoadImage(hInstance, MAKEINTRESOURCEW(ID_DRILL_ICON), IMAGE_ICON, 32, 32, LR_DEFAULTCOLOR));
-	//wc.hIcon = LoadIcon(hInstance, IDI_APPLICATION);
-
+	// Save the meta-data
 	RegisterClassW(&wc);
 
-	hwnd = CreateWindowW(wc.lpszClassName, L"Drill", WS_OVERLAPPEDWINDOW | WS_VISIBLE, 0, 0,
+	// Create the actual window
+	HWND hwnd = CreateWindowW(wc.lpszClassName, L"Drill", WS_OVERLAPPEDWINDOW | WS_VISIBLE, 0, 0,
 						 GetSystemMetrics(SM_CXSCREEN) / 2,
 						 GetSystemMetrics(SM_CYSCREEN) / 2, NULL, NULL, hInstance, NULL);
 
+	// Disable resizing
 	auto dwStyle = GetWindowLong(hwnd, GWL_STYLE);
 	dwStyle ^= WS_MAXIMIZEBOX;
 	dwStyle ^= WS_SIZEBOX;
 	SetWindowLong(hwnd, GWL_STYLE, dwStyle);
 
+	// Show the window
 	ShowWindow(hwnd, nCmdShow);
 	UpdateWindow(hwnd);
 
-	// The Message Loop
-	// this processes all messages (mouse, keyboard) going to the window
+	MSG msg;
+	// Events loop
 	while (GetMessage(&msg, NULL, 0, 0) > 0)
 	{
-		// process certain keyboard events (e.g. WM_CHAR, WM_KEYDOWN)
+
+		// Process certain keyboard events (like WM_CHAR, WM_KEYDOWN)
 		TranslateMessage(&msg);
-		// send the processed message out to the window
+
+		// Send the processed message out to the window
 		DispatchMessage(&msg);
 	}
 
