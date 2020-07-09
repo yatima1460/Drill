@@ -1,0 +1,30 @@
+CC=gcc
+LINK=$(CC)
+CFLAGS = -Wall -Wextra
+
+# .PHONY: core
+# core:
+	
+
+# .PHONY: cli
+# cli:
+	
+
+Build/ui.o:
+	$(CC) -c Win32/ui.cpp -o Build/ui.o
+
+Build/resource.o:
+	windres -i Win32/windows.rc -o Build/resource.o
+
+Build/Drill.exe : Build/ui.o Build/resource.o 
+	$(LINK) -o Build/Drill.exe Build/ui.o Build/resource.o -lstdc++ -lUxTheme -luser32 -lGdi32
+	# -ldrillcore
+
+.PHONY: win32
+win32: Build/Drill.exe
+	
+
+# .PHONY: clean
+# clean:
+# 	del Build/Drill.exe
+# win32:

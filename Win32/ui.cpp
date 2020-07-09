@@ -8,6 +8,8 @@
 #include <windowsx.h>
 #include <uxtheme.h>
 
+#include <Context.hpp>
+
 // these are used to ID the controls/windows, and are used to execute an event (e.g. click)
 #define ID_EDITCHILD 110 // The edit control (need one of these for each edit control)
 #define IDM_EDUNDO 111
@@ -15,13 +17,11 @@
 #define IDM_EDCOPY 113
 #define IDM_EDPASTE 114
 #define IDM_EDDEL 115
+#ifndef GWL_HINSTANCE
 #define GWL_HINSTANCE 6 // required in the definition of the edit control
-
+#endif
 #define ID_DRILL_ICON 999
 
-// global variables
-HWND Mainhwnd; // handle for the main window
-HWND hEdit;	   // handle for the Edit control
 
 // Colour definitions (used to set/change the main window's colour)
 // for RGB values: https://www.rapidtables.com/web/color/RGB_Color.html
@@ -101,10 +101,14 @@ HWND CreateListControl(const HWND mainWindow, const int edit_box_height)
 
 }
 
+HMODULE msfteditLibrary;
+
 HWND CreateEditControl(const HWND mainWindow, const int height)
 {
 	// Load dynamic library for modern text input
-	LoadLibrary(TEXT("Msftedit.dll"));
+	msfteditLibrary = LoadLibrary(TEXT("Msftedit.dll"));
+
+	
 
 	int screen_w = GetSystemMetrics(SM_CXSCREEN);
 	int screen_h = GetSystemMetrics(SM_CYSCREEN);
@@ -133,6 +137,35 @@ HWND CreateEditControl(const HWND mainWindow, const int height)
 	return hwndEdit;
 }
 
+// InsertListViewItems: Inserts items into a list view. 
+// hWndListView:        Handle to the list-view control.
+// cItems:              Number of items to insert.
+// Returns TRUE if successful, and FALSE otherwise.
+BOOL InsertListViewItems(HWND hWndListView, int cItems)
+{
+    LVITEM lvI;
+
+    // Initialize LVITEM members that are common to all items.
+    lvI.pszText   = LPSTR_TEXTCALLBACK; // Sends an LVN_GETDISPINFO message.
+    lvI.mask      = LVIF_TEXT | LVIF_IMAGE |LVIF_STATE;
+    lvI.stateMask = 0;
+    lvI.iSubItem  = 0;
+    lvI.state     = 0;
+
+    // Initialize LVITEM members that are different for each item.
+    for (int index = 0; index < cItems; index++)
+    {
+        lvI.iItem  = index;
+        lvI.iImage = index;
+    
+        // Insert items into the list.
+        if (ListView_InsertItem(hWndListView, &lvI) == -1)
+            return FALSE;
+    }
+
+    return TRUE;
+}
+
 /**
  * 	Callback receiving the window events
  */
@@ -152,9 +185,13 @@ LRESULT CALLBACK WindowProc(HWND handleWindow, UINT uMsg, WPARAM wParam, LPARAM 
 		
 		// Create the list with results
 		hwndList = CreateListControl(handleWindow, EDIT_BOX_HEIGHT);
+
+		InsertListViewItems( hwndList, 3);
 	
 		// Center the window
 		CenterWindow(handleWindow);
+
+	
 
 		break;
 	}
@@ -181,30 +218,30 @@ LRESULT CALLBACK WindowProc(HWND handleWindow, UINT uMsg, WPARAM wParam, LPARAM 
 		{
 		case IDM_EDUNDO: // Edit control (to be used by menu options)
 			// Send WM_UNDO only if there is something to be undone.
-			if (SendMessage(hEdit, EM_CANUNDO, 0, 0))
-				SendMessage(hEdit, WM_UNDO, 0, 0);
+			if (SendMessage(hwndEdit, EM_CANUNDO, 0, 0))
+				SendMessage(hwndEdit, WM_UNDO, 0, 0);
 			else
 			{
-				MessageBox(hEdit,
+				MessageBox(hwndEdit,
 						   L"Nothing to undo.",
 						   L"Undo notification",
 						   MB_OK);
 			}
 			break;
 		case IDM_EDCUT: // Edit control (to be used by menu options)
-			SendMessage(hEdit, WM_CUT, 0, 0);
+			SendMessage(hwndEdit, WM_CUT, 0, 0);
 			break;
 
 		case IDM_EDCOPY: // Edit control (to be used by menu options)
-			SendMessage(hEdit, WM_COPY, 0, 0);
+			SendMessage(hwndEdit, WM_COPY, 0, 0);
 			break;
 
 		case IDM_EDPASTE: // Edit control (to be used by menu options)
-			SendMessage(hEdit, WM_PASTE, 0, 0);
+			SendMessage(hwndEdit, WM_PASTE, 0, 0);
 			break;
 
 		case IDM_EDDEL: // Edit control (to be used by menu options)
-			SendMessage(hEdit, WM_CLEAR, 0, 0);
+			SendMessage(hwndEdit, WM_CLEAR, 0, 0);
 			break;
 		case WM_DESTROY: // REQUIRED in order to close the program completely
 			PostQuitMessage(0);
@@ -239,6 +276,7 @@ LRESULT CALLBACK WindowProc(HWND handleWindow, UINT uMsg, WPARAM wParam, LPARAM 
 	// Event when the window is being destroyed
 	case WM_DESTROY:
 	{
+		FreeLibrary(msfteditLibrary);
 		PostQuitMessage(0);
 		break;
 	}
