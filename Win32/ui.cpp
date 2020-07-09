@@ -166,6 +166,25 @@ BOOL InsertListViewItems(HWND hWndListView, int cItems)
     return TRUE;
 }
 
+
+void Goodbye()
+{
+	FreeLibrary(msfteditLibrary);
+	PostQuitMessage(0);
+}
+
+
+WNDPROC lpEditWndProc;
+LRESULT CALLBACK MyEditCallBckProcedure(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+{
+    if( (uMsg == WM_CHAR) && (wParam == VK_ESCAPE) )
+    {
+        Goodbye();
+        return 0;
+    }
+    return CallWindowProc(lpEditWndProc, hWnd, uMsg, wParam, lParam);
+}
+
 /**
  * 	Callback receiving the window events
  */
@@ -181,7 +200,10 @@ LRESULT CALLBACK WindowProc(HWND handleWindow, UINT uMsg, WPARAM wParam, LPARAM 
 	{
 		// Create the search bar
 		hwndEdit = CreateEditControl(handleWindow, EDIT_BOX_HEIGHT);
+		
 		SetFocus(hwndEdit);
+
+		lpEditWndProc = (WNDPROC) SetWindowLongPtr(hwndEdit, GWL_WNDPROC, (LONG_PTR)&MyEditCallBckProcedure);
 		
 		// Create the list with results
 		hwndList = CreateListControl(handleWindow, EDIT_BOX_HEIGHT);
@@ -251,6 +273,14 @@ LRESULT CALLBACK WindowProc(HWND handleWindow, UINT uMsg, WPARAM wParam, LPARAM 
 		}
 		abort();
 	}
+	case WM_KEYDOWN:
+	{
+		if ((uMsg == WM_CHAR) && (wParam == VK_ESCAPE))
+		{
+			Goodbye();
+		}
+		break;
+	}
 	case WM_SYSCOMMAND:
 	{
 
@@ -273,11 +303,12 @@ LRESULT CALLBACK WindowProc(HWND handleWindow, UINT uMsg, WPARAM wParam, LPARAM 
 		return 0;
 	}
 
-	// Event when the window is being destroyed
+	// Event when the window is being destroyed, when pressing [X]
+	// If PostQuitMessage(0) is not called the graphical window will be closed but the logic process will stay alive as a zombie
 	case WM_DESTROY:
 	{
-		FreeLibrary(msfteditLibrary);
-		PostQuitMessage(0);
+		Goodbye();
+
 		break;
 	}
 
