@@ -35,7 +35,6 @@ Priority: optional
 Architecture: amd64
 Maintainer: Federico Santamorena <federico@santamorena.me>
 Homepage: https://github.com/yatima1460/Drill
-Source: https://github.com/yatima1460/Drill
 Installed-Size: 2048
 License: GPL-2
 Description: '''+DRILL_DESCRIPTION
@@ -214,7 +213,8 @@ def packageDeb():
             CLI_CONTROL_FILE = DEB_CONTROL_FILE     \
             + "\nVersion: "+DRILL_VERSION           \
             + "\nDepends: "+ DEB_CLI_DEPENDENCIES   \
-            + "\nPackage: "+ DEB_CLI_PACKAGE_NAME   
+            + "\nPackage: "+ DEB_CLI_PACKAGE_NAME   \
+            + "\nSource: "+DEB_CLI_PACKAGE_NAME
             text_file.write(CLI_CONTROL_FILE+"\n")
         # build the .deb file
         shell("dpkg-deb --build DEBFILE/CLI/")
@@ -251,7 +251,8 @@ def packageDeb():
             GTK_CONTROL_FILE = DEB_CONTROL_FILE     \
             + "\nVersion: "+DRILL_VERSION           \
             + "\nDepends: "+ DEB_GTK_DEPENDENCIES   \
-            + "\nPackage: "+ DEB_GTK_PACKAGE_NAME   
+            + "\nPackage: "+ DEB_GTK_PACKAGE_NAME   \
+            + "\nSource: "+DEB_GTK_PACKAGE_NAME
             text_file.write(GTK_CONTROL_FILE+"\n")
 
         # Add desktop file
