@@ -26,8 +26,13 @@ matrix:
 
 # 'python' points to Python 2.7 on macOS but points to Python 3.7 on Linux and Windows
 # 'python3' is a 'command not found' error on Windows but 'py' works on Windows only
-script: python3 build.py || python build.py
-
+script: 
+ - python3 build.py || python build.py
+ - git config --local user.name "Federico Santamorena"
+ - git config --local user.email "federico@santamorena.me"
+ - echo $TRAVIS_BUILD_NUMBER > DRILL_VERSION
+ - git tag v$TRAVIS_BUILD_NUMBER
+ - ls -lh Output
 
 
 addons:
@@ -49,13 +54,6 @@ addons:
     packages:
       - p7zip
       - gtk+3
-
-before_deploy:
- - git config --local user.name "Federico Santamorena"
- - git config --local user.email "federico@santamorena.me"
- - echo $TRAVIS_BUILD_NUMBER > DRILL_VERSION
- - git tag v$TRAVIS_BUILD_NUMBER
- - ls -lh Output
 
 deploy:
   provider: releases
