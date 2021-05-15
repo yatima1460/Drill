@@ -50,6 +50,14 @@ Check `build.py`
 - If you omit `-b release` a slower debug version with infinite logs (NOT recommended) will be created
 - Note: `-b release-debug` is somewhat in between a debug and a release version, it's compiled with fast code but it has debug checks enabled and some logs
 
+### Dockerfile
+
+Will build CLI and GTK
+
+```bash
+docker build . --tag drill && docker run -v $PWD:/Drill drill
+```
+
 ### All OSes
 
 - Install DMD
