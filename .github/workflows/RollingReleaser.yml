@@ -1,5 +1,7 @@
 name: RollingReleaser
 
+on: push
+
 push:
     branches:
       - master
