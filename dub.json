@@ -1,10 +1,10 @@
 {
     "name": "drill-search",
     "authors": [
-        "Federico Santamorena"
+        "Yatima Santamorena"
     ],
     "description": "Search files without indexing, but clever crawling.",
-    "copyright": "Copyright © 2019, Federico Santamorena",
+    "copyright": "Copyright © 2021, Yatima Santamorena",
     "license": "GPL-2.0",
     "homepage": "https://github.com/yatima1460/Drill",
     "dflags-posix": [
