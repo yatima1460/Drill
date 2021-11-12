@@ -1,4 +1,3 @@
-
 /**
 In this module go useful functions that are not strictly related to crawling
 */
@@ -16,17 +15,17 @@ import std.process : executeShell;
 import std.array : split;
 import std.conv : to;
 
-version(linux) @system string[] getDesktopFiles()
+version (linux) @system string[] getDesktopFiles()
 {
     synchronized
     {
         import std.algorithm : map;
         import std.array : array;
         import std.file : dirEntries, SpanMode;
+
         try
         {
-            return dirEntries("/usr/share/applications", "*.desktop", SpanMode.depth)
-                .map!(a => a.name)
+            return dirEntries("/usr/share/applications", "*.desktop", SpanMode.depth).map!(a => a.name)
                 .array;
         }
         catch (Exception _)
@@ -37,19 +36,17 @@ version(linux) @system string[] getDesktopFiles()
     }
 }
 
-
-
-
-
 import std.datetime : SysTime;
+
 @safe string _sysTimeToHumanReadable(in SysTime time)
-out (s; s.length != 0)
+out(s; s.length != 0)
 {
     import std.array : array, replace, split;
+
     return time.toISOExtString().replace("T", " ").replace("-", "/").split(".")[0];
 }
-alias systime_to_string = memoize!_sysTimeToHumanReadable;
 
+alias systime_to_string = memoize!_sysTimeToHumanReadable;
 
 /**
 Returns the mount points of the current system
@@ -61,7 +58,6 @@ string[] _getMountpoints() @trusted
 out(m; m.length != 0)
 {
     import std.process : executeShell;
-   
 
     synchronized
     {
@@ -84,7 +80,7 @@ out(m; m.length != 0)
 
             auto result = array(ls.output.split("\n").filter!(x => canFind(x, "/"))).idup;
             //debug{logConsole("Mount points found: "~to!string(result));}
-            return cast(string[])result;
+            return cast(string[]) result;
         }
         version (OSX)
         {
@@ -97,12 +93,13 @@ out(m; m.length != 0)
             import std.string : indexOf;
             import std.array : array, split;
             import std.algorithm : map, canFind, filter;
+
             immutable auto startColumn = indexOf(ls.output.split("\n")[0], 'M');
             auto result = array(ls.output.split("\n").filter!(x => x.length > startColumn)
                     .map!(x => x[startColumn .. $])
                     .filter!(x => canFind(x, "/"))).idup;
             //debug{logConsole("Mount points found: "~result);}
-            return cast(string[])result;
+            return cast(string[]) result;
         }
         version (Windows)
         {
@@ -114,15 +111,16 @@ out(m; m.length != 0)
             }
             import std.array : array, split;
             import std.algorithm : map, canFind, filter;
+
             auto result = array(map!(x => x[0 .. 2])(ls.output.split("\n")
                     .filter!(x => canFind(x, ":")))).idup;
             //debug{logConsole("Mount points found: "~result);}
-            return cast(string[])result;
+            return cast(string[]) result;
         }
     }
 }
-alias getMountpoints = memoize!_getMountpoints;
 
+alias getMountpoints = memoize!_getMountpoints;
 
 @safe string _sizeToHumanReadable(in ulong bytes)
 out(m; m.length != 0)
@@ -130,7 +128,7 @@ out(m; m.length != 0)
     immutable(string[]) sizes = ["B", "KB", "MB", "GB", "TB", "PB", "EB"];
     double len = cast(double) bytes;
     int order = 0;
-    
+
     while (len >= 1024)
     {
         order++;
@@ -148,15 +146,14 @@ out(m; m.length != 0)
 alias sizeToHumanReadable = memoize!_sizeToHumanReadable;
 
 import ApplicationInfo : ApplicationInfo;
-version(linux) immutable(ApplicationInfo) readDesktopFile(immutable(string) fullPath) @system
-in (fullPath !is null)
-in (fullPath.length > 0,"fullPath to the desktop file can't be zero length")
-out (app;app.name !is null,"app name can't be null: "~fullPath)
-out (app;app.name.length > 0)
-// out (app;app.exec !is null,"app exec can't be null: "~fullPath)
+
+version (linux) immutable(ApplicationInfo) readDesktopFile(immutable(string) fullPath) @system
+in(fullPath !is null)
+in(fullPath.length > 0, "fullPath to the desktop file can't be zero length")
+out(app; app.name !is null, "app name can't be null: " ~ fullPath)
+out(app; app.name.length > 0) // out (app;app.exec !is null,"app exec can't be null: "~fullPath)
 // out (app;app.exec.length > 0,"app exec can't be length 0: "~fullPath)
 {
-    
 
     string[] desktopFileLines;
 
@@ -224,18 +221,17 @@ out (app;app.name.length > 0)
     return ai;
 }
 
-version(linux) string[] _cleanExecLine(immutable(string) exec) pure @safe
+version (linux) string[] _cleanExecLine(immutable(string) exec) pure @safe
 {
     import std.algorithm : filter;
     import std.array : array, split;
-    
+
     return exec.split(" ")[].filter!(x => x.length >= 1 && x[0 .. 1] != "%").array;
 }
-version(linux) alias cleanExecLine = memoize!_cleanExecLine;
 
+version (linux) alias cleanExecLine = memoize!_cleanExecLine;
 
-
-string[] mergeAllTextFilesInDirectory(immutable(string) path) @system 
+string[] mergeAllTextFilesInDirectory(immutable(string) path) @system
 {
     import std.file : dirEntries, SpanMode, DirEntry, readText, FileException;
 
@@ -244,16 +240,19 @@ string[] mergeAllTextFilesInDirectory(immutable(string) path) @system
     import std.algorithm : filter;
     import std.string : endsWith;
 
-    auto blocklists_file = dirEntries(path, SpanMode.shallow, true).filter!(f => f.name.endsWith(".txt"));
+    auto blocklists_file = dirEntries(path, SpanMode.shallow, true).filter!(
+            f => f.name.endsWith(".txt"));
 
     foreach (string partial_blocklist; blocklists_file)
     {
         import std.array : split;
+
         temp_blocklist ~= readText(partial_blocklist).split("\n");
     }
 
     // remove empty newlines
     import std.algorithm : filter;
     import std.array : array;
+
     return temp_blocklist.filter!(x => x.length != 0).array;
 }
