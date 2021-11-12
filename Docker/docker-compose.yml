@@ -14,8 +14,8 @@ services:
       /bin/bash -c 'echo $DRILL_VERSION > DRILL_VERSION
       && dub clean
       && dub build -b release -c CLI --parallel --arch=x86_64
-      && chmod +x build/Drill-CLI-linux-x86_64-release/drill-search-cli
-      && ./build/Drill-CLI-linux-x86_64-release/drill-search-cli -ds drill'
+      && chmod +x /Source/build/Drill-CLI-linux-x86_64-release/drill-search-cli
+      && /Source/build/Drill-CLI-linux-x86_64-release/drill-search-cli -ds drill'
 
   drill-linux-gtk:
     image: drill-linux-env
