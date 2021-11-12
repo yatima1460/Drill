@@ -12,8 +12,8 @@ services:
     working_dir: /Source
     command: >
       /bin/bash -c 'echo $DRILL_VERSION > DRILL_VERSION
-      && /dmd2/linux/bin64/dub clean
-      && /dmd2/linux/bin64/dub build -b release -c CLI --parallel --arch=x86_64
+      && dub clean
+      && dub build -b release -c CLI --parallel --arch=x86_64
       && chmod +x build/Drill-CLI-linux-x86_64-release/drill-search-cli
       && ./build/Drill-CLI-linux-x86_64-release/drill-search-cli -ds drill'
 
@@ -27,5 +27,5 @@ services:
     working_dir: /Source
     command: >
       /bin/bash -c 'echo $DRILL_VERSION > DRILL_VERSION
-      && /dmd2/linux/bin64/dub clean
-      && /dmd2/linux/bin64/dub build -b release -c GTK --parallel --arch=x86_64'
+      && dub clean
+      && dub build -b release -c GTK --parallel --arch=x86_64'
