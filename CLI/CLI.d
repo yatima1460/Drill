@@ -77,7 +77,6 @@ int main(string[] args)
     case 0:
         writeln("Your operating system does not pass the executable path as first argument");
         exit(-2);
-        break;
 
         // No search string
     case 1:
@@ -88,7 +87,6 @@ int main(string[] args)
         import core.stdc.stdlib : exit;
 
         exit(-1);
-        break;
 
         // Search string provided
     case 2:
