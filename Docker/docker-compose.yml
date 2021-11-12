@@ -7,6 +7,8 @@ services:
     build:
       context: ../
       dockerfile: Docker/Linux.Dockerfile
+      args:
+        - DMD_VERSION=2.098.0
     volumes:
       - ../:/Source
     working_dir: /Source
@@ -14,14 +16,16 @@ services:
       /bin/bash -c 'echo $DRILL_VERSION > DRILL_VERSION
       && dub clean
       && dub build -b release -c CLI --parallel --arch=x86_64
-      && chmod +x /Source/build/Drill-CLI-linux-x86_64-release/drill-search-cli
-      && /Source/build/Drill-CLI-linux-x86_64-release/drill-search-cli -ds drill'
+      && chmod +x /Source/Build/Drill-CLI-linux-x86_64-release/drill-search-cli
+      && /Source/Build/Drill-CLI-linux-x86_64-release/drill-search-cli -ds drill'
 
   drill-linux-gtk:
     image: drill-linux-env
     build:
       context: ../
       dockerfile: Docker/Linux.Dockerfile
+      args:
+        - DMD_VERSION=2.098.0
     volumes:
       - ../:/Source
     working_dir: /Source
@@ -41,4 +45,5 @@ services:
     command: >
       cmd /c 'echo $DRILL_VERSION > DRILL_VERSION
       && dub clean
-      && dub build -b release -c CLI --parallel --arch=x86_64'
+      && dub build -b release -c CLI --parallel --arch=x86_64
+      && Build\Drill-CLI-windows-x86_64-release\drill-search-cli.exe -ds drill'
