@@ -11,14 +11,21 @@ on:
       - "**/README.md"
 
 jobs:
-  drill-cli:
+  drill-linux-cli:
     runs-on: ubuntu-18.04
     steps:
       - uses: actions/checkout@v2
-      - run: cd Docker && docker-compose up --build drill-cli
+      - run: cd Docker && docker-compose up --build drill-linux-cli
 
-  drill-gtk:
+  drill-linux-gtk:
     runs-on: ubuntu-18.04
     steps:
       - uses: actions/checkout@v2
-      - run: cd Docker && docker-compose up --build drill-gtk
+      - run: cd Docker && docker-compose up --build drill-linux-gtk
+
+  drill-windows-cli:
+    runs-on: windows-2019
+    steps:
+      - uses: actions/checkout@v2
+      - run: cd Docker && docker-compose up --build drill-windows-cli
+        shell: cmd
