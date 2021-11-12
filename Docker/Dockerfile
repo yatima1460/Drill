@@ -6,7 +6,7 @@ RUN apt-get update && apt-get install --no-install-recommends -y  curl wget p7zi
  && rm -rf /var/lib/apt/lists/*
 
 # Customizable DMD version
-ENV DMD_VERSION=2.090.0
+ARG DMD_VERSION=2.090.0
 
 # Install D compiler from website
 RUN wget -c "http://downloads.dlang.org/releases/2.x/$DMD_VERSION/dmd.$DMD_VERSION.linux.tar.xz"
