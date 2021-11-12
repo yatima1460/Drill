@@ -1,0 +1,24 @@
+name: RollingRelease
+
+on:
+  push:
+    branches: [master]
+    paths-ignore:
+      - "**/README.md"
+  pull_request:
+    branches: [master]
+    paths-ignore:
+      - "**/README.md"
+
+jobs:
+  drill-cli:
+    runs-on: ubuntu-18.04
+    steps:
+      - uses: actions/checkout@v2
+      - run: cd Docker && docker-compose up --build drill-cli
+
+  drill-gtk:
+    runs-on: ubuntu-18.04
+    steps:
+      - uses: actions/checkout@v2
+      - run: cd Docker && docker-compose up --build drill-gtk
