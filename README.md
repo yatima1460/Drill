@@ -1,6 +1,7 @@
 # Drill
 
-[![Build Status](https://travis-ci.com/yatima1460/Drill.svg?branch=master)](https://travis-ci.com/yatima1460/Drill)
+[![RollingRelease](https://github.com/yatima1460/Drill/actions/workflows/RollingRelease.yml/badge.svg)](https://github.com/yatima1460/Drill/actions/workflows/RollingRelease.yml)
+
 [![Financial Contributors on Open Collective](https://opencollective.com/Drill/all/badge.svg?label=financial+contributors)](https://opencollective.com/Drill) [![GitHub issues](https://img.shields.io/github/issues/yatima1460/Drill.svg)](https://github.com/yatima1460/Drill/issues)
 [![GitHub forks](https://img.shields.io/github/forks/yatima1460/Drill.svg)](https://github.com/yatima1460/Drill/network)
 [![GitHub stars](https://img.shields.io/github/stars/yatima1460/Drill.svg)](https://github.com/yatima1460/Drill/stargazers)
@@ -43,16 +44,12 @@ Remember: AppImages require FUSE
 
 ## Build
 
-Check `build.py`
+Check `Docker` folder
 
 ### IMPORTANT
 
 - If you omit `-b release` a slower debug version with infinite logs (NOT recommended) will be created
 - Note: `-b release-debug` is somewhat in between a debug and a release version, it's compiled with fast code but it has debug checks enabled and some logs
-
-### Dockerfile
-
-Will build CLI and GTK
 
 ### All OSes
 
