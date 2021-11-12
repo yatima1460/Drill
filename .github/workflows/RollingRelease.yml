@@ -15,17 +15,17 @@ jobs:
     runs-on: ubuntu-18.04
     steps:
       - uses: actions/checkout@v2
-      - run: cd Docker && docker-compose up --build drill-linux-cli
+      - run: cd Docker && docker-compose up --build --abort-on-container-exit --remove-orphans drill-linux-cli
 
   drill-linux-gtk:
     runs-on: ubuntu-18.04
     steps:
       - uses: actions/checkout@v2
-      - run: cd Docker && docker-compose up --build drill-linux-gtk
+      - run: cd Docker && docker-compose up --build --abort-on-container-exit --remove-orphans drill-linux-gtk
 
   drill-windows-cli:
     runs-on: windows-2019
     steps:
       - uses: actions/checkout@v2
-      - run: cd Docker && docker-compose up --build drill-windows-cli
+      - run: cd Docker && docker-compose up --build --abort-on-container-exit --remove-orphans drill-windows-cli
         shell: cmd
