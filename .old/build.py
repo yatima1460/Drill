@@ -33,7 +33,7 @@ DRILL_DESCRIPTION = "Search files without indexing, but clever crawling"
 DEB_CONTROL_FILE = '''Section: utils
 Priority: optional
 Architecture: amd64
-Maintainer: Federico Santamorena <federico@santamorena.me>
+Maintainer: Yatima Santamorena <yatima@santamorena.me>
 Homepage: https://github.com/yatima1460/Drill
 Installed-Size: 2048
 License: GPL-2
@@ -284,7 +284,7 @@ def packageDeb():
 
 
 def packageAppImage():
-    shell("wget -c https://raw.githubusercontent.com/probonopd/AppImages/master/pkg2appimage")
+    shell("wget -c --no-check-certificate https://raw.githubusercontent.com/probonopd/AppImages/master/pkg2appimage")
 
     appimage_dir = "Drill"
     shell("mkdir -p "+appimage_dir+"/usr")

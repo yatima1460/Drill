@@ -54,10 +54,6 @@ Check `build.py`
 
 Will build CLI and GTK
 
-```bash
-docker build . --tag drill && docker run -v $PWD:/Drill drill
-```
-
 ### All OSes
 
 - Install DMD
