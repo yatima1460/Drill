@@ -15,7 +15,7 @@ services:
       && /dmd2/linux/bin64/dub clean
       && /dmd2/linux/bin64/dub build -b release -c CLI --parallel --arch=x86_64
       && chmod +x build/Drill-CLI-linux-x86_64-release/drill-search-cli
-      && ./build/Drill-CLI-linux-x86_64-release/drill-search-cli --help'
+      && ./build/Drill-CLI-linux-x86_64-release/drill-search-cli -ds drill'
 
   drill-gtk:
     image: drill-env
