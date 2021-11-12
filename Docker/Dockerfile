@@ -12,14 +12,3 @@ ENV DMD_VERSION=2.090.0
 RUN wget -c "http://downloads.dlang.org/releases/2.x/$DMD_VERSION/dmd.$DMD_VERSION.linux.tar.xz"
 RUN 7z x -aos "dmd.$DMD_VERSION.linux.tar.xz" && 7z x -aos "dmd.$DMD_VERSION.linux.tar"
 RUN chmod +x /dmd2/linux/bin64/dub && chmod +x /dmd2/linux/bin64/dmd
-
-# You need to mount the source dir
-VOLUME /Drill
-
-WORKDIR /Drill
-
-
-
-CMD echo DockerCustomBuild > DRILL_VERSION \
-        && /dmd2/linux/bin64/dub build -b release -c CLI --force --parallel --verbose \
-        && /dmd2/linux/bin64/dub build -b release -c GTK --force --parallel --verbose
