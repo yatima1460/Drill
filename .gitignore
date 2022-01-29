@@ -3,8 +3,7 @@
 dub.selections.json
 
 # Binaries
-/Build
-/Output
+/src/Build
 
 # Generic log files
 *.log
