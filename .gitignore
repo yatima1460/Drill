@@ -19,7 +19,9 @@ DRILL_VERSION
 /dmd.*.tar
 /dmd.*.tar.xz
 
-
+# PKGBUILD
+/pkg
+*.pkg.tar.zst
 
 
 
