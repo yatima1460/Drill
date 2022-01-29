@@ -1,7 +1,7 @@
 # Maintainer: Yatima Santamorena <yatima at santamorena dot me>
 pkgname=('drill-search-cli' 'drill-search-gtk')
 pkgbase=drill-search
-pkgver=b2a8b9fe
+pkgver=local
 pkgrel=1
 pkgdesc="Search files without indexing, but clever crawling"
 arch=('x86_64')
