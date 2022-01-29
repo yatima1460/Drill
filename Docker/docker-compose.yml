@@ -10,7 +10,7 @@ services:
       args:
         - DMD_VERSION=2.098.0
     volumes:
-      - ../:/Source
+      - ../src:/Source
     working_dir: /Source
     command: >
       /bin/bash -c 'echo $DRILL_VERSION > DRILL_VERSION
@@ -27,7 +27,7 @@ services:
       args:
         - DMD_VERSION=2.098.0
     volumes:
-      - ../:/Source
+      - ../src:/Source
     working_dir: /Source
     command: >
       /bin/bash -c 'echo $DRILL_VERSION > DRILL_VERSION
@@ -40,10 +40,15 @@ services:
       context: ../
       dockerfile: Docker/Windows.Dockerfile
     volumes:
-      - ../:C:/Source
+      - ../src:C:/Source
     working_dir: C:/Source
     command: >
       cmd /c 'echo $DRILL_VERSION > DRILL_VERSION
       && dub clean
       && dub build -b release -c CLI --parallel --arch=x86_64
       && Build\Drill-CLI-windows-x86_64-release\drill-search-cli.exe -ds drill'
+
+networks:
+  none:
+    external: true
+    name: none
