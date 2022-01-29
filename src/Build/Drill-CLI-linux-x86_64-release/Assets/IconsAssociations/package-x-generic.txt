@@ -1,9 +1,0 @@
-.zip
-.rar
-.gz
-.tar
-.deb
-.rpm
-.eopkg
-.apk
-.snap
