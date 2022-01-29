@@ -10,15 +10,10 @@ license=('GPL2')
 makedepends=('dmd' 'dub' 'gtk3')
 
 
-
-
-#,"$srcdir/../CLI","$srcdir/../Core","$srcdir/../GTK")
-# sha512sums=("SKIP")
-
-
 pkgver() {
   git rev-parse --short HEAD
 }
+
 
 build() {
 
@@ -61,6 +56,8 @@ package_drill-search-cli() {
   echo "[INSTALL CLI USR BIN REDIRECT]"
   echo "/opt/$pkgname/$pkgname" "\$@" > "$pkgdir/usr/bin/$pkgname"
   chmod +x "$pkgdir/usr/bin/$pkgname"
+
+  echo "CLI version packaged"
 }
 
 package_drill-search-gtk() {
@@ -89,10 +86,13 @@ package_drill-search-gtk() {
 
   echo "[INSTALL GTK .DESKTOP]"
   install -Dm644 "Assets/$pkgname.desktop" -t "$pkgdir/usr/share/applications"
+
+  echo "GTK version packaged"
 }
 
 
-test()
+check()
 {
-  drill-search-cli
+  cd "Build/Drill-CLI-linux-$CARCH-release"
+  drill-search-cli --help
 }
