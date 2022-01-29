@@ -1,5 +1,0 @@
-Library
-^/Library
-^/System
-^/private
-^/Applications
