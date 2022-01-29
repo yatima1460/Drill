@@ -35,7 +35,7 @@ debug
 }
 else
 {
-   immutable(string) CREDITS_STRING = "Drill v"~VERSION~" is maintained by <a href=\"" ~ AUTHOR_URL ~ "\">" ~ AUTHOR_NAME ~ "</a> and it's open source under " ~ getDubStringValue("license") ~ ", for source code and new releases click <a href=\""~GITHUB_URL~"\">here</a>";
+   immutable(string) CREDITS_STRING = "Drill "~VERSION~" is maintained by <a href=\"" ~ AUTHOR_URL ~ "\">" ~ AUTHOR_NAME ~ "</a> and it's open source under " ~ getDubStringValue("license") ~ ", for source code and new releases click <a href=\""~GITHUB_URL~"\">here</a>";
 
 }
 
