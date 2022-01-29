@@ -395,7 +395,7 @@ in (running !is null)
             }
             catch (Exception e)
             {
-                critical(e.msg);
+                error(e.msg);
             }
         }
     }
