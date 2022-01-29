@@ -1,0 +1,10 @@
+Google Drive$
+Google Drive\/(.[^\/]+)$
+OneDrive$
+OneDrive\/(.[^\/]+)$
+Dropbox$
+Dropbox\/(.[^\/]+)$
+nextcloud$
+nextcloud\/(.[^\/]+)$
+Nextcloud$
+Nextcloud\/(.[^\/]+)$
