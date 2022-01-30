@@ -35,6 +35,9 @@ jobs:
       - name: Test CLI doesn't crash when searching something
         run: ./drill-search-cli test
         working-directory: src/Build/Drill-CLI-linux-x86_64-release
+      - name: Clean root Docker files
+        run: sudo rm -rf Build && sudo rm -rf .dub
+        working-directory: src
       - name: Reset the repo
         uses: actions/checkout@v2
       - name: Docker GTK image pull
