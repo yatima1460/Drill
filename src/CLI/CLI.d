@@ -9,7 +9,7 @@ import Crawler : Crawler;
 import std.path : buildPath;
 import Config : DrillConfig, loadData;
 import Context : DrillContext, startCrawling;
-import Meta : VERSION, GITHUB_URL;
+import Meta : BUILD_TIME, GITHUB_URL;
 
 // TODO: capture Ctrl-C and close crawlers?
 
@@ -63,7 +63,7 @@ int main(string[] args)
 
     if (opt.helpWanted)
     {
-        writeln("Drill CLI v" ~ VERSION ~ " - " ~ GITHUB_URL);
+        writeln("Drill CLI " ~ BUILD_TIME ~ " - " ~ GITHUB_URL);
         writeln("Example use: drill-cli -ds \"foobar\"");
         defaultGetoptPrinter("Options:", opt.options);
         import core.stdc.stdlib : exit;
@@ -80,7 +80,7 @@ int main(string[] args)
 
         // No search string
     case 1:
-        writeln("Drill CLI v" ~ VERSION ~ " - " ~ GITHUB_URL);
+        writeln("Drill CLI " ~ BUILD_TIME ~ " - " ~ GITHUB_URL);
         writeln("Pass a string as an argument for Drill to search");
         writeln("Example use: drill-cli -ds \"foobar\"");
         defaultGetoptPrinter("Options:", opt.options);

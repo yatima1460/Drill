@@ -12,7 +12,7 @@ immutable(string) getDubStringValue(immutable(string) key)
 }
 
 
-immutable(string) VERSION = import("DRILL_VERSION");
+// immutable(string) VERSION = import("DRILL_VERSION");
 immutable(string) BUILD_TIME  = __TIMESTAMP__;
 immutable(string) AUTHOR_NAME = "@yatima1460";
 immutable(string) AUTHOR_URL  = "https://twitter.com/yatima1460";
@@ -35,7 +35,7 @@ debug
 }
 else
 {
-   immutable(string) CREDITS_STRING = "Drill "~VERSION~" is maintained by <a href=\"" ~ AUTHOR_URL ~ "\">" ~ AUTHOR_NAME ~ "</a> and it's open source under " ~ getDubStringValue("license") ~ ", for source code and new releases click <a href=\""~GITHUB_URL~"\">here</a>";
+   immutable(string) CREDITS_STRING = "Drill (" ~ BUILD_TIME ~ ") is maintained by <a href=\"" ~ AUTHOR_URL ~ "\">" ~ AUTHOR_NAME ~ "</a> and it's open source under " ~ getDubStringValue("license") ~ ", for source code and new releases click <a href=\""~GITHUB_URL~"\">here</a>";
 
 }
 

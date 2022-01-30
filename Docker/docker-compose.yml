@@ -12,12 +12,7 @@ services:
     volumes:
       - ../src:/Source
     working_dir: /Source
-    command: >
-      /bin/bash -c 'echo $DRILL_VERSION > DRILL_VERSION
-      && dub clean
-      && dub build -b release -c CLI --parallel --arch=x86_64
-      && chmod +x /Source/Build/Drill-CLI-linux-x86_64-release/drill-search-cli
-      && /Source/Build/Drill-CLI-linux-x86_64-release/drill-search-cli -ds drill'
+    command: /bin/bash -c "dub clean && dub build -b release -c CLI --force --parallel --arch=x86_64"
 
   drill-linux-gtk:
     image: ghcr.io/yatima1460/linux-dmd:2.098.0
@@ -29,10 +24,7 @@ services:
     volumes:
       - ../src:/Source
     working_dir: /Source
-    command: >
-      /bin/bash -c 'echo $DRILL_VERSION > DRILL_VERSION
-      && dub clean
-      && dub build -b release -c GTK --parallel --arch=x86_64'
+    command: /bin/bash -c "dub clean && dub build -b release -c GTK --force --parallel --arch=x86_64"
   
   drill-windows-cli:
     image: drill-windows-env
@@ -43,8 +35,7 @@ services:
       - ../src:C:/Source
     working_dir: C:/Source
     command: >
-      cmd /c 'echo $DRILL_VERSION > DRILL_VERSION
-      && dub clean
+      dub clean
       && dub build -b release -c CLI --parallel --arch=x86_64
       && Build\Drill-CLI-windows-x86_64-release\drill-search-cli.exe -ds drill'
 
