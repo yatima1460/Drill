@@ -91,8 +91,8 @@ window.onload = function () {
             this.document.getElementById("ArchLinux").innerHTML += createDownloadLink("https://aur.archlinux.org/pkgbase/drill-search/", "AUR");
             
             this.document.getElementById("Source").innerHTML += createDownloadLink("https://github.com/yatima1460/Drill", "GitHub");
-            this.document.getElementById("Source").innerHTML += createDownloadLink("https://github.com/yatima1460/Drill/archive/"+data.name+".tar.gz", "tarball");
-            this.document.getElementById("Source").innerHTML += createDownloadLink("https://github.com/yatima1460/Drill/archive/"+data.name+".zip", "zipball");
+            this.document.getElementById("Source").innerHTML += createDownloadLink("https://github.com/yatima1460/Drill/archive/refs/tags/latest.tar.gz", ".tar.gz");
+            this.document.getElementById("Source").innerHTML += createDownloadLink("https://github.com/yatima1460/Drill/archive/refs/tags/latest.zip", ".zip");
         });
 
 };
