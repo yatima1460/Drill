@@ -1,0 +1,144 @@
+
+html {
+  font-family: 'Red Hat Text', sans-serif;
+  margin: auto;
+  
+}
+
+body {
+  color:  rgb(21, 21, 21)
+}
+
+.downloads {
+
+  display: flex;
+  flex-direction: row;
+}
+
+
+.category {
+display: flex;
+flex-direction: column;
+flex-basis: 100%;
+text-align: center;
+
+min-width: 15vw;
+
+}
+
+.logo {
+  display: block;
+  text-indent: -9999px;
+  background-repeat: no-repeat;
+  margin: 1em;
+  background-size:contain;
+  height: 5em;
+}
+
+
+.content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+
+
+
+a {
+  text-decoration: none;
+  cursor: pointer;
+  color: rgb(176, 42, 42);
+}
+
+a:hover {
+  text-decoration: underline;
+  color: rgb(84, 0, 0);
+}
+
+
+.downloadLink {
+  font-weight: bold;
+  text-decoration: underline;
+  line-height: 1.5em;
+}
+
+ 
+
+
+.title {
+    display: flex;
+    flex-direction: row;
+
+    text-align: center;
+    justify-content: center;
+    align-content: center;
+    align-items: center;
+    padding-top: 2em;
+
+    margin: 0;
+    padding: 0;
+
+}
+
+.title h1 {
+    font-size: 3em;
+    margin: 0;
+    padding: 0;
+}
+
+.title img {
+    float: left;
+    width: 6em;
+    height: 6em;
+    background: white;
+    margin: 0;
+    padding: 0;
+}
+
+
+.project-name {
+    margin-top: 0;
+    margin-bottom: 0.1rem;
+    color: black;
+    font-weight: 100;
+
+    font-weight: lighter;
+}
+
+.project-tagline {
+    text-align: center;
+    text-decoration: none;
+    font-size: 1em;
+    font-weight: lighter;
+    /* text-rendering: optimizeLegibility; */
+}
+
+.screenshot {
+    max-width: 30vw;
+    
+}
+
+
+@media all and (orientation: portrait) {
+
+  /* Hide things like the GitHub ribbon */
+  .desktop-only {
+    display: none;
+  }
+
+  .downloads {
+    flex-direction: column;
+  }
+  
+
+}
+
+
+
+
+
+
+.releaseDescription {
+  font-size: 0.8em;
+}
