@@ -2,7 +2,7 @@
 <!-- Generated with glade 3.22.1 
 
 Drill - Search files without indexing, but clever crawling
-Copyright (C) Federico Santamorena
+Copyright (C) Yatima Santamorena
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
@@ -18,7 +18,7 @@ You should have received a copy of the GNU General Public License
 along with this program; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
-Author: Federico Santamorena
+Author: Yatima Santamorena
 
 -->
 <interface>
@@ -26,8 +26,8 @@ Author: Federico Santamorena
   <!-- interface-license-type gplv2 -->
   <!-- interface-name Drill -->
   <!-- interface-description Search files without indexing, but clever crawling -->
-  <!-- interface-copyright Federico Santamorena -->
-  <!-- interface-authors Federico Santamorena -->
+  <!-- interface-copyright Yatima Santamorena -->
+  <!-- interface-authors Yatima Santamorena -->
   <object class="GtkListStore" id="liststore">
     <columns>
       <!-- column-name icon -->
