@@ -11,21 +11,42 @@ on:
       - "**/README.md"
 
 jobs:
+
   drill-linux-cli:
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
     steps:
-      - uses: actions/checkout@v2
-      - run: cd Docker && docker-compose up --build --abort-on-container-exit --remove-orphans drill-linux-cli
+      - name: Get the repo
+        uses: actions/checkout@v2
+      - name: Compile CLI
+        run: docker-compose up --build --abort-on-container-exit --remove-orphans drill-linux-cli
+        working-directory: Docker
+      - name: Test CLI --help exits 0
+        run: drill-search-cli --help
+        working-directory: src/Build/Drill-CLI-linux-x86_64-release
+      - name: Test CLI doesn't crash when searching something
+        run: drill-search-cli test
+        working-directory: src/Build/Drill-CLI-linux-x86_64-release
+      - name: Reset the repo
+        uses: actions/checkout@v2
+      - name: Compile GTK
+        run: docker-compose up --build --abort-on-container-exit --remove-orphans drill-linux-gtk
+        working-directory: Docker
+      - name: Create rolling release
+        uses: marvinpinto/action-automatic-releases@latest
+          with:
+            repo_token: ${{ secrets.GITHUB_TOKEN }}
+            automatic_release_tag: latest
+            prerelease: false
+            title: "Rolling release"
+            files: |
+              src/Build/Drill-CLI-linux-x86_64-release
+              src/Build/Drill-GTK-linux-x86_64-release
 
-  drill-linux-gtk:
-    runs-on: ubuntu-18.04
-    steps:
-      - uses: actions/checkout@v2
-      - run: cd Docker && docker-compose up --build --abort-on-container-exit --remove-orphans drill-linux-gtk
+  # drill-windows-cli:
+  #   runs-on: windows-2019
+  #   steps:
+  #     - uses: actions/checkout@v2
+  #     - run: docker-compose up --build --abort-on-container-exit --remove-orphans drill-windows-cli
+  #       shell: cmd
+  #       working-directory: Docker
 
-  drill-windows-cli:
-    runs-on: windows-2019
-    steps:
-      - uses: actions/checkout@v2
-      - run: cd Docker && docker-compose up --build --abort-on-container-exit --remove-orphans drill-windows-cli
-        shell: cmd
