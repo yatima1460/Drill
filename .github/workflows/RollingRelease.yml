@@ -53,6 +53,7 @@ jobs:
           files: |
             src/Build/Drill-CLI-linux-x86_64-release
             src/Build/Drill-GTK-linux-x86_64-release
+        if: github.event_name != 'pull_request'
 
   # drill-windows-cli:
   #   runs-on: windows-2019
