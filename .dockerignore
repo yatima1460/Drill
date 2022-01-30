@@ -2,4 +2,6 @@
 .dub
 .github
 .vscode
-/src/Build
+src/Build
+pkg
+*.pkg.tar.zst
