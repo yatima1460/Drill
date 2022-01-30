@@ -7,16 +7,22 @@ function getOSByFilename(filename) {
 
     if (ext === "deb"
         || ext === "AppImage"
-        || filename.includes("Linux"))
+        || filename.includes("Linux")
+        || filename.includes("linux")
+    )
         return "Linux";
 
     if (ext === "exe"
         || ext === "msi"
         || filename.includes("Windows")
+        || filename.includes("windows")
     )
         return "Windows";
 
-    if (filename.includes("OSX"))
+    if (filename.includes("OSX") 
+        || filename.includes("osx")
+        || filename.includes("mac")
+    )
         return "OSX";
 
     console.log("Category for file " + filename + " not found");
@@ -80,8 +86,9 @@ window.onload = function () {
                 this.document.getElementById(OS).innerHTML += createDownloadLink(asset.browser_download_url, asset.name);
             }
 
-            // Hardcoded links in Source category
-
+            // Hardcoded links
+            this.document.getElementById("ArchLinux").innerHTML += "<code>git clone https://github.com/yatima1460/Drill.git --depth 1 --branch latest && cd Drill && makepkg -si</code>"
+            this.document.getElementById("ArchLinux").innerHTML += createDownloadLink("https://aur.archlinux.org/pkgbase/drill-search/", "AUR");
             
             this.document.getElementById("Source").innerHTML += createDownloadLink("https://github.com/yatima1460/Drill", "GitHub");
             this.document.getElementById("Source").innerHTML += createDownloadLink("https://github.com/yatima1460/Drill/archive/"+data.name+".tar.gz", "tarball");
