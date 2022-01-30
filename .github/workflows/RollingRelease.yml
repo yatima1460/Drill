@@ -33,14 +33,14 @@ jobs:
         working-directory: Docker
       - name: Create rolling release
         uses: marvinpinto/action-automatic-releases@latest
-          with:
-            repo_token: ${{ secrets.GITHUB_TOKEN }}
-            automatic_release_tag: latest
-            prerelease: false
-            title: "Rolling release"
-            files: |
-              src/Build/Drill-CLI-linux-x86_64-release
-              src/Build/Drill-GTK-linux-x86_64-release
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          automatic_release_tag: latest
+          prerelease: false
+          title: "Rolling release"
+          files: |
+            src/Build/Drill-CLI-linux-x86_64-release
+            src/Build/Drill-GTK-linux-x86_64-release
 
   # drill-windows-cli:
   #   runs-on: windows-2019
