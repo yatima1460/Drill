@@ -126,7 +126,6 @@ DrillConfig loadData(immutable(string) assetsDirectory)
     import Utils : mergeAllTextFilesInDirectory;
     import std.file : dirEntries, SpanMode, DirEntry, readText, FileException;
     import Utils : getMountpoints;
-    import Meta : VERSION;
     import std.regex: Regex, regex;
     import std.algorithm : canFind, filter, map;
     import std.array : array;

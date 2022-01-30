@@ -21,11 +21,6 @@ build() {
   echo PKGDIR: $pkgdir
   echo PKGBASE: $pkgbase
 
-  # TODO: remove this?
-  echo "[VERSION]"
-  echo -n "$pkgver" > DRILL_VERSION
-  echo "Setting version to $pkgver"
-
   echo "[CLEAN]"
   dub clean 
 

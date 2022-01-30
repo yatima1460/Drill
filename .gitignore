@@ -10,7 +10,6 @@ src/Build
 
 
 /vcpkg
-DRILL_VERSION
 
 # Travis
 /dmd2
