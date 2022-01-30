@@ -3,7 +3,7 @@ version: "3.4"
 services:
 
   drill-linux-cli:
-    image: drill-linux-env
+    image: ghcr.io/yatima1460/linux-dmd:2.098.0
     build:
       context: ../
       dockerfile: Docker/Linux.Dockerfile
@@ -20,7 +20,7 @@ services:
       && /Source/Build/Drill-CLI-linux-x86_64-release/drill-search-cli -ds drill'
 
   drill-linux-gtk:
-    image: drill-linux-env
+    image: ghcr.io/yatima1460/linux-dmd:2.098.0
     build:
       context: ../
       dockerfile: Docker/Linux.Dockerfile
