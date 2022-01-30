@@ -37,12 +37,16 @@ jobs:
       - name: Test CLI doesn't crash when searching something
         run: ./drill-search-cli test
         working-directory: src/Build/Drill-CLI-linux-x86_64-release
+      - name: Zip CLI
+        run: 7z a output/Drill-CLI-linux-x86_64-release.zip ./src/Build/Drill-CLI-linux-x86_64-release/
       - name: Docker GTK image pull
         run: docker-compose pull drill-linux-gtk
         working-directory: Docker
       - name: Compile GTK
         run: docker-compose up --abort-on-container-exit --remove-orphans drill-linux-gtk
         working-directory: Docker
+      - name: Zip GTK
+        run: 7z a output/Drill-GTK-linux-x86_64-release.zip ./src/Build/Drill-GTK-linux-x86_64-release/
       - name: Create rolling release
         uses: marvinpinto/action-automatic-releases@latest
         with:
@@ -51,8 +55,8 @@ jobs:
           prerelease: false
           title: "Rolling release"
           files: |
-            src/Build/Drill-CLI-linux-x86_64-release
-            src/Build/Drill-GTK-linux-x86_64-release
+            output/Drill-CLI-linux-x86_64-release.zip
+            output/Drill-GTK-linux-x86_64-release.zip
         if: github.event_name != 'pull_request'
 
   # drill-windows-cli:
