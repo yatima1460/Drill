@@ -12,7 +12,7 @@ on:
 
 jobs:
 
-  drill-linux-cli:
+  drill-linux:
     runs-on: ubuntu-20.04
     steps:
       - name: Login to GitHub Container Registry
@@ -27,7 +27,7 @@ jobs:
         run: docker-compose pull drill-linux-cli
         working-directory: Docker
       - name: Compile CLI 
-        run: docker-compose up --build --abort-on-container-exit --remove-orphans drill-linux-cli
+        run: docker-compose up --abort-on-container-exit --remove-orphans drill-linux-cli
         working-directory: Docker
       - name: Test CLI --help exits 0
         run: ./drill-search-cli --help
