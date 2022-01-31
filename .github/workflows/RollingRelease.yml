@@ -89,9 +89,9 @@ jobs:
     steps:
       - name: Get the repo
         uses: actions/checkout@v2
-      - run: choco install -y dub
-      - run: choco install -y dmd
-      - run: refreshenv
+      - uses: dlang-community/setup-dlang@v1
+        with:
+          compiler: dmd-latest
       - name: Compile CLI 
         run: dub clean && dub build -b release -c CLI --parallel --arch=x86_64
         working-directory: src
