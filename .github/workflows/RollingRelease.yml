@@ -115,9 +115,11 @@ jobs:
       - name: Test CLI --help exits 0
         run: drill-search-cli --help
         working-directory: cli
+        shell: cmd
       - name: Test CLI doesn't crash when searching something
         run: drill-search-cli drill
         working-directory: cli
+        shell: cmd
 
   create-release:
     runs-on: ubuntu-20.04
