@@ -89,5 +89,5 @@ package_drill-search-gtk() {
 check()
 {
   cd "Build/Drill-CLI-linux-$CARCH-release"
-  drill-search-cli --help
+  ./drill-search-cli --help
 }
