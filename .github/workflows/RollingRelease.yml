@@ -91,6 +91,7 @@ jobs:
         uses: actions/checkout@v2
       - run: choco install -y dub
       - run: choco install -y dmd
+      - run: refreshenv
       - name: Compile CLI 
         run: dub clean && dub build -b release -c CLI --parallel --arch=x86_64
         working-directory: src
