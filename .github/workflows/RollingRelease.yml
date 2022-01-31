@@ -14,7 +14,10 @@ on:
 
 jobs:
 
-  drill-linux:
+
+
+
+  linux-cli:
     runs-on: ubuntu-20.04
     steps:
       - name: Login to GitHub Container Registry
@@ -31,22 +34,122 @@ jobs:
       - name: Compile CLI 
         run: docker-compose up --abort-on-container-exit --remove-orphans drill-linux-cli
         working-directory: Docker
-      - name: Test CLI --help exits 0
-        run: ./drill-search-cli --help
-        working-directory: src/Build/Drill-CLI-linux-x86_64-release
-      - name: Test CLI doesn't crash when searching something
-        run: ./drill-search-cli test
-        working-directory: src/Build/Drill-CLI-linux-x86_64-release
-      - name: Zip CLI
-        run: 7z a output/Drill-CLI-linux-x86_64-release.zip ./src/Build/Drill-CLI-linux-x86_64-release/
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: Drill-CLI-linux-x86_64-release
+          path: src/Build/Drill-CLI-linux-x86_64-release
+          if-no-files-found: error
+
+  linux-gtk:
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v1
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Get the repo
+        uses: actions/checkout@v2
       - name: Docker GTK image pull
         run: docker-compose pull drill-linux-gtk
         working-directory: Docker
-      - name: Compile GTK
+      - name: Compile GTK 
         run: docker-compose up --abort-on-container-exit --remove-orphans drill-linux-gtk
         working-directory: Docker
-      - name: Zip GTK
-        run: 7z a output/Drill-GTK-linux-x86_64-release.zip ./src/Build/Drill-GTK-linux-x86_64-release/
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: Drill-GTK-linux-x86_64-release
+          path: src/Build/Drill-GTK-linux-x86_64-release
+          if-no-files-found: error
+
+  test-linux-cli:
+    runs-on: ubuntu-20.04
+    needs: [ linux-cli ]
+    steps:
+      - name: Downloads artifacts
+        uses: actions/download-artifact@v2
+        with:
+          name: Drill-CLI-linux-x86_64-release
+          path: cli
+      - name: Set executable
+        run: chmod +x drill-search-cli
+        working-directory: cli
+      - name: Test CLI --help exits 0
+        run: ./drill-search-cli --help
+        working-directory: cli
+      - name: Test CLI doesn't crash when searching something
+        run: ./drill-search-cli test
+        working-directory: cli
+
+  windows-cli:
+    runs-on: windows-2019
+    steps:
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v1
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Get the repo
+        uses: actions/checkout@v2
+      - name: Docker CLI image pull
+        run: docker-compose pull drill-windows-cli
+        working-directory: Docker
+      - name: Compile CLI 
+        run: docker-compose up --abort-on-container-exit --remove-orphans drill-windows-cli
+        working-directory: Docker
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: Drill-CLI-windows-x86_64-release
+          path: src/Build/Drill-CLI-windows-x86_64-release
+          if-no-files-found: error
+
+
+  test-windows-cli:
+    runs-on: windows-2019
+    needs: [ windows-cli ]
+    steps:
+      - name: Downloads artifacts
+        uses: actions/download-artifact@v2
+        with:
+          name: Drill-CLI-windows-x86_64-release
+          path: cli
+      - name: Test CLI --help exits 0
+        run: drill-search-cli --help
+        working-directory: cli
+      - name: Test CLI doesn't crash when searching something
+        run: drill-search-cli test
+        working-directory: cli
+
+  create-release:
+    runs-on: ubuntu-20.04
+    needs: [ linux-cli, linux-gtk, test-linux-cli, test-windows-cli ]
+    steps:
+      - name: Downloads Linux CLI artifacts
+        uses: actions/download-artifact@v2
+        with:
+          name: Drill-CLI-linux-x86_64-release
+          path: linux-cli
+      - name: Downloads Linux GTK artifacts
+        uses: actions/download-artifact@v2
+        with:
+          name: Drill-GTK-linux-x86_64-release
+          path: linux-gtk
+      - name: Downloads Windows CLI artifacts
+        uses: actions/download-artifact@v2
+        with:
+          name: Drill-CLI-windows-x86_64-release
+          path: windows-cli
+      - name: Zip Linux CLI
+        run: 7z a output/Drill-CLI-linux-x86_64-release.zip   linux-cli
+      - name: Zip Linux GTK
+        run: 7z a output/Drill-GTK-linux-x86_64-release.zip   linux-gtk
+      - name: Zip Windows CLI
+        run: 7z a output/Drill-CLI-windows-x86_64-release.zip windows-cli
       - name: Create rolling release
         uses: marvinpinto/action-automatic-releases@latest
         with:
@@ -57,13 +160,8 @@ jobs:
           files: |
             output/Drill-CLI-linux-x86_64-release.zip
             output/Drill-GTK-linux-x86_64-release.zip
+            output/Drill-CLI-windows-x86_64-release.zip
         if: github.event_name != 'pull_request'
 
-  # drill-windows-cli:
-  #   runs-on: windows-2019
-  #   steps:
-  #     - uses: actions/checkout@v2
-  #     - run: docker-compose up --build --abort-on-container-exit --remove-orphans drill-windows-cli
-  #       shell: cmd
-  #       working-directory: Docker
+
 
