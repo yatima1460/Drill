@@ -11,13 +11,8 @@
         "-J=."
     ],
     "dflags-windows": [
-        "-L=.\\GTKWin\\lib",
-        "-L=.\\GTKWin\\debug",
-        "-L=.\\GTKWin\\bin",
         "-J=."
-       
     ],
-
     "copyFiles": [
         "Assets"
     ],
