@@ -6,7 +6,7 @@
 #include <vector>
 #include <thread>
 #include "Config.hpp"
-#include "Crawler.hpp"
+#include "crawler.hpp"
 
 namespace Drill
 {
@@ -21,39 +21,39 @@ namespace engine
 }
 
     
-class EngineObj
-{
+// class EngineObj
+// {
 
     
-    std::vector<Crawler*> crawlersObjects;
+//     // std::vector<Crawler*> crawlersObjects;
 
-    DrillConfig configs;
-    // string searchValue, CrawlerCallback resultCallback, void* userObject
+//     DrillConfig configs;
+//     // string searchValue, CrawlerCallback resultCallback, void* userObject
 
   
 
-public:
+// public:
 
-    const std::string SEARCH_STRING;
+//     const std::string SEARCH_STRING;
 
-    EngineObj(std::string searchValue);
+//     EngineObj(std::string searchValue);
 
-    void startDrilling();
+//     void startDrilling();
 
-    // void setSearchValue(string);
+//     // void setSearchValue(string);
 
-    // void
+//     // void
 
-    std::vector<FileInfo> pickupAllResults();
+//     std::vector<FileInfo> pickupAllResults();
 
-    bool isCrawling();
+//     bool isCrawling();
     
-    void waitDrilling();
+//     void waitDrilling();
 
-    void stopDrillingSync();
+//     void stopDrillingSync();
 
-    void stopDrillingAsync();
+//     void stopDrillingAsync();
 
-    ~EngineObj();
-};
+//     ~EngineObj();
+// };
 } // namespace Drill
