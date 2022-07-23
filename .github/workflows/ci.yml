@@ -1,10 +1,12 @@
 name: ci
 
 on:
+
   pull_request:
     branches:
       - master
       - main
+      - C++
     paths-ignore:
       - '**/*.md'
 
@@ -12,8 +14,8 @@ jobs:
 
   linux:
 
+    name: "Linux"
     runs-on: ubuntu-22.04
-    
     steps:
     - name: Clone repo
       uses: actions/checkout@v3
@@ -21,3 +23,4 @@ jobs:
       run: mkdir build && cmake ..
     - name: Build
       run: make -j`nproc`
+      working-directory: build
