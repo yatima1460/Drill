@@ -1,59 +1,51 @@
 #pragma once
 
-
-
-#include <string>
-#include <vector>
-#include <thread>
 #include "Config.hpp"
 #include "crawler.hpp"
+#include <string>
+#include <thread>
+#include <vector>
 
 namespace Drill
 {
 
+    namespace engine
+    {
 
+        void search(std::string searchValue, void (*resultsCallback)(result::result results));
 
-namespace engine
-{
+    }
 
-    void search(std::string searchValue, void (*resultsCallback)(FileInfo results));
+    // class EngineObj
+    // {
 
-}
+    //     // std::vector<Crawler*> crawlersObjects;
 
-    
-// class EngineObj
-// {
+    //     DrillConfig configs;
+    //     // string searchValue, CrawlerCallback resultCallback, void* userObject
 
-    
-//     // std::vector<Crawler*> crawlersObjects;
+    // public:
 
-//     DrillConfig configs;
-//     // string searchValue, CrawlerCallback resultCallback, void* userObject
+    //     const std::string SEARCH_STRING;
 
-  
+    //     EngineObj(std::string searchValue);
 
-// public:
+    //     void startDrilling();
 
-//     const std::string SEARCH_STRING;
+    //     // void setSearchValue(string);
 
-//     EngineObj(std::string searchValue);
+    //     // void
 
-//     void startDrilling();
+    //     std::vector<FileInfo> pickupAllResults();
 
-//     // void setSearchValue(string);
+    //     bool isCrawling();
 
-//     // void
+    //     void waitDrilling();
 
-//     std::vector<FileInfo> pickupAllResults();
+    //     void stopDrillingSync();
 
-//     bool isCrawling();
-    
-//     void waitDrilling();
+    //     void stopDrillingAsync();
 
-//     void stopDrillingSync();
-
-//     void stopDrillingAsync();
-
-//     ~EngineObj();
-// };
+    //     ~EngineObj();
+    // };
 } // namespace Drill

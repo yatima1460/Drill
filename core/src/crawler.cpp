@@ -17,7 +17,7 @@ namespace Drill
     namespace crawler
     {
         namespace fs = std::filesystem;
-        void scan(std::string mountpoint, std::string searchValue, void (*resultsCallback)(FileInfo results),std::shared_ptr<spdlog::logger> console)
+        void scan(std::string mountpoint, std::string searchValue, void (*resultsCallback)(result::result results),std::shared_ptr<spdlog::logger> console)
         {
 
 
@@ -60,7 +60,7 @@ namespace Drill
                             if (Drill::string_utils::tokenSearch(entry.path().filename().string(), searchValue))
                             {
                                 console->info("Found file: `{0}`", entry.path().string());
-                                resultsCallback(FileInfo(entry));
+                                resultsCallback(result::result(entry));
                             }
                             continue;
                         }

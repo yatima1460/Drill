@@ -8,7 +8,7 @@
 #include <iostream>
 #include <vector>
 #include <string>
-#include "system.h"
+#include "os.h"
 
 namespace Drill
 {
@@ -16,7 +16,7 @@ namespace Drill
     namespace engine
     {
 
-        void search(std::string searchValue, void (*resultsCallback)(FileInfo results))
+        void search(std::string searchValue, void (*resultsCallback)(result::result results))
         {
 
             std::vector<std::thread*> crawlers;

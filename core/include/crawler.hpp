@@ -5,11 +5,9 @@
 #include <spdlog/sinks/stdout_color_sinks.h>
 
 #include <string>
-
-
-
 #include <iostream>
-#include "FileInfo.hpp"
+
+#include "result.hpp"
 
 #include "Config.hpp"
 
@@ -18,7 +16,7 @@ namespace Drill
 {
 
     namespace crawler {
-        void scan(std::string mountpoint, std::string searchValue, void (*resultsCallback)(FileInfo results), std::shared_ptr<spdlog::logger>);
+        void scan(std::string mountpoint, std::string searchValue, void (*resultsCallback)(result::result results), std::shared_ptr<spdlog::logger>);
         
     }
 
