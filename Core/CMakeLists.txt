@@ -12,12 +12,12 @@ elseif (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
   # using Visual Studio C++
 endif()
 
-file(GLOB SRC_FILES *.cpp)
+file(GLOB SRC_FILES src/*.cpp)
 
 add_subdirectory(spdlog)
 
 include_directories(spdlog/include)
-
+include_directories(include)
 
 if (CMAKE_BUILD_TYPE MATCHES Release)
     message(STATUS "Drill_Release")
@@ -34,17 +34,17 @@ endif()
 if(UNIX AND NOT APPLE) 
     message(STATUS "Linux")
     add_definitions("-lpthread" )
-    set(SUBSYSTEM "Subsystem/Linux.cpp")
+    set(SUBSYSTEM "src/subsystem/linux.cpp")
 endif()
 
 if(WIN32)
     message(STATUS "Windows")
-    set(SUBSYSTEM "Subsystem/Windows.cpp")
+    set(SUBSYSTEM "src/subsystem/windows.cpp")
 endif()
 
 if(NOT UNIX AND APPLE)
     message(STATUS "Apple")
-    set(SUBSYSTEM "Subsystem/Apple.cpp")
+    set(SUBSYSTEM "src/subsystem/apple.cpp")
 endif()
 
 add_library(DrillCore ${SRC_FILES} ${SUBSYSTEM})

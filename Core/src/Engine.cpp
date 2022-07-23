@@ -1,9 +1,11 @@
-#include "Engine.hpp"
-#include "System.hpp"
+#include "engine.h"
+
 #include "RegexUtils.hpp"
 
 #include <spdlog/spdlog.h>
 #include <thread>
+
+#include "system.h"
 
 
 namespace Drill
@@ -54,28 +56,24 @@ bool Engine::isCrawling()
     return atLeastOneRunning;
 }
 
+Engine::Engine(std::string searchValue) : SEARCH_STRING(searchValue) {
 
-Engine::Engine(std::string searchValue) : SEARCH_STRING(searchValue)
-{
+#ifndef NDEBUG
+  spdlog::set_level(spdlog::level::debug);
+#else
+  spdlog::set_level(spdlog::level::info);
+#endif
 
-    // #ifndef NDEBUG
-    spdlog::set_level(spdlog::level::debug);
-
-    
-    // #else
-    //     spdlog::set_level(spdlog::level::warn);
-    // #endif
-
-    spdlog::info("Welcome to Drill!");
-    if (searchValue.length() == 0)
-        spdlog::critical("search string is empty");
-    configs = loadConfigs();
+  spdlog::info("Welcome to Drill!");
+  if (searchValue.length() == 0)
+    spdlog::critical("search string is empty");
+  configs = loadConfigs();
 }
 
 void Engine::startDrilling()
 {
 
-    auto mountpoints = System::getMountpoints();
+    auto mountpoints = system::get_mountpoints();
 
     if (mountpoints.size() == 0)
     {
@@ -140,7 +138,7 @@ void Engine::waitDrilling()
     for (auto *crawler : crawlers)
     {
         crawler->join();
-        spdlog::info("Crawler joined", crawler->native_handle());
+        spdlog::debug("Crawler joined", crawler->native_handle());
     }
 }
 

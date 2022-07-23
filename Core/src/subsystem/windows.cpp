@@ -12,7 +12,7 @@
 
 using namespace std;
 
-vector<string> Drill::System::getMountpoints()
+vector<string> Drill::system::get_mountpoints()
 {
     vector<string> mps;
    
@@ -29,13 +29,13 @@ std::string sanitizePath(const std::string path)
     return path;
 }
 
-std::string Drill::System::getHomeFolder()
+std::string Drill::system::get_current_user_home_folder()
 {
     std::string test(getenv("USERPROFILE"));
     return sanitizePath(test);
 }
 
-bool Drill::System::doesPathExist(const std::string &s)
+bool Drill::system::doesPathExist(const std::string &s)
 {
     if (s.length() == 0)
         return false;
