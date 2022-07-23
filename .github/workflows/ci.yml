@@ -1,0 +1,23 @@
+name: ci
+
+on:
+  pull_request:
+    branches:
+      - master
+      - main
+    paths-ignore:
+      - '**/*.md'
+
+jobs:
+
+  linux:
+
+    runs-on: ubuntu-22.04
+    
+    steps:
+    - name: Clone repo
+      uses: actions/checkout@v3
+    - name: Run CMake
+      run: mkdir build && cmake ..
+    - name: Build
+      run: make -j`nproc`
