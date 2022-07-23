@@ -20,8 +20,8 @@ set_property(TARGET DrillCLI PROPERTY CXX_STANDARD 17)
 
 
 
-include_directories(../Core/spdlog/include)
-include_directories(../Core/include)
+include_directories(../core/spdlog/include)
+include_directories(../core/include)
 # add_custom_target(run
 #     COMMAND DrillCLI
 #     DEPENDS DrillCLI
@@ -31,7 +31,7 @@ include_directories(../Core/include)
 
 
 
-add_subdirectory(../Core ${CMAKE_CURRENT_BINARY_DIR}/Core)
+add_subdirectory(../core ${CMAKE_CURRENT_BINARY_DIR}/core)
 
 target_link_libraries(DrillCLI DrillCore)
 
