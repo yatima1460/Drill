@@ -1,6 +1,11 @@
 
+<<<<<<< HEAD
 # Created by https://www.gitignore.io/api/qt,c++,cmake
 # Edit at https://www.gitignore.io/?templates=qt,c++,cmake
+=======
+# Binaries
+src/Build
+>>>>>>> 04683dbf0d40510543db748c0a3c1a88524c5f8d
 
 ### C++ ###
 # Prerequisites
@@ -467,6 +472,7 @@ MigrationBackup/
 
 
 
+<<<<<<< HEAD
 
 CLI/DrillCLI
 
@@ -479,3 +485,79 @@ out
 .vs
 .vscode
 build
+=======
+# Travis
+/dmd2
+/DEBFILE
+/dmd.*.tar
+/dmd.*.tar.xz
+
+# PKGBUILD
+/pkg
+*.pkg.tar.zst
+
+
+
+# Created by https://www.gitignore.io/api/c++,cmake
+# Edit at https://www.gitignore.io/?templates=c++,cmake
+
+
+# Compiled Object files
+*.slo
+*.lo
+*.o
+*.obj
+
+# Precompiled Headers
+*.gch
+*.pch
+
+# Compiled Dynamic libraries
+*.so
+*.dylib
+*.dll
+
+# Fortran module files
+*.mod
+*.smod
+
+# Compiled Static libraries
+*.lai
+*.la
+*.a
+*.lib
+
+# Executables
+*.exe
+*.out
+*.app
+
+### CMake ###
+CMakeLists.txt.user
+CMakeCache.txt
+CMakeFiles
+CMakeScripts
+Testing
+Makefile
+cmake_install.cmake
+install_manifest.txt
+compile_commands.json
+CTestTestfile.cmake
+_deps
+
+### CMake Patch ###
+# External projects
+*-prefix/
+
+# End of https://www.gitignore.io/api/c++,cmake
+
+
+GTKCpp/Assets
+GTKCpp/DrillGTK
+
+
+.vscode
+.vs
+/out
+*.aps
+>>>>>>> 04683dbf0d40510543db748c0a3c1a88524c5f8d

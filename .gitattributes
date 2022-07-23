@@ -1,8 +1,8 @@
-* linguist-vendored
-*.d linguist-vendored=false
-
 *.txt -crlf
 *.cpp -crlf
 *.hpp -crlf
 *.svg -crlf
 *.yml -crlf
+*.cpp -crlf
+*.hpp -crlf
+*.rc -crlf
