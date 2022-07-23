@@ -1,11 +1,15 @@
 # Drill
 
+<<<<<<< HEAD
 |Project|Linux|Windows|MacOS|
 |-------|-----|-------|-----|
 | Core | [![Actions Status](https://github.com/yatima1460/Drill/workflows/Linux_Core/badge.svg)](https://github.com/yatima1460/Drill/actions) | [![Actions Status](https://github.com/yatima1460/Drill/workflows/Windows_Core/badge.svg)](https://github.com/yatima1460/Drill/actions) | [![Actions Status](https://github.com/yatima1460/Drill/workflows/MacOS_Core/badge.svg)](https://github.com/yatima1460/Drill/actions)|
 | Core Test | [![Actions Status](https://github.com/yatima1460/Drill/workflows/TestLinux/badge.svg)](https://github.com/yatima1460/Drill/actions) |[![Actions Status](https://github.com/yatima1460/Drill/workflows/TestWindows/badge.svg)](https://github.com/yatima1460/Drill/actions) | [![Actions Status](https://github.com/yatima1460/Drill/workflows/TestMacOS/badge.svg)](https://github.com/yatima1460/Drill/actions)|
 | CLI | [![Actions Status](https://github.com/yatima1460/Drill/workflows/Linux_CLI/badge.svg)](https://github.com/yatima1460/Drill/actions) | [![Actions Status](https://github.com/yatima1460/Drill/workflows/Windows_CLI/badge.svg)](https://github.com/yatima1460/Drill/actions) | [![Actions Status](https://github.com/yatima1460/Drill/workflows/MacOS_CLI/badge.svg)](https://github.com/yatima1460/Drill/actions) |
 | Qt | [![Actions Status](https://github.com/yatima1460/Drill/workflows/Linux_Qt/badge.svg)](https://github.com/yatima1460/Drill/actions) |[![Actions Status](https://github.com/yatima1460/Drill/workflows/Windows_Qt/badge.svg)](https://github.com/yatima1460/Drill/actions) | [![Actions Status](https://github.com/yatima1460/Drill/workflows/MacOS_Qt/badge.svg)](https://github.com/yatima1460/Drill/actions) |
+=======
+[![RollingRelease](https://github.com/yatima1460/Drill/actions/workflows/RollingRelease.yml/badge.svg)](https://github.com/yatima1460/Drill/actions/workflows/RollingRelease.yml)
+>>>>>>> 04683dbf0d40510543db748c0a3c1a88524c5f8d
 
 [![Financial Contributors on Open Collective](https://opencollective.com/Drill/all/badge.svg?label=financial+contributors)](https://opencollective.com/Drill) [![GitHub issues](https://img.shields.io/github/issues/yatima1460/Drill.svg)](https://github.com/yatima1460/Drill/issues)
 [![GitHub forks](https://img.shields.io/github/forks/yatima1460/Drill.svg)](https://github.com/yatima1460/Drill/network)
@@ -15,7 +19,11 @@
 [![Twitter](https://img.shields.io/twitter/url/https/github.com/yatima1460/Drill.svg?style=social)](https://twitter.com/intent/tweet?text=Wow:&url=https%3A%2F%2Fgithub.com%2Fyatima1460%2FDrill)
 
 Get notified for latest releases
+<<<<<<< HEAD
 [![Telegram](https://raw.githubusercontent.com/yatima1460/Drill/gh-pages/icons/telegram_icon.png)](https://telegram.me/drill_search)
+=======
+[![Telegram](https://raw.githubusercontent.com/yatima1460/Drill/gh-pages/icons/telegram_icon.png?sanitize=true)](https://telegram.me/drill_search)
+>>>>>>> 04683dbf0d40510543db748c0a3c1a88524c5f8d
 
 # TL;DR: What is this
 
@@ -23,7 +31,7 @@ Search files without indexing, but clever crawling:
 - At least 1 thread per mount point
 - Use as much RAM as possible for caching stuff
 - Try to avoid "black hole folders" using a regex based blocklist in which the crawler will never come out and never scan useful files (`node_modules`,`Windows`,etc)
-- **Intended for desktop users**, no obscure Linux files and system files scans
+- **Designed for average users**, no obscure Linux files and system files scans
 - Use priority lists to first scan important folders.
 - Betting on the future: slowly being optimized for SSDs/M.2 or fast RAID arrays
 
@@ -39,7 +47,12 @@ If your distro doesn't ask you to mark the AppImage as executable or nothing hap
 - `chmod +x appimage_name_you_downloaded.AppImage`
 - `./appimage_name_you_downloaded.AppImage`
 
+<<<<<<< HEAD
 If you want a version that doesn't require sudo or FUSE download the .zip files.
+=======
+If you want a version that doesn't require sudo and can be configurable download the .zip files.
+Remember: AppImages require FUSE
+>>>>>>> 04683dbf0d40510543db748c0a3c1a88524c5f8d
 
 # Build and Run
 
@@ -49,7 +62,13 @@ If you want a version that doesn't require sudo or FUSE download the .zip files.
 
 ## UI
 
+<<<<<<< HEAD
 TODO
+=======
+Check `Docker` folder
+
+### IMPORTANT
+>>>>>>> 04683dbf0d40510543db748c0a3c1a88524c5f8d
 
 ## CLI
 
