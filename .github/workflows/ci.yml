@@ -6,7 +6,7 @@ on:
     branches:
      - master
      - main
-     - C++
+     - cpp17
     paths-ignore:
       - '**/*.md'
 
@@ -14,7 +14,7 @@ on:
     branches:
       - master
       - main
-      - C++
+      - cpp17
     paths-ignore:
       - '**/*.md'
 
