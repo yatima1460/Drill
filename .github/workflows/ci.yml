@@ -19,11 +19,8 @@ jobs:
     steps:
     - name: Clone repo
       uses: actions/checkout@v3
-      with:
-        path: Drill
     - name: Run CMake
-      run: mkdir build && cmake ..
-      working-directory: Drill
+      run: mkdir build && cmake ".."
     - name: Build
       run: make -j`nproc`
-      working-directory: Drill/build
+      working-directory: build
