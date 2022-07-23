@@ -19,9 +19,9 @@ add_executable(DrillCLI CLI.cpp)
 set_property(TARGET DrillCLI PROPERTY CXX_STANDARD 17)
 
 
-include_directories(../Core)
-include_directories(../Core/spdlog/include)
 
+include_directories(../Core/spdlog/include)
+include_directories(../Core/include)
 # add_custom_target(run
 #     COMMAND DrillCLI
 #     DEPENDS DrillCLI

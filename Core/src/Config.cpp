@@ -1,7 +1,7 @@
 
 
 #include "Config.hpp"
-#include "System.hpp"
+#include "system.h"
 #include "RegexUtils.hpp"
 
 #include <spdlog/spdlog.h>
@@ -99,11 +99,11 @@ DrillConfig loadConfigs()
 
     
 
-    if (!System::doesPathExist("~/.config/drill-search/BlockLists"))
+    if (!system::doesPathExist("~/.config/drill-search/BlockLists"))
     {
         spdlog::warn("Drill blocklists folder in ~/.config doesn't exist, falling back to default values");
 
-        if (!System::doesPathExist("/opt/drill-search/BlockLists"))
+        if (!system::doesPathExist("/opt/drill-search/BlockLists"))
         {
             spdlog::error("Drill blocklists in /opt/drill-search/BlockLists don't exist using empty array!!");
         }
@@ -111,7 +111,7 @@ DrillConfig loadConfigs()
     else
     {
         spdlog::info("~/.config/drill-search/BlockLists found");
-        dc.blockLists = readAllTextFilesInFolder(System::getHomeFolder() + "/.config/drill-search/BlockLists");
+        dc.blockLists = readAllTextFilesInFolder(system::get_current_user_home_folder() + "/.config/drill-search/BlockLists");
 
        if (dc.blockLists.empty())
             spdlog::warn("Drill blocklists loaded from ~/.config are empty!");
@@ -136,11 +136,11 @@ DrillConfig loadConfigs()
             spdlog::info("Drill blocklists loaded with {0} valid rules", dc.blocklistsRegex.size());
     }
 
-    // if (!System::doesPathExist("~/.config/drill-search/PriorityLists"))
+    // if (!system::doesPathExist("~/.config/drill-search/PriorityLists"))
     // {
     //     spdlog::warn("Drill PriorityLists in ~/.config don't exist, fallback to default values");
 
-    //     if (!System::doesPathExist("/opt/drill-search/PriorityLists"))
+    //     if (!system::doesPathExist("/opt/drill-search/PriorityLists"))
     //     {
     //         spdlog::error("Drill PriorityLists in /opt/drill-search/PriorityLists don't exist using empty array!!");
     //     }
@@ -150,7 +150,7 @@ DrillConfig loadConfigs()
     //     /* code */
     // }
 
-    // auto homeConfigs = readAllTextFilesInFolder(System::getHomeFolder()+"/.config/drill-search");
+    // auto homeConfigs = readAllTextFilesInFolder(system::get_current_user_home_folder()+"/.config/drill-search");
 
     // if (.empty())
     // {
