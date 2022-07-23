@@ -1,11 +1,10 @@
+/**
+ *  Very basic implementation of a Drill CLI version
+ */
 #include "engine.h"
 
 
 
-void resultsBare()
-{
-
-}
 
 using namespace Drill;
 
@@ -18,33 +17,31 @@ void my_handler(sig_atomic_t s)
     std::cout << "Stopping crawling..." << std::endl;
     exit(0); 
 }
+
+
+auto console = spdlog::stdout_color_mt("CLI");
+
+void resultsCallback(FileInfo result)
+{
+    console->info("{0}", result.path);
+}
    
 int main(int argc, char const *argv[])
 {
     signal (SIGINT, my_handler);
 
-
- 
-    Engine context(".mkv 1080p");
-
-
-    
-
-    context.startDrilling();
-
-
-    while(context.isCrawling())
+    if (argc < 2)
     {
-        const auto results = context.pickupAllResults();
-
-        for (const auto result : results)
-        {
-            std::cout << result.path << std::endl;
-        }
+        console->error("Usage: drill <searchValue>");
+        return 1;
     }
 
-    context.waitDrilling();
+    std::string searchValue = argv[1];
 
-    /* code */
+    console->set_pattern("%v");
+    
+    console->info("Drill CLI started");
+    Drill::engine::search(searchValue, resultsCallback);
+
     return EXIT_SUCCESS;
 }

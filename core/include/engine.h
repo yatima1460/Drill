@@ -10,10 +10,21 @@
 
 namespace Drill
 {
-class Engine
+
+
+
+namespace engine
 {
 
-    std::vector<std::thread*> crawlers;
+    void search(std::string searchValue, void (*resultsCallback)(FileInfo results));
+
+}
+
+    
+class EngineObj
+{
+
+    
     std::vector<Crawler*> crawlersObjects;
 
     DrillConfig configs;
@@ -25,7 +36,7 @@ public:
 
     const std::string SEARCH_STRING;
 
-    Engine(std::string searchValue);
+    EngineObj(std::string searchValue);
 
     void startDrilling();
 
@@ -43,6 +54,6 @@ public:
 
     void stopDrillingAsync();
 
-    ~Engine();
+    ~EngineObj();
 };
 } // namespace Drill

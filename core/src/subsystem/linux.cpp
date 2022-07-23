@@ -14,26 +14,60 @@
 
 using namespace std;
 
+#include <fstream>
+#include <iostream>
+
+struct Mount {
+    std::string device;
+    std::string destination;
+    std::string fstype;
+    std::string options;
+    int dump;
+    int pass;
+};
+
+std::ostream& operator<<(std::ostream& stream, const Mount& mount) {
+    return stream << mount.fstype <<" device \""<<mount.device<<"\", mounted on \""<<mount.destination<<"\". Options: "<<mount.options<<". Dump:"<<mount.dump<<" Pass:"<<mount.pass;
+}
+
 vector<string> Drill::system::get_mountpoints()
 {
-    vector<string> mps;
-    struct mntent *ent;
-    FILE *aFile;
 
-    aFile = setmntent("/proc/mounts", "r");
-    if (aFile == nullptr)
-    {
-        // perror("setmntent");
-        // mps.push_back("/");
-        return mps;
+    std::ifstream mountInfo("/proc/mounts");
+
+    vector<string> mps;
+
+
+    while( !mountInfo.eof() ) {
+        Mount each;
+        mountInfo >> each.device >> each.destination >> each.fstype >> each.options >> each.dump >> each.pass;
+        mps.push_back(each.destination);
+        // if( each.device != "" )
+        //     std::cout << each << std::endl;
     }
-    while (nullptr != (ent = getmntent(aFile)))
-    {
-        mps.push_back(ent->mnt_dir);
-        //TODO: blacklist here for ent->mnt_fsname
-    }
-    endmntent(aFile);
+
     return mps;
+
+    // return 0;
+
+    // vector<string> mps;
+    // struct mntent *ent;
+    // FILE *aFile;
+
+    // aFile = setmntent("/proc/mounts", "r");
+    // if (aFile == nullptr)
+    // {
+    //     // perror("setmntent");
+    //     // mps.push_back("/");
+    //     return mps;
+    // }
+    // while (nullptr != (ent = getmntent(aFile)))
+    // {
+    //     mps.push_back(ent->mnt_dir);
+    //     //TODO: blacklist here for ent->mnt_fsname
+    // }
+    // endmntent(aFile);
+    // return mps;
 }
 
 std::string sanitizePath(const std::string path)
