@@ -20,7 +20,7 @@ jobs:
     - name: Clone repo
       uses: actions/checkout@v3
     - name: Run CMake
-      run: mkdir build && cmake ".."
+      run: mkdir build && ls -la && cmake ".."
     - name: Build
       run: make -j`nproc`
       working-directory: build
