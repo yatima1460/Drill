@@ -1,25 +1,23 @@
-name: ci
+name: ci-core
 
 on:
 
   pull_request:
+
+    paths:
+      - core
+      - .github/workflows/ci-core.yml
+      
     branches:
       - master
       - main
       - cpp17
-    paths-ignore:
-      - '**/*.md'
+
 
 jobs:
 
-  cli:
-
-    name: "Linux"
+  ci-core:
     runs-on: ubuntu-22.04
-    strategy:
-      fail-fast: false
-      matrix:
-        version: ["core", "cli", "gtk"]
     steps:
     - name: Clone repo
       uses: actions/checkout@v3
@@ -27,8 +25,7 @@ jobs:
         submodules: 'recursive'
     - name: Run CMake
       run: mkdir build && cd build && cmake ..
-      working-directory: ${{ matrix.version }}
+      working-directory: core
     - name: Build
       run: make -j`nproc`
-      working-directory: ${{ matrix.version }}/build
-
+      working-directory: core/build

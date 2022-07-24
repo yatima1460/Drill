@@ -1,0 +1,31 @@
+name: ci-gtk
+
+on:
+
+  pull_request:
+    branches:
+      - master
+      - main
+      - cpp17
+    paths:
+      - core
+      - gtk
+      - .github/workflows/ci-gtk.yml
+
+jobs:
+
+  gtk:
+    runs-on: ubuntu-22.04
+    steps:
+    - name: Clone repo
+      uses: actions/checkout@v3
+      with:
+        submodules: 'recursive'
+    - name: Install GTK3 dev
+      run: sudo apt-get update && sudo apt-get install -y gtk+-3.0-dev
+    - name: Run CMake
+      run: mkdir build && cd build && cmake ..
+      working-directory: gtk
+    - name: Build
+      run: make -j`nproc`
+      working-directory: gtk/build

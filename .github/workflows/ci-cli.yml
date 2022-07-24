@@ -1,0 +1,29 @@
+name: ci-cli
+
+on:
+
+  pull_request:
+    branches:
+      - master
+      - main
+      - cpp17
+    paths:
+      - core
+      - gtk
+      - .github/workflows/ci-cli.yml
+
+jobs:
+
+  gtk:
+    runs-on: ubuntu-22.04
+    steps:
+    - name: Clone repo
+      uses: actions/checkout@v3
+      with:
+        submodules: 'recursive'
+    - name: Run CMake
+      run: mkdir build && cd build && cmake ..
+      working-directory: cli
+    - name: Build
+      run: make -j`nproc`
+      working-directory: cli/build
