@@ -5,9 +5,9 @@ on:
   pull_request:
 
     paths:
-      - core/**
-      - gtk/**
-      - .github/workflows/ci-gtk.yml
+      - 'core/**'
+      - 'gtk/**'
+      - '.github/workflows/ci-gtk.yml'
 
 jobs:
 

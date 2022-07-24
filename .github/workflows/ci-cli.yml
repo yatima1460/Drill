@@ -5,9 +5,9 @@ on:
   pull_request:
 
     paths:
-      - core/**
-      - cli/**
-      - .github/workflows/ci-cli.yml
+      - 'core/**'
+      - 'cli/**'
+      - '.github/workflows/ci-cli.yml'
 
 jobs:
 
