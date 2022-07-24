@@ -27,6 +27,8 @@ set_property(TARGET DrillGTK PROPERTY CXX_STANDARD 17)
 # spdlog
 include_directories(../core/spdlog/include)
 
+file(COPY assets DESTINATION ${CMAKE_BINARY_DIR})
+
 # # Add Drill Core
 # include_directories(../core/include)
 # add_subdirectory(../core ${CMAKE_CURRENT_BINARY_DIR}/core)
