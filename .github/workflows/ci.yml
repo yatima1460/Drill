@@ -11,6 +11,10 @@ jobs:
 
   linux:
     runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: true
+      matrix:
+        config: ["Debug", "Release"]
     steps:
     - name: Clone repo
       uses: actions/checkout@v3
@@ -18,4 +22,20 @@ jobs:
         submodules: recursive
     - run: sudo apt-get update && sudo apt-get install -y gtk+-3.0-dev
     - run: mkdir build && cd build && cmake ..
-    - run: cd build && make -j`nproc`
+    - run: cmake --build . --config ${{ matrix.config }} --parallel --clean-first
+      working-directory: build
+
+  windows:
+    runs-on: windows-2022
+    strategy:
+      fail-fast: true
+      matrix:
+        config: ["Debug", "Release"]
+    steps:
+    - name: Clone repo
+      uses: actions/checkout@v3
+      with:
+        submodules: recursive
+    - run: mkdir build && cd build && cmake ..
+    - run: cmake --build . --config ${{ matrix.config }} --parallel --clean-first
+      working-directory: build

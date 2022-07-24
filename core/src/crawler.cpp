@@ -4,7 +4,7 @@
 #include <iostream>
 #include <thread>
 
-#include "spdlog/sinks/stdout_color_sinks.h"
+#include "spdlog/spdlog.h"
 
 #include "crawler.hpp"
 #include "string_utils.hpp"
@@ -57,7 +57,7 @@ namespace Drill
                         {
                             console->trace(
                                 "Special symlink/block/character/fifo/socket/other file ignored: `{0}`",
-                                entry.path().c_str());
+                                entry.path().string());
                             continue;
                         }
 
@@ -78,12 +78,12 @@ namespace Drill
                             continue;
                         }
 
-                        console->warn("Unknown file type: `{0}`", entry.path().c_str());
+                        console->warn("Unknown file type: `{0}`", entry.path().string());
                     }
                 }
                 catch (std::exception &e)
                 {
-                    console->error(e.what());
+                    console->warn(e.what());
                 }
             }
         }
