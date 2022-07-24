@@ -5,6 +5,11 @@
 #include <fstream>
 #include <iostream>
 #include <sstream>
+#include <vector>
+
+#include <engine.h>
+
+
 
 // TODO: icons on filenames
 // TODO: right click menu and update screenshot with it
@@ -45,6 +50,17 @@ bool check_escape(GtkWidget* widget, GdkEventKey* event, gpointer data)
     return false;
 }
 
+
+// Callback called by Drill when a new result is found
+void result_found(Drill::result::result result)
+{
+    // gtk_queue = userObject;
+    // g_async_queue_push(queue, result);
+}
+
+
+std::vector<std::thread *> current_crawlers;
+
 void gtk_search_changed(GtkEditable* widget, gpointer data)
 {
     assert(widget != nullptr);
@@ -60,6 +76,7 @@ void gtk_search_changed(GtkEditable* widget, gpointer data)
     free(str);
     str = nullptr;
 
+    Drill::engine::search_async(searchString, result_found);
     
 }
 

@@ -24,8 +24,8 @@ int main(int argc, char const *argv[])
     // show only bare results fullpaths without any time or spdlog formatting
     console->set_pattern("%v");
 
-    // start drilling
-    Drill::engine::search(searchValue, results_callback);
-
+    // Start drilling in a sync way
+    Drill::engine::wait_crawlers(Drill::engine::search_async(searchValue, results_callback));
+    
     return EXIT_SUCCESS;
 }

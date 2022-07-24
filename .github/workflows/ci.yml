@@ -1,0 +1,21 @@
+name: ci
+
+on:
+
+  pull_request:
+
+    paths-ignore:
+      - '**/*.md'
+
+jobs:
+
+  linux:
+    runs-on: ubuntu-22.04
+    steps:
+    - name: Clone repo
+      uses: actions/checkout@v3
+      with:
+        submodules: recursive
+    - run: sudo apt-get update && sudo apt-get install -y gtk+-3.0-dev
+    - run: mkdir build && cd build && cmake ..
+    - run: cd build && make -j`nproc`

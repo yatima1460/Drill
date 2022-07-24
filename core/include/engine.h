@@ -11,6 +11,7 @@ namespace Drill
 
     namespace engine
     {
-        void search(std::string searchValue, void (*resultsCallback)(result::result results));
+        std::vector<std::thread *> search_async(std::string search_value, void (*results_callback)(result::result result));
+        void wait_crawlers(std::vector<std::thread *> crawlers);
     }
 } // namespace Drill

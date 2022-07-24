@@ -21,7 +21,7 @@ namespace Drill
          * @param searchValue The value to search for.
          * @param results_callback The callback function to call for each result.
          */
-        void search(std::string searchValue, void (*resultsCallback)(result::result results))
+        std::vector<std::thread *> search_async(std::string searchValue, void (*resultsCallback)(result::result results))
         {
 
             std::vector<std::thread *> crawlers;
@@ -67,7 +67,7 @@ namespace Drill
 #endif
 
             // for each drive spawn crawler
-            for (const auto mountpoint : mountpoints)
+            for (const auto& mountpoint : mountpoints)
             {
                 // FIXME: add other mountpoints in blocklist of this crawler
                 std::thread *thread_object =
@@ -77,11 +77,20 @@ namespace Drill
                 crawlers.push_back(thread_object);
             }
 
+            return crawlers;
+  
+        }
+
+
+        void wait_crawlers(std::vector<std::thread *> crawlers)
+        {
             // wait for all crawlers to finish
-            for (auto &thread : crawlers)
+            for (size_t i = 0; i < crawlers.size(); i++)
             {
+                auto thread = crawlers[i];
                 thread->join();
                 delete thread;
+                crawlers[i] = nullptr;
             }
         }
     } // namespace engine
