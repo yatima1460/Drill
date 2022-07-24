@@ -6,6 +6,14 @@
 #include <iostream>
 #include <sstream>
 
+
+void window_destroy(GtkWindow* window, gpointer data)
+{
+    assert(window != nullptr);
+    // assert(data != nullptr);
+    g_print("Window [X] pressed!\n");
+}
+
 static void activate(GtkApplication *app, gpointer user_data)
 {
     g_print("Drill GTK\n");
@@ -66,6 +74,10 @@ static void activate(GtkApplication *app, gpointer user_data)
     assert(window != nullptr);
     assert(app != nullptr);
     gtk_window_set_application(window, app);
+
+
+    // Event when the window is closed using the [X]
+    g_signal_connect(window, "destroy", G_CALLBACK(window_destroy), nullptr);
 
     // Destroy the glade builder
     assert(builder != nullptr);
