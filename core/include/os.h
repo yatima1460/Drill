@@ -20,5 +20,5 @@ namespace Drill::system
      */
     std::string get_current_user_home_folder();
 
-    bool doesPathExist(const std::string &s);
+    // bool doesPathExist(const std::string &s);
 } // namespace Drill::system

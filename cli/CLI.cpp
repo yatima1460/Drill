@@ -2,18 +2,15 @@
  *  Very basic implementation of a Drill CLI version
  */
 
-#include <stdlib.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 #include "engine.h"
 
 auto console = spdlog::stdout_color_mt("CLI");
 
-void results_callback(Drill::result::result result)
-{
-    console->info("{0}", result.path);
-}
-   
+void results_callback(Drill::result::result result) { console->info("{0}", result.path); }
+
 int main(int argc, char const *argv[])
 {
     if (argc < 2)
