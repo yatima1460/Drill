@@ -1,22 +1,20 @@
 #include <gtk/gtk.h>
 
 #include <assert.h>
+#include <filesystem>
+#include <fstream>
 #include <iostream>
 #include <sstream>
-#include <fstream>
-#include <filesystem>
 
 static void activate(GtkApplication *app, gpointer user_data)
 {
     g_print("Drill GTK\n");
 
-    GError* error = nullptr;
+    GError *error = nullptr;
 
     // Initialize the .glade loader
-    GtkBuilder* builder = gtk_builder_new();
+    GtkBuilder *builder = gtk_builder_new();
     assert(builder != nullptr);
-
-
 
     // Load the UI from file
     if (!std::filesystem::exists("assets/ui.glade"))
@@ -42,11 +40,16 @@ static void activate(GtkApplication *app, gpointer user_data)
         exit(EXIT_FAILURE);
     }
     g_print("file ui.glade loaded!\n");
-    
+
     // Get the window from the .glade file
-    GtkWidget* window = (GtkWidget*)gtk_builder_get_object(builder, "window");
+    GtkWindow *window = (GtkWindow *)gtk_builder_get_object(builder, "window");
     assert(window != nullptr);
     g_print("window found in glade file\n");
+
+    // Connect the GTK window to the application
+    assert(window != nullptr);
+    assert(app != nullptr);
+    gtk_window_set_application(window, app);
 
     // Destroy the glade builder
     assert(builder != nullptr);
@@ -56,18 +59,22 @@ static void activate(GtkApplication *app, gpointer user_data)
 
     // Show the window
     assert(window != nullptr);
-    gtk_widget_show_all(window);
+    gtk_widget_show_all((GtkWidget*)window);
     g_print("window shown\n");
 }
 
 int main(int argc, char **argv)
 {
-    GtkApplication *app;
-    int status;
+    GtkApplication *app = nullptr;
+    int status = -1;
 
     app = gtk_application_new("software.drill", G_APPLICATION_FLAGS_NONE);
+    assert(app != nullptr);
+
     g_signal_connect(app, "activate", G_CALLBACK(activate), NULL);
     status = g_application_run(G_APPLICATION(app), argc, argv);
+
+    assert(app != nullptr);
     g_object_unref(app);
-    return (status);
+    return status;
 }
