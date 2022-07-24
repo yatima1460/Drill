@@ -14,7 +14,7 @@ on:
 
 jobs:
 
-  gtk:
+  ci-cli:
     runs-on: ubuntu-22.04
     steps:
     - name: Clone repo
