@@ -59,7 +59,7 @@ static void activate(GtkApplication *app, gpointer user_data)
 
     // Show the window
     assert(window != nullptr);
-    gtk_widget_show_all((GtkWidget*)window);
+    gtk_widget_show_all((GtkWidget *)window);
     g_print("window shown\n");
 }
 
