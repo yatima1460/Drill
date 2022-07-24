@@ -45,7 +45,7 @@ namespace Drill
                 auto directory = queue.back();
                 queue.pop_back();
 
-                // console->warn("Scanning {0}", directory);
+                console->trace("Scanning {0}", directory);
 
                 try
                 {
@@ -81,9 +81,9 @@ namespace Drill
                         console->warn("Unknown file type: `{0}`", entry.path().c_str());
                     }
                 }
-                catch (std::filesystem::filesystem_error &e)
+                catch (std::exception &e)
                 {
-                    console->warn(e.what());
+                    console->error(e.what());
                 }
             }
         }
