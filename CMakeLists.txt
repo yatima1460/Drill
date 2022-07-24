@@ -3,16 +3,6 @@ cmake_minimum_required(VERSION 3.22.1)
 
 project (Drill CXX)
 
-if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-  # using Clang
-elseif (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-  # using GCC
-  add_definitions("-Wall" "-Wextra" "-g" "-std=c++17" "-fPIC")
-elseif (CMAKE_CXX_COMPILER_ID STREQUAL "Intel")
-  # using Intel C++
-elseif (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
-  # using Visual Studio C++
-endif()
 
 
 # Core
@@ -52,5 +42,25 @@ set_property(TARGET drill-gtk PROPERTY CXX_STANDARD 17)
 ## GTK assets
 file(COPY gtk/assets DESTINATION ${CMAKE_BINARY_DIR})
 target_link_libraries(drill-gtk drill-core)
+
+if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O0")
+endif()
+    
+if (CMAKE_BUILD_TYPE STREQUAL "Release")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3")
+endif()
+
+# if (CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
+#     set(OE_BUILD_TYPE_DEFINE "OE_DEBUG")
+# endif()
+
+# if (CMAKE_BUILD_TYPE STREQUAL "MinSizeRel")
+#     set(OE_BUILD_TYPE_DEFINE "OE_RELEASE")
+# endif()
+
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wno-unused-parameter")
+
+
 
 set(CMAKE_CXX_CLANG_TIDY "clang-tidy;-checks=*")
