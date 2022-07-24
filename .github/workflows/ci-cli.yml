@@ -9,7 +9,7 @@ on:
       - cpp17
     paths:
       - core
-      - gtk
+      - cli
       - .github/workflows/ci-cli.yml
 
 jobs:
