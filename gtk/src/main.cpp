@@ -46,6 +46,22 @@ static void activate(GtkApplication *app, gpointer user_data)
     assert(window != nullptr);
     g_print("window found in glade file\n");
 
+    // Load Drill icon
+    if( gtk_window_set_icon_from_file(window,"assets/icon.png",&error) == 0)
+    {
+        assert(error != nullptr);
+        g_printerr("Error loading file: %s\n", error->message);
+        assert(error != nullptr);
+        g_clear_error(&error);
+        exit(EXIT_FAILURE);
+    }
+
+    // Set debug title if debug version
+#ifndef NDEBUG
+    assert(window != nullptr);
+    gtk_window_set_title(window, "Drill (DEBUG VERSION)");
+#endif
+
     // Connect the GTK window to the application
     assert(window != nullptr);
     assert(app != nullptr);
