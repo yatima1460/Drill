@@ -6,13 +6,63 @@
 #include <iostream>
 #include <sstream>
 
+// TODO: icons on filenames
+// TODO: right click menu and update screenshot with it
+// TODO: pressing return should open the first result
+// TODO: apps sorted by date
+// TODO: code coverage
+// TODO: modern round icon
 
+
+// Callback called when pressing [X]
 void window_destroy(GtkWindow* window, gpointer data)
 {
     assert(window != nullptr);
     // assert(data != nullptr);
     g_print("Window [X] pressed!\n");
 }
+
+// Callback called by GTK when ESC is pressed
+bool check_escape(GtkWidget* widget, GdkEventKey* event, gpointer data)
+{
+  
+
+    if (event->keyval == GDK_KEY_Escape)
+    {
+        g_print("ESC pressed\n");
+        // assert(context !is null);
+        // g_idle_remove_by_data(context);
+
+        //assert(context != nullptr);
+        // FIXME: stop crawling
+
+        // assert(app != nullptr);
+        // g_application_quit(app);
+        // FIXME: exit
+
+        return true;
+    }
+    return false;
+}
+
+void gtk_search_changed(GtkEditable* widget, gpointer data)
+{
+    assert(widget != nullptr);
+    // assert(data != nullptr);
+    g_print("search changed\n");
+
+    // Get input string in the search text field
+    assert(widget != nullptr);
+    char* str = gtk_editable_get_chars((GtkEditable*) widget, 0, -1);
+    assert(str != nullptr);
+    std::string searchString(str);
+    g_print("input string: %s\n", str);
+    free(str);
+    str = nullptr;
+
+    
+}
+
 
 static void activate(GtkApplication *app, gpointer user_data)
 {
@@ -78,6 +128,26 @@ static void activate(GtkApplication *app, gpointer user_data)
 
     // Event when the window is closed using the [X]
     g_signal_connect(window, "destroy", G_CALLBACK(window_destroy), nullptr);
+
+    /* Event when a key is pressed:
+        - Used to check Escape to close
+        - Return/Enter to start the selected result 
+    */
+    g_signal_connect(window, "key_press_event", G_CALLBACK(check_escape), nullptr);
+
+    // Load default empty list
+    GtkListStore* liststore = (GtkListStore*)gtk_builder_get_object(builder, "liststore");
+    assert(liststore != nullptr);
+
+    // Load search entry from UI file
+    GtkEntry* search_input = (GtkEntry*) gtk_builder_get_object(builder, "search_input");
+    assert(search_input != nullptr);
+    gtk_entry_set_progress_fraction(search_input, 0.0);
+    gtk_entry_set_progress_pulse_step(search_input, 0.0);
+    gtk_entry_progress_pulse(search_input);
+
+    // Event when something is typed in the search box
+    g_signal_connect(search_input, "changed", G_CALLBACK(gtk_search_changed), nullptr);
 
     // Destroy the glade builder
     assert(builder != nullptr);
