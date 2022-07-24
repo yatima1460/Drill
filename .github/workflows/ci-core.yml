@@ -5,13 +5,8 @@ on:
   pull_request:
 
     paths:
-      - core
+      - core/**
       - .github/workflows/ci-core.yml
-      
-    branches:
-      - master
-      - main
-      - cpp17
 
 
 jobs:

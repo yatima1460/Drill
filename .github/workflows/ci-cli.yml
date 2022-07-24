@@ -3,13 +3,10 @@ name: ci-cli
 on:
 
   pull_request:
-    branches:
-      - master
-      - main
-      - cpp17
+
     paths:
-      - core
-      - cli
+      - core/**
+      - cli/**
       - .github/workflows/ci-cli.yml
 
 jobs:

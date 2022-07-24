@@ -3,13 +3,10 @@ name: ci-gtk
 on:
 
   pull_request:
-    branches:
-      - master
-      - main
-      - cpp17
+
     paths:
-      - core
-      - gtk
+      - core/**
+      - gtk/**
       - .github/workflows/ci-gtk.yml
 
 jobs:
