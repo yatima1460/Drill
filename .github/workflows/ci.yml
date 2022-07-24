@@ -12,10 +12,14 @@ on:
 
 jobs:
 
-  linux:
+  cli:
 
     name: "Linux"
     runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+      matrix:
+        version: ["core", "cli", "gtk"]
     steps:
     - name: Clone repo
       uses: actions/checkout@v3
@@ -23,6 +27,8 @@ jobs:
         submodules: 'recursive'
     - name: Run CMake
       run: mkdir build && cd build && cmake ..
+      working-directory: ${{ matrix.version }}
     - name: Build
       run: make -j`nproc`
-      working-directory: build
+      working-directory: ${{ matrix.version }}/build
+
