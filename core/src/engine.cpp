@@ -60,7 +60,7 @@ namespace Drill
             }
 
 #ifndef NDEBUG
-            for (const auto mountpoint : mountpoints)
+            for (const auto& mountpoint : mountpoints)
             {
                 console->debug("Found mountpoint `{0}`", mountpoint);
             }
