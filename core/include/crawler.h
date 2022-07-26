@@ -18,7 +18,8 @@ struct drill_crawler_config
 
 void drill_crawler_scan(struct drill_crawler_config* config);
 
+// Sink callback, if it's set as results callback the crawlers will stop
 inline void drill_crawler_stop_callback(struct drill_result results)
 {
-
+    // black hole..
 }
