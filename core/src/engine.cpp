@@ -9,11 +9,7 @@
 #include "engine.h"
 #include "os.h"
 
-namespace Drill
-{
 
-    namespace engine
-    {
 
         /**
          * @brief Search for a string in a directory and its subdirectories, this function returns only after
@@ -21,7 +17,7 @@ namespace Drill
          * @param searchValue The value to search for.
          * @param results_callback The callback function to call for each result.
          */
-        std::vector<std::thread *> search_async(std::string searchValue, void (*resultsCallback)(struct drill_result results))
+        std::vector<std::thread *> drill_search_async(std::string searchValue, void (*resultsCallback)(struct drill_result results))
         {
 
             std::vector<std::thread *> crawlers;
@@ -36,7 +32,7 @@ namespace Drill
 #endif
 
             // get drives
-            std::vector<std::string> mountpoints = system::get_mountpoints();
+            std::vector<std::string> mountpoints = Drill::system::get_mountpoints();
 
             mountpoints.clear();
             mountpoints.push_back(std::string("/"));
@@ -82,7 +78,7 @@ namespace Drill
         }
 
 
-        void wait_crawlers(std::vector<std::thread *> crawlers)
+        void drill_search_wait(std::vector<std::thread *> crawlers)
         {
             // wait for all crawlers to finish
             for (size_t i = 0; i < crawlers.size(); i++)
@@ -93,6 +89,3 @@ namespace Drill
                 crawlers[i] = nullptr;
             }
         }
-    } // namespace engine
-
-} // namespace Drill

@@ -7,25 +7,22 @@
 
 #include "engine.h"
 
-auto console = spdlog::stdout_color_mt("CLI");
-
-void results_callback(Drill::result::result result) { console->info("{0}", result.path); }
+// Show only bare results fullpaths without any time or spdlog formatting
+// Note: POSIX enforces that stdio is locking
+void results_callback(struct drill_result result) { printf("%s\n", result.path); }
 
 int main(int argc, char const *argv[])
 {
     if (argc < 2)
     {
-        console->error("Usage: drill <search_value>");
+        fprintf(stderr, "Usage: drill <search_value>\n");
         return EXIT_FAILURE;
     }
 
     std::string searchValue = argv[1];
 
-    // show only bare results fullpaths without any time or spdlog formatting
-    console->set_pattern("%v");
-
     // Start drilling in a sync way
-    Drill::engine::wait_crawlers(Drill::engine::search_async(searchValue, results_callback));
-    
+    drill_search_wait(drill_search_async(searchValue, results_callback));
+
     return EXIT_SUCCESS;
 }

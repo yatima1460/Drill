@@ -100,7 +100,7 @@ void gtk_search_changed(GtkEditable* widget, gpointer data)
 
     if (searchString.size() != 0)
     {
-        Drill::engine::search_async(searchString, result_found);
+        drill_search_async(searchString, result_found);
     }
 
 }

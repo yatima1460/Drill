@@ -6,12 +6,7 @@
 
 #include "crawler.h"
 
-namespace Drill
-{
-
-    namespace engine
-    {
-        std::vector<std::thread *> search_async(std::string search_value, void (*results_callback)(struct drill_result result));
-        void wait_crawlers(std::vector<std::thread *> crawlers);
-    }
-} // namespace Drill
+std::vector<std::thread *> drill_search_async(std::string search_value,
+                                              void (*results_callback)(struct drill_result result));
+                                              
+void drill_search_wait(std::vector<std::thread *> crawlers);
