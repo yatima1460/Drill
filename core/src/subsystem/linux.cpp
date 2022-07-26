@@ -39,42 +39,26 @@ std::ostream &operator<<(std::ostream &stream, const Mount &mount)
 
 vector<string> Drill::system::get_mountpoints()
 {
-
-    std::ifstream mountInfo("/proc/mounts");
-
     vector<string> mps;
 
-    while (!mountInfo.eof())
+    struct mntent *ent;
+    FILE *aFile;
+
+    aFile = setmntent("/proc/mounts", "r");
+    if (aFile == NULL)
     {
-        Mount each;
-        mountInfo >> each.device >> each.destination >> each.fstype >> each.options >> each.dump >> each.pass;
-        mps.push_back(each.destination);
-        // if( each.device != "" )
-        //     std::cout << each << std::endl;
+        perror("setmntent");
+        exit(1);
     }
+    while (NULL != (ent = getmntent(aFile)))
+    {
+        mps.push_back(ent->mnt_dir);
+    }
+    endmntent(aFile);
+
 
     return mps;
 
-    // return 0;
-
-    // vector<string> mps;
-    // struct mntent *ent;
-    // FILE *aFile;
-
-    // aFile = setmntent("/proc/mounts", "r");
-    // if (aFile == nullptr)
-    // {
-    //     // perror("setmntent");
-    //     // mps.push_back("/");
-    //     return mps;
-    // }
-    // while (nullptr != (ent = getmntent(aFile)))
-    // {
-    //     mps.push_back(ent->mnt_dir);
-    //     //TODO: blacklist here for ent->mnt_fsname
-    // }
-    // endmntent(aFile);
-    // return mps;
 }
 
 std::string sanitize_path(const std::string &path)
