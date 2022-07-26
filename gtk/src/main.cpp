@@ -53,7 +53,7 @@ bool check_escape(GtkWidget* widget, GdkEventKey* event, gpointer data)
 }
 
 
-std::vector<std::thread *> current_crawlers;
+std::vector<struct drill_crawler_config*> crawlers;
 GAsyncQueue * queue;
 GtkListStore* liststore;
 GtkTreeView* treeview;
@@ -72,9 +72,11 @@ void result_found(struct drill_result result)
 
 void gtk_search_changed(GtkEditable* widget, gpointer data)
 {
-    assert(widget != nullptr);
-    // assert(data != nullptr);
     g_print("search changed\n");
+
+    // Stop crawling
+    drill_search_stop_async(crawlers);
+    crawlers.clear();
     
     // Get input string in the search text field
     assert(widget != nullptr);
@@ -82,16 +84,11 @@ void gtk_search_changed(GtkEditable* widget, gpointer data)
     assert(str != nullptr);
     
     g_print("input string: %s\n", str);
-    
-
-    // Stop crawling
-
 
     // Reset list
-    GtkListStore* newStore = gtk_list_store_new(5 ,G_TYPE_STRING,G_TYPE_STRING,G_TYPE_STRING,G_TYPE_STRING,G_TYPE_STRING);
-    gtk_tree_view_set_model(treeview, (GtkTreeModel*)newStore);
-    liststore = (GtkListStore*) newStore;
+    liststore = gtk_list_store_new(5 ,G_TYPE_STRING,G_TYPE_STRING,G_TYPE_STRING,G_TYPE_STRING,G_TYPE_STRING);
     assert(liststore != nullptr);
+    gtk_tree_view_set_model(treeview, (GtkTreeModel*)liststore);
     
     // Reset queue
     g_async_queue_unref(queue);
@@ -99,7 +96,7 @@ void gtk_search_changed(GtkEditable* widget, gpointer data)
 
     if (strlen(str) != 0)
     {
-        drill_search_async(str, result_found);
+        crawlers = drill_search_async(str, result_found);
     }
 }
 

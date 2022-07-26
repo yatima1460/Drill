@@ -10,15 +10,17 @@
 #include "result.h"
 #include "string_utils.hpp"
 
+
+
+
 namespace fs = std::filesystem;
-void drill_crawler_scan(std::string mountpoint, std::string searchValue,
-                        void (*resultsCallback)(struct drill_result results))
+void drill_crawler_scan(struct drill_crawler_config* config)
 {
 
     //console->info("Crawler started {0}", mountpoint);
 
     std::vector<std::string> queue;
-    queue.push_back(mountpoint);
+    queue.push_back(config->root);
 
     /*
     README!!!
@@ -48,6 +50,11 @@ void drill_crawler_scan(std::string mountpoint, std::string searchValue,
             for (const auto &entry : fs::directory_iterator(directory))
             {
 
+                if (config->results_callback == drill_crawler_stop_callback)
+                {
+                    queue.clear();
+                    break;
+                }
                 if (entry.is_symlink() || entry.is_block_file() || entry.is_character_file() ||
                     entry.is_fifo() || entry.is_socket() || entry.is_other())
                 {
@@ -64,10 +71,10 @@ void drill_crawler_scan(std::string mountpoint, std::string searchValue,
 
                 if (entry.is_regular_file())
                 {
-                    if (Drill::string_utils::tokenSearch(entry.path().filename().string(), searchValue))
+                    if (Drill::string_utils::tokenSearch(entry.path().filename().string(), config->search_value))
                     {
                         //console->info("Found file: `{0}`", entry.path().string());
-                        resultsCallback(drill_result_new(entry.path().c_str()));
+                        config->results_callback(drill_result_new(entry.path().c_str()));
                     }
                     continue;
                 }

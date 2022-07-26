@@ -13,11 +13,11 @@
  * @param searchValue The value to search for.
  * @param results_callback The callback function to call for each result.
  */
-std::vector<std::thread *> drill_search_async(const char *searchValue,
+std::vector<struct drill_crawler_config*> drill_search_async(const char *searchValue,
                                               void (*resultsCallback)(struct drill_result results))
 {
 
-    std::vector<std::thread *> crawlers;
+    std::vector<struct drill_crawler_config*> crawlers;
 
     // auto console = spdlog::stdout_color_mt("Drill");
 
@@ -63,24 +63,47 @@ std::vector<std::thread *> drill_search_async(const char *searchValue,
     for (const auto &mountpoint : mountpoints)
     {
         // FIXME: add other mountpoints in blocklist of this crawler
-        std::thread *thread_object = new std::thread(&drill_crawler_scan, mountpoint,
-                                                     std::string(searchValue), resultsCallback);
+        struct drill_crawler_config* dcc = new drill_crawler_config();
+        dcc->thread = nullptr;
+        dcc->root = mountpoint;
+        dcc->search_value = std::string(searchValue);
+        dcc->results_callback = resultsCallback;
+        dcc->stop = false;
+
+        std::thread *thread_object = new std::thread(&drill_crawler_scan, dcc);
+        dcc->thread = thread_object;
 
         // console->info("Spawned crawler for mountpoint `{0}`", mountpoint);
-        crawlers.push_back(thread_object);
+        crawlers.push_back(dcc);
     }
 
     return crawlers;
 }
 
-void drill_search_wait(std::vector<std::thread *> crawlers)
+void drill_search_wait(std::vector<struct drill_crawler_config*> crawlers)
 {
     // wait for all crawlers to finish
     for (size_t i = 0; i < crawlers.size(); i++)
     {
-        auto thread = crawlers[i];
+        auto thread = crawlers[i]->thread;
         thread->join();
         delete thread;
-        crawlers[i] = nullptr;
+        crawlers[i]->thread = nullptr;
+    }
+}
+
+
+
+void drill_search_stop_sync(std::vector<struct drill_crawler_config*> crawlers)
+{
+    drill_search_stop_async(crawlers);
+    drill_search_wait(crawlers);
+}
+
+void drill_search_stop_async(std::vector<struct drill_crawler_config*> crawlers)
+{
+    for (size_t i = 0; i < crawlers.size(); i++)
+    {
+        crawlers[i]->results_callback = drill_crawler_stop_callback;
     }
 }
