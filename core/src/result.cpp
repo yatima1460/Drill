@@ -39,6 +39,7 @@ struct drill_result drill_result_new(const char* path)
     if (stat(path, &rst) == 0)
     {
         auto mod_time = rst.st_mtime;
+        dr.file_size = rst.st_size;
         dr.last_write_time = mod_time;
     }
 
