@@ -148,7 +148,7 @@ void appendFileInfo(GtkListStore* store, struct drill_result* fileInfo, void* GT
 
     auto time_str = Drill::string_utils::time_to_string(fileInfo->last_write_time);
 
-    gtk_list_store_set(store, &iter, 0, icon.c_str(), 1, fileInfo->path.c_str(), 2, "PARENT TODO", 3, "SIZE", 4, time_str.c_str(), -1);
+    gtk_list_store_set(store, &iter, 0, icon.c_str(), 1, fileInfo->path, 2, "PARENT TODO", 3, "SIZE", 4, time_str.c_str(), -1);
 
 }
 

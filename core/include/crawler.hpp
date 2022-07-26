@@ -6,7 +6,7 @@
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/spdlog.h>
 
-#include "result.hpp"
+#include "result.h"
 
 namespace Drill
 {

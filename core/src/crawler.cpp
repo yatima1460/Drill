@@ -8,7 +8,7 @@
 
 #include "crawler.hpp"
 #include "string_utils.hpp"
-#include "result.hpp"
+#include "result.h"
 
 namespace Drill
 {
@@ -74,7 +74,7 @@ namespace Drill
                                                                  searchValue))
                             {
                                 console->info("Found file: `{0}`", entry.path().string());
-                                resultsCallback(drill_result_new(entry));
+                                resultsCallback(drill_result_new(entry.path().c_str()));
                             }
                             continue;
                         }

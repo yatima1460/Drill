@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.22.1)
 
 
-project (Drill CXX)
+project (Drill C CXX)
 
 
 
@@ -21,10 +21,10 @@ if(NOT UNIX AND APPLE)
     message(STATUS "Apple")
     set(SUBSYSTEM "core/src/subsystem/apple.cpp")
 endif()
-file(GLOB CORE_SRC_FILES core/src/*.cpp)
+file(GLOB CORE_SRC_FILES core/src/*.cpp core/src/*.c)
 add_library(drill-core ${CORE_SRC_FILES} ${SUBSYSTEM})
 set_property(TARGET drill-core PROPERTY CXX_STANDARD 17)
-
+set_property(TARGET drill-core PROPERTY C_STANDARD 17)
 # CLI
 add_subdirectory(vendor/spdlog)
 include_directories(core/include)
