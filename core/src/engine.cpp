@@ -3,9 +3,7 @@
 #include <thread>
 #include <vector>
 
-#include "spdlog/sinks/stdout_color_sinks.h"
-#include "spdlog/spdlog.h"
-
+#include <algorithm>
 #include "engine.h"
 #include "os.h"
 
@@ -21,14 +19,14 @@ std::vector<std::thread *> drill_search_async(const char *searchValue,
 
     std::vector<std::thread *> crawlers;
 
-    auto console = spdlog::stdout_color_mt("Drill");
+    // auto console = spdlog::stdout_color_mt("Drill");
 
-#ifndef NDEBUG
-    console->set_level(spdlog::level::debug);
-    console->debug("Debug mode enabled");
-#else
-    console->set_level(spdlog::level::err);
-#endif
+// #ifndef NDEBUG
+//     console->set_level(spdlog::level::debug);
+//     console->debug("Debug mode enabled");
+// #else
+//     console->set_level(spdlog::level::err);
+// #endif
 
     // get drives
     std::vector<std::string> mountpoints = Drill::system::get_mountpoints();
@@ -40,7 +38,7 @@ std::vector<std::thread *> drill_search_async(const char *searchValue,
     // remove duplicates for drives list
     if (mountpoints.size() == 0)
     {
-        spdlog::error("No mountpoints found, falling back to root");
+        //spdlog::error("No mountpoints found, falling back to root");
         mountpoints.push_back("/");
     }
     else
@@ -49,15 +47,15 @@ std::vector<std::thread *> drill_search_async(const char *searchValue,
         std::sort(mountpoints.begin(), mountpoints.end());
         mountpoints.erase(std::unique(mountpoints.begin(), mountpoints.end()), mountpoints.end());
 
-        if (oldSize != mountpoints.size())
-            console->warn("Found {0} duplicate entries in mountpoints, removed",
-                          oldSize - mountpoints.size());
+        // if (oldSize != mountpoints.size())
+        //     console->warn("Found {0} duplicate entries in mountpoints, removed",
+        //                   oldSize - mountpoints.size());
     }
 
 #ifndef NDEBUG
     for (const auto &mountpoint : mountpoints)
     {
-        console->debug("Found mountpoint `{0}`", mountpoint);
+        // console->debug("Found mountpoint `{0}`", mountpoint);
     }
 #endif
 
@@ -66,9 +64,9 @@ std::vector<std::thread *> drill_search_async(const char *searchValue,
     {
         // FIXME: add other mountpoints in blocklist of this crawler
         std::thread *thread_object = new std::thread(&drill_crawler_scan, mountpoint,
-                                                     std::string(searchValue), resultsCallback, console);
+                                                     std::string(searchValue), resultsCallback);
 
-        console->info("Spawned crawler for mountpoint `{0}`", mountpoint);
+        // console->info("Spawned crawler for mountpoint `{0}`", mountpoint);
         crawlers.push_back(thread_object);
     }
 

@@ -85,7 +85,7 @@ endif()
 
 include_directories(vendor/log.c/src)
 include_directories(core/include)
-include_directories(vendor/spdlog/include)
+# include_directories(vendor/spdlog/include)
 
 
 set(CMAKE_CXX_CLANG_TIDY "clang-tidy;-checks=*")

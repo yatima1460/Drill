@@ -4,7 +4,7 @@
 #include <iostream>
 #include <thread>
 
-#include "spdlog/spdlog.h"
+#include <vector>
 
 #include "crawler.h"
 #include "result.h"
@@ -12,11 +12,10 @@
 
 namespace fs = std::filesystem;
 void drill_crawler_scan(std::string mountpoint, std::string searchValue,
-                        void (*resultsCallback)(struct drill_result results),
-                        std::shared_ptr<spdlog::logger> console)
+                        void (*resultsCallback)(struct drill_result results))
 {
 
-    console->info("Crawler started {0}", mountpoint);
+    //console->info("Crawler started {0}", mountpoint);
 
     std::vector<std::string> queue;
     queue.push_back(mountpoint);
@@ -42,7 +41,7 @@ void drill_crawler_scan(std::string mountpoint, std::string searchValue,
         auto directory = queue.back();
         queue.pop_back();
 
-        console->trace("Scanning {0}", directory);
+        //console->trace("Scanning {0}", directory);
 
         try
         {
@@ -52,8 +51,8 @@ void drill_crawler_scan(std::string mountpoint, std::string searchValue,
                 if (entry.is_symlink() || entry.is_block_file() || entry.is_character_file() ||
                     entry.is_fifo() || entry.is_socket() || entry.is_other())
                 {
-                    console->trace("Special symlink/block/character/fifo/socket/other file ignored: `{0}`",
-                                   entry.path().string());
+                    //console->trace("Special symlink/block/character/fifo/socket/other file ignored: `{0}`",
+                    //               entry.path().string());
                     continue;
                 }
 
@@ -67,18 +66,18 @@ void drill_crawler_scan(std::string mountpoint, std::string searchValue,
                 {
                     if (Drill::string_utils::tokenSearch(entry.path().filename().string(), searchValue))
                     {
-                        console->info("Found file: `{0}`", entry.path().string());
+                        //console->info("Found file: `{0}`", entry.path().string());
                         resultsCallback(drill_result_new(entry.path().c_str()));
                     }
                     continue;
                 }
 
-                console->warn("Unknown file type: `{0}`", entry.path().string());
+                //console->warn("Unknown file type: `{0}`", entry.path().string());
             }
         }
         catch (std::exception &e)
         {
-            console->warn(e.what());
+            //console->warn(e.what());
         }
     }
 }

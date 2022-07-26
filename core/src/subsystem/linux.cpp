@@ -8,7 +8,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include <spdlog/spdlog.h>
+
 
 #include "os.h"
 
