@@ -3,7 +3,11 @@ cmake_minimum_required(VERSION 3.22.1)
 
 project (Drill C CXX)
 
+set(CMAKE_VERBOSE_MAKEFILE OFF)
 
+# log.c
+add_library(log-c vendor/log.c/src/log.c)
+set_property(TARGET log-c PROPERTY C_STANDARD 17)
 
 # Core
 if(UNIX AND NOT APPLE) 
@@ -24,14 +28,14 @@ endif()
 file(GLOB CORE_SRC_FILES core/src/*.cpp core/src/*.c)
 add_library(drill-core ${CORE_SRC_FILES} ${SUBSYSTEM})
 set_property(TARGET drill-core PROPERTY CXX_STANDARD 17)
-set_property(TARGET drill-core PROPERTY C_STANDARD 17)
 # CLI
 add_subdirectory(vendor/spdlog)
-include_directories(core/include)
-include_directories(vendor/spdlog/include)
+
 add_executable(drill-cli cli/CLI.cpp)
 set_property(TARGET drill-cli PROPERTY CXX_STANDARD 17)
+target_link_libraries(drill-cli log-c)
 target_link_libraries(drill-cli drill-core)
+
 
 # GTK
 if(OS_LINUX) 
@@ -46,7 +50,9 @@ if(OS_LINUX)
     set_property(TARGET drill-gtk PROPERTY CXX_STANDARD 17)
     ## GTK assets
     file(COPY gtk/assets DESTINATION ${CMAKE_BINARY_DIR})
+    target_link_libraries(drill-gtk log-c)
     target_link_libraries(drill-gtk drill-core)
+
 endif()
 
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
@@ -77,7 +83,9 @@ elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -W4")
 endif()
 
-
+include_directories(vendor/log.c/src)
+include_directories(core/include)
+include_directories(vendor/spdlog/include)
 
 
 set(CMAKE_CXX_CLANG_TIDY "clang-tidy;-checks=*")

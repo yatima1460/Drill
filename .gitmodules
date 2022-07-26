@@ -1,3 +1,6 @@
 [submodule "core/spdlog"]
 	path = vendor/spdlog
 	url = https://github.com/gabime/spdlog
+[submodule "vendor/log.c"]
+	path = vendor/log.c
+	url = https://github.com/rxi/log.c
