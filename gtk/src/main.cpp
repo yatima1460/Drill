@@ -51,15 +51,21 @@ bool check_escape(GtkWidget* widget, GdkEventKey* event, gpointer data)
 }
 
 
+std::vector<std::thread *> current_crawlers;
+GAsyncQueue * queue;
+GtkListStore* liststore;
+
 // Callback called by Drill when a new result is found
 void result_found(Drill::result::result result)
 {
+    auto heapResult = new Drill::result::result(result);
+    if(queue != nullptr)
+        g_async_queue_push(queue, heapResult);
     // gtk_queue = userObject;
     // g_async_queue_push(queue, result);
 }
 
 
-std::vector<std::thread *> current_crawlers;
 
 void gtk_search_changed(GtkEditable* widget, gpointer data)
 {
@@ -78,6 +84,100 @@ void gtk_search_changed(GtkEditable* widget, gpointer data)
 
     Drill::engine::search_async(searchString, result_found);
     
+}
+
+
+void appendFileInfo(GtkListStore* store, Drill::result::result* fileInfo, void* GTKIconsUnused)
+{
+    GtkTreeIter iter;
+
+
+
+    std::string icon = "file";
+
+    if (fileInfo->is_directory)
+    {
+        icon = "folder";
+    }
+    else
+    {
+        //icon = GTKIcons.get(fileInfo.extension.replace(".", ""),"null");
+       // icon = getGTKIconNameFromExtension(fileInfo.extension.replace(".", ""));
+    }
+   
+    // TODO: icons
+    // else
+    // {
+    //     try
+    //     {
+
+    //         synchronized
+    //         {
+    //             immutable auto iconMaybe = executeShell("grep '" ~ fileInfo.extension.replace(".", "") ~ "' /etc/mime.types");
+    //             if (iconMaybe.status == 0)
+    //             {
+
+    //                 icon = iconMaybe.output.replace("/", "-");
+
+    //             }
+    //             else
+    //             {
+    //                 icon = "none";
+    //             }
+    //         }
+
+    //     }
+    //     catch (Exception e)
+    //     {
+    //         icon = "none";
+    //     }
+
+    // }
+    
+
+    // auto name = toStringz(fileInfo.fileName);
+    // //auto parent = toStringz(fileInfo.thread ~ ":"~fileInfo.containingFolder);
+    // auto parent = toStringz(fileInfo.containingFolder);
+    // auto size = toStringz(fileInfo.sizeString);
+    // auto date = toStringz(fileInfo.dateModifiedString);
+
+    /* Append a row and fill in some data */
+    gtk_list_store_append(store, &iter);
+
+  
+
+    gtk_list_store_set(store, &iter, 0, icon.c_str(), 1, fileInfo->path.c_str(), 2, "PARENT TODO", 3, "SIZE", 4, "LAST_WRITE_TIME", -1);
+
+}
+
+
+gboolean check_async_queue(gpointer user_data)
+{
+    if (queue == nullptr)
+        return false; 
+
+
+    gpointer queue_data = nullptr;
+
+    // If there is some data add it to the UI
+    // Add a maximum of ~20 elements at a time to prevent GTK from lagging
+    uint frameCutoff = 20;
+    while(frameCutoff > 0 && (queue_data = g_async_queue_try_pop(queue)) != nullptr)
+    {
+        Drill::result::result* fi = (Drill::result::result*) queue_data;
+        assert(fi != nullptr );
+        assert(liststore != nullptr);
+
+        appendFileInfo(liststore,fi,nullptr);
+        //gtk_entry_set_progress_pulse_step (context.search_input,0.001);
+        //gtk_entry_progress_pulse (context.search_input);
+
+        
+        frameCutoff--;
+    }
+
+
+    return true;
 }
 
 
@@ -152,9 +252,7 @@ static void activate(GtkApplication *app, gpointer user_data)
     */
     g_signal_connect(window, "key_press_event", G_CALLBACK(check_escape), nullptr);
 
-    // Load default empty list
-    GtkListStore* liststore = (GtkListStore*)gtk_builder_get_object(builder, "liststore");
-    assert(liststore != nullptr);
+
 
     // Load search entry from UI file
     GtkEntry* search_input = (GtkEntry*) gtk_builder_get_object(builder, "search_input");
@@ -166,11 +264,22 @@ static void activate(GtkApplication *app, gpointer user_data)
     // Event when something is typed in the search box
     g_signal_connect(search_input, "changed", G_CALLBACK(gtk_search_changed), nullptr);
 
+    // Load default empty list
+    liststore = (GtkListStore*) gtk_builder_get_object(builder, "liststore");
+    assert(liststore != nullptr);
+
     // Destroy the glade builder
     assert(builder != nullptr);
     g_object_unref(builder);
     builder = nullptr;
     g_print("glade builder destroyed\n");
+
+    // Create async queue for Drill threads to put their results into
+    queue = g_async_queue_new();
+    assert(queue != nullptr);
+
+    // Add task on main thread to fetch results from Drill threads
+    g_timeout_add(16, &check_async_queue, nullptr);
 
     // Show the window
     assert(window != nullptr);
