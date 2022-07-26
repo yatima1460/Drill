@@ -56,6 +56,7 @@ bool check_escape(GtkWidget* widget, GdkEventKey* event, gpointer data)
 std::vector<std::thread *> current_crawlers;
 GAsyncQueue * queue;
 GtkListStore* liststore;
+GtkTreeView* treeview;
 
 // Callback called by Drill when a new result is found
 void result_found(struct drill_result result)
@@ -84,8 +85,24 @@ void gtk_search_changed(GtkEditable* widget, gpointer data)
     free(str);
     str = nullptr;
 
-    Drill::engine::search_async(searchString, result_found);
+    // Stop crawling
+
+
+    // Reset list
+    GtkListStore* newStore = gtk_list_store_new(5 ,G_TYPE_STRING,G_TYPE_STRING,G_TYPE_STRING,G_TYPE_STRING,G_TYPE_STRING);
+    gtk_tree_view_set_model(treeview, (GtkTreeModel*)newStore);
+    liststore = (GtkListStore*) newStore;
+    assert(liststore != nullptr);
     
+    // Reset queue
+    g_async_queue_unref(queue);
+    queue = g_async_queue_new();
+
+    if (searchString.size() != 0)
+    {
+        Drill::engine::search_async(searchString, result_found);
+    }
+
 }
 
 
@@ -273,6 +290,13 @@ static void activate(GtkApplication *app, gpointer user_data)
     // Load default empty list
     liststore = (GtkListStore*) gtk_builder_get_object(builder, "liststore");
     assert(liststore != nullptr);
+
+    
+    // Load default empty TreeView
+
+    treeview = (GtkTreeView*) gtk_builder_get_object(builder, "treeview");
+   
+
 
     // Destroy the glade builder
     assert(builder != nullptr);
