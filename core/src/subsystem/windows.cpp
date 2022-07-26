@@ -7,7 +7,7 @@
 
 #include <spdlog/spdlog.h>
 
-#include "../os.hpp"
+#include "os.h"
 
 using namespace std;
 
@@ -29,12 +29,12 @@ std::string Drill::system::get_current_user_home_folder()
     return sanitize_path(test);
 }
 
-bool Drill::system::doesPathExist(const std::string &s)
-{
-    if (s.length() == 0)
-        return false;
-    auto path = sanitize_path(s);
-    spdlog::trace("Checking if folder {0} exists", path);
-    struct stat buffer;
-    return (stat(path.c_str(), &buffer) == 0);
-}
+// bool Drill::system::doesPathExist(const std::string &s)
+// {
+//     if (s.length() == 0)
+//         return false;
+//     auto path = sanitize_path(s);
+//     spdlog::trace("Checking if folder {0} exists", path);
+//     struct stat buffer;
+//     return (stat(path.c_str(), &buffer) == 0);
+// }
