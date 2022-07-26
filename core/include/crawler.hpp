@@ -14,7 +14,7 @@ namespace Drill
     namespace crawler
     {
         void scan(std::string mountpoint, std::string searchValue,
-                  void (*resultsCallback)(result::result results), std::shared_ptr<spdlog::logger>);
+                  void (*resultsCallback)(struct drill_result results), std::shared_ptr<spdlog::logger>);
 
     }
 

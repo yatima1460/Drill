@@ -8,6 +8,7 @@
 
 #include "crawler.hpp"
 #include "string_utils.hpp"
+#include "result.hpp"
 
 namespace Drill
 {
@@ -16,7 +17,7 @@ namespace Drill
     {
         namespace fs = std::filesystem;
         void scan(std::string mountpoint, std::string searchValue,
-                  void (*resultsCallback)(result::result results), std::shared_ptr<spdlog::logger> console)
+                  void (*resultsCallback)(struct drill_result results), std::shared_ptr<spdlog::logger> console)
         {
 
             console->info("Crawler started {0}", mountpoint);
@@ -73,7 +74,7 @@ namespace Drill
                                                                  searchValue))
                             {
                                 console->info("Found file: `{0}`", entry.path().string());
-                                resultsCallback(result::result(entry));
+                                resultsCallback(drill_result_new(entry));
                             }
                             continue;
                         }

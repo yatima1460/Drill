@@ -21,7 +21,7 @@ namespace Drill
          * @param searchValue The value to search for.
          * @param results_callback The callback function to call for each result.
          */
-        std::vector<std::thread *> search_async(std::string searchValue, void (*resultsCallback)(result::result results))
+        std::vector<std::thread *> search_async(std::string searchValue, void (*resultsCallback)(struct drill_result results))
         {
 
             std::vector<std::thread *> crawlers;

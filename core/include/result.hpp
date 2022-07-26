@@ -3,27 +3,17 @@
 #include <filesystem>
 #include <string>
 
-namespace Drill
+
+
+
+
+struct drill_result
 {
+    uintmax_t file_size;
+    std::string path;
+    time_t last_write_time;
+    bool is_directory;
+};
 
-    namespace result
-    {
-        struct result
-        {
-            uintmax_t file_size;
-            std::string path;
-            std::filesystem::file_time_type last_write_time;
-            bool is_directory;
 
-            result(std::filesystem::directory_entry e)
-            {
-                is_directory = e.is_directory();
-
-                if (!is_directory)
-                    file_size = e.file_size();
-                path = std::string(e.path().string());
-                last_write_time = e.last_write_time();
-            }
-        };
-    } // namespace result
-} // namespace Drill
+struct drill_result drill_result_new(std::filesystem::directory_entry e);

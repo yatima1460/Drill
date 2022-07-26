@@ -10,6 +10,8 @@
 #include <engine.h>
 
 
+#include "string_utils.hpp"
+
 
 // TODO: icons on filenames
 // TODO: right click menu and update screenshot with it
@@ -56,9 +58,9 @@ GAsyncQueue * queue;
 GtkListStore* liststore;
 
 // Callback called by Drill when a new result is found
-void result_found(Drill::result::result result)
+void result_found(struct drill_result result)
 {
-    auto heapResult = new Drill::result::result(result);
+    auto heapResult = new struct drill_result(result);
     if(queue != nullptr)
         g_async_queue_push(queue, heapResult);
     // gtk_queue = userObject;
@@ -87,7 +89,7 @@ void gtk_search_changed(GtkEditable* widget, gpointer data)
 }
 
 
-void appendFileInfo(GtkListStore* store, Drill::result::result* fileInfo, void* GTKIconsUnused)
+void appendFileInfo(GtkListStore* store, struct drill_result* fileInfo, void* GTKIconsUnused)
 {
     GtkTreeIter iter;
 
@@ -144,9 +146,9 @@ void appendFileInfo(GtkListStore* store, Drill::result::result* fileInfo, void* 
     /* Append a row and fill in some data */
     gtk_list_store_append(store, &iter);
 
-  
+    auto time_str = Drill::string_utils::time_to_string(fileInfo->last_write_time);
 
-    gtk_list_store_set(store, &iter, 0, icon.c_str(), 1, fileInfo->path.c_str(), 2, "PARENT TODO", 3, "SIZE", 4, "LAST_WRITE_TIME", -1);
+    gtk_list_store_set(store, &iter, 0, icon.c_str(), 1, fileInfo->path.c_str(), 2, "PARENT TODO", 3, "SIZE", 4, time_str.c_str(), -1);
 
 }
 
@@ -164,7 +166,7 @@ gboolean check_async_queue(gpointer user_data)
     uint frameCutoff = 20;
     while(frameCutoff > 0 && (queue_data = g_async_queue_try_pop(queue)) != nullptr)
     {
-        Drill::result::result* fi = (Drill::result::result*) queue_data;
+        struct drill_result* fi = (struct drill_result*) queue_data;
         assert(fi != nullptr );
         assert(liststore != nullptr);
 

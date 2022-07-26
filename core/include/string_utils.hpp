@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <filesystem>
 
 namespace Drill
 {
@@ -9,5 +10,7 @@ namespace Drill
         bool tokenSearch(std::string main, std::string tokens);
 
         std::string to_lower(const std::string &);
+
+        std::string time_to_string(const time_t& time);
     } // namespace string_utils
 } // namespace Drill

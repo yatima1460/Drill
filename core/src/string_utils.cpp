@@ -7,6 +7,13 @@
 #include <sstream>
 #include <string>
 #include <vector>
+#include <chrono>
+#include <filesystem>
+
+#include <fstream>
+#include <iostream>
+#include <iostream>
+#include <sstream>
 
 namespace Drill
 {
@@ -55,6 +62,13 @@ namespace Drill
             std::transform(str.begin(), str.end(), result.begin(), ::tolower);
             return result;
         }
+
+        std::string time_to_string(const time_t &time)
+        {
+
+            return std::string(ctime(&time));
+        }
+
     } // namespace string_utils
 
 } // namespace Drill
