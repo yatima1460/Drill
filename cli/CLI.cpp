@@ -19,10 +19,8 @@ int main(int argc, char const *argv[])
         return EXIT_FAILURE;
     }
 
-    std::string searchValue = argv[1];
-
     // Start drilling in a sync way
-    drill_search_wait(drill_search_async(searchValue, results_callback));
+    drill_search_wait(drill_search_async(argv[1], results_callback));
 
     return EXIT_SUCCESS;
 }

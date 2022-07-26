@@ -75,15 +75,14 @@ void gtk_search_changed(GtkEditable* widget, gpointer data)
     assert(widget != nullptr);
     // assert(data != nullptr);
     g_print("search changed\n");
-
+    
     // Get input string in the search text field
     assert(widget != nullptr);
     char* str = gtk_editable_get_chars((GtkEditable*) widget, 0, -1);
     assert(str != nullptr);
-    std::string searchString(str);
+    
     g_print("input string: %s\n", str);
-    free(str);
-    str = nullptr;
+    
 
     // Stop crawling
 
@@ -98,11 +97,10 @@ void gtk_search_changed(GtkEditable* widget, gpointer data)
     g_async_queue_unref(queue);
     queue = g_async_queue_new();
 
-    if (searchString.size() != 0)
+    if (strlen(str) != 0)
     {
-        drill_search_async(searchString, result_found);
+        drill_search_async(str, result_found);
     }
-
 }
 
 

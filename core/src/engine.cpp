@@ -17,7 +17,7 @@
          * @param searchValue The value to search for.
          * @param results_callback The callback function to call for each result.
          */
-        std::vector<std::thread *> drill_search_async(std::string searchValue, void (*resultsCallback)(struct drill_result results))
+        std::vector<std::thread *> drill_search_async(const char* searchValue, void (*resultsCallback)(struct drill_result results))
         {
 
             std::vector<std::thread *> crawlers;
@@ -67,7 +67,7 @@
             {
                 // FIXME: add other mountpoints in blocklist of this crawler
                 std::thread *thread_object =
-                    new std::thread(&drill_crawler_scan, mountpoint, searchValue, resultsCallback, console);
+                    new std::thread(&drill_crawler_scan, mountpoint, std::string(searchValue), resultsCallback, console);
 
                 console->info("Spawned crawler for mountpoint `{0}`", mountpoint);
                 crawlers.push_back(thread_object);
