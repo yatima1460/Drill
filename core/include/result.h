@@ -1,9 +1,7 @@
 #pragma once
 #include <time.h>
 
-#ifdef __cplusplus
-extern "C"{
-#endif
+
 struct drill_result
 {
     size_t file_size;
@@ -13,7 +11,4 @@ struct drill_result
 };
 
 
-    struct drill_result drill_result_new(const char *path);
-#ifdef __cplusplus
-}
-#endif
+struct drill_result drill_result_new(const char *path);

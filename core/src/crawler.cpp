@@ -66,18 +66,21 @@ void drill_crawler_scan(struct drill_crawler_config* config)
                 if (entry.is_directory())
                 {
                     queue.push_back(entry.path().string());
-                    continue;
+
+                    
+                    
                 }
 
-                if (entry.is_regular_file())
+
+
+                
+                if (Drill::string_utils::tokenSearch(entry.path().filename().string(), config->search_value))
                 {
-                    if (Drill::string_utils::tokenSearch(entry.path().filename().string(), config->search_value))
-                    {
-                        //console->info("Found file: `{0}`", entry.path().string());
-                        config->results_callback(drill_result_new(entry.path().c_str()));
-                    }
-                    continue;
+                    //console->info("Found file: `{0}`", entry.path().string());
+                    config->results_callback(drill_result_new(entry.path().c_str()));
                 }
+    
+            
 
                 //console->warn("Unknown file type: `{0}`", entry.path().string());
             }

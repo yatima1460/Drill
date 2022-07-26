@@ -22,3 +22,5 @@ namespace Drill::system
 
     // bool doesPathExist(const std::string &s);
 } // namespace Drill::system
+
+void drill_os_open(const char* path);

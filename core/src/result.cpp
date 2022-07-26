@@ -1,8 +1,6 @@
 
 
-#ifdef __cplusplus
-extern "C"{
-#endif
+
 
 #include "result.h"
 
@@ -46,6 +44,3 @@ struct drill_result drill_result_new(const char* path)
     return dr;
 
 } // namespace Drill::result::result(std::filesystem::directory_entrye)
-#ifdef __cplusplus
-}
-#endif

@@ -7,9 +7,13 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-
-
-
+#include<unistd.h>
+#include<stdio.h>
+#include<sys/types.h>
+#include<stdlib.h>
+#include<sys/wait.h>
+#include <stdio.h>
+#include <string.h>
 #include "os.h"
 
 using namespace std;
@@ -73,7 +77,7 @@ vector<string> Drill::system::get_mountpoints()
     // return mps;
 }
 
-std::string sanitize_path(const std::string& path)
+std::string sanitize_path(const std::string &path)
 {
     auto pathCpy = path;
     if (pathCpy[0] == '~')
@@ -83,6 +87,30 @@ std::string sanitize_path(const std::string& path)
 
 std::string Drill::system::get_current_user_home_folder() { return sanitize_path("~"); }
 
+
+char * getConcatString( const char *str1, const char *str2 ) 
+{
+    char *finalString = NULL;
+    size_t n = 0;
+
+    if ( str1 ) n += strlen( str1 );
+    if ( str2 ) n += strlen( str2 );
+
+    if ( ( str1 || str2 ) && ( finalString = (char*)malloc( n + 1 ) ) != NULL )
+    {
+        *finalString = '\0';
+
+        if ( str1 ) strcpy( finalString, str1 );
+        if ( str2 ) strcat( finalString, str2 );
+    }
+
+    return finalString;
+}
+
+void drill_os_open(const char *path)
+{
+    system(getConcatString("xdg-open \"",getConcatString(path,"\"") ));
+}
 // bool Drill::system::doesPathExist(const std::string &s)
 // {
 //     if (s.length() == 0)

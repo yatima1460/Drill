@@ -11,7 +11,7 @@
 
 
 #include "string_utils.hpp"
-
+#include "os.h"
 
 // TODO: icons on filenames
 // TODO: right click menu and update screenshot with it
@@ -162,10 +162,7 @@ void appendFileInfo(GtkListStore* store, struct drill_result* fileInfo, void* GT
     auto size_str = Drill::string_utils::size_to_string(fileInfo->file_size);
 
 
-   
-
-    gtk_list_store_set(store, &iter, 0, icon.c_str(), 1, basename(fileInfo->path), 2, "parent dir", 3, size_str.c_str(), 4, time_str.c_str(), -1);
-
+    gtk_list_store_set(store, &iter, 0, icon.c_str(), 1, basename(fileInfo->path), 2, fileInfo->path, 3, size_str.c_str(), 4, time_str.c_str(), -1);
 }
 
 
@@ -196,6 +193,35 @@ gboolean check_async_queue(gpointer user_data)
 
 
     return true;
+}
+
+
+void row_activated(GtkTreeView* tree_view, GtkTreePath* path, GtkTreeViewColumn* column, gpointer userObject)
+{
+    //info("Row double-click");
+
+    char* cname;
+    char* cpath;
+    char* csize;
+
+    GtkTreeIter iter;
+
+
+    GtkTreeModel* model = gtk_tree_view_get_model(tree_view);
+    
+   
+    if (gtk_tree_model_get_iter(model, &iter, path))
+    {
+       
+        gtk_tree_model_get(model, &iter, 1, &cname, 2, &cpath, 3, &csize,-1);
+
+    }
+    else
+    {
+        assert(0);
+    }
+
+    drill_os_open(cpath);
 }
 
 
@@ -282,6 +308,8 @@ static void activate(GtkApplication *app, gpointer user_data)
     // Event when something is typed in the search box
     g_signal_connect(search_input, "changed", G_CALLBACK(gtk_search_changed), nullptr);
 
+   
+
     // Load default empty list
     liststore = (GtkListStore*) gtk_builder_get_object(builder, "liststore");
     assert(liststore != nullptr);
@@ -290,7 +318,8 @@ static void activate(GtkApplication *app, gpointer user_data)
     // Load default empty TreeView
 
     treeview = (GtkTreeView*) gtk_builder_get_object(builder, "treeview");
-   
+    // Event when double-click on a row
+    g_signal_connect(treeview, "row-activated", G_CALLBACK(row_activated), nullptr);
 
 
     // Destroy the glade builder
