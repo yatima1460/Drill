@@ -71,7 +71,7 @@ namespace Drill
             {
                 // FIXME: add other mountpoints in blocklist of this crawler
                 std::thread *thread_object =
-                    new std::thread(&Drill::crawler::scan, mountpoint, searchValue, resultsCallback, console);
+                    new std::thread(&drill_crawler_scan, mountpoint, searchValue, resultsCallback, console);
 
                 console->info("Spawned crawler for mountpoint `{0}`", mountpoint);
                 crawlers.push_back(thread_object);
