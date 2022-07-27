@@ -106,5 +106,9 @@ void drill_search_stop_async(std::vector<struct drill_crawler_config*> crawlers)
     for (size_t i = 0; i < crawlers.size(); i++)
     {
         crawlers[i]->results_callback = drill_crawler_stop_callback;
+        crawlers[i]->stop = true;
+        // delete crawlers[i]->thread;
+        delete crawlers[i];
+        crawlers[i] = nullptr;
     }
 }

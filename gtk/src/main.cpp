@@ -13,6 +13,7 @@
 #include "string_utils.hpp"
 #include "os.h"
 
+
 // TODO: icons on filenames
 // TODO: right click menu and update screenshot with it
 // TODO: pressing return should open the first result
@@ -177,7 +178,7 @@ gboolean check_async_queue(gpointer user_data)
     if (credits != nullptr)
     {
         std::stringstream ss;
-        ss << results_count << " results";
+        ss << results_count << " results" << " version " << DRILL_VERSION;
         gtk_label_set_text(credits, ss.str().c_str());
     }
 
@@ -203,7 +204,6 @@ void gtk_search_changed(GtkEditable* widget, gpointer data)
 
     // Reset the results count
     results_count = 0;
-    
     // Get input string in the search text field
     assert(widget != nullptr);
     char* str = gtk_editable_get_chars((GtkEditable*) widget, 0, -1);
@@ -211,9 +211,10 @@ void gtk_search_changed(GtkEditable* widget, gpointer data)
     g_print("input string: '%s'\n", str);
 
     // Reset list
-    liststore = gtk_list_store_new(5 ,G_TYPE_STRING,G_TYPE_STRING,G_TYPE_STRING,G_TYPE_STRING,G_TYPE_STRING);
-    assert(liststore != nullptr);
-    gtk_tree_view_set_model(treeview, (GtkTreeModel*)liststore);
+    gtk_list_store_clear(liststore);
+    //liststore = gtk_list_store_new(5 ,G_TYPE_STRING,G_TYPE_STRING,G_TYPE_STRING,G_TYPE_STRING,G_TYPE_STRING);
+    //assert(liststore != nullptr);
+    //gtk_tree_view_set_model(treeview, (GtkTreeModel*)liststore);
     
     // Reset queue
     g_async_queue_unref(queue);

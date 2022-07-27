@@ -88,3 +88,28 @@ include_directories(core/include)
 
 
 set(CMAKE_CXX_CLANG_TIDY "clang-tidy;-checks=*")
+
+
+find_package(Git)
+if(GIT_EXECUTABLE)
+  get_filename_component(SRC_DIR . DIRECTORY)
+  # Generate a git-describe version string from Git repository tags
+
+  
+
+  message(${GIT_EXECUTABLE})
+
+  execute_process(COMMAND  ${GIT_EXECUTABLE} rev-parse --short HEAD  OUTPUT_VARIABLE DRILL_VERSION)
+  
+
+endif()
+
+# Final fallback: Just use a bogus version string that is semantically older
+# than anything else and spit out a warning to the developer.
+if(NOT DEFINED DRILL_VERSION)
+  set(DRILL_VERSION 0.0.0-unknown)
+  message(WARNING "Failed to determine DRILL_VERSION from Git tags. Using default version \"${DRILL_VERSION}\".")
+endif()
+
+add_definitions(-DDRILL_VERSION=\"${DRILL_VERSION}\")
+
