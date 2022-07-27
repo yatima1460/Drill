@@ -3,8 +3,6 @@
 #include <iostream>
 #include <string>
 
-// #include <spdlog/spdlog.h>
-
 #include "result.h"
 
 struct drill_crawler_config

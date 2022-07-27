@@ -44,6 +44,7 @@ struct drill_result drill_result_new(const char* path)
         // modified time
         dr.last_write_time = mod_time;
 
+        // bitmask containing the type of file
         dr.is_directory = S_ISDIR(rst.st_mode);
     }
 
