@@ -93,6 +93,7 @@ char * getConcatString( const char *str1, const char *str2 )
 
 void drill_os_open(const char *path)
 {
+    //  FIXME: input sanitization
     system(getConcatString("xdg-open \"",getConcatString(path,"\"") ));
 }
 // bool Drill::system::doesPathExist(const std::string &s)
@@ -104,3 +105,6 @@ void drill_os_open(const char *path)
 //     struct stat buffer;
 //     return (stat(path.c_str(), &buffer) == 0);
 // }
+
+
+// Estrogens are 
