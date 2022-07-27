@@ -70,10 +70,10 @@ Author: Yatima Santamorena
             <property name="max-width-chars">4096</property>
             <property name="caps-lock-warning">False</property>
             <property name="progress-pulse-step">0</property>
-            <property name="primary-icon-name">search</property>
+            <property name="primary-icon-name">emblem-default</property>
             <property name="placeholder-text" translatable="yes">type here to search files and applications</property>
-            <property name="show-emoji-icon">True</property>
-            <property name="enable-emoji-completion">True</property>
+            <property name="show-emoji-icon">False</property>
+            <property name="enable-emoji-completion">False</property>
           </object>
           <packing>
             <property name="expand">False</property>
@@ -99,7 +99,6 @@ Author: Yatima Santamorena
                 <property name="model">liststore</property>
                 <property name="headers-clickable">False</property>
                 <property name="expander-column">column_name</property>
-                <property name="rules-hint">True</property>
                 <property name="enable-search">False</property>
                 <property name="search-column">0</property>
                 <property name="fixed-height-mode">True</property>

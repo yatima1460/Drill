@@ -55,7 +55,7 @@ if(OS_LINUX)
 endif()
 
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O0")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O0 -g3")
 endif()
     
 if (CMAKE_BUILD_TYPE STREQUAL "Release")
@@ -72,7 +72,7 @@ endif()
 
 if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang")
   MESSAGE("Clang")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wno-unused-parameter")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wno-unused-parameter ")
 elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
   MESSAGE("GNU")
 elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Intel")

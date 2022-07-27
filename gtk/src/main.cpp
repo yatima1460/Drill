@@ -54,50 +54,32 @@ bool check_escape(GtkWidget* widget, GdkEventKey* event, gpointer data)
 
 
 std::vector<struct drill_crawler_config*> crawlers;
-GAsyncQueue * queue;
-GtkListStore* liststore;
-GtkTreeView* treeview;
+GAsyncQueue * queue = nullptr;
+GtkListStore* liststore = nullptr;
+GtkTreeView* treeview = nullptr;
+long results_count = 0;
+GtkLabel* credits = nullptr;
+guint timeout = 0;
 
 // Callback called by Drill when a new result is found
 void result_found(struct drill_result result)
 {
+
+    /*
+    README!!!
+
+    DONT UPDATE THE UI FROM THIS FUNCTION BECAUSE IT'S CALLED FROM DRILL THREADS
+    */
+
+
     auto heapResult = new struct drill_result(result);
+    results_count++;
+
+    // gtk_label_set_markup(credits, ("<span foreground='#00ff00'>Results: " + std::to_string(results_count) + "</span>").c_str());
     if(queue != nullptr)
         g_async_queue_push(queue, heapResult);
     // gtk_queue = userObject;
     // g_async_queue_push(queue, result);
-}
-
-
-
-void gtk_search_changed(GtkEditable* widget, gpointer data)
-{
-    g_print("search changed\n");
-
-    // Stop crawling
-    drill_search_stop_async(crawlers);
-    crawlers.clear();
-    
-    // Get input string in the search text field
-    assert(widget != nullptr);
-    char* str = gtk_editable_get_chars((GtkEditable*) widget, 0, -1);
-    assert(str != nullptr);
-    
-    g_print("input string: %s\n", str);
-
-    // Reset list
-    liststore = gtk_list_store_new(5 ,G_TYPE_STRING,G_TYPE_STRING,G_TYPE_STRING,G_TYPE_STRING,G_TYPE_STRING);
-    assert(liststore != nullptr);
-    gtk_tree_view_set_model(treeview, (GtkTreeModel*)liststore);
-    
-    // Reset queue
-    g_async_queue_unref(queue);
-    queue = g_async_queue_new();
-
-    if (strlen(str) != 0)
-    {
-        crawlers = drill_search_async(str, result_found);
-    }
 }
 
 
@@ -165,7 +147,6 @@ void appendFileInfo(GtkListStore* store, struct drill_result* fileInfo, void* GT
     gtk_list_store_set(store, &iter, 0, icon.c_str(), 1, basename(fileInfo->path), 2, fileInfo->path, 3, size_str.c_str(), 4, time_str.c_str(), -1);
 }
 
-
 gboolean check_async_queue(gpointer user_data)
 {
     if (queue == nullptr)
@@ -184,6 +165,8 @@ gboolean check_async_queue(gpointer user_data)
         assert(liststore != nullptr);
 
         appendFileInfo(liststore,fi,nullptr);
+
+        delete fi;
         //gtk_entry_set_progress_pulse_step (context.search_input,0.001);
         //gtk_entry_progress_pulse (context.search_input);
 
@@ -191,9 +174,58 @@ gboolean check_async_queue(gpointer user_data)
         frameCutoff--;
     }
 
+    if (credits != nullptr)
+    {
+        std::stringstream ss;
+        ss << results_count << " results";
+        gtk_label_set_text(credits, ss.str().c_str());
+    }
+
 
     return true;
 }
+
+
+void gtk_search_changed(GtkEditable* widget, gpointer data)
+{
+    g_print("search changed\n");
+
+    // Stop updating the UI if there is a UI callback running
+    if (timeout != 0)
+        g_source_remove(timeout);
+    
+    // Add task on main thread to fetch results from Drill threads
+    timeout = g_timeout_add(16, &check_async_queue, nullptr);
+
+    // Stop crawling the Drill Core
+    drill_search_stop_async(crawlers);
+    crawlers.clear();
+
+    // Reset the results count
+    results_count = 0;
+    
+    // Get input string in the search text field
+    assert(widget != nullptr);
+    char* str = gtk_editable_get_chars((GtkEditable*) widget, 0, -1);
+    assert(str != nullptr);
+    g_print("input string: '%s'\n", str);
+
+    // Reset list
+    liststore = gtk_list_store_new(5 ,G_TYPE_STRING,G_TYPE_STRING,G_TYPE_STRING,G_TYPE_STRING,G_TYPE_STRING);
+    assert(liststore != nullptr);
+    gtk_tree_view_set_model(treeview, (GtkTreeModel*)liststore);
+    
+    // Reset queue
+    g_async_queue_unref(queue);
+    queue = g_async_queue_new();
+    if (strlen(str) != 0)
+    {
+        crawlers = drill_search_async(str, result_found);
+    }
+}
+
+
+
 
 
 void row_activated(GtkTreeView* tree_view, GtkTreePath* path, GtkTreeViewColumn* column, gpointer userObject)
@@ -321,6 +353,9 @@ static void activate(GtkApplication *app, gpointer user_data)
     // Event when double-click on a row
     g_signal_connect(treeview, "row-activated", G_CALLBACK(row_activated), nullptr);
 
+    // Load bottom credits label
+    credits = (GtkLabel*) gtk_builder_get_object(builder, "credits");
+    assert(credits != nullptr);
 
     // Destroy the glade builder
     assert(builder != nullptr);
@@ -331,9 +366,6 @@ static void activate(GtkApplication *app, gpointer user_data)
     // Create async queue for Drill threads to put their results into
     queue = g_async_queue_new();
     assert(queue != nullptr);
-
-    // Add task on main thread to fetch results from Drill threads
-    g_timeout_add(16, &check_async_queue, nullptr);
 
     // Show the window
     assert(window != nullptr);
