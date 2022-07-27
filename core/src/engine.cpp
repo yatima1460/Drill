@@ -62,6 +62,7 @@ std::vector<struct drill_crawler_config*> drill_search_async(const char *searchV
     // for each drive spawn crawler
     for (const auto &mountpoint : mountpoints)
     {
+        // FIXME: add other mou
         // FIXME: add other mountpoints in blocklist of this crawler
         struct drill_crawler_config* dcc = new drill_crawler_config();
         dcc->thread = nullptr;

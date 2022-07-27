@@ -29,7 +29,6 @@ file(GLOB CORE_SRC_FILES core/src/*.cpp core/src/*.c)
 add_library(drill-core ${CORE_SRC_FILES} ${SUBSYSTEM})
 set_property(TARGET drill-core PROPERTY CXX_STANDARD 17)
 # CLI
-add_subdirectory(vendor/spdlog)
 
 add_executable(drill-cli cli/CLI.cpp)
 set_property(TARGET drill-cli PROPERTY CXX_STANDARD 17)

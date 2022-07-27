@@ -107,7 +107,7 @@ void appendFileInfo(GtkListStore* store, struct drill_result* fileInfo, void* GT
 
 
 
-    std::string icon = "file";
+    std::string icon = "text-x-generic";
 
     if (fileInfo->is_directory)
     {
