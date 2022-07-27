@@ -95,13 +95,12 @@ if(GIT_EXECUTABLE)
   get_filename_component(SRC_DIR . DIRECTORY)
   # Generate a git-describe version string from Git repository tags
 
-  
-
   message(${GIT_EXECUTABLE})
-
-  execute_process(COMMAND  ${GIT_EXECUTABLE} rev-parse --short HEAD  OUTPUT_VARIABLE DRILL_VERSION)
-  
-
+  execute_process(COMMAND  ${GIT_EXECUTABLE} rev-parse --short HEAD WORKING_DIRECTORY ${PROJECT_SOURCE_DIR} OUTPUT_VARIABLE DRILL_VERSION)
+  if (DEFINED DRILL_VERSION)
+    message(STATUS "Could not determine Git version")
+    set(DRILL_VERSION "unknown")
+  endif()
 endif()
 
 # Final fallback: Just use a bogus version string that is semantically older
