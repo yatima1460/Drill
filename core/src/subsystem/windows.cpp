@@ -9,9 +9,8 @@
 
 #include "os.h"
 
-using namespace std;
 
-vector<string> Drill::system::get_mountpoints()
+std::vector<struct drill_path_string> drill_os_get_mountpoints()
 {
     vector<string> mps;
 

@@ -15,6 +15,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "os.h"
+#include "path_string.h"
 
 using namespace std;
 
@@ -37,9 +38,9 @@ std::ostream &operator<<(std::ostream &stream, const Mount &mount)
                   << "\". Options: " << mount.options << ". Dump:" << mount.dump << " Pass:" << mount.pass;
 }
 
-vector<string> Drill::system::get_mountpoints()
+std::vector<struct drill_path_string> drill_os_get_mountpoints()
 {
-    vector<string> mps;
+    vector<struct drill_path_string> mps;
 
     struct mntent *ent;
     FILE *aFile;
@@ -52,7 +53,9 @@ vector<string> Drill::system::get_mountpoints()
     }
     while (NULL != (ent = getmntent(aFile)))
     {
-        mps.push_back(ent->mnt_dir);
+        struct drill_path_string ps;
+        strcpy(ps.path, ent->mnt_dir);
+        mps.push_back(ps);
     }
     endmntent(aFile);
 
@@ -69,7 +72,7 @@ std::string sanitize_path(const std::string &path)
     return pathCpy;
 }
 
-std::string Drill::system::get_current_user_home_folder() { return sanitize_path("~"); }
+struct drill_path_string Drill::system::get_current_user_home_folder() { return drill_path_string_new(sanitize_path("~").c_str()); }
 
 
 char * getConcatString( const char *str1, const char *str2 ) 
@@ -91,10 +94,10 @@ char * getConcatString( const char *str1, const char *str2 )
     return finalString;
 }
 
-void drill_os_open(const char *path)
+void drill_os_open(struct drill_path_string path)
 {
     //  FIXME: input sanitization
-    system(getConcatString("xdg-open \"",getConcatString(path,"\"") ));
+    system(concat_paths(drill_path_string_new("xdg-open \""),concat_paths(path,drill_path_string_new("\"")) ).path);
 }
 // bool Drill::system::doesPathExist(const std::string &s)
 // {

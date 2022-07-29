@@ -9,7 +9,7 @@
 #include "crawler.h"
 #include "result.h"
 #include "string_utils.hpp"
-
+#include "path_string.h"
 
 
 
@@ -19,7 +19,7 @@ void drill_crawler_scan(struct drill_crawler_config* config)
 
     //console->info("Crawler started {0}", mountpoint);
 
-    std::vector<std::string> queue;
+    std::vector<struct drill_path_string> queue;
     queue.push_back(config->root);
 
     /*
@@ -47,7 +47,7 @@ void drill_crawler_scan(struct drill_crawler_config* config)
 
         try
         {
-            for (const auto &entry : fs::directory_iterator(directory))
+            for (const auto &entry : fs::directory_iterator(directory.path))
             {
 
                 if (config->results_callback == drill_crawler_stop_callback)
@@ -65,7 +65,7 @@ void drill_crawler_scan(struct drill_crawler_config* config)
 
                 if (entry.is_directory())
                 {
-                    queue.push_back(entry.path().string());
+                    queue.push_back(drill_path_string_new(entry.path().c_str()));
 
                     
                     

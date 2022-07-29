@@ -12,7 +12,7 @@
 
 #include "os.h"
 #include "string_utils.hpp"
-
+#include "path_string.h"
 // TODO: icons on filenames
 // TODO: right click menu and update screenshot with it
 // TODO: pressing return should open the first result
@@ -265,7 +265,7 @@ void row_activated(GtkTreeView *tree_view, GtkTreePath *path, GtkTreeViewColumn 
         assert(0);
     }
 
-    drill_os_open(cpath);
+    drill_os_open(drill_path_string_new(cpath));
 }
 
 static void activate(GtkApplication *app, gpointer user_data)

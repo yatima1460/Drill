@@ -6,6 +6,7 @@
 #include <algorithm>
 #include "engine.h"
 #include "os.h"
+#include "path_string.h"
 
 /**
  * @brief Search for a string in a directory and its subdirectories, this function returns only after
@@ -29,28 +30,28 @@ std::vector<struct drill_crawler_config*> drill_search_async(const char *searchV
 // #endif
 
     // get drives
-    std::vector<std::string> mountpoints = Drill::system::get_mountpoints();
+    std::vector<drill_path_string> mountpoints = drill_os_get_mountpoints();
 
     mountpoints.clear();
-    mountpoints.push_back(std::string("/"));
+    // mountpoints.push_back(std::string("/"));
     // mountpoints = std::vector<std::string>{ "/" };
 
     // remove duplicates for drives list
     if (mountpoints.size() == 0)
     {
         //spdlog::error("No mountpoints found, falling back to root");
-        mountpoints.push_back("/");
+        mountpoints.push_back(drill_path_string_new("/"));
     }
-    else
-    {
-        const size_t oldSize = mountpoints.size();
-        std::sort(mountpoints.begin(), mountpoints.end());
-        mountpoints.erase(std::unique(mountpoints.begin(), mountpoints.end()), mountpoints.end());
+    // else
+    // {
+    //     const size_t oldSize = mountpoints.size();
+    //     std::sort(mountpoints.begin(), mountpoints.end());
+    //     mountpoints.erase(std::unique(mountpoints.begin(), mountpoints.end()), mountpoints.end());
 
-        // if (oldSize != mountpoints.size())
-        //     console->warn("Found {0} duplicate entries in mountpoints, removed",
-        //                   oldSize - mountpoints.size());
-    }
+    //     // if (oldSize != mountpoints.size())
+    //     //     console->warn("Found {0} duplicate entries in mountpoints, removed",
+    //     //                   oldSize - mountpoints.size());
+    // }
 
 #ifndef NDEBUG
     for (const auto &mountpoint : mountpoints)
