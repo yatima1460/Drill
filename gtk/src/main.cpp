@@ -1,18 +1,17 @@
 #include <gtk/gtk.h>
 
+#include <algorithm>
 #include <assert.h>
+#include <engine.h>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <sstream>
+#include <unordered_map>
 #include <vector>
 
-#include <engine.h>
-
-
-#include "string_utils.hpp"
 #include "os.h"
-
+#include "string_utils.hpp"
 
 // TODO: icons on filenames
 // TODO: right click menu and update screenshot with it
@@ -21,9 +20,54 @@
 // TODO: code coverage
 // TODO: modern round icon
 
+std::unordered_map<std::string, std::string> icons_map;
+
+struct icon_info
+{
+    char extension[PATH_MAX];
+    char icon[PATH_MAX];
+};
+
+void load_icons_map()
+{
+    std::ifstream file("assets/icons.map");
+    if (!file.is_open())
+    {
+        std::cerr << "Could not open icons.map" << std::endl;
+        exit(1);
+    }
+    std::string line;
+    while (std::getline(file, line))
+    {
+        //  Skip comments lines
+        if (line.empty() || line[0] == '#')
+            continue;
+
+        auto tokens = Drill::string_utils::split(line, ' ');
+        if (tokens.size() != 2)
+        {
+            std::cerr << "Invalid line in icons.map: " << line << std::endl;
+            exit(1);
+        }
+        icons_map[tokens[0]] = tokens[1];
+    }
+    file.close();
+   
+    std::cout << "icons_map loaded: " << icons_map.size() << " icons found in mime.types file" << std::endl;
+}
+
+const char *get_gtk_icon(const char *extension)
+{
+    if (icons_map.count(extension))
+    {
+        return icons_map[extension].c_str();
+    }
+    std::cerr << "no icon found for extension: " << extension << std::endl;
+    return "";
+}
 
 // Callback called when pressing [X]
-void window_destroy(GtkWindow* window, gpointer data)
+void window_destroy(GtkWindow *window, gpointer data)
 {
     assert(window != nullptr);
     // assert(data != nullptr);
@@ -31,9 +75,8 @@ void window_destroy(GtkWindow* window, gpointer data)
 }
 
 // Callback called by GTK when ESC is pressed
-bool check_escape(GtkWidget* widget, GdkEventKey* event, gpointer data)
+bool check_escape(GtkWidget *widget, GdkEventKey *event, gpointer data)
 {
-  
 
     if (event->keyval == GDK_KEY_Escape)
     {
@@ -41,8 +84,8 @@ bool check_escape(GtkWidget* widget, GdkEventKey* event, gpointer data)
         // assert(context !is null);
         // g_idle_remove_by_data(context);
 
-        //assert(context != nullptr);
-        // FIXME: stop crawling
+        // assert(context != nullptr);
+        //  FIXME: stop crawling
 
         // assert(app != nullptr);
         // g_application_quit(app);
@@ -53,13 +96,12 @@ bool check_escape(GtkWidget* widget, GdkEventKey* event, gpointer data)
     return false;
 }
 
-
-std::vector<struct drill_crawler_config*> crawlers;
-GAsyncQueue * queue = nullptr;
-GtkListStore* liststore = nullptr;
-GtkTreeView* treeview = nullptr;
+std::vector<struct drill_crawler_config *> crawlers;
+GAsyncQueue *queue = nullptr;
+GtkListStore *liststore = nullptr;
+GtkTreeView *treeview = nullptr;
 long results_count = 0;
-GtkLabel* credits = nullptr;
+GtkLabel *credits = nullptr;
 guint timeout = 0;
 
 // Callback called by Drill when a new result is found
@@ -72,71 +114,45 @@ void result_found(struct drill_result result)
     DONT UPDATE THE UI FROM THIS FUNCTION BECAUSE IT'S CALLED FROM DRILL THREADS
     */
 
-
     auto heapResult = new struct drill_result(result);
     results_count++;
 
-    // gtk_label_set_markup(credits, ("<span foreground='#00ff00'>Results: " + std::to_string(results_count) + "</span>").c_str());
-    if(queue != nullptr)
+    // gtk_label_set_markup(credits, ("<span foreground='#00ff00'>Results: " + std::to_string(results_count) +
+    // "</span>").c_str());
+    if (queue != nullptr)
         g_async_queue_push(queue, heapResult);
     // gtk_queue = userObject;
     // g_async_queue_push(queue, result);
 }
 
+const char *get_filename_ext(const char *filename)
+{
+    const char *dot = strrchr(filename, '.');
+    if (!dot || dot == filename)
+        return "";
+    return dot + 1;
+}
 
-void appendFileInfo(GtkListStore* store, struct drill_result* fileInfo, void* GTKIconsUnused)
+void appendFileInfo(GtkListStore *store, struct drill_result *fileInfo, void *GTKIconsUnused)
 {
     GtkTreeIter iter;
 
-
-
     std::string icon = "text-x-generic";
+
+   
 
     if (fileInfo->is_directory)
     {
         icon = "folder";
     }
     else
+
     {
-        //icon = GTKIcons.get(fileInfo.extension.replace(".", ""),"null");
-       // icon = getGTKIconNameFromExtension(fileInfo.extension.replace(".", ""));
+
+        icon = get_gtk_icon(get_filename_ext(fileInfo->path));
     }
+
    
-    // TODO: icons
-    // else
-    // {
-    //     try
-    //     {
-
-    //         synchronized
-    //         {
-    //             immutable auto iconMaybe = executeShell("grep '" ~ fileInfo.extension.replace(".", "") ~ "' /etc/mime.types");
-    //             if (iconMaybe.status == 0)
-    //             {
-
-    //                 icon = iconMaybe.output.replace("/", "-");
-
-    //             }
-    //             else
-    //             {
-    //                 icon = "none";
-    //             }
-    //         }
-
-    //     }
-    //     catch (Exception e)
-    //     {
-    //         icon = "none";
-    //     }
-
-    // }
-    
-
-    // auto name = toStringz(fileInfo.fileName);
-    // //auto parent = toStringz(fileInfo.thread ~ ":"~fileInfo.containingFolder);
-    // auto parent = toStringz(fileInfo.containingFolder);
-    // auto size = toStringz(fileInfo.sizeString);
-    // auto date = toStringz(fileInfo.dateModifiedString);
 
     /* Append a row and fill in some data */
     gtk_list_store_append(store, &iter);
@@ -144,57 +160,54 @@ void appendFileInfo(GtkListStore* store, struct drill_result* fileInfo, void* GT
     auto time_str = Drill::string_utils::time_to_string(fileInfo->last_write_time);
     auto size_str = Drill::string_utils::size_to_string(fileInfo->file_size);
 
-
-    gtk_list_store_set(store, &iter, 0, icon.c_str(), 1, basename(fileInfo->path), 2, fileInfo->path, 3, size_str.c_str(), 4, time_str.c_str(), -1);
+    gtk_list_store_set(store, &iter, 0, icon.c_str(), 1, basename(fileInfo->path), 2, fileInfo->path, 3,
+                       size_str.c_str(), 4, time_str.c_str(), -1);
 }
 
 gboolean check_async_queue(gpointer user_data)
 {
     if (queue == nullptr)
-        return false; 
-
+        return false;
 
     gpointer queue_data = nullptr;
 
     // If there is some data add it to the UI
     // Add a maximum of ~20 elements at a time to prevent GTK from lagging
     uint frameCutoff = 20;
-    while(frameCutoff > 0 && (queue_data = g_async_queue_try_pop(queue)) != nullptr)
+    while (frameCutoff > 0 && (queue_data = g_async_queue_try_pop(queue)) != nullptr)
     {
-        struct drill_result* fi = (struct drill_result*) queue_data;
-        assert(fi != nullptr );
+        struct drill_result *fi = (struct drill_result *)queue_data;
+        assert(fi != nullptr);
         assert(liststore != nullptr);
 
-        appendFileInfo(liststore,fi,nullptr);
+        appendFileInfo(liststore, fi, nullptr);
 
         delete fi;
-        //gtk_entry_set_progress_pulse_step (context.search_input,0.001);
-        //gtk_entry_progress_pulse (context.search_input);
+        // gtk_entry_set_progress_pulse_step (context.search_input,0.001);
+        // gtk_entry_progress_pulse (context.search_input);
 
-        
         frameCutoff--;
     }
 
     if (credits != nullptr)
     {
         std::stringstream ss;
-        ss << results_count << " results" << " version " << DRILL_VERSION;
+        ss << results_count << " results"
+           << " version " << DRILL_VERSION;
         gtk_label_set_text(credits, ss.str().c_str());
     }
-
 
     return true;
 }
 
-
-void gtk_search_changed(GtkEditable* widget, gpointer data)
+void gtk_search_changed(GtkEditable *widget, gpointer data)
 {
     g_print("search changed\n");
 
     // Stop updating the UI if there is a UI callback running
     if (timeout != 0)
         g_source_remove(timeout);
-    
+
     // Add task on main thread to fetch results from Drill threads
     timeout = g_timeout_add(16, &check_async_queue, nullptr);
 
@@ -206,16 +219,16 @@ void gtk_search_changed(GtkEditable* widget, gpointer data)
     results_count = 0;
     // Get input string in the search text field
     assert(widget != nullptr);
-    char* str = gtk_editable_get_chars((GtkEditable*) widget, 0, -1);
+    char *str = gtk_editable_get_chars((GtkEditable *)widget, 0, -1);
     assert(str != nullptr);
     g_print("input string: '%s'\n", str);
 
     // Reset list
     gtk_list_store_clear(liststore);
-    //liststore = gtk_list_store_new(5 ,G_TYPE_STRING,G_TYPE_STRING,G_TYPE_STRING,G_TYPE_STRING,G_TYPE_STRING);
-    //assert(liststore != nullptr);
-    //gtk_tree_view_set_model(treeview, (GtkTreeModel*)liststore);
-    
+    // liststore = gtk_list_store_new(5
+    // ,G_TYPE_STRING,G_TYPE_STRING,G_TYPE_STRING,G_TYPE_STRING,G_TYPE_STRING); assert(liststore != nullptr);
+    // gtk_tree_view_set_model(treeview, (GtkTreeModel*)liststore);
+
     // Reset queue
     g_async_queue_unref(queue);
     queue = g_async_queue_new();
@@ -225,29 +238,22 @@ void gtk_search_changed(GtkEditable* widget, gpointer data)
     }
 }
 
-
-
-
-
-void row_activated(GtkTreeView* tree_view, GtkTreePath* path, GtkTreeViewColumn* column, gpointer userObject)
+void row_activated(GtkTreeView *tree_view, GtkTreePath *path, GtkTreeViewColumn *column, gpointer userObject)
 {
-    //info("Row double-click");
+    // info("Row double-click");
 
-    char* cname;
-    char* cpath;
-    char* csize;
+    char *cname;
+    char *cpath;
+    char *csize;
 
     GtkTreeIter iter;
 
+    GtkTreeModel *model = gtk_tree_view_get_model(tree_view);
 
-    GtkTreeModel* model = gtk_tree_view_get_model(tree_view);
-    
-   
     if (gtk_tree_model_get_iter(model, &iter, path))
     {
-       
-        gtk_tree_model_get(model, &iter, 1, &cname, 2, &cpath, 3, &csize,-1);
 
+        gtk_tree_model_get(model, &iter, 1, &cname, 2, &cpath, 3, &csize, -1);
     }
     else
     {
@@ -256,7 +262,6 @@ void row_activated(GtkTreeView* tree_view, GtkTreePath* path, GtkTreeViewColumn*
 
     drill_os_open(cpath);
 }
-
 
 static void activate(GtkApplication *app, gpointer user_data)
 {
@@ -299,7 +304,7 @@ static void activate(GtkApplication *app, gpointer user_data)
     g_print("window found in glade file\n");
 
     // Load Drill icon
-    if( gtk_window_set_icon_from_file(window,"assets/icon.png",&error) == 0)
+    if (gtk_window_set_icon_from_file(window, "assets/icon.png", &error) == 0)
     {
         assert(error != nullptr);
         g_printerr("Error loading file: %s\n", error->message);
@@ -319,20 +324,17 @@ static void activate(GtkApplication *app, gpointer user_data)
     assert(app != nullptr);
     gtk_window_set_application(window, app);
 
-
     // Event when the window is closed using the [X]
     g_signal_connect(window, "destroy", G_CALLBACK(window_destroy), nullptr);
 
     /* Event when a key is pressed:
         - Used to check Escape to close
-        - Return/Enter to start the selected result 
+        - Return/Enter to start the selected result
     */
     g_signal_connect(window, "key_press_event", G_CALLBACK(check_escape), nullptr);
 
-
-
     // Load search entry from UI file
-    GtkEntry* search_input = (GtkEntry*) gtk_builder_get_object(builder, "search_input");
+    GtkEntry *search_input = (GtkEntry *)gtk_builder_get_object(builder, "search_input");
     assert(search_input != nullptr);
     gtk_entry_set_progress_fraction(search_input, 0.0);
     gtk_entry_set_progress_pulse_step(search_input, 0.0);
@@ -341,21 +343,18 @@ static void activate(GtkApplication *app, gpointer user_data)
     // Event when something is typed in the search box
     g_signal_connect(search_input, "changed", G_CALLBACK(gtk_search_changed), nullptr);
 
-   
-
     // Load default empty list
-    liststore = (GtkListStore*) gtk_builder_get_object(builder, "liststore");
+    liststore = (GtkListStore *)gtk_builder_get_object(builder, "liststore");
     assert(liststore != nullptr);
 
-    
     // Load default empty TreeView
 
-    treeview = (GtkTreeView*) gtk_builder_get_object(builder, "treeview");
+    treeview = (GtkTreeView *)gtk_builder_get_object(builder, "treeview");
     // Event when double-click on a row
     g_signal_connect(treeview, "row-activated", G_CALLBACK(row_activated), nullptr);
 
     // Load bottom credits label
-    credits = (GtkLabel*) gtk_builder_get_object(builder, "credits");
+    credits = (GtkLabel *)gtk_builder_get_object(builder, "credits");
     assert(credits != nullptr);
 
     // Destroy the glade builder
@@ -376,6 +375,9 @@ static void activate(GtkApplication *app, gpointer user_data)
 
 int main(int argc, char **argv)
 {
+
+    load_icons_map();
+
     GtkApplication *app = nullptr;
     int status = -1;
 
