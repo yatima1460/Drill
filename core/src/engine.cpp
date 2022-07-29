@@ -83,17 +83,21 @@ std::vector<struct drill_crawler_config*> drill_search_async(const char *searchV
 
 void drill_search_wait(std::vector<struct drill_crawler_config*> crawlers)
 {
-    // wait for all crawlers to finish
     for (size_t i = 0; i < crawlers.size(); i++)
     {
-        auto thread = crawlers[i]->thread;
-        thread->join();
-        delete thread;
-        crawlers[i]->thread = nullptr;
+        crawlers[i]->thread->join();
     }
 }
 
 
+void drill_search_destroy_crawlers(std::vector<struct drill_crawler_config*> crawlers)
+{
+    for (size_t i = 0; i < crawlers.size(); i++)
+    {
+        delete crawlers[i];
+        crawlers[i] = nullptr;
+    }
+}
 
 void drill_search_stop_sync(std::vector<struct drill_crawler_config*> crawlers)
 {
@@ -107,8 +111,5 @@ void drill_search_stop_async(std::vector<struct drill_crawler_config*> crawlers)
     {
         crawlers[i]->results_callback = drill_crawler_stop_callback;
         crawlers[i]->stop = true;
-        // delete crawlers[i]->thread;
-        delete crawlers[i];
-        crawlers[i] = nullptr;
     }
 }

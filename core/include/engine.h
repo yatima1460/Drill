@@ -13,3 +13,5 @@ void drill_search_wait(std::vector<struct drill_crawler_config*> crawlers);
 void drill_search_stop_async(std::vector<struct drill_crawler_config*> crawlers);
 
 void drill_search_stop_sync(std::vector<struct drill_crawler_config*> crawlers);
+
+void drill_search_destroy_crawlers(std::vector<struct drill_crawler_config*> crawlers);

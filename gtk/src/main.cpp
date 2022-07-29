@@ -28,6 +28,15 @@ struct icon_info
     char icon[PATH_MAX];
 };
 
+GtkApplication *app = nullptr;
+std::vector<struct drill_crawler_config *> crawlers;
+GAsyncQueue *queue = nullptr;
+GtkListStore *liststore = nullptr;
+GtkTreeView *treeview = nullptr;
+long results_count = 0;
+GtkLabel *credits = nullptr;
+guint timeout = 0;
+
 void load_icons_map()
 {
     std::ifstream file("assets/icons.map");
@@ -86,23 +95,18 @@ bool check_escape(GtkWidget *widget, GdkEventKey *event, gpointer data)
 
         // assert(context != nullptr);
         //  FIXME: stop crawling
+        drill_search_stop_sync(crawlers);
 
         // assert(app != nullptr);
-        // g_application_quit(app);
+        //g_application_quit(app);
         // FIXME: exit
-
+        g_application_quit(G_APPLICATION(app));
         return true;
     }
     return false;
 }
 
-std::vector<struct drill_crawler_config *> crawlers;
-GAsyncQueue *queue = nullptr;
-GtkListStore *liststore = nullptr;
-GtkTreeView *treeview = nullptr;
-long results_count = 0;
-GtkLabel *credits = nullptr;
-guint timeout = 0;
+
 
 // Callback called by Drill when a new result is found
 void result_found(struct drill_result result)
@@ -213,6 +217,7 @@ void gtk_search_changed(GtkEditable *widget, gpointer data)
 
     // Stop crawling the Drill Core
     drill_search_stop_async(crawlers);
+    drill_search_destroy_crawlers(crawlers);
     crawlers.clear();
 
     // Reset the results count
@@ -378,7 +383,7 @@ int main(int argc, char **argv)
 
     load_icons_map();
 
-    GtkApplication *app = nullptr;
+    
     int status = -1;
 
     app = gtk_application_new("software.drill", G_APPLICATION_FLAGS_NONE);
