@@ -15,7 +15,7 @@
 #include <unistd.h>
 #include <assert.h>
 
-struct drill_path_string* drill_os_get_mountpoints(struct drill_path_string *mountpoints_array, size_t *mountpoints_count)
+bool drill_os_get_mountpoints(struct drill_path_string *mountpoints_array, size_t *mountpoints_count)
 {
     
     assert(mountpoints_count != NULL);
@@ -31,7 +31,7 @@ struct drill_path_string* drill_os_get_mountpoints(struct drill_path_string *mou
     }
 
     size_t mounts_count = 0;
-    mountpoints_array = NULL;
+    
 
     while (NULL != (ent = getmntent(aFile)))
     {
