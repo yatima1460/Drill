@@ -1,27 +1,20 @@
 #pragma once
 
 
-#include <string>
-#include <vector>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#include <stdbool.h>
 #include "path_string.h"
 
-
-namespace Drill::system
-{
-
-
-    
-
-    /**
-     * @brief Returns the current user's home folder
-     *
-     * @return string of the path to the home folder
-     */
-    struct drill_path_string get_current_user_home_folder();
-
-    // bool doesPathExist(const std::string &s);
-} // namespace Drill::system
+/**
+ * @brief Returns the current user's home folder
+ *
+ * @return string of the path to the home folder
+ */
+struct drill_path_string drill_os_user_folder();
 
 /**
  * @brief Opens a file using the underlying os implementation
@@ -35,4 +28,8 @@ void drill_os_open(struct drill_path_string path);
  *
  * @return List of strings containing the mountpoints
  */
-std::vector<struct drill_path_string> drill_os_get_mountpoints();
+bool drill_os_get_mountpoints(struct drill_path_string*, size_t* mountpoints);
+
+#ifdef __cplusplus
+}
+#endif

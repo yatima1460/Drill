@@ -30,17 +30,24 @@ std::vector<struct drill_crawler_config*> drill_search_async(const char *searchV
 // #endif
 
     // get drives
-    std::vector<drill_path_string> mountpoints = drill_os_get_mountpoints();
+    struct drill_path_string* mounts = nullptr;
+    size_t mounts_count = 0;
+    drill_os_get_mountpoints(nullptr, &mounts_count);
+    mounts = new struct drill_path_string[mounts_count];
+    drill_os_get_mountpoints(mounts, &mounts_count);
 
-    mountpoints.clear();
+    
     // mountpoints.push_back(std::string("/"));
     // mountpoints = std::vector<std::string>{ "/" };
 
     // remove duplicates for drives list
-    if (mountpoints.size() == 0)
+    if (mounts_count == 0)
     {
         //spdlog::error("No mountpoints found, falling back to root");
-        mountpoints.push_back(drill_path_string_new("/"));
+        
+        mounts = new struct drill_path_string[1];
+
+        mounts[0] = drill_path_string_new("/");
     }
     // else
     // {
@@ -53,16 +60,19 @@ std::vector<struct drill_crawler_config*> drill_search_async(const char *searchV
     //     //                   oldSize - mountpoints.size());
     // }
 
-#ifndef NDEBUG
-    for (const auto &mountpoint : mountpoints)
-    {
-        // console->debug("Found mountpoint `{0}`", mountpoint);
-    }
-#endif
+// #ifndef NDEBUG
+//     for (const auto &mountpoint : mountpoints)
+//     {
+//         // console->debug("Found mountpoint `{0}`", mountpoint);
+//     }
+// #endif
+
+
 
     // for each drive spawn crawler
-    for (const auto &mountpoint : mountpoints)
+    for (size_t i = 0; i < mounts_count; i++)
     {
+        auto mountpoint = mounts[i];
         // FIXME: add other mou
         // FIXME: add other mountpoints in blocklist of this crawler
         struct drill_crawler_config* dcc = new drill_crawler_config();

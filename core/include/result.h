@@ -1,6 +1,9 @@
 #pragma once
-#include <time.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+#include <time.h>
 #include <limits.h>
 
 struct drill_result
@@ -14,3 +17,6 @@ struct drill_result
 
 struct drill_result drill_result_new(const char *path);
 
+#ifdef __cplusplus
+}
+#endif
