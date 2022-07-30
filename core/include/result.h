@@ -5,11 +5,12 @@ extern "C" {
 #endif
 #include <time.h>
 #include <limits.h>
+#include <stdio.h>
 
 struct drill_result
 {
     size_t file_size;
-    char path[PATH_MAX];
+    char path[FILENAME_MAX];
     time_t last_write_time;
     int is_directory;
 };

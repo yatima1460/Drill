@@ -5,27 +5,27 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include <spdlog/spdlog.h>
+
 
 #include "os.h"
 
 
-std::vector<struct drill_path_string> drill_os_get_mountpoints()
+
+
+bool drill_os_get_mountpoints(struct drill_path_string *mountpoints_array, size_t *mountpoints_count)
 {
-    vector<string> mps;
+    *mountpoints_count = 0;
+    mountpoints_array = realloc(mountpoints_array, sizeof(struct drill_path_string) * (*mountpoints_count + 1));
+    mountpoints_array[*mountpoints_count] = drill_path_string_new("C:\\");
 
-    mps.push_back("C:");
-    // TODO: blacklist here for ent->mnt_fsname
 
-    return mps;
 }
 
-std::string sanitize_path(const std::string path) { return path; }
 
-std::string Drill::system::get_current_user_home_folder()
+
+struct drill_path_string drill_os_user_folder()
 {
-    std::string test(getenv("USERPROFILE"));
-    return sanitize_path(test);
+    return drill_path_string_new(getenv("USERPROFILE"));
 }
 
 // bool Drill::system::doesPathExist(const std::string &s)

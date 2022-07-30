@@ -15,6 +15,11 @@
 
 #ifdef WIN32
 #define stat _stat
+
+#ifndef S_ISDIR
+#define S_ISDIR(m)  (((m) & S_IFMT) == S_IFDIR)
+#endif
+
 #endif
 
 struct drill_result drill_result_new(const char* path)
@@ -24,7 +29,7 @@ struct drill_result drill_result_new(const char* path)
     
     dr.is_directory = 0;
     dr.file_size = 0;
-    memset(dr.path, 0, PATH_MAX);
+    memset(dr.path, 0, FILENAME_MAX);
     strcpy(dr.path, path);
  
     // dr.name = strdup(path);

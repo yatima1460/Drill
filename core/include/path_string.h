@@ -4,10 +4,11 @@
 extern "C" {
 #endif
 #include <limits.h>
+#include <stdio.h>
 
 struct drill_path_string
 {
-    char path[PATH_MAX];
+    char path[FILENAME_MAX];
 };
 
 struct drill_path_string drill_path_string_new(const char *path);

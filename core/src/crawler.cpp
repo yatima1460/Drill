@@ -65,7 +65,7 @@ void drill_crawler_scan(struct drill_crawler_config* config)
 
                 if (entry.is_directory())
                 {
-                    queue.push_back(drill_path_string_new(entry.path().c_str()));
+                    queue.push_back(drill_path_string_new((const char*)entry.path().c_str()));
 
                     
                     
@@ -77,7 +77,7 @@ void drill_crawler_scan(struct drill_crawler_config* config)
                 if (Drill::string_utils::tokenSearch(entry.path().filename().string(), config->search_value))
                 {
                     //console->info("Found file: `{0}`", entry.path().string());
-                    config->results_callback(drill_result_new(entry.path().c_str()));
+                    config->results_callback(drill_result_new((const char*)entry.path().c_str()));
                 }
     
             
