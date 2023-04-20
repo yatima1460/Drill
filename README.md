@@ -31,6 +31,7 @@ dotnet run --project CLI "search string"
  - [ ] PKGBUILD
  - [ ] Windows Installer?
  - [ ] Flatpak
+ - [ ] Threadpool or something similar
  - [ ] Snap
  - [ ] UI for Windows
    - [ ] exe icon
