@@ -22,6 +22,11 @@ public class Search {
         // Start each crawler
         Debug.WriteLine("Starting search...");
         foreach (var drive in DriveInfo.GetDrives()) {
+            Debug.WriteLine("Starting crawler for drive "+drive);
+            if (!drive.IsReady) {
+                Debug.WriteLine("Drive "+drive+" is not ready.");
+                continue;
+            }
             Crawler crawler = new Crawler(drive, searchString, resultsCallback);
             crawlers.Add(crawler);
             crawler.Start();
