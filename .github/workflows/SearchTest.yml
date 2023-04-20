@@ -1,0 +1,21 @@
+name: SearchTest
+
+
+on:
+    workflow_dispatch:
+
+
+jobs:
+
+
+  SearchTest:
+    runs-on: ubuntu-22.04
+    container: mcr.microsoft.com/dotnet/sdk:7.0
+    name: "Search Test"
+    steps:
+    - name: Check for dockerenv file
+      run: (ls /.dockerenv && echo Found dockerenv) || (echo No dockerenv)
+    - run: dotnet --version
+    - uses: actions/checkout@v3.3.0
+    - run: dotnet clean Drill.sln --maxCpuCount
+    - run: dotnet run --configuration Release --project CLI "DrillCLI" | grep "DrillCLI"

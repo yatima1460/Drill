@@ -1,97 +1,97 @@
 # Drill
 
+Sorry for abandoning the project for so long but I was busy with life.
+
+![sad](docs/sad-hitori-anime-girl-bt4lfvgoosbfb026.gif)
+
+Finally decided to drop D as a programming language (cmon guys it's dead) and moved to dotnet7
+
+**BUT I NEED YOUR HELP**
+
+I need people skilled in making a good UI, Avalonia, WinForms... I am not a UI gal.
+
+**THANK YOU :bow:**
+
+## How to build
+
+### Requirements
+
+Install dotnet sdk 7.0
+
+<https://dotnet.microsoft.com/en-us/download/dotnet/7.0>
+
+#### Using terminal
+
+##### Windows
+
+###### Chocolatey
+
+```cmd
+choco install dotnet-7.0-sdk
+```
+
+##### Mac
+
+```bash
+brew install dotnet@7
+```
+
+### Run from source code
+
+```bash
+dotnet run --configuration Release --project CLI "search string"
+```
+
+### Create portable folder
+
+```bash
+dotnet publish Drill.sln --maxCpuCount --configuration Release --self-contained --output Output
+```
+
+## Todo
+
+ - [ ] Thread safety
+ - [ ] Sign executables
+ - [ ] Configs/arguments for search
+ - [ ] Set root folder / mountpoints
+ - [ ] Clean docs
+ - [ ] automatically generate docs
+ - [ ] EXTENSIONS!!!
+ - [ ] PKGBUILD
+ - [ ] Windows Installer?
+ - [ ] ncurses?
+ - [ ] Flatpak
+ - [ ] Threadpool or something similar
+ - [ ] Snap
+ - [ ] UI for Windows
+   - [ ] exe icon
+ - [ ] UI For Mac
+   - [ ] .app
+   - [ ] .dmg
+ - [ ] UI for Linux
+   - [ ] .AppImage
+ - [ ] Regex lists
+ - [ ] Docker
+ - [ ] Shadow CI
+ - [ ] Telegram Bot for new releases?
+ - [ ] Release executables automatically
+ - [ ] Pull request checker
+ - [ ] Heuristics
+
+
+
 [![RollingRelease](https://github.com/yatima1460/Drill/actions/workflows/RollingRelease.yml/badge.svg)](https://github.com/yatima1460/Drill/actions/workflows/RollingRelease.yml)
 
 [![Financial Contributors on Open Collective](https://opencollective.com/Drill/all/badge.svg?label=financial+contributors)](https://opencollective.com/Drill) [![GitHub issues](https://img.shields.io/github/issues/yatima1460/Drill.svg)](https://github.com/yatima1460/Drill/issues)
 [![GitHub forks](https://img.shields.io/github/forks/yatima1460/Drill.svg)](https://github.com/yatima1460/Drill/network)
 [![GitHub stars](https://img.shields.io/github/stars/yatima1460/Drill.svg)](https://github.com/yatima1460/Drill/stargazers)
 [![GitHub license](https://img.shields.io/github/license/yatima1460/Drill.svg)](https://github.com/yatima1460/Drill/blob/master/LICENSE)
-
 [![Twitter](https://img.shields.io/twitter/url/https/github.com/yatima1460/Drill.svg?style=social)](https://twitter.com/intent/tweet?text=Wow:&url=https%3A%2F%2Fgithub.com%2Fyatima1460%2FDrill)
 
 Get notified for latest releases
 [![Telegram](https://raw.githubusercontent.com/yatima1460/Drill/gh-pages/icons/telegram_icon.png?sanitize=true)](https://telegram.me/drill_search)
 
-# TL;DR: What is this
-
-Search files without indexing, but clever crawling:
-- At least 1 thread per mount point
-- Use as much RAM as possible for caching stuff
-- Try to avoid "black hole folders" using a regex based blocklist in which the crawler will never come out and never scan useful files (`node_modules`,`Windows`,etc)
-- **Designed for average users**, no obscure Linux files and system files scans
-- Use priority lists to first scan important folders.
-- Betting on the future: slowly being optimized for SSDs/M.2 or fast RAID arrays
-
-
-![](https://raw.githubusercontent.com/yatima1460/Drill/gh-pages/screenshot.png)
-
-# How to run this
-
-**Install the provided .deb (sudo required) or just double click the AppImage (no sudo)**
-
-If your distro doesn't ask you to mark the AppImage as executable or nothing happens try:
-- `chmod +x appimage_name_you_downloaded.AppImage`
-- `./appimage_name_you_downloaded.AppImage`
-
-If you want a version that doesn't require sudo and can be configurable download the .zip files.
-Remember: AppImages require FUSE
-
-# Build and Run
-
-**Some dependencies don't build with GDC!!!**
-**Use DMD or LDC!!!**
-
-
-## Build
-
-Check `Docker` folder
-
-### IMPORTANT
-
-- If you omit `-b release` a slower debug version with infinite logs (NOT recommended) will be created
-- Note: `-b release-debug` is somewhat in between a debug and a release version, it's compiled with fast code but it has debug checks enabled and some logs
-
-### All OSes
-
-- Install DMD
-    - on Linux download the .deb, don't install it from apt,
-      be sure GDC doesn't get installed as backend compiler
-    - https://dlang.org/download.html#dmd
-- Build a configuration, check the possible ones inside `dub.json`:
-    - `dub build -b release -c CLI`
-    - `dub build -b release -c GTK` 
-        - requires libgtk-3-dev
-    - etc...
-- Output will be inside `./Build`
-
-### Windows Visual Studio
-
-- Install DMD
-- Install Visual Studio 2017
-- Install VisualD
-- dub generate visuald
-- Open the project & Build Solution
-
-
-
-### Debugging
-
-Help! GDB crashes/halts!!!
-
-D uses `SIGUSR1` and `SIGUSR2` to let the GC communicate with the threads.
-
-Set GDB or your debugger to ignore them:
-
-```
-handle SIGUSR1 print nostop pass
-handle SIGUSR2 print nostop pass
-```
-If you want to do this automagically add them to .gdbinit in `/home/username/.gdbinit`
-Remember to pass the signals otherwise the threads will lock, ONLY ignore the stop in your debugger.
-
-https://dlang.org/library/core/thread/thread_set_gc_signals.html
-
-# What is this
+## What is this
 
 I was stressed on Linux because I couldn't find the files I needed, file searchers based on system indexing (updatedb) are prone to breaking and hard to configure for the average user, so did an all nighter and started this.
 
@@ -108,35 +108,12 @@ Second change is excluding some obvious folders while crawling like `Windows` an
 
 * Use your goddamn RAM: The third change is caching everything, I don't care about your RAM, I will use even 8GB of your RAM if this provides me a faster way to find your files, unused RAM is wasted RAM, even truer the more time passes.
 
-# Contributing
-Read the Issues and check the labels for high priority ones
 
-# TODOs
+## Donate
 
-- Backend
-    - settings in .config/drill-search
-    - /home/username needs to have higher priority over / crawler when /home isn't mounted on a secondary mountpoint
-    - Commas in numbers strings
-        - Correct separator based on current system internationalization
-    - AM/PM time base
-    - Icons image needs to be generic and in the backend
-    - 1 Threadpool per mount point
-        - 1 Threadpool PER DISK if possible
-        - NVM could benefit when multiple threads are run for the same disk?
-    - Metadata searching and new tokens (mp3, etc...)
-    - Percentage of crawling
-    - No GC
+```monero:8B5UK4znA6h67sfRK1eCjdUEry8BKseAF1qmKAVhAF5u1zeWiNFfgW9VaARLFh5VZKUQJC346K7wpH7aT17v62DC9igXw3y```
 
-- ncurses
 
-- Frontend/GTK
-    - Open containing folder with right click 
-    - Alternate row colors
-    - Error messagebox if opening file fails
-    - .rpm
-    - Snap
-    - Flatpak
-    - Drag and drop?
 
 
 ## Contributors
