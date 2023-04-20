@@ -108,7 +108,7 @@ public class Crawler {
     /// Stop the crawler
     /// </summary>
     public void Stop() {
-        // Stop the thread
+        // Use a black hole callback to avoid polluting the results
         resultsCallback = (string result) => {};
         cancellationTokenSource.Cancel();
         
