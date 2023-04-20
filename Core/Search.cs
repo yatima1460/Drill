@@ -21,13 +21,20 @@ public class Search {
         // For each drive, create a new Crawler
         // Start each crawler
         Debug.WriteLine("Starting search...");
-        foreach (var drive in DriveInfo.GetDrives()) {
+        var drives = DriveInfo.GetDrives();
+        foreach (var drive in drives) {
             Debug.WriteLine("Starting crawler for drive "+drive);
             if (!drive.IsReady) {
                 Debug.WriteLine("Drive "+drive+" is not ready.");
                 continue;
             }
-            Crawler crawler = new Crawler(drive, searchString, resultsCallback);
+            HashSet<string> ignoreRoots = new HashSet<string>();
+            foreach (var otherDrive in drives) {
+                if (otherDrive.RootDirectory.FullName != drive.RootDirectory.FullName) {
+                    ignoreRoots.Add(otherDrive.RootDirectory.FullName);
+                }
+            }
+            Crawler crawler = new Crawler(drive, searchString, resultsCallback, ignoreRoots);
             crawlers.Add(crawler);
             crawler.Start();
         }

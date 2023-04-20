@@ -9,14 +9,17 @@ public class Crawler {
     private string searchString;
     private Action<string> resultsCallback;
 
+    private HashSet<string> ignoreRoots;
+
     private Thread? thread;
 
     private CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
 
-    public Crawler(DriveInfo drive, string searchString, Action<string> resultsCallback) {
+    public Crawler(DriveInfo drive, string searchString, Action<string> resultsCallback, HashSet<string> ignoreRoots) {
         this.drive = drive;
         this.searchString = searchString;
         this.resultsCallback = resultsCallback;
+        this.ignoreRoots = ignoreRoots;
     }
 
     public void Start() {
@@ -52,6 +55,9 @@ public class Crawler {
         
         while (directories.Count > 0 && !cancellationToken.IsCancellationRequested) {
             DirectoryInfo currentDirectory = directories.Dequeue();
+            if (ignoreRoots.Contains(currentDirectory.FullName)) {
+                continue;
+            }
             Trace.WriteLine("Searching "+currentDirectory.FullName);
             
             FileInfo[] files;
