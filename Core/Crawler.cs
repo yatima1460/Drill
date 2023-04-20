@@ -62,7 +62,7 @@ public class Crawler {
             }
            
             foreach (var file in files) {
-                if (file.Name.ToLower().Contains(searchString.ToLower())) {
+                if (TokenSearch(file.Name,searchString)) {
                     resultsCallback(file.FullName);
                 }
             }
@@ -74,7 +74,7 @@ public class Crawler {
                 continue;
             }
             foreach (var subDirectory in subDirectories) {
-                if (subDirectory.Name.ToLower().Contains(searchString.ToLower())) {
+                if (TokenSearch(subDirectory.Name,searchString)) {
                     resultsCallback(subDirectory.FullName);
                 }
                 directories.Enqueue(subDirectory);
@@ -98,5 +98,18 @@ public class Crawler {
         resultsCallback = (string result) => {};
         cancellationTokenSource.Cancel();
         
+    }
+
+    public static bool TokenSearch(string searchInto, string searchFor) {
+      
+        searchInto = searchInto.ToLower();
+        searchFor = searchFor.ToLower();
+        var tokens = searchFor.Split(' ');
+        for (int i = 0; i < tokens.Length; i++) {
+            if (!searchInto.Contains(tokens[i])) {
+                return false;
+            }
+        }
+        return true;
     }
 }
