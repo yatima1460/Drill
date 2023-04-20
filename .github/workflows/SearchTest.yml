@@ -13,7 +13,7 @@ jobs:
   SearchTest:
     runs-on: ubuntu-22.04
     container: mcr.microsoft.com/dotnet/sdk:7.0
-    name: "Stress Test"
+    name: "Search Test"
     steps:
     - name: Check for dockerenv file
       run: (ls /.dockerenv && echo Found dockerenv) || (echo No dockerenv)
