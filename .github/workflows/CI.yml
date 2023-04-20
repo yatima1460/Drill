@@ -27,7 +27,6 @@ jobs:
                   "osx-x64",
                 ]
               config: ["Debug", "Release"]
-        steps:
         name: "${{ matrix.config }} ${{ matrix.runtime }}"
         steps:
         - name: Check for dockerenv file
