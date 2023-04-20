@@ -29,8 +29,9 @@ public class Search {
                 continue;
             }
             HashSet<string> ignoreRoots = new HashSet<string>();
+            // FIXME: this is (O(n^2) and should be O(n))?
             foreach (var otherDrive in drives) {
-                if (otherDrive.RootDirectory.FullName != drive.RootDirectory.FullName) {
+                if (otherDrive != drive) {
                     ignoreRoots.Add(otherDrive.RootDirectory.FullName);
                 }
             }
