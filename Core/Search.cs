@@ -20,7 +20,7 @@ public class Search {
         // Get a list of all mounted drives
         // For each drive, create a new Crawler
         // Start each crawler
-        Console.WriteLine("Starting search...");
+        Debug.WriteLine("Starting search...");
         foreach (var drive in DriveInfo.GetDrives()) {
             Crawler crawler = new Crawler(drive, searchString, resultsCallback);
             crawlers.Add(crawler);
@@ -30,10 +30,10 @@ public class Search {
 
     public void Wait() {
         foreach (var crawler in crawlers) {
-            Console.WriteLine("Waiting for crawler "+crawler+" to finish...");
+            Debug.WriteLine("Waiting for crawler "+crawler+" to finish...");
             crawler.Wait();
         }
-        Console.WriteLine("Search finished.");
+        Debug.WriteLine("Search finished.");
     }
 
 
