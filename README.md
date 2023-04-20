@@ -22,12 +22,16 @@ dotnet run --project CLI "search string"
 ## Todo
 
  - [ ] Thread safety
+ - [ ] Sign executables
  - [ ] Configs/arguments for search
  - [ ] Set root folder / mountpoints
  - [ ] Clean docs
  - [ ] automatically generate docs
  - [ ] EXTENSIONS!!!
  - [ ] PKGBUILD
+ - [ ] Windows Installer?
+ - [ ] Flatpak
+ - [ ] Snap
  - [ ] UI for Windows
    - [ ] exe icon
  - [ ] UI For Mac
@@ -37,6 +41,7 @@ dotnet run --project CLI "search string"
    - [ ] .AppImage
  - [ ] Regex lists
  - [ ] Docker
+ - [ ] Shadow CI
  - [ ] Telegram Bot for new releases?
  - [ ] Release executables automatically
  - [ ] Pull request checker
