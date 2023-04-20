@@ -12,71 +12,66 @@ I need people skilled in making a good UI, Avalonia, WinForms... I am not a UI g
 
 **THANK YOU :bow:**
 
-## How to build
 
-### Requirements
+## Requirements
 
-Install dotnet sdk 7.0
+[Install dotnet SDK 7.0](https://dotnet.microsoft.com/en-us/download/dotnet/7.0)
 
-<https://dotnet.microsoft.com/en-us/download/dotnet/7.0>
+### Using the terminal
 
-#### Using terminal
-
-##### Windows
-
-###### Chocolatey
+#### Windows / Chocolatey
 
 ```cmd
 choco install dotnet-7.0-sdk
 ```
 
-##### Mac
+#### Mac
 
 ```bash
 brew install dotnet@7
 ```
 
-### Run from source code
+## How to run directly from source code
 
 ```bash
 dotnet run --configuration Release --project CLI "search string"
 ```
 
-### Create portable folder
+## Create portable folder
 
 ```bash
-dotnet publish Drill.sln --maxCpuCount --configuration Release --self-contained --output Output
+dotnet publish Drill.sln --maxCpuCount --configuration Release --self-contained --output DrillPortable
 ```
 
 ## Todo
 
- - [ ] Thread safety
- - [ ] Sign executables
- - [ ] Configs/arguments for search
- - [ ] Set root folder / mountpoints
- - [ ] Clean docs
- - [ ] automatically generate docs
- - [ ] EXTENSIONS!!!
- - [ ] PKGBUILD
- - [ ] Windows Installer?
- - [ ] ncurses?
- - [ ] Flatpak
- - [ ] Threadpool or something similar
- - [ ] Snap
- - [ ] UI for Windows
-   - [ ] exe icon
- - [ ] UI For Mac
-   - [ ] .app
-   - [ ] .dmg
- - [ ] UI for Linux
-   - [ ] .AppImage
- - [ ] Regex lists
- - [ ] Docker
- - [ ] Shadow CI
- - [ ] Telegram Bot for new releases?
- - [ ] Release executables automatically
- - [ ] Pull request checker
- - [ ] Heuristics
+- [ ] Thread safety
+- [ ] Sign executables
+- [ ] Configs/arguments for search
+- [ ] Set root folder / mountpoints
+- [ ] Clean docs
+- [ ] automatically generate docs
+- [ ] EXTENSIONS!!!
+- [ ] PKGBUILD
+- [ ] Windows Installer?
+- [ ] ncurses?
+- [ ] Flatpak
+- [ ] Threadpool or something similar
+- [ ] Snap
+- [ ] UI for Windows
+- [ ] exe icon
+- [ ] UI For Mac
+- [ ] .app
+- [ ] .dmg
+- [ ] UI for Linux
+- [ ] .AppImage
+- [ ] Regex lists
+- [ ] Docker
+- [ ] Shadow CI
+- [ ] Telegram Bot for new releases?
+- [ ] Release executables automatically
+- [ ] Pull request checker
+- [ ] Heuristics
 
 
 
