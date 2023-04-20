@@ -85,3 +85,5 @@ GTKCpp/DrillGTK
 .vs
 /out
 *.aps
+
+.DS_Store
