@@ -76,6 +76,10 @@ public class Crawler {
             DirectoryInfo[] subDirectories;
             try {
                 subDirectories = currentDirectory.GetDirectories();
+                // Good cheap heuristic to make the search faster
+                subDirectories = subDirectories.OrderByDescending(d => d.LastWriteTime).ToArray();
+
+                
             } catch (Exception e) {
                 continue;
             }
@@ -85,6 +89,8 @@ public class Crawler {
                 }
                 directories.Enqueue(subDirectory);
             }
+
+            // TODO: better queue that adds first priority directories first like if name contains search token
         }
     }
 
