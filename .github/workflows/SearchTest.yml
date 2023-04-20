@@ -20,4 +20,4 @@ jobs:
     - run: dotnet --version
     - uses: actions/checkout@v3.3.0
     - run: dotnet clean Drill.sln --maxCpuCount
-    - run: dotnet run --project CLI "DrillCLI" | grep "DrillCLI"
+    - run: dotnet run --configuration Release --project CLI "DrillCLI" | grep "DrillCLI"
