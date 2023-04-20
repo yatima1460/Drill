@@ -2,15 +2,18 @@
 
 Sorry for abandoning the project for so long but I was busy with life.
 
+![sad](docs/sad-hitori-anime-girl-bt4lfvgoosbfb026.gif)
+
 Finally decided to drop D as a programming language (cmon guys it's dead) and moved to dotnet7
 
-BUT I NEED YOUR HELP
+**BUT I NEED YOUR HELP**
 
-I need people skilled in making a good UI, Avalonia, WinForms, I don't care, I am not a UI gal.
+I need people skilled in making a good UI, Avalonia, WinForms... I am not a UI gal.
 
-THANK YOU :bow:
+**THANK YOU :bow:**
 
-## Run from source code
+## How to build
+### Run from source code
 
 ```
 dotnet run --project CLI "search string"
@@ -19,6 +22,8 @@ dotnet run --project CLI "search string"
 ## Todo
 
  - [ ] Thread safety
+ - [ ] Configs/arguments for search
+ - [ ] Set root folder / mountpoints
  - [ ] Clean docs
  - [ ] automatically generate docs
  - [ ] EXTENSIONS!!!
