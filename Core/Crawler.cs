@@ -11,6 +11,8 @@ public class Crawler {
 
     private Thread? thread;
 
+    private CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
+
     public Crawler(DriveInfo drive, string searchString, Action<string> resultsCallback) {
         this.drive = drive;
         this.searchString = searchString;
@@ -21,7 +23,10 @@ public class Crawler {
         // Start a new thread
         // In the thread, call the SearchDirectory method
         // Pass the drive root directory as the parameter
-        this.thread = new Thread(() => SearchDirectory(drive.RootDirectory, searchString, resultsCallback));
+        // Pass the searchString as the parameter
+        // Pass the resultsCallback as the parameter
+        
+        this.thread = new Thread(() => SearchDirectory(drive.RootDirectory, searchString, resultsCallback, cancellationTokenSource.Token));
         thread.Start();
     }
 
@@ -31,7 +36,7 @@ public class Crawler {
         thread?.Join();
     }
 
-    private void SearchDirectory(DirectoryInfo directory, string searchString, Action<string> resultsCallback) {
+    private void SearchDirectory(DirectoryInfo directory, string searchString, Action<string> resultsCallback, CancellationToken cancellationToken) {
     
         // Use breadth-first
         // Use a queue
@@ -45,7 +50,7 @@ public class Crawler {
         Queue<DirectoryInfo> directories = new Queue<DirectoryInfo>();
         directories.Enqueue(directory);
         
-        while (directories.Count > 0) {
+        while (directories.Count > 0 && !cancellationToken.IsCancellationRequested) {
             DirectoryInfo currentDirectory = directories.Dequeue();
             Trace.WriteLine("Searching "+currentDirectory.FullName);
             
@@ -90,6 +95,8 @@ public class Crawler {
     /// </summary>
     public void Stop() {
         // Stop the thread
-        thread?.Abort();
+        resultsCallback = (string result) => {};
+        cancellationTokenSource.Cancel();
+        
     }
 }
