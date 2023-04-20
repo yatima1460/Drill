@@ -64,6 +64,7 @@ public class Crawler {
             try {
                  files = currentDirectory.GetFiles();
             } catch (Exception e) {
+                Trace.WriteLine("Error: "+e.Message);
                 continue;
             }
            
@@ -81,6 +82,7 @@ public class Crawler {
 
                 
             } catch (Exception e) {
+                Trace.WriteLine("Error: "+e.Message);
                 continue;
             }
             foreach (var subDirectory in subDirectories) {
