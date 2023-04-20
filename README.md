@@ -16,7 +16,7 @@ I need people skilled in making a good UI, Avalonia, WinForms... I am not a UI g
 ### Run from source code
 
 ```
-dotnet run --project CLI "search string"
+dotnet run --configuration Release --project CLI "search string"
 ```
 
 ## Todo
