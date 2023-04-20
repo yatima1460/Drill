@@ -13,10 +13,39 @@ I need people skilled in making a good UI, Avalonia, WinForms... I am not a UI g
 **THANK YOU :bow:**
 
 ## How to build
+
+### Requirements
+
+Install dotnet sdk 7.0
+
+<https://dotnet.microsoft.com/en-us/download/dotnet/7.0>
+
+#### Using terminal
+
+##### Windows
+
+###### Chocolatey
+
+```cmd
+choco install dotnet-7.0-sdk
+```
+
+##### Mac
+
+```bash
+brew install dotnet@7
+```
+
 ### Run from source code
 
-```
+```bash
 dotnet run --configuration Release --project CLI "search string"
+```
+
+### Create portable folder
+
+```bash
+dotnet publish Drill.sln --maxCpuCount --configuration Release --self-contained --output Output
 ```
 
 ## Todo
@@ -30,6 +59,7 @@ dotnet run --configuration Release --project CLI "search string"
  - [ ] EXTENSIONS!!!
  - [ ] PKGBUILD
  - [ ] Windows Installer?
+ - [ ] ncurses?
  - [ ] Flatpak
  - [ ] Threadpool or something similar
  - [ ] Snap
