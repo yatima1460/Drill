@@ -5,8 +5,7 @@ using System.Diagnostics;
 
 public class Crawler
 {
-
-    private DriveInfo drive;
+    public readonly string root;
     private string searchString;
     private Action<string> resultsCallback;
 
@@ -16,9 +15,9 @@ public class Crawler
 
     private CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
 
-    public Crawler(DriveInfo drive, string searchString, Action<string> resultsCallback, HashSet<string> ignoreRoots)
+    public Crawler(string root, string searchString, Action<string> resultsCallback, HashSet<string> ignoreRoots)
     {
-        this.drive = drive;
+        this.root = root;
         this.searchString = searchString;
         this.resultsCallback = resultsCallback;
         this.ignoreRoots = ignoreRoots;
@@ -32,7 +31,7 @@ public class Crawler
         // Pass the searchString as the parameter
         // Pass the resultsCallback as the parameter
 
-        this.thread = new Thread(() => SearchDirectory(drive.RootDirectory, searchString, resultsCallback, cancellationTokenSource.Token));
+        this.thread = new Thread(() => SearchDirectory(root, searchString, resultsCallback, cancellationTokenSource.Token));
         thread.Start();
     }
 
@@ -43,7 +42,7 @@ public class Crawler
         thread?.Join();
     }
 
-    private void SearchDirectory(DirectoryInfo root, string searchString, Action<string> resultsCallback, CancellationToken cancellationToken)
+    private void SearchDirectory(string root, string searchString, Action<string> resultsCallback, CancellationToken cancellationToken)
     {
 
         // Use breadth-first
@@ -55,13 +54,23 @@ public class Crawler
         //      Search the directory for subdirectories
         //      Add the subdirectories to the queue
         //      Repeat
-        LinkedList<DirectoryInfo> directories = new LinkedList<DirectoryInfo>();
-        directories.AddLast(root);
-
-        while (directories.Count > 0 && !cancellationToken.IsCancellationRequested)
+        LinkedList<DirectoryInfo> queue = new LinkedList<DirectoryInfo>();
+        try
         {
-            DirectoryInfo currentDirectory = directories.First();
-            directories.RemoveFirst();
+            queue.AddLast(new DirectoryInfo(root));
+        }
+        catch (Exception e)
+        {
+            Trace.WriteLine("Error: " + e.Message);
+            return;
+        }
+
+
+        while (queue.Count > 0 && !cancellationToken.IsCancellationRequested)
+        {
+            DirectoryInfo currentDirectory = queue.First();
+            queue.RemoveFirst();
+
             if (ignoreRoots.Contains(currentDirectory.FullName))
             {
                 continue;
@@ -101,15 +110,31 @@ public class Crawler
             }
             foreach (var subDirectory in subDirectories)
             {
-                if (TokenSearch(subDirectory.Name, searchString))
+                bool tokenSearch = TokenSearch(subDirectory.Name, searchString);     
+
+                if (subDirectory.Attributes.HasFlag(FileAttributes.Hidden)
+                    || subDirectory.Attributes.HasFlag(FileAttributes.System)
+                    || subDirectory.Attributes.HasFlag(FileAttributes.Temporary)
+                    || subDirectory.LastWriteTime < DateTime.Now.AddMonths(-1)
+                    || subDirectory.Name.StartsWith(".")
+                    || subDirectory.Name.StartsWith("$")
+                    || subDirectory.Name.StartsWith("~")
+                    || Path.Join(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Library").Equals(subDirectory.FullName)
+                    || Path.Join(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "AppData").Equals(subDirectory.FullName)
+                    || subDirectory.Name == "node_modules"
+                    || subDirectory.FullName.StartsWith(@"C:\Windows")
+                )
                 {
-                    // Good cheap heuristic to make the search faster
-                    directories.AddFirst(subDirectory);
-                    resultsCallback(subDirectory.FullName);
+                    queue.AddLast(subDirectory);
                 }
                 else
                 {
-                    directories.AddLast(subDirectory);
+                    queue.AddFirst(subDirectory);
+                }
+
+                if (tokenSearch)
+                {
+                    resultsCallback(subDirectory.FullName);
                 }
             }
         }
@@ -121,7 +146,7 @@ public class Crawler
     /// <returns></returns>
     public override string ToString()
     {
-        return drive.Name;
+        return root;
     }
 
     /// <summary>
