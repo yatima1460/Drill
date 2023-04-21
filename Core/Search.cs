@@ -62,6 +62,8 @@ public class Search
 
         var goodRoots = new List<string> {
             // Basic folders
+            "/Applications",
+            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Applications"),
             Environment.GetFolderPath(Environment.SpecialFolder.Desktop),
             Environment.GetFolderPath(Environment.SpecialFolder.MyMusic),
             Environment.GetFolderPath(Environment.SpecialFolder.MyPictures),
