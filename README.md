@@ -1,5 +1,8 @@
 # Drill
 
+[![Nightly](https://github.com/yatima1460/Drill/actions/workflows/Nightly.yml/badge.svg)](https://github.com/yatima1460/Drill/actions/workflows/Nightly.yml)
+
+
 Sorry for abandoning the project for so long but I was busy with life.
 
 ![sad](docs/sad-hitori-anime-girl-bt4lfvgoosbfb026.gif)
@@ -75,7 +78,6 @@ dotnet publish Drill.sln --maxCpuCount --configuration Release --self-contained 
 
 
 
-[![RollingRelease](https://github.com/yatima1460/Drill/actions/workflows/RollingRelease.yml/badge.svg)](https://github.com/yatima1460/Drill/actions/workflows/RollingRelease.yml)
 
 [![Financial Contributors on Open Collective](https://opencollective.com/Drill/all/badge.svg?label=financial+contributors)](https://opencollective.com/Drill) [![GitHub issues](https://img.shields.io/github/issues/yatima1460/Drill.svg)](https://github.com/yatima1460/Drill/issues)
 [![GitHub forks](https://img.shields.io/github/forks/yatima1460/Drill.svg)](https://github.com/yatima1460/Drill/network)
