@@ -55,13 +55,13 @@ public class Crawler
         //      Search the directory for subdirectories
         //      Add the subdirectories to the queue
         //      Repeat
-        List<DirectoryInfo> directories = new List<DirectoryInfo>();
-        directories.Add(root);
+        LinkedList<DirectoryInfo> directories = new LinkedList<DirectoryInfo>();
+        directories.AddLast(root);
 
         while (directories.Count > 0 && !cancellationToken.IsCancellationRequested)
         {
             DirectoryInfo currentDirectory = directories.First();
-            directories.RemoveAt(0);
+            directories.RemoveFirst();
             if (ignoreRoots.Contains(currentDirectory.FullName))
             {
                 continue;
@@ -93,8 +93,6 @@ public class Crawler
                 subDirectories = currentDirectory.GetDirectories();
                 // Good cheap heuristic to make the search faster
                 subDirectories = subDirectories.OrderByDescending(d => d.LastWriteTime).ToArray();
-
-
             }
             catch (Exception e)
             {
@@ -105,13 +103,13 @@ public class Crawler
             {
                 if (TokenSearch(subDirectory.Name, searchString))
                 {
-                    resultsCallback(subDirectory.FullName);
                     // Good cheap heuristic to make the search faster
-                    directories.Insert(0, subDirectory);
+                    directories.AddFirst(subDirectory);
+                    resultsCallback(subDirectory.FullName);
                 }
                 else
                 {
-                    directories.Add(subDirectory);
+                    directories.AddLast(subDirectory);
                 }
             }
         }
