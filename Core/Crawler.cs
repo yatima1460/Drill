@@ -138,6 +138,7 @@ public class Crawler
                     || subDirectory.LastWriteTime < DateTime.Now.AddMonths(-3)
                     || subDirectory.LastAccessTime < DateTime.Now.AddMonths(-3)
                     || subDirectory.Extension == ".app"
+                    || subDirectory.FullName.Contains(".app/")
                     || subDirectory.Name.StartsWith(".")
                     || subDirectory.Name.StartsWith("$")
                     || subDirectory.Name.StartsWith("~")
