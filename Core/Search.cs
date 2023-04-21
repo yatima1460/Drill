@@ -3,6 +3,7 @@
 
 using System.Diagnostics;
 
+
 public class Search {
 
     private string searchString;
@@ -12,11 +13,25 @@ public class Search {
 
 
     public Search(string searchString, Action<string> resultsCallback) {
+
+        if (searchString == null) {
+            throw new ArgumentException("Search string cannot be null");
+        }
+        if (searchString.Length == 0) {
+            throw new ArgumentException("Search string cannot be empty");
+        }
+        if (resultsCallback == null) {
+            throw new ArgumentException("Results callback cannot be null");
+        }
         this.searchString = searchString;
         this.resultsCallback = resultsCallback;
     }
 
     public void Start() {
+
+        if (crawlers.Count > 0) {
+            throw new InvalidOperationException("Search already started");
+        }
         // Get a list of all mounted drives
         // For each drive, create a new Crawler
         // Start each crawler
@@ -42,6 +57,10 @@ public class Search {
     }
 
     public void Wait() {
+
+        if (crawlers.Count == 0) {
+            throw new InvalidOperationException("Search not started");
+        }
         foreach (var crawler in crawlers) {
             Debug.WriteLine("Waiting for crawler "+crawler+" to finish...");
             crawler.Wait();
@@ -53,10 +72,14 @@ public class Search {
     
     /// Stop the search
     public void Stop() {
+        if (crawlers.Count == 0) {
+            throw new InvalidOperationException("Search not started");
+        }
         // Stop each crawler
         foreach (var crawler in crawlers) {
             crawler.Stop();
         }
+        crawlers.Clear();
     }
 
 }
