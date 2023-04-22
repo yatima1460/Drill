@@ -3,24 +3,27 @@
 
 using System.Diagnostics;
 
+
+namespace Drill.Core.Modules.LocalFileSearch;
 public class Crawler
 {
     public readonly string root;
     private string searchString;
-    private Action<string> resultsCallback;
+    private Action<Uri> resultsCallback;
 
     private HashSet<string> ignoreRoots;
 
     private Thread? thread;
 
-    private CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
+    private CancellationToken cancellationToken;
 
-    public Crawler(string root, string searchString, Action<string> resultsCallback, HashSet<string> ignoreRoots)
+    public Crawler(string root, string searchString, Action<Uri> resultsCallback, HashSet<string> ignoreRoots, CancellationToken cancellationToken)
     {
         this.root = root;
         this.searchString = searchString;
         this.resultsCallback = resultsCallback;
         this.ignoreRoots = ignoreRoots;
+        this.cancellationToken = cancellationToken;
     }
 
     public void Start()
@@ -31,7 +34,7 @@ public class Crawler
         // Pass the searchString as the parameter
         // Pass the resultsCallback as the parameter
 
-        this.thread = new Thread(() => SearchDirectory(root, searchString, resultsCallback, cancellationTokenSource.Token));
+        this.thread = new Thread(() => SearchDirectory(root, searchString, resultsCallback, cancellationToken));
         thread.Start();
     }
 
@@ -42,7 +45,7 @@ public class Crawler
         thread?.Join();
     }
 
-    private void SearchDirectory(string root, string searchString, Action<string> resultsCallback, CancellationToken cancellationToken)
+    private void SearchDirectory(string root, string searchString, Action<Uri> resultsCallback, CancellationToken cancellationToken)
     {
 
         // Use breadth-first
@@ -92,7 +95,13 @@ public class Crawler
             {
                 if (TokenSearch(file.Name, searchString))
                 {
-                    resultsCallback(file.FullName);
+                    // Create file Uri
+                    // Call resultsCallback with the Uri
+                    
+              
+                     ThreadPool.QueueUserWorkItem(
+                        (state) => resultsCallback(new Uri(file.FullName))
+                    );
                 }
             }
 
@@ -116,47 +125,48 @@ public class Crawler
                    continue;
                 }
 
-                bool tokenSearch = TokenSearch(subDirectory.Name, searchString);   
+                bool isResult = searchString.Contains(Path.PathSeparator) ? subDirectory.FullName.ToLower().Contains(searchString.ToLower()) : TokenSearch(subDirectory.Name, searchString);   
 
                
 
-                // If the directory has the search token in the name, add it to the front of the queue
-                if (tokenSearch)
+                
+                if (isResult)
                 {
+                    // If the directory has the search token in the name, add it to the front of the queue
                     queue.AddFirst(subDirectory);
                      // Start in a new ThreadPool to avoid blocking the main thread
                     ThreadPool.QueueUserWorkItem(
-                        (state) => resultsCallback(subDirectory.FullName)
+                        (state) => resultsCallback(new Uri(subDirectory.FullName))
                     );
                     continue;
                 }
 
-                // If the directory is "bad", add it to the end of the queue
-                if (subDirectory.Attributes.HasFlag(FileAttributes.Hidden)
-                    || subDirectory.Attributes.HasFlag(FileAttributes.System)
-                    || subDirectory.Attributes.HasFlag(FileAttributes.Temporary)
-                    || subDirectory.LastWriteTime < DateTime.Now.AddMonths(-3)
-                    || subDirectory.LastAccessTime < DateTime.Now.AddMonths(-3)
-                    || subDirectory.Extension == ".app"
-                    || subDirectory.FullName.Contains(".app/")
-                    || subDirectory.Name.StartsWith(".")
-                    || subDirectory.Name.StartsWith("$")
-                    || subDirectory.Name.StartsWith("~")
-                    || Path.Join(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Library").Equals(subDirectory.FullName)
-                    || Path.Join(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "AppData").Equals(subDirectory.FullName)
-                    || subDirectory.Name == "node_modules"
-                    || subDirectory.FullName.StartsWith(@"C:\Windows")
-                    || subDirectory.FullName.StartsWith("/System")
-                    || subDirectory.FullName.StartsWith("/Library")
-                    || subDirectory.FullName.StartsWith("/private")
-                )
-                {
-                    queue.AddLast(subDirectory);
-                }
-                else
-                {
-                    queue.AddFirst(subDirectory);
-                }
+                    // If the directory is "bad", add it to the end of the queue
+                    if (subDirectory.Attributes.HasFlag(FileAttributes.Hidden)
+                        || subDirectory.Attributes.HasFlag(FileAttributes.System)
+                        || subDirectory.Attributes.HasFlag(FileAttributes.Temporary)
+                        || subDirectory.LastWriteTime < DateTime.Now.AddMonths(-3)
+                        || subDirectory.LastAccessTime < DateTime.Now.AddMonths(-3)
+                        || subDirectory.Extension == ".app"
+                        || subDirectory.FullName.Contains(".app/")
+                        || subDirectory.Name.StartsWith(".")
+                        || subDirectory.Name.StartsWith("$")
+                        || subDirectory.Name.StartsWith("~")
+                        || Path.Join(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Library").Equals(subDirectory.FullName)
+                        || Path.Join(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "AppData").Equals(subDirectory.FullName)
+                        || subDirectory.Name == "node_modules"
+                        || subDirectory.FullName.StartsWith(@"C:\Windows")
+                        || subDirectory.FullName.StartsWith("/System")
+                        || subDirectory.FullName.StartsWith("/Library")
+                        || subDirectory.FullName.StartsWith("/private")
+                    )
+                    {
+                        queue.AddLast(subDirectory);
+                    }
+                    else
+                    {
+                        queue.AddFirst(subDirectory);
+                    }
 
             }
         }
@@ -171,15 +181,11 @@ public class Crawler
         return root;
     }
 
-    /// <summary>
-    /// Stop the crawler
-    /// </summary>
-    public void Stop()
-    {
-        // Stop the thread
-        resultsCallback = (string result) => { };
-        cancellationTokenSource.Cancel();
 
+
+    public bool IsRunning()
+    {
+        return thread != null && thread.IsAlive;
     }
 
     public static bool TokenSearch(string searchInto, string searchFor)
