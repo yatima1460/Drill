@@ -4,9 +4,9 @@
 namespace Drill.Core;
 public abstract class Module {
 
-    private readonly string SearchString;
-    private readonly Action<Uri> ResultsCallback;
-    private readonly CancellationToken CancellationToken;
+    protected readonly string SearchString;
+    protected readonly Action<Uri> ResultsCallback;
+    protected readonly CancellationToken CancellationToken;
 
     /// <summary>
     /// Initialize the module
