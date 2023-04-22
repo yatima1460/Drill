@@ -43,9 +43,9 @@ public class Search
         {
             throw new InvalidOperationException("No modules to start");
         }
-        if (modules.Any(m => m.IsRunning()))
+        if (IsRunning())
         {
-            throw new InvalidOperationException("Search already started");
+            throw new InvalidOperationException("Search is already running");
         }
 
         Debug.WriteLine("Starting search...");
@@ -61,14 +61,7 @@ public class Search
     /// Returns true if at least one module is running
     public bool IsRunning()
     {
-        foreach (var module in modules)
-        {
-            if (module.IsRunning())
-            {
-                return true;
-            }
-        }
-        return false;
+        return modules.Any(module => module.IsRunning());
     }
 
     public void Wait()
@@ -89,6 +82,10 @@ public class Search
     /// Stop the search
     public void Stop()
     {
+        if (cancellationTokenSource.IsCancellationRequested)
+        {
+            throw new InvalidOperationException("Search already stopped");
+        }
         if (!IsRunning())
         {
             throw new InvalidOperationException("Search not started");
