@@ -78,7 +78,7 @@ class LocalFileSearch : Module
             var ignoreRoots = new HashSet<string>(blacklist);
             ignoreRoots.UnionWith(roots);
             ignoreRoots.Remove(root);
-            Crawler crawler = new Crawler(root, searchString, resultsCallback, ignoreRoots);
+            Crawler crawler = new Crawler(root, searchString, resultsCallback, ignoreRoots, token);
             crawlers.Add(crawler);
             
         }
