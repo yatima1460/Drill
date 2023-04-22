@@ -15,14 +15,15 @@ public class Crawler
 
     private Thread? thread;
 
-    private CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
+    private CancellationToken cancellationToken;
 
-    public Crawler(string root, string searchString, Action<Uri> resultsCallback, HashSet<string> ignoreRoots)
+    public Crawler(string root, string searchString, Action<Uri> resultsCallback, HashSet<string> ignoreRoots, CancellationToken cancellationToken)
     {
         this.root = root;
         this.searchString = searchString;
         this.resultsCallback = resultsCallback;
         this.ignoreRoots = ignoreRoots;
+        this.cancellationToken = cancellationToken;
     }
 
     public void Start()
@@ -33,7 +34,7 @@ public class Crawler
         // Pass the searchString as the parameter
         // Pass the resultsCallback as the parameter
 
-        this.thread = new Thread(() => SearchDirectory(root, searchString, resultsCallback, cancellationTokenSource.Token));
+        this.thread = new Thread(() => SearchDirectory(root, searchString, resultsCallback, cancellationToken));
         thread.Start();
     }
 
@@ -180,16 +181,7 @@ public class Crawler
         return root;
     }
 
-    /// <summary>
-    /// Stop the crawler
-    /// </summary>
-    public void Stop()
-    {
-        // Stop the thread
-        resultsCallback = (Uri result) => { };
-        cancellationTokenSource.Cancel();
 
-    }
 
     public bool IsRunning()
     {
