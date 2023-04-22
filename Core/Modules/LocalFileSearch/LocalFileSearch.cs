@@ -14,7 +14,7 @@ class LocalFileSearch : Module
     
     private List<Crawler> crawlers = new List<Crawler>();
 
-    public LocalFileSearch(string searchString, Action<string> resultsCallback, CancellationToken token) : base(searchString, resultsCallback, token)
+    public LocalFileSearch(string searchString, Action<Uri> resultsCallback, CancellationToken token) : base(searchString, resultsCallback, token)
     {
          var roots = new HashSet<string>();
 

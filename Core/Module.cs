@@ -5,14 +5,14 @@ namespace Drill.Core;
 public abstract class Module {
 
     private readonly string SearchString;
-    private readonly Action<string> ResultsCallback;
+    private readonly Action<Uri> ResultsCallback;
     private readonly CancellationToken CancellationToken;
 
     /// <summary>
     /// Initialize the module
     /// Here you should load any data or resources
     /// </summary>
-    public Module(string searchString, Action<string> resultsCallback, CancellationToken token){
+    public Module(string searchString, Action<Uri> resultsCallback, CancellationToken token){
         this.SearchString = searchString;
         this.ResultsCallback = resultsCallback;
         this.CancellationToken = token;

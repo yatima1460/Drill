@@ -26,7 +26,7 @@ public class CLI
         };
     }
 
-    public static void ResultsCallback(string result)
+    public static void ResultsCallback(Uri result)
     {
         Console.WriteLine(result);
     }

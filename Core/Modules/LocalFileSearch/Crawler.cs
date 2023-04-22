@@ -9,7 +9,7 @@ public class Crawler
 {
     public readonly string root;
     private string searchString;
-    private Action<string> resultsCallback;
+    private Action<Uri> resultsCallback;
 
     private HashSet<string> ignoreRoots;
 
@@ -17,7 +17,7 @@ public class Crawler
 
     private CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
 
-    public Crawler(string root, string searchString, Action<string> resultsCallback, HashSet<string> ignoreRoots)
+    public Crawler(string root, string searchString, Action<Uri> resultsCallback, HashSet<string> ignoreRoots)
     {
         this.root = root;
         this.searchString = searchString;
@@ -44,7 +44,7 @@ public class Crawler
         thread?.Join();
     }
 
-    private void SearchDirectory(string root, string searchString, Action<string> resultsCallback, CancellationToken cancellationToken)
+    private void SearchDirectory(string root, string searchString, Action<Uri> resultsCallback, CancellationToken cancellationToken)
     {
 
         // Use breadth-first
@@ -94,7 +94,13 @@ public class Crawler
             {
                 if (TokenSearch(file.Name, searchString))
                 {
-                    resultsCallback(file.FullName);
+                    // Create file Uri
+                    // Call resultsCallback with the Uri
+                    
+              
+                     ThreadPool.QueueUserWorkItem(
+                        (state) => resultsCallback(new Uri(file.FullName))
+                    );
                 }
             }
 
@@ -129,7 +135,7 @@ public class Crawler
                     queue.AddFirst(subDirectory);
                      // Start in a new ThreadPool to avoid blocking the main thread
                     ThreadPool.QueueUserWorkItem(
-                        (state) => resultsCallback(subDirectory.FullName)
+                        (state) => resultsCallback(new Uri(subDirectory.FullName))
                     );
                     continue;
                 }
@@ -180,7 +186,7 @@ public class Crawler
     public void Stop()
     {
         // Stop the thread
-        resultsCallback = (string result) => { };
+        resultsCallback = (Uri result) => { };
         cancellationTokenSource.Cancel();
 
     }

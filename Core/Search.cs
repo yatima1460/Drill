@@ -9,14 +9,14 @@ public class Search
 {
 
     private string searchString;
-    Action<string> resultsCallback;
+    Action<Uri> resultsCallback;
 
     private CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
 
     private List<Module> modules = new List<Module>();
 
 
-    public Search(string searchString, Action<string> resultsCallback)
+    public Search(string searchString, Action<Uri> resultsCallback)
     {
         
         if (searchString == null)
