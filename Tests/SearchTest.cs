@@ -1,3 +1,5 @@
+using Drill.Core;
+
 namespace Tests;
 
 
@@ -7,7 +9,7 @@ public class UnitTest1
     [Fact]
     public void SimpleStartAndStop()
     {
-        Search s = new Search("test", (string result) => {
+        Search s = new Search("test", (Uri result) => {
             Console.WriteLine("SimpleStartAndStop: "+result);
         });
         s.Start();
@@ -17,7 +19,7 @@ public class UnitTest1
     [Fact]
     public void PassInvalidSearchString()
     {
-        Assert.Throws<ArgumentException>(() => new Search(null, (string result) => {
+        Assert.Throws<ArgumentException>(() => new Search(null, (Uri result) => {
             Console.WriteLine("PassInvalidSearchString: "+result);
         }));
     }
@@ -33,7 +35,7 @@ public class UnitTest1
     [Fact]
     public void PassEmptySearchString()
     {
-        Assert.Throws<ArgumentException>(() => new Search("", (string result) => {
+        Assert.Throws<ArgumentException>(() => new Search("", (Uri result) => {
             Console.WriteLine("PassEmptySearchString: "+result);
         }));
     }
@@ -41,7 +43,7 @@ public class UnitTest1
     [Fact(Timeout = 1000)]
     public void StartTwice()
     {
-        Search s = new Search("test", (string result) => {
+        Search s = new Search("test", (Uri result) => {
             Console.WriteLine("StartTwice: "+result);
         });
         s.Start();
@@ -52,7 +54,7 @@ public class UnitTest1
     [Fact]
     public void StopTwice()
     {
-        Search s = new Search("test", (string result) => {
+        Search s = new Search("test", (Uri result) => {
             Console.WriteLine("StopTwice: "+result);
         });
         s.Start();
@@ -63,7 +65,7 @@ public class UnitTest1
     [Fact]
     public void StopWithoutStarting()
     {
-        Search s = new Search("test", (string result) => {
+        Search s = new Search("test", (Uri result) => {
             Console.WriteLine("StopWithoutStarting: "+result);
         });
         Assert.Throws<InvalidOperationException>(() => s.Stop());
@@ -72,7 +74,7 @@ public class UnitTest1
     [Fact]
     public void WaitWithoutStarting()
     {
-        Search s = new Search("test", (string result) => {
+        Search s = new Search("test", (Uri result) => {
             Console.WriteLine("WaitWithoutStarting: "+result);
         });
         Assert.Throws<InvalidOperationException>(() => s.Wait());
@@ -98,7 +100,7 @@ public class UnitTest1
     [Fact]
     public void StartAndStopMultipleTimes()
     {
-        Search s = new Search("test", (string result) => {
+        Search s = new Search("test", (Uri result) => {
             Console.WriteLine("StartAndStopMultipleTimes: "+result);
         });
         s.Start();
