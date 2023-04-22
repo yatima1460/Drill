@@ -34,5 +34,5 @@ jobs:
         - run: dotnet --version
         - uses: actions/checkout@v3.3.0
         - run: dotnet clean Drill.sln --maxCpuCount
-        - run: dotnet publish Drill.sln --configuration=${{ matrix.config }} --runtime ${{ matrix.runtime }} --self-contained --maxCpuCount
+        - run: dotnet build Drill.sln --configuration=${{ matrix.config }} --runtime ${{ matrix.runtime }} --maxCpuCount --target:CLI --self-contained
         - run: dotnet test Drill.sln --configuration=${{ matrix.config }} --maxCpuCount
