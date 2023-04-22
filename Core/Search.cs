@@ -8,8 +8,8 @@ namespace Drill.Core;
 public class Search
 {
 
-    private string searchString;
-    Action<Uri> resultsCallback;
+    public readonly string SearchString;
+    Action<Uri> ResultsCallback;
 
     private CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
 
@@ -18,7 +18,6 @@ public class Search
 
     public Search(string searchString, Action<Uri> resultsCallback)
     {
-        
         if (searchString == null)
         {
             throw new ArgumentException("Search string cannot be null");
@@ -32,9 +31,9 @@ public class Search
             throw new ArgumentException("Results callback cannot be null");
         }
 
-        modules.Add(new Modules.LocalFileSearch.LocalFileSearch(searchString, resultsCallback, cancellationTokenSource.Token));
-        this.searchString = searchString;
-        this.resultsCallback = resultsCallback;
+        modules.Add(new Modules.LocalFileSearch.LocalFileNameSearch(searchString, resultsCallback, cancellationTokenSource.Token));
+        this.SearchString = searchString;
+        this.ResultsCallback = resultsCallback;
     }
 
     public void Start()
