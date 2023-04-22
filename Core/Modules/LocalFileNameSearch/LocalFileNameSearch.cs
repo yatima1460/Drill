@@ -151,7 +151,7 @@ class LocalFileNameSearch : Module
                    continue;
                 }
 
-                bool isResult = SearchString.Contains(Path.PathSeparator) ? subDirectory.FullName.ToLower().Contains(SearchString.ToLower()) : TokenSearch(subDirectory.Name, SearchString);   
+                bool isResult = SearchString.Contains(Path.DirectorySeparatorChar) ? subDirectory.FullName.ToLower().Contains(SearchString.ToLower()) : TokenSearch(subDirectory.Name, SearchString);   
 
                 if (isResult)
                 {
