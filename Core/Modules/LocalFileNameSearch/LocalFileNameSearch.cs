@@ -144,7 +144,7 @@ class LocalFileNameSearch : Module
                 visited.Add(subDirectory.FullName);
 
                 // Avoid strange directories
-                if (subDirectory.Attributes != FileAttributes.Directory
+                if (!subDirectory.Attributes.HasFlag(FileAttributes.Directory)
                 || subDirectory.Attributes.HasFlag(FileAttributes.ReparsePoint)
                 || subDirectory.Attributes.HasFlag(FileAttributes.Offline))
                 {
