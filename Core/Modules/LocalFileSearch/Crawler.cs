@@ -3,6 +3,8 @@
 
 using System.Diagnostics;
 
+
+namespace Drill.Core.Modules.LocalFileSearch;
 public class Crawler
 {
     public readonly string root;
@@ -116,13 +118,14 @@ public class Crawler
                    continue;
                 }
 
-                bool tokenSearch = TokenSearch(subDirectory.Name, searchString);   
+                bool isResult = searchString.Contains(Path.PathSeparator) ? subDirectory.FullName.ToLower().Contains(searchString.ToLower()) : TokenSearch(subDirectory.Name, searchString);   
 
                
 
-                // If the directory has the search token in the name, add it to the front of the queue
-                if (tokenSearch)
+                
+                if (isResult)
                 {
+                    // If the directory has the search token in the name, add it to the front of the queue
                     queue.AddFirst(subDirectory);
                      // Start in a new ThreadPool to avoid blocking the main thread
                     ThreadPool.QueueUserWorkItem(
@@ -131,32 +134,32 @@ public class Crawler
                     continue;
                 }
 
-                // If the directory is "bad", add it to the end of the queue
-                if (subDirectory.Attributes.HasFlag(FileAttributes.Hidden)
-                    || subDirectory.Attributes.HasFlag(FileAttributes.System)
-                    || subDirectory.Attributes.HasFlag(FileAttributes.Temporary)
-                    || subDirectory.LastWriteTime < DateTime.Now.AddMonths(-3)
-                    || subDirectory.LastAccessTime < DateTime.Now.AddMonths(-3)
-                    || subDirectory.Extension == ".app"
-                    || subDirectory.FullName.Contains(".app/")
-                    || subDirectory.Name.StartsWith(".")
-                    || subDirectory.Name.StartsWith("$")
-                    || subDirectory.Name.StartsWith("~")
-                    || Path.Join(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Library").Equals(subDirectory.FullName)
-                    || Path.Join(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "AppData").Equals(subDirectory.FullName)
-                    || subDirectory.Name == "node_modules"
-                    || subDirectory.FullName.StartsWith(@"C:\Windows")
-                    || subDirectory.FullName.StartsWith("/System")
-                    || subDirectory.FullName.StartsWith("/Library")
-                    || subDirectory.FullName.StartsWith("/private")
-                )
-                {
-                    queue.AddLast(subDirectory);
-                }
-                else
-                {
-                    queue.AddFirst(subDirectory);
-                }
+                    // If the directory is "bad", add it to the end of the queue
+                    if (subDirectory.Attributes.HasFlag(FileAttributes.Hidden)
+                        || subDirectory.Attributes.HasFlag(FileAttributes.System)
+                        || subDirectory.Attributes.HasFlag(FileAttributes.Temporary)
+                        || subDirectory.LastWriteTime < DateTime.Now.AddMonths(-3)
+                        || subDirectory.LastAccessTime < DateTime.Now.AddMonths(-3)
+                        || subDirectory.Extension == ".app"
+                        || subDirectory.FullName.Contains(".app/")
+                        || subDirectory.Name.StartsWith(".")
+                        || subDirectory.Name.StartsWith("$")
+                        || subDirectory.Name.StartsWith("~")
+                        || Path.Join(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Library").Equals(subDirectory.FullName)
+                        || Path.Join(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "AppData").Equals(subDirectory.FullName)
+                        || subDirectory.Name == "node_modules"
+                        || subDirectory.FullName.StartsWith(@"C:\Windows")
+                        || subDirectory.FullName.StartsWith("/System")
+                        || subDirectory.FullName.StartsWith("/Library")
+                        || subDirectory.FullName.StartsWith("/private")
+                    )
+                    {
+                        queue.AddLast(subDirectory);
+                    }
+                    else
+                    {
+                        queue.AddFirst(subDirectory);
+                    }
 
             }
         }
@@ -180,6 +183,11 @@ public class Crawler
         resultsCallback = (string result) => { };
         cancellationTokenSource.Cancel();
 
+    }
+
+    public bool IsRunning()
+    {
+        return thread != null && thread.IsAlive;
     }
 
     public static bool TokenSearch(string searchInto, string searchFor)
