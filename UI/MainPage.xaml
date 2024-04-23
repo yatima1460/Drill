@@ -1,0 +1,55 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage Title="" Shell.FlyoutBehavior="Disabled" Shell.NavBarIsVisible="False" xmlns="http://schemas.microsoft.com/dotnet/2021/maui" xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml" x:Class="Drill.MainPage">
+    <VerticalStackLayout>
+        <Entry x:Name = "UI_Search" Placeholder = "Search Everywhere" TextChanged="OnTextChanged" IsTextPredictionEnabled="False" />
+        <Grid Padding="10" BackgroundColor="#FFFFFF" Margin="5">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="0.025*"/>
+                <ColumnDefinition Width="0.475*"/>
+                <ColumnDefinition Width="0.20*"/>
+                <ColumnDefinition Width="0.20*"/>
+                <ColumnDefinition Width="0.10*"/>
+            </Grid.ColumnDefinitions>
+            <Label Grid.Column="1" Grid.Row="0" Text="Name" FontSize="24" FontAttributes="Bold"/>
+            <Label Grid.Column="2" Grid.Row="0" Text="Path" FontSize="24" FontAttributes="Bold"/>
+            <Label Grid.Column="3" Grid.Row="0" Text="Date" FontSize="24" FontAttributes="Bold"/>
+            <Label Grid.Column="4" Grid.Row="0" Text="Size" FontSize="24" FontAttributes="Bold"/>
+        </Grid>
+        <CollectionView VerticalOptions="FillAndExpand" x:Name = "UI_Results" Header="" EmptyView="Search files using the entry field on top" ItemsSource="{Binding Results}">    
+            <CollectionView.ItemTemplate>
+                <DataTemplate>
+                    <Grid Padding="10" BackgroundColor="#FFFFFF" Margin="5">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="0.025*"/>
+                            <ColumnDefinition Width="0.475*"/>
+                            <ColumnDefinition Width="0.20*"/>
+                            <ColumnDefinition Width="0.20*"/>
+                            <ColumnDefinition Width="0.10*"/>
+                        </Grid.ColumnDefinitions>
+                        <Label Padding="4" Grid.Column="0" LineBreakMode="MiddleTruncation" Grid.Row="0" Text="{Binding Icon}" TextColor="Black" TextDecorations="None" FontSize="24"/>
+                        <Label Padding="4" Grid.Column="1" LineBreakMode="MiddleTruncation" Grid.Row="0" Text="{Binding Name}" TextColor="Blue" TextDecorations="None" FontSize="24">
+                            <Label.GestureRecognizers>
+                                <TapGestureRecognizer Command="{Binding Path=BindingContext.OpenFile, Source={x:Reference UI_Results}}" CommandParameter="{Binding FullPath}" Buttons="Primary"/>
+                                <PointerGestureRecognizer PointerEntered="OnPointerEntered" PointerExited="OnPointerExited" />
+                            </Label.GestureRecognizers>
+                        </Label>
+                        <Label Padding="4" Grid.Column="2" LineBreakMode="MiddleTruncation" Grid.Row="0" Text="{Binding Path}" TextColor="Blue" TextDecorations="None" FontSize="20">
+                            <Label.GestureRecognizers>
+                                <TapGestureRecognizer Command="{Binding Path=BindingContext.OpenPath, Source={x:Reference UI_Results}}" CommandParameter="{Binding FullPath}" Buttons="Primary"/>
+                                <PointerGestureRecognizer PointerEntered="OnPointerEntered" PointerExited="OnPointerExited" />
+                            </Label.GestureRecognizers>
+                        </Label>
+                        <Label Padding="4" Grid.Column="3" LineBreakMode="MiddleTruncation" Grid.Row="0" Text="{Binding Date}" FontSize="18" /> 
+                        <Label Padding="4" Grid.Column="4" LineBreakMode="MiddleTruncation" Grid.Row="0" Text="{Binding Size}" FontSize="20" />
+                    </Grid>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+    </VerticalStackLayout>
+</ContentPage>

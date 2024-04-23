@@ -1,2 +1,0 @@
-- This folder must contain only files that will eventually be bundled with the application.
-- For other scripts and files put them in /Tools

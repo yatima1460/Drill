@@ -1,0 +1,36 @@
+name: CI
+
+
+on:
+    workflow_dispatch:
+    pull_request:
+
+
+
+jobs:
+
+
+    build:
+        runs-on: ubuntu-22.04
+        container: mcr.microsoft.com/dotnet/sdk:8.0
+        strategy:
+            matrix:
+              # .NET RID https://learn.microsoft.com/en-us/dotnet/core/rid-catalog
+              runtime:
+                [
+                  "win-x64",
+                  "win-arm64",
+                  "osx-arm64",
+                  "osx-x64",
+                ]
+              config: ["Debug", "Release"]
+        name: "${{ matrix.config }} ${{ matrix.runtime }}"
+        steps:
+        - name: Check for dockerenv file
+          run: (ls /.dockerenv && echo Found dockerenv) || (echo No dockerenv)
+        - run: dotnet --version
+        - uses: actions/checkout@v4.1.3
+        - run: dotnet clean -f net8.0-maccatalyst
+        - run: dotnet build -t:Build -f net8.0-maccatalyst
+        - run: dotnet build Drill.sln --configuration=${{ matrix.config }} --runtime ${{ matrix.runtime }} --maxCpuCount --target:CLI --self-contained
+        - run: dotnet test Drill.sln --configuration=${{ matrix.config }} --maxCpuCount
