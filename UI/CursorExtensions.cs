@@ -116,14 +116,12 @@ public static class CursorExtensions
         };
     }
 
-
-}
-
-
 #else
-public static void SetCustomCursor(this VisualElement visualElement, CursorIcon cursor, IMauiContext? mauiContext)
+#warning Platform not supported to set custom cursor
+    public static void SetCustomCursor(this VisualElement visualElement, CursorIcon cursor, IMauiContext? mauiContext)
     {
         ArgumentNullException.ThrowIfNull(mauiContext);
-#warning "Platform not supported to set custom cursor"
     }
 #endif
+
+}
