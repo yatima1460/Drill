@@ -14,13 +14,13 @@
                 <DataTemplate>
                     <Grid Padding="10" ColumnDefinitions="0.025*,0.475*,0.2*,0.2*,0.1*" RowDefinitions="*">
                         <Label Grid.Column="0" LineBreakMode="NoWrap" Text="{Binding Icon}" FontSize="16"/>
-                        <Label Grid.Column="1" LineBreakMode="NoWrap" Text="{Binding Name}" TextColor="Blue" TextDecorations="None" FontSize="16">
+                        <Label Grid.Column="1" LineBreakMode="NoWrap" Text="{Binding Name}" TextColor="#0000EE" TextDecorations="None" FontSize="16">
                             <Label.GestureRecognizers>
                                 <TapGestureRecognizer Command="{Binding Path=BindingContext.OpenFile, Source={x:Reference UI_Results}}" CommandParameter="{Binding FullPath}" Buttons="Primary"/>
                                 <PointerGestureRecognizer PointerEntered="OnPointerEntered" PointerExited="OnPointerExited" />
                             </Label.GestureRecognizers>
                         </Label>
-                        <Label Grid.Column="2" LineBreakMode="NoWrap" Text="{Binding Path}" TextColor="Blue" TextDecorations="None" FontSize="16">
+                        <Label Grid.Column="2" LineBreakMode="NoWrap" Text="{Binding Path}" TextColor="#0000EE" TextDecorations="None" FontSize="16">
                             <Label.GestureRecognizers>
                                 <TapGestureRecognizer Command="{Binding Path=BindingContext.OpenPath, Source={x:Reference UI_Results}}" CommandParameter="{Binding FullPath}" Buttons="Primary"/>
                                 <PointerGestureRecognizer PointerEntered="OnPointerEntered" PointerExited="OnPointerExited" />
