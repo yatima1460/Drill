@@ -27,11 +27,11 @@ jobs:
     - name: Setup MSBuild.exe
       uses: microsoft/setup-msbuild@v2
 
-    - run: call Build\Windows.bat
-      shell: cmd
+    - name: Build
+      run: dotnet build -t:Build -p:Configuration=Release -f net8.0-windows10.0.19041.0 UI\UI.csproj /p:WindowsAppSDKSelfContained=true /p:Platform=x64 /p:WindowsPackageType=None 
 
     - name: Upload build artifacts
       uses: actions/upload-artifact@v3
       with:
         name: Drill_win10-x64
-        path: UI\bin\Release\net8.0-windows10.0.19041.0\win10-x64
+        path: UI/bin/Release/net8.0-windows10.0.19041.0/win10-x64
