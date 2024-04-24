@@ -77,7 +77,11 @@ void OnNameTapped(object sender, EventArgs args)
 		UI_Results.ItemsSource = Results;
 		ResetContext();
 
-	}
+
+		timer = new(TimerCallback, null, Timeout.Infinite, Timeout.Infinite);
+
+
+    }
 
 	private static void OpenFilePath(string FullPath)
 	{
@@ -280,113 +284,138 @@ void OnNameTapped(object sender, EventArgs args)
 		".Trash",
 	];
 
-	private async void OnTextChanged(object sender, TextChangedEventArgs e)
+	DateTime lastTimeTextChanged = DateTime.UtcNow;
+
+
+	
+
+	private Timer? timer;
+
+    private async void OnTextChanged(object sender, TextChangedEventArgs e)
 	{
-		string newText = e.NewTextValue;
-
-		if (currentSearchText == newText)
+		/* This system is in place so the search starts only after a while the user stops writing
+		 * It starts a timer, and if after X milliseconds there is no more OnTextChanged Drill will start searching
+		 */
+        if (timer != null)
 		{
-			return;
-		}
+            timer.Change(Timeout.Infinite, Timeout.Infinite);
+			timer.Dispose();
+			timer = null;
+        }
+		timer = new Timer(TimerCallback, e.NewTextValue, 300, Timeout.Infinite);
 
-		// Stop if there is a current search
-		if (currentSearchTask != null)
-		{
-			stop = true;
-			await currentSearchTask;
-		}
+		stop = false;
+    }
 
-		ResetContext();
-		currentSearchText = newText;
-		if (currentSearchText == "")
-		{
-			return;
-		}
-		currentSearchTask = Task.Run(() =>
-		{
-			// string userFolderPath = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+ 
+	private void TimerCallback(object state)
+	{
+        string newText = (string)state;
 
-			try
-			{
-				HashSet<string> visited = [];
-				Queue<DirectoryInfo> directoriesToExplore = [];
+        if (currentSearchText == newText)
+        {
+            return;
+        }
 
-				// DriveInfo[] drives = DriveInfo.GetDrives();
-				// foreach (DriveInfo drive in drives)
-				// {
-				// 	string label = drive.IsReady ?
-				// 	directoriesToExplore.Enqueue(drive.RootDirectory);
-				// }
-				
-			
-				directoriesToExplore.Enqueue(new DirectoryInfo(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)));
-				
-				DriveInfo[] allDrives = DriveInfo.GetDrives();
-				foreach (DriveInfo d in allDrives)
-				{
-					if (d.IsReady == true && (d.DriveType == DriveType.Removable || d.DriveType == DriveType.Fixed  || d.DriveType == DriveType.Network))
-					{
-						directoriesToExplore.Enqueue(d.RootDirectory);
-					}
-				}
-			
-				while (stop == false && directoriesToExplore.Count != 0)
-				{
-					DirectoryInfo rootFolderInfo = directoriesToExplore.Dequeue();
+        // Stop if there is a current search
+        if (currentSearchTask != null)
+        {
+            stop = true;
+			currentSearchTask.Wait();
+        }
 
-					// To prevent loops
-					if (visited.Contains(rootFolderInfo.FullName))
-					{
-						continue;
-					}
-					visited.Add(rootFolderInfo.FullName);
-					
+        ResetContext();
+        currentSearchText = newText;
+        if (currentSearchText == "")
+        {
+            return;
+        }
+        currentSearchTask = Task.Run(() =>
+        {
+            // string userFolderPath = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
 
-					try {
-						FileSystemInfo[] subs = rootFolderInfo.GetFileSystemInfos("*", SearchOption.TopDirectoryOnly);
-						foreach (FileSystemInfo sub in subs)
-						{
-							if (TokenMatching(currentSearchText, sub.Name))
-							{
-								ParallelResults.Enqueue(sub);
-							}
-							if ((sub.Attributes & FileAttributes.Directory) == FileAttributes.Directory)
-							{
-								//if (!blacklist.Contains(sub.Name))
-								directoriesToExplore.Enqueue((DirectoryInfo)sub);
-							}
-						}
-					}
-					// We can't go deeper unless we are admins, skip it
-					catch (UnauthorizedAccessException uae)
-					{
-						continue;
-					}
-				}
+            try
+            {
+                HashSet<string> visited = [];
+                Queue<DirectoryInfo> directoriesToExplore = [];
 
-				currentSearchTask = null;
-				stop = true;
-			}
-			catch (Exception e)
-			{
-				stop = true;
-				ExceptionHappened = e.ToString().Replace("\n", " ");
-			}
-		});
-
-	}
+                // DriveInfo[] drives = DriveInfo.GetDrives();
+                // foreach (DriveInfo drive in drives)
+                // {
+                // 	string label = drive.IsReady ?
+                // 	directoriesToExplore.Enqueue(drive.RootDirectory);
+                // }
 
 
-	// private void OnCounterClicked(object sender, EventArgs e)
-	// {
-	// 	count++;
+                directoriesToExplore.Enqueue(new DirectoryInfo(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)));
 
-	// 	if (count == 1)
-	// 		CounterBtn.Text = $"Clicked {count} time";
-	// 	else
-	// 		CounterBtn.Text = $"Clicked {count} times";
+                DriveInfo[] allDrives = DriveInfo.GetDrives();
+                foreach (DriveInfo d in allDrives)
+                {
+                    if (d.IsReady == true && (d.DriveType == DriveType.Removable || d.DriveType == DriveType.Fixed || d.DriveType == DriveType.Network))
+                    {
+                        directoriesToExplore.Enqueue(d.RootDirectory);
+                    }
+                }
 
-	// 	SemanticScreenReader.Announce(CounterBtn.Text);
-	// }
+                while (stop == false && directoriesToExplore.Count != 0)
+                {
+                    DirectoryInfo rootFolderInfo = directoriesToExplore.Dequeue();
+
+                    // To prevent loops
+                    if (visited.Contains(rootFolderInfo.FullName))
+                    {
+                        continue;
+                    }
+                    visited.Add(rootFolderInfo.FullName);
+
+
+                    try
+                    {
+                        FileSystemInfo[] subs = rootFolderInfo.GetFileSystemInfos("*", SearchOption.TopDirectoryOnly);
+                        foreach (FileSystemInfo sub in subs)
+                        {
+                            if (TokenMatching(currentSearchText, sub.Name))
+                            {
+                                ParallelResults.Enqueue(sub);
+                            }
+                            if ((sub.Attributes & FileAttributes.Directory) == FileAttributes.Directory)
+                            {
+                                //if (!blacklist.Contains(sub.Name))
+                                directoriesToExplore.Enqueue((DirectoryInfo)sub);
+                            }
+                        }
+                    }
+                    // We can't go deeper unless we are admins, skip it
+                    catch (UnauthorizedAccessException uae)
+                    {
+                        continue;
+                    }
+                }
+
+                currentSearchTask = null;
+                stop = true;
+            }
+            catch (Exception e)
+            {
+                stop = true;
+                ExceptionHappened = e.ToString().Replace("\n", " ");
+            }
+        });
+    }
+
+
+
+    // private void OnCounterClicked(object sender, EventArgs e)
+    // {
+    // 	count++;
+
+    // 	if (count == 1)
+    // 		CounterBtn.Text = $"Clicked {count} time";
+    // 	else
+    // 		CounterBtn.Text = $"Clicked {count} times";
+
+    // 	SemanticScreenReader.Announce(CounterBtn.Text);
+    // }
 }
 
