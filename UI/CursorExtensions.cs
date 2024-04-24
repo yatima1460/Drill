@@ -1,6 +1,9 @@
-using AppKit;
 using Microsoft.Maui.Platform;
+
+#if __APPLE__
+using AppKit;
 using UIKit;
+#endif
 
 public enum CursorIcon
 {
@@ -20,6 +23,8 @@ public static class CursorExtensions
     public static void SetCustomCursor(this VisualElement visualElement, CursorIcon cursor, IMauiContext? mauiContext)
     {
         ArgumentNullException.ThrowIfNull(mauiContext);
+
+        #if __APPLE__
         var view = visualElement.ToPlatform(mauiContext);
         if (view.GestureRecognizers is not null)
         {
@@ -41,8 +46,10 @@ public static class CursorExtensions
                     break;
             }
         }));
+        #endif
     }
 
+    #if __APPLE__
     static NSCursor GetNSCursor(CursorIcon cursor)
     {
         return cursor switch
@@ -57,11 +64,13 @@ public static class CursorExtensions
             _ => NSCursor.ArrowCursor,
         };
     }
-
+   
     class PointerUIHoverGestureRecognizer : UIHoverGestureRecognizer
     {
         public PointerUIHoverGestureRecognizer(Action<UIHoverGestureRecognizer> action) : base(action)
         {
         }
     }
+     #endif
+
 }

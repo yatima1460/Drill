@@ -7,6 +7,10 @@ Extremely experimental and boilerplate
 I don't have time to deal with the Linux version for now
 If someone wants to add https://github.com/jsuarezruiz/maui-linux that would be cool
 
+## Prerequisites
+
+<https://learn.microsoft.com/en-us/dotnet/maui/get-started/installation>
+
 ## TODO
 
 - [x] basic proof of concept working on mac
