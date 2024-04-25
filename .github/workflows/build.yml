@@ -28,7 +28,7 @@ jobs:
       uses: microsoft/setup-msbuild@v2
 
     - name: Build
-      run: dotnet publish --maxCpuCount -f net8.0-windows10.0.19041.0 -c Release -p:RuntimeIdentifierOverride=win10-x64 -p:WindowsPackageType=None .\UI\UI.csproj
+      run: dotnet publish --maxCpuCount -f net8.0-windows10.0.19041.0 -c Release -p:RuntimeIdentifierOverride=win10-x64 -p:WindowsPackageType=None .\Drill\Drill.csproj
 
     - name: Upload
       uses: actions/upload-artifact@v4
