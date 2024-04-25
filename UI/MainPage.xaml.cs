@@ -10,9 +10,22 @@ namespace Drill;
 public partial class MainPage : ContentPage
 {
 
-	private ConcurrentQueue<FileSystemInfo> ParallelResults = [];
-	private ObservableCollection<DrillResult> Results { get; set; } = [];
+	/// <summary>
+	/// Collection holding all the results from the backend
+	/// </summary>
+    private ConcurrentQueue<DrillResult> ParallelResults = [];
+
+    /// <summary>
+    /// Collection that is read by the UI showing the results
+    /// </summary>
+    private readonly ObservableCollection<DrillResult> Results = [];
+
+	/// <summary>
+	/// If a fatal error happens and this string is set the UI will show an alert and stop immediately and then quit
+	/// </summary>
 	private string? ExceptionHappened;
+
+
 	Task? currentSearchTask;
 	bool stop;
 	string currentSearchText = string.Empty;
@@ -128,32 +141,16 @@ void OnNameTapped(object sender, EventArgs args)
 			}
         }
 
-	private void CollectionView_SelectionChanged(object sender, SelectionChangedEventArgs e)
-        {
-            // Get the selected item
-            FileSystemInfo selectedItem = e.CurrentSelection[0] as FileSystemInfo;
-
-            // Display an alert with the selected item
-            DisplayAlert("Item Selected", $"You selected: {selectedItem}", "OK");
-        }
-
 	protected override void OnAppearing()
 	{
 		base.OnAppearing();
 
-		// Start the timer when the page appears
-		Dispatcher.StartTimer(TimeSpan.FromMilliseconds(20), () =>
+		Dispatcher.StartTimer(TimeSpan.FromMilliseconds((1.0/24.0) * 1000), () =>
 		{
-			// Code to execute on each tick (every second in this case)
-			// This code will execute on the UI thread
-			// You can update UI elements or perform any other UI-related tasks here
 			UpdateUI();
 
-			// Return true to continue the timer, or false to stop it
-			return ExceptionHappened == null;
+			return ExceptionHappened == null && stop == false;
 		});
-
-
 	}
 
 	private async void UpdateUI()
@@ -163,7 +160,6 @@ void OnNameTapped(object sender, EventArgs args)
 		{
 			await DisplayAlert("Fatal Error", ExceptionHappened.ToString(), "Quit");
 			ExceptionHappened = null;
-			
 			Environment.Exit(1);
 		}
 
@@ -173,14 +169,15 @@ void OnNameTapped(object sender, EventArgs args)
 		}
 		else
 		{
-			for (int i = 0; i < 10; i++)
+			for (int i = 0; i < 100; i++)
 			{
-				if (ParallelResults.TryDequeue(out FileSystemInfo dequeued))
-				{
-					Results.Add(new DrillResult(dequeued));
-					
-				}
-			}
+                DrillResult? dequeued;
+                if (ParallelResults.TryDequeue(out dequeued))
+                {
+                    Results.Add(dequeued);
+                }
+            }
+
 		}
 	}
 
@@ -287,7 +284,7 @@ void OnNameTapped(object sender, EventArgs args)
 	DateTime lastTimeTextChanged = DateTime.UtcNow;
 
 
-	
+	double Progress = 0.4;
 
 	private Timer? timer;
 
@@ -355,8 +352,10 @@ void OnNameTapped(object sender, EventArgs args)
                     if (d.IsReady == true && (d.DriveType == DriveType.Removable || d.DriveType == DriveType.Fixed || d.DriveType == DriveType.Network))
                     {
                         directoriesToExplore.Enqueue(d.RootDirectory);
+					
                     }
                 }
+
 
                 while (stop == false && directoriesToExplore.Count != 0)
                 {
@@ -373,21 +372,34 @@ void OnNameTapped(object sender, EventArgs args)
                     try
                     {
                         FileSystemInfo[] subs = rootFolderInfo.GetFileSystemInfos("*", SearchOption.TopDirectoryOnly);
+						directoriesToExplore.EnsureCapacity(directoriesToExplore.Count + subs.Length);
                         foreach (FileSystemInfo sub in subs)
                         {
                             if (TokenMatching(currentSearchText, sub.Name))
                             {
-                                ParallelResults.Enqueue(sub);
+								// Better to create the DrillResult on the backend than the UI thread to not stall it
+                                ParallelResults.Enqueue(new DrillResult(sub));
                             }
+							// If the current file is a directory we queue it for crawling
                             if ((sub.Attributes & FileAttributes.Directory) == FileAttributes.Directory)
                             {
-                                //if (!blacklist.Contains(sub.Name))
-                                directoriesToExplore.Enqueue((DirectoryInfo)sub);
+        //                        if (sub.Name.StartsWith(".") || 
+								//	(sub.Attributes & FileAttributes.Hidden) == FileAttributes.Hidden ||
+        //                            (sub.Attributes & FileAttributes.System) == FileAttributes.System ||
+        //                             (sub.Attributes & FileAttributes.Temporary) == FileAttributes.Temporary
+        //                            )
+								//{
+                                   
+        //                        }
+								//else
+								//{
+									directoriesToExplore.Enqueue((DirectoryInfo)sub);
+								//}
                             }
                         }
                     }
-                    // We can't go deeper unless we are admins, skip it
-                    catch (UnauthorizedAccessException uae)
+                    // We can't go deeper unless we are root, skip it
+                    catch (UnauthorizedAccessException)
                     {
                         continue;
                     }
@@ -403,19 +415,5 @@ void OnNameTapped(object sender, EventArgs args)
             }
         });
     }
-
-
-
-    // private void OnCounterClicked(object sender, EventArgs e)
-    // {
-    // 	count++;
-
-    // 	if (count == 1)
-    // 		CounterBtn.Text = $"Clicked {count} time";
-    // 	else
-    // 		CounterBtn.Text = $"Clicked {count} times";
-
-    // 	SemanticScreenReader.Announce(CounterBtn.Text);
-    // }
 }
 
