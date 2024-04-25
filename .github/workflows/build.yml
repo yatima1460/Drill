@@ -10,8 +10,7 @@ jobs:
 
   build:
   
-    runs-on: windows-latest  # For a list of available runner types, refer to
-                             # https://help.github.com/en/actions/reference/workflow-syntax-for-github-actions#jobsjob_idruns-on
+    runs-on: windows-2022
 
     steps:
     - name: Checkout
@@ -28,11 +27,26 @@ jobs:
     - name: Setup MSBuild.exe
       uses: microsoft/setup-msbuild@v2
 
-    - name: Build
-      run: dotnet publish -f net8.0-windows10.0.19041.0 -c Release -p:RuntimeIdentifierOverride=win10-x64 -p:WindowsPackageType=None .\UI\UI.csproj
+    - name: Build CLI
+      run: dotnet publish --maxCpuCount /p:DebugType=None /p:DebugSymbols=false --self-contained --configuration Release --runtime win-x64 -f net8.0 -p:WindowsPackageType=None .\CLI\CLI.csproj
 
-    - name: Upload build artifacts
-      uses: actions/upload-artifact@v3
+    - name: Test CLI
+      run: DrillCLI.exe "drill"
+      shell: cmd
+      working-directory: CLI\bin\Release\net8.0\win-x64\publish
+
+    - name: Upload CLI
+      uses: actions/upload-artifact@v4
+      with:
+        name: DrillCLI_win-x64
+        path: CLI\bin\Release\net8.0\win-x64\publish
+        if-no-files-found: error
+
+    - name: Build UI
+      run: dotnet publish --maxCpuCount -f net8.0-windows10.0.19041.0 -c Release -p:RuntimeIdentifierOverride=win10-x64 -p:WindowsPackageType=None .\UI\UI.csproj
+
+    - name: Upload UI
+      uses: actions/upload-artifact@v4
       with:
         name: Drill_win10-x64
         path: UI\bin\Release\net8.0-windows10.0.19041.0\win10-x64\publish
