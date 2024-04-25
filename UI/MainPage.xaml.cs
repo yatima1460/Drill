@@ -257,7 +257,7 @@ void OnNameTapped(object sender, EventArgs args)
 	{
         string[] tokenizedSearchString = searchString.ToLower().Split(" ");
 		foreach (string token in tokenizedSearchString)
-		{
+        {
 			if (!fileName.Contains(token, StringComparison.CurrentCultureIgnoreCase))
 			{
 				return false;
