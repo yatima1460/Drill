@@ -145,32 +145,21 @@ void OnNameTapped(object sender, EventArgs args)
 	{
 		base.OnAppearing();
 
-		Dispatcher.StartTimer(TimeSpan.FromMilliseconds((1.0/24.0) * 1000), () =>
-		{
-			UpdateUI();
+        timer = new Timer(TimerCallback, null, Timeout.Infinite, Timeout.Infinite);
 
-			return ExceptionHappened == null && stop == false;
-		});
-	}
+        Dispatcher.StartTimer(TimeSpan.FromMilliseconds((1.0 / 24.0) * 1000), () =>
+		{
+            // Check if any fatal exception happened
+            if (ExceptionHappened != null)
+            {
+                DisplayAlert("Fatal Error", ExceptionHappened.ToString(), "Quit");
+                ExceptionHappened = null;
+                Environment.Exit(1);
+				return false;
+            }
 
-	private async void UpdateUI()
-	{
-		// Check if any fatal exception happened
-		if (ExceptionHappened != null)
-		{
-			await DisplayAlert("Fatal Error", ExceptionHappened.ToString(), "Quit");
-			ExceptionHappened = null;
-			Environment.Exit(1);
-		}
-
-		if (Results.Count > 100)
-		{
-			stop = true;
-		}
-		else
-		{
-			for (int i = 0; i < 100; i++)
-			{
+            for (int i = 0; i < 100; i++)
+            {
                 DrillResult? dequeued;
                 if (ParallelResults.TryDequeue(out dequeued))
                 {
@@ -178,7 +167,8 @@ void OnNameTapped(object sender, EventArgs args)
                 }
             }
 
-		}
+            return true;
+		});
 	}
 
 
@@ -255,10 +245,10 @@ void OnNameTapped(object sender, EventArgs args)
 
     private static bool TokenMatching(string searchString, string fileName)
 	{
-        string[] tokenizedSearchString = searchString.ToLower().Split(" ");
+        string[] tokenizedSearchString = searchString.Split(" ");
 		foreach (string token in tokenizedSearchString)
         {
-			if (!fileName.Contains(token, StringComparison.CurrentCultureIgnoreCase))
+			if (!fileName.Contains(token, StringComparison.InvariantCultureIgnoreCase))
 			{
 				return false;
 			}
@@ -286,22 +276,17 @@ void OnNameTapped(object sender, EventArgs args)
 
 	double Progress = 0.4;
 
-	private Timer? timer;
+	private Timer timer;
 
     private async void OnTextChanged(object sender, TextChangedEventArgs e)
 	{
-		/* This system is in place so the search starts only after a while the user stops writing
+        stop = true;
+        /* This system is in place so the search starts only after a while the user stops writing
 		 * It starts a timer, and if after X milliseconds there is no more OnTextChanged Drill will start searching
 		 */
-        if (timer != null)
-		{
-            timer.Change(Timeout.Infinite, Timeout.Infinite);
-			timer.Dispose();
-			timer = null;
-        }
+        timer.Change(Timeout.Infinite, Timeout.Infinite);
+		timer.Dispose();
 		timer = new Timer(TimerCallback, e.NewTextValue, 300, Timeout.Infinite);
-
-		stop = false;
     }
 
  
@@ -352,7 +337,6 @@ void OnNameTapped(object sender, EventArgs args)
                     if (d.IsReady == true && (d.DriveType == DriveType.Removable || d.DriveType == DriveType.Fixed || d.DriveType == DriveType.Network))
                     {
                         directoriesToExplore.Enqueue(d.RootDirectory);
-					
                     }
                 }
 
@@ -372,7 +356,9 @@ void OnNameTapped(object sender, EventArgs args)
                     try
                     {
                         FileSystemInfo[] subs = rootFolderInfo.GetFileSystemInfos("*", SearchOption.TopDirectoryOnly);
-						directoriesToExplore.EnsureCapacity(directoriesToExplore.Count + subs.Length);
+			
+						Queue<DirectoryInfo> lowPriority = new();
+
                         foreach (FileSystemInfo sub in subs)
                         {
                             if (TokenMatching(currentSearchText, sub.Name))
@@ -383,19 +369,26 @@ void OnNameTapped(object sender, EventArgs args)
 							// If the current file is a directory we queue it for crawling
                             if ((sub.Attributes & FileAttributes.Directory) == FileAttributes.Directory)
                             {
-        //                        if (sub.Name.StartsWith(".") || 
-								//	(sub.Attributes & FileAttributes.Hidden) == FileAttributes.Hidden ||
-        //                            (sub.Attributes & FileAttributes.System) == FileAttributes.System ||
-        //                             (sub.Attributes & FileAttributes.Temporary) == FileAttributes.Temporary
-        //                            )
-								//{
-                                   
-        //                        }
-								//else
-								//{
+								if (sub.Name.StartsWith(".") ||
+									(sub.Attributes & FileAttributes.Hidden) == FileAttributes.Hidden ||
+									(sub.Attributes & FileAttributes.System) == FileAttributes.System ||
+									 (sub.Attributes & FileAttributes.Temporary) == FileAttributes.Temporary ||
+                                     sub.FullName.StartsWith("C:\\Windows")
+                                    )
+								{
+									lowPriority.Enqueue((DirectoryInfo)sub);
+								}
+								else
+								{
 									directoriesToExplore.Enqueue((DirectoryInfo)sub);
-								//}
-                            }
+								}
+							}
+                        }
+
+						// Queue at the end the low priority ones
+                        foreach (FileSystemInfo sub in lowPriority)
+                        {
+                            directoriesToExplore.Enqueue((DirectoryInfo)sub);
                         }
                     }
                     // We can't go deeper unless we are root, skip it

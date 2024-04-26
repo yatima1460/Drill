@@ -10,7 +10,7 @@
             <Label Grid.Column="4" Text="Size" FontSize="24" FontAttributes="Bold"/>
         </Grid>
         <ProgressBar Grid.Row="2" Progress="{Binding Path=BindingContext.Progress, Source={x:Reference UI_Results}}"></ProgressBar>
-        <CollectionView BackgroundColor="White" Grid.Row="3" x:Name = "UI_Results" EmptyView="" ItemsSource="{Binding Results, Mode=OneWay}">
+        <CollectionView ItemsUpdatingScrollMode="KeepScrollOffset" BackgroundColor="White" Grid.Row="3" x:Name = "UI_Results" EmptyView="" ItemsSource="{Binding Results, Mode=OneWay}">
             <CollectionView.ItemTemplate>
                 <DataTemplate>
                     <Grid Padding="10" ColumnDefinitions="0.025*,0.475*,0.2*,0.2*,0.1*" RowDefinitions="*">

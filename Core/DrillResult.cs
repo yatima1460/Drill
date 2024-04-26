@@ -11,29 +11,20 @@ public class DrillResult {
     public string Icon { get; }
 	public string FullPath { get; }
 
-	  // Method to convert file size to human-readable format
-    private static string GetHumanReadableSize(FileSystemInfo fileSystemInfo)
+    private static string GetHumanReadableSize(FileInfo fileSystemInfo)
     {
-        if ((fileSystemInfo.Attributes & FileAttributes.Directory) == FileAttributes.Directory)
-        {
-            
-            return ""; // If it's a directory, return empty string for size
-        }
-        else
-        {
-            long sizeInBytes = ((FileInfo)fileSystemInfo).Length;
-            string[] sizes = { "B", "KB", "MB", "GB", "TB" };
-            int order = 0;
-            double size = sizeInBytes;
+        long sizeInBytes = ((FileInfo)fileSystemInfo).Length;
+        string[] sizes = { "B", "KB", "MB", "GB", "TB" };
+        int order = 0;
+        double size = sizeInBytes;
 
-            while (size >= 1024 && order < sizes.Length - 1)
-            {
-                order++;
-                size /= 1024;
-            }
-
-            return $"{size:0.#} {sizes[order]}"; // Formatting size with appropriate unit
+        while (size >= 1024 && order < sizes.Length - 1)
+        {
+            order++;
+            size /= 1024;
         }
+
+        return $"{size:0.#} {sizes[order]}"; // Formatting size with appropriate unit
     }
 	public DrillResult(FileSystemInfo fileSystemInfo)
 	{
@@ -41,13 +32,15 @@ public class DrillResult {
 		FullPath = fileSystemInfo.FullName;
         Path = System.IO.Path.GetDirectoryName(fileSystemInfo.FullName); // Extracting the parent directory path
         Date = fileSystemInfo.LastWriteTime.ToString("F"); // Formatting the date with the full (long) date/time pattern
-        Size = GetHumanReadableSize(fileSystemInfo); // Converting size to human-readable format
+        
         if ((fileSystemInfo.Attributes & FileAttributes.Directory) == FileAttributes.Directory)
         {
             Icon = "📁";
+            Size = ""; // Converting size to human-readable format
         }
         else
         {
+            Size = GetHumanReadableSize((FileInfo)fileSystemInfo);
             Icon = fileSystemInfo.Extension.ToLower() switch
             {
                 ".png" => "🖼️",
