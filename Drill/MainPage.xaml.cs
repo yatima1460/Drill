@@ -147,7 +147,7 @@ void OnNameTapped(object sender, EventArgs args)
 
         timer = new Timer(TimerCallback, null, Timeout.Infinite, Timeout.Infinite);
 
-        Dispatcher.StartTimer(TimeSpan.FromMilliseconds((1.0 / 24.0) * 1000), () =>
+        Dispatcher.StartTimer(TimeSpan.FromMilliseconds(100), () =>
 		{
             // Check if any fatal exception happened
             if (ExceptionHappened != null)
@@ -163,6 +163,8 @@ void OnNameTapped(object sender, EventArgs args)
                 DrillResult? dequeued;
                 if (ParallelResults.TryDequeue(out dequeued))
                 {
+					// FIXME: this may crash stuff
+					// stop this timer when [X] is pressed or application closing in general
                     Results.Add(dequeued);
                 }
             }
