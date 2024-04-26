@@ -27,27 +27,12 @@ jobs:
     - name: Setup MSBuild.exe
       uses: microsoft/setup-msbuild@v2
 
-    - name: Build CLI
-      run: dotnet publish --maxCpuCount /p:DebugType=None /p:DebugSymbols=false --self-contained --configuration Release --runtime win-x64 -f net8.0 -p:WindowsPackageType=None .\CLI\CLI.csproj
+    - name: Build
+      run: dotnet publish --maxCpuCount -f net8.0-windows10.0.19041.0 -c Release -p:RuntimeIdentifierOverride=win10-x64 -p:WindowsPackageType=None .\Drill\Drill.csproj
 
-    - name: Test CLI
-      run: DrillCLI.exe "drill"
-      shell: cmd
-      working-directory: CLI\bin\Release\net8.0\win-x64\publish
-
-    - name: Upload CLI
-      uses: actions/upload-artifact@v4
-      with:
-        name: DrillCLI_win-x64
-        path: CLI\bin\Release\net8.0\win-x64\publish
-        if-no-files-found: error
-
-    - name: Build UI
-      run: dotnet publish --maxCpuCount -f net8.0-windows10.0.19041.0 -c Release -p:RuntimeIdentifierOverride=win10-x64 -p:WindowsPackageType=None .\UI\UI.csproj
-
-    - name: Upload UI
+    - name: Upload
       uses: actions/upload-artifact@v4
       with:
         name: Drill_win10-x64
-        path: UI\bin\Release\net8.0-windows10.0.19041.0\win10-x64\publish
+        path: Drill\bin\Release\net8.0-windows10.0.19041.0\win10-x64\publish
         if-no-files-found: error
