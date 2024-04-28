@@ -1,147 +1,221 @@
-﻿using System;
+﻿using Drill.Backend;
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using static System.Runtime.InteropServices.JavaScript.JSType;
+using System.Xml.Linq;
+using static Drill.MainPage;
+using static System.Environment;
 
-namespace Drill.Core
+
+namespace Drill.Search
 {
     class Search
     {
-        public delegate void ErrorHandler(Exception e);
 
-        private static bool stop = false;
-        //private static SearchResultHandler callback = Blackhole;
-        //private static ErrorHandler errorCallback;
-        private static Task? currentSearchTask;
-        private static string LastSearchString = string.Empty;
-   
+        public delegate void FatalErrorCallback(Exception e);
+        private static bool StopRequested = false;
+        private static readonly ConcurrentQueue<DrillResult> ParallelResults = new();
+        private static readonly ConcurrentBag<string> visited = [];
+        private static readonly List<Task> ParallelThreads = [];
 
-        /// <summary>
-        /// Collection holding all the results from the backend
-        /// </summary>
-        private static ConcurrentQueue<DrillResult> ParallelResults = [];
-
-        public static void StartAsync(string searchString, ErrorHandler errorHandler)
+        public static void StartAsync(string searchString, FatalErrorCallback errorHandler)
         {
-            // If new string is the same as old one do nothing
-            if (LastSearchString == searchString)
+            try
             {
-                return;
-            }
-
-            // If the search string is empty do nothing
-            if (searchString == string.Empty)
-            {
-                return;
-            }
-
-            stop = false;
-
-            currentSearchTask = Task.Run(() =>
-            {
-                // string userFolderPath = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-
-                try
+                if (StopRequested)
                 {
-                    HashSet<string> visited = [];
-                    Queue<DirectoryInfo> directoriesToExplore = [];
+                    throw new Exception("Stop requested, can't start right now");
+                }
 
-                    directoriesToExplore.Enqueue(new DirectoryInfo(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)));
+                // If the search string is empty do nothing
+                if (searchString == string.Empty)
+                {
+                    return;
+                }
 
-                    DriveInfo[] allDrives = DriveInfo.GetDrives();
-                    foreach (DriveInfo d in allDrives)
+                Environment.SpecialFolder[] specialFolders = [
+                    Environment.SpecialFolder.UserProfile,
+                    Environment.SpecialFolder.Recent,
+                    Environment.SpecialFolder.Desktop,
+                    Environment.SpecialFolder.MyDocuments,
+                    Environment.SpecialFolder.MyVideos
+                ];
+
+                List<DirectoryInfo> roots = [];
+                foreach (Environment.SpecialFolder specialFolder in specialFolders)
+                {
+                    try
                     {
-                        if (d.IsReady == true && (d.DriveType == DriveType.Removable || d.DriveType == DriveType.Fixed || d.DriveType == DriveType.Network))
+                        string path = Environment.GetFolderPath(specialFolder);
+                        if (Directory.Exists(path))
                         {
-                            directoriesToExplore.Enqueue(d.RootDirectory);
+                            roots.Add(new DirectoryInfo(path));
                         }
                     }
-
-
-                    while (stop == false && directoriesToExplore.Count != 0)
+                    catch (Exception)
                     {
-                        DirectoryInfo rootFolderInfo = directoriesToExplore.Dequeue();
+                        continue;
+                    }
+                }
 
-                        // To prevent loops
-                        if (visited.Contains(rootFolderInfo.FullName))
+                DriveInfo[] allDrives = DriveInfo.GetDrives();
+                foreach (DriveInfo d in allDrives)
+                {
+                    if (d.IsReady == true && (d.DriveType == DriveType.Removable || d.DriveType == DriveType.Fixed || d.DriveType == DriveType.Network))
+                    {
+                        if (d.RootDirectory.Exists)
                         {
-                            continue;
+                            roots.Add(d.RootDirectory);
                         }
-                        visited.Add(rootFolderInfo.FullName);
+                    }
+                }
+
+
+
+
+                foreach (DirectoryInfo root in roots)
+                {
+
+                    ParallelThreads.Add(Task.Run(() =>
+                    {
+                        // string userFolderPath = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
 
 
                         try
                         {
-                            FileSystemInfo[] subs = rootFolderInfo.GetFileSystemInfos("*", SearchOption.TopDirectoryOnly);
+                            List<DirectoryInfo> directoriesToExplore = [root];
 
-                            Queue<DirectoryInfo> lowPriority = new();
-
-                            foreach (FileSystemInfo sub in subs)
+                            while (StopRequested == false && directoriesToExplore.Count != 0)
                             {
-                                if (StringUtils.TokenMatching(searchString, sub.Name))
+                                DirectoryInfo rootFolderInfo = directoriesToExplore[0];
+                                directoriesToExplore.RemoveAt(0);
+
+
+                                // To prevent any kind of loops
+                                if (visited.Contains(rootFolderInfo.FullName))
                                 {
-                                    // Better to create the DrillResult on the backend than the UI thread to not stall it
-                                    ParallelResults.Enqueue(new DrillResult(sub));
-                                    //callback(new DrillResult(sub));
+                                    continue;
                                 }
-                                // If the current file is a directory we queue it for crawling
-                                if ((sub.Attributes & FileAttributes.Directory) == FileAttributes.Directory)
+                                visited.Add(rootFolderInfo.FullName);
+
+
+                                try
                                 {
-                                    if (sub.Name.StartsWith(".") ||
-                                        (sub.Attributes & FileAttributes.Hidden) == FileAttributes.Hidden ||
-                                        (sub.Attributes & FileAttributes.System) == FileAttributes.System ||
-                                         (sub.Attributes & FileAttributes.Temporary) == FileAttributes.Temporary ||
-                                         sub.FullName.StartsWith("C:\\Windows")
-                                        )
+                                    FileSystemInfo[] subs = rootFolderInfo.GetFileSystemInfos("*", SearchOption.TopDirectoryOnly);
+
+                                    //Queue<DirectoryInfo> lowPriority = new();
+
+                                    foreach (FileSystemInfo sub in subs)
                                     {
-                                        lowPriority.Enqueue((DirectoryInfo)sub);
+
+                                        bool isDirectory = (sub.Attributes & FileAttributes.Directory) == FileAttributes.Directory;
+
+                                        if (StringUtils.TokenMatching(searchString, sub.Name))
+                                        {
+                                            // Better to create the DrillResult on the backend than the UI thread to not stall it
+                                            DrillResult drillResult = new()
+                                            {
+                                                Name = sub.Name,
+                                                FullPath = sub.FullName,
+                                                Path = rootFolderInfo.FullName,
+                                                Date = sub.LastWriteTime.ToString("F"),
+                                                Size = isDirectory ? "" : StringUtils.GetHumanReadableSize((FileInfo)sub),
+                                                Icon = isDirectory ? "📁" : ExtensionIcon.GetIcon(sub.Extension.ToLower())
+                                            };
+                                            ParallelResults.Enqueue(drillResult);
+                                        }
+
+                                        // If the current file is a directory we queue it for crawling
+                                        if (isDirectory)
+                                        {
+                                            //if (sub.Name.StartsWith(".") ||
+                                            //    (sub.Attributes & FileAttributes.Hidden) == FileAttributes.Hidden ||
+                                            //    (sub.Attributes & FileAttributes.System) == FileAttributes.System ||
+                                            //     (sub.Attributes & FileAttributes.Temporary) == FileAttributes.Temporary ||
+                                            //     sub.FullName.StartsWith("C:\\Windows")
+                                            //    )
+                                            //{
+                                          
+                                                directoriesToExplore.Add((DirectoryInfo)sub);
+                                            
+                                            //}
+                                            //else
+                                            //{
+                                            //    directoriesToExplore.Add((DirectoryInfo)sub);
+                                            //}
+
+
+                                        }
                                     }
-                                    else
-                                    {
-                                        directoriesToExplore.Enqueue((DirectoryInfo)sub);
-                                    }
+
+                                    //foreach (DirectoryInfo item in lowPriority)
+                                    //{
+                                    //    directoriesToExplore.Add(item);
+                                    //}
+                                }
+
+                                // We can't go deeper unless we are root, skip it
+                                catch (UnauthorizedAccessException)
+                                {
+                                    continue;
                                 }
                             }
 
-                            // Queue at the end the low priority ones
-                            foreach (FileSystemInfo sub in lowPriority)
-                            {
-                                directoriesToExplore.Enqueue((DirectoryInfo)sub);
-                            }
                         }
-                        // We can't go deeper unless we are root, skip it
-                        catch (UnauthorizedAccessException)
+                        catch (Exception e)
                         {
-                            continue;
+                            StopRequested = true;
+                            errorHandler(e);
                         }
-                    }
+                    }));
+                }
+            }
+            catch (Exception e)
+            {
+                StopRequested = true;
+                errorHandler(e);
+            }
 
-                    currentSearchTask = null;
-                    stop = true;
-                }
-                catch (Exception e)
-                {
-                    errorHandler(e);
-                }
-            });
         }
 
         public static void Stop()
         {
-            stop = true;
-            currentSearchTask?.Wait();
+            if (StopRequested)
+            {
+                throw new Exception("Stop already requested");
+            }
+            StopRequested = true;
+            foreach (Task item in ParallelThreads)
+            {
+                item.Wait();
+            }
+            ParallelThreads.Clear();
             ParallelResults.Clear();
+            visited.Clear();
+            StopRequested = false;
         }
 
-        public static DrillResult? PopResult()
+        public static List<DrillResult> PopResults(int count)
         {
-            if (ParallelResults.TryDequeue(out DrillResult? result))
+            if (StopRequested)
             {
-                return result;
+                return new List<DrillResult>();
             }
-            return null;
+            int minSize = Math.Min(count, ParallelResults.Count);
+            List<DrillResult> results = new(minSize);
+            for (int i = 0; i < minSize; i++)
+            {
+                if (ParallelResults.TryDequeue(out DrillResult? result))
+                {
+                    results.Add(result);
+                }
+            }
+            return results;
         }
     }
 }

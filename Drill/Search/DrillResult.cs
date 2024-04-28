@@ -1,122 +1,22 @@
 
-namespace Drill.Core;
-public class DrillResult {
 
+namespace Drill.Backend;
+public record DrillResult
+{
+    public required string Icon { get; init; }
+    public required string Name { get; init; }
+    public required string Path { get; init; }
+    public required string Date { get; init; }
+    public required string Size { get; init; }
+    public required string FullPath { get; init; }
 
-    public string Name { get; }
-    public string Path { get; }
-    public string Date { get; }
-    public string Size { get; }
-
-    public string Icon { get; }
-	public string FullPath { get; }
-
-    private static string GetHumanReadableSize(FileInfo fileSystemInfo)
+    public override int GetHashCode()
     {
-        long sizeInBytes = ((FileInfo)fileSystemInfo).Length;
-        string[] sizes = { "B", "KB", "MB", "GB", "TB" };
-        int order = 0;
-        double size = sizeInBytes;
-
-        while (size >= 1024 && order < sizes.Length - 1)
-        {
-            order++;
-            size /= 1024;
-        }
-
-        return $"{size:0.#} {sizes[order]}"; // Formatting size with appropriate unit
+        return FullPath.GetHashCode();
     }
-	public DrillResult(FileSystemInfo fileSystemInfo)
-	{
-		Name = fileSystemInfo.Name;
-		FullPath = fileSystemInfo.FullName;
-        Path = System.IO.Path.GetDirectoryName(fileSystemInfo.FullName); // Extracting the parent directory path
-        Date = fileSystemInfo.LastWriteTime.ToString("F"); // Formatting the date with the full (long) date/time pattern
-        
-        if ((fileSystemInfo.Attributes & FileAttributes.Directory) == FileAttributes.Directory)
-        {
-            Icon = "📁";
-            Size = ""; // Converting size to human-readable format
-        }
-        else
-        {
-            Size = GetHumanReadableSize((FileInfo)fileSystemInfo);
-            Icon = fileSystemInfo.Extension.ToLower() switch
-            {
-                ".png" => "🖼️",
-                ".jpg" => "🖼️",
-                ".jpeg" => "🖼️",
-                ".gif" => "🖼️",
-                ".bmp" => "🖼️",
-                ".tiff" => "🖼️",
-                ".svg" => "🖼️",
-                ".ico" => "🖼️",
-                ".webp" => "🖼️",
-                ".txt" => "📄",
-                ".doc" => "📄",
-                ".docx" => "📄",
-                ".pdf" => "📄",
-                ".xls" => "📄",
-                ".xlsx" => "📄",
-                ".ppt" => "📄",
-                ".pptx" => "📄",
-                ".csv" => "📄",
-                ".zip" => "📦",
-                ".rar" => "📦",
-                ".tar" => "📦",
-                ".gz" => "📦",
-                ".7z" => "📦",
-                ".mp4" => "🎥",
-                ".mov" => "🎥",
-                ".avi" => "🎥",
-                ".mkv" => "🎥",
-                ".wmv" => "🎥",
-                ".flv" => "🎥",
-                ".webm" => "🎥",
-                ".mp3" => "🎵",
-                ".wav" => "🎵",
-                ".ogg" => "🎵",
-                ".flac" => "🎵",
-                ".aac" => "🎵",
-                ".m4a" => "🎵",
-                ".wma" => "🎵",
-                ".mid" => "🎵",
-                ".midi" => "🎵",
-                ".opus" => "🎵",
-                ".ape" => "🎵",
-                ".ac3" => "🎵",
-                ".amr" => "🎵",
-                ".dts" => "🎵",
-                ".pcm" => "🎵",
-                ".aiff" => "🎵",
-                ".alac" => "🎵",
-                ".dsd" => "🎵",
-                ".exe" => "⚙️",
-                ".dll" => "⚙️",
-                ".sys" => "⚙️",
-                ".bat" => "⚙️",
-                ".sh" => "⚙️",
-                ".cmd" => "⚙️",
-                ".com" => "⚙️",
-                ".css" => "📝",
-                ".html" => "📝",
-                ".js" => "📝",
-                ".json" => "📝",
-                ".xml" => "📝",
-                ".cpp" => "📝",
-                ".h" => "📝",
-                ".cs" => "📝",
-                ".java" => "📝",
-                ".py" => "📝",
-                ".rb" => "📝",
-                ".php" => "📝",
-                ".sql" => "📝",
-                ".pl" => "📝",
-                ".swift" => "📝",
-                ".kt" => "📝",
-                ".go" => "📝",
-                _ => "❓",
-            };
-        }
-	}
+
+    public override string? ToString()
+    {
+        return FullPath;
+    }
 }
