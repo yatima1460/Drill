@@ -1,22 +1,27 @@
-﻿using System;
+﻿using Drill.Backend;
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using static System.Runtime.InteropServices.JavaScript.JSType;
+using System.Xml.Linq;
+using static Drill.MainPage;
 
-namespace Drill.Core
+namespace Drill.Backend
 {
     class Search
     {
         public delegate void ErrorHandler(Exception e);
 
-        private static bool stop = false;
+        private static bool stop = true;
         //private static SearchResultHandler callback = Blackhole;
         //private static ErrorHandler errorCallback;
         private static Task? currentSearchTask;
         private static string LastSearchString = string.Empty;
-   
+
 
         /// <summary>
         /// Collection holding all the results from the backend
@@ -37,6 +42,7 @@ namespace Drill.Core
                 return;
             }
 
+            LastSearchString = searchString;
             stop = false;
 
             currentSearchTask = Task.Run(() =>
@@ -80,14 +86,32 @@ namespace Drill.Core
 
                             foreach (FileSystemInfo sub in subs)
                             {
+                                bool isDirectory = (sub.Attributes & FileAttributes.Directory) == FileAttributes.Directory;
+                                
                                 if (StringUtils.TokenMatching(searchString, sub.Name))
                                 {
                                     // Better to create the DrillResult on the backend than the UI thread to not stall it
-                                    ParallelResults.Enqueue(new DrillResult(sub));
-                                    //callback(new DrillResult(sub));
+                                    DrillResult drillResult = new()
+                                    {
+                                        Name = sub.Name,
+                                        FullPath = string.Empty,
+                                        Path = string.Empty,
+                                        Date = string.Empty,
+                                        //Name = sub.Name,
+                                        //FullPath = sub.FullName,
+                                        //Path = rootFolderInfo.FullName,
+                                        //Date = sub.LastWriteTime.ToString("F"),
+                                        //Size = isDirectory ? "" : StringUtils.GetHumanReadableSize((FileInfo)sub),
+                                        //Icon = isDirectory ? "📁" : ExtensionIcon.GetIcon(sub.Extension.ToLower())
+                                        Size = string.Empty,
+                                        Icon = string.Empty
+                                    };
+                                    drillResult.Name = "test";
+                                    ParallelResults.Enqueue(drillResult);
                                 }
+
                                 // If the current file is a directory we queue it for crawling
-                                if ((sub.Attributes & FileAttributes.Directory) == FileAttributes.Directory)
+                                if (isDirectory)
                                 {
                                     if (sub.Name.StartsWith(".") ||
                                         (sub.Attributes & FileAttributes.Hidden) == FileAttributes.Hidden ||
@@ -96,7 +120,7 @@ namespace Drill.Core
                                          sub.FullName.StartsWith("C:\\Windows")
                                         )
                                     {
-                                        lowPriority.Enqueue((DirectoryInfo)sub);
+                                        directoriesToExplore.Enqueue((DirectoryInfo)sub);
                                     }
                                     else
                                     {
@@ -104,13 +128,8 @@ namespace Drill.Core
                                     }
                                 }
                             }
-
-                            // Queue at the end the low priority ones
-                            foreach (FileSystemInfo sub in lowPriority)
-                            {
-                                directoriesToExplore.Enqueue((DirectoryInfo)sub);
-                            }
                         }
+
                         // We can't go deeper unless we are root, skip it
                         catch (UnauthorizedAccessException)
                         {
@@ -135,13 +154,18 @@ namespace Drill.Core
             ParallelResults.Clear();
         }
 
-        public static DrillResult? PopResult()
+        public static List<DrillResult> PopResults(int count)
         {
-            if (ParallelResults.TryDequeue(out DrillResult? result))
+            int minSize = Math.Min(count, ParallelResults.Count);
+            List<DrillResult> results = new(minSize);
+            for (int i = 0; i < minSize; i++)
             {
-                return result;
+                if (ParallelResults.TryDequeue(out DrillResult? result))
+                {
+                    results.Add(result);
+                }
             }
-            return null;
+            return results;
         }
     }
 }

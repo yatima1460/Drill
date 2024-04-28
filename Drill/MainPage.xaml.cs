@@ -3,7 +3,7 @@ using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Windows.Input;
 
-using Drill.Core;
+using Drill.Backend;
 
 
 namespace Drill;
@@ -133,17 +133,14 @@ public partial class MainPage : ContentPage
 
         Dispatcher.StartTimer(TimeSpan.FromMilliseconds(100), () =>
         {
-            for (int i = 0; i < 100; i++)
+            var results = Search.PopResults(100);
+            foreach (var item in results)
             {
-                DrillResult? dequeued = Search.PopResult();
-
-                if (dequeued != null)
-                {
-                    // FIXME: this may crash stuff
-                    // stop this timer when [X] is pressed or application closing in general
-                    Results.Add(dequeued);
-                }
+                // FIXME: this may crash stuff
+                // stop this timer when [X] is pressed or application closing in general
+                Results.Add(item);
             }
+
 
             return true;
         });
