@@ -107,15 +107,14 @@ namespace Drill.Search
                                 try
                                 {
                                     FileSystemInfo[] subs = rootFolderInfo.GetFileSystemInfos("*", SearchOption.TopDirectoryOnly);
-
-                                    //Queue<DirectoryInfo> lowPriority = new();
-
+                                    
                                     foreach (FileSystemInfo sub in subs)
                                     {
 
                                         bool isDirectory = (sub.Attributes & FileAttributes.Directory) == FileAttributes.Directory;
-
-                                        if (StringUtils.TokenMatching(searchString, sub.Name))
+                                        bool isResult = StringUtils.TokenMatching(searchString, sub.Name);
+                                        
+                                        if (isResult)
                                         {
                                             // Better to create the DrillResult on the backend than the UI thread to not stall it
                                             DrillResult drillResult = new()
@@ -128,35 +127,35 @@ namespace Drill.Search
                                                 Icon = isDirectory ? "📁" : ExtensionIcon.GetIcon(sub.Extension.ToLower())
                                             };
                                             ParallelResults.Enqueue(drillResult);
-                                        }
 
-                                        // If the current file is a directory we queue it for crawling
-                                        if (isDirectory)
+
+                                            // If the result is also folder it means
+                                            // it contains in the name the search string
+                                            // Go vertical because it could be important
+                                            if (isDirectory)
+                                            {
+                                                directoriesToExplore.Insert(0, (DirectoryInfo)sub);
+                                            }
+                                        }
+                                        else
                                         {
-                                            //if (sub.Name.StartsWith(".") ||
-                                            //    (sub.Attributes & FileAttributes.Hidden) == FileAttributes.Hidden ||
-                                            //    (sub.Attributes & FileAttributes.System) == FileAttributes.System ||
-                                            //     (sub.Attributes & FileAttributes.Temporary) == FileAttributes.Temporary ||
-                                            //     sub.FullName.StartsWith("C:\\Windows")
-                                            //    )
-                                            //{
-                                          
+                                            // If the current file is a directory we queue it for crawling
+                                            if (isDirectory)
+                                            {
+                                                //if (sub.Name.StartsWith(".") ||
+                                                //    (sub.Attributes & FileAttributes.Hidden) == FileAttributes.Hidden ||
+                                                //    (sub.Attributes & FileAttributes.System) == FileAttributes.System ||
+                                                //     (sub.Attributes & FileAttributes.Temporary) == FileAttributes.Temporary ||
+                                                //     sub.FullName.StartsWith("C:\\Windows")
+                                                //    )
+
+                                                // Go horizontal
                                                 directoriesToExplore.Add((DirectoryInfo)sub);
-                                            
-                                            //}
-                                            //else
-                                            //{
-                                            //    directoriesToExplore.Add((DirectoryInfo)sub);
-                                            //}
-
-
+                                            }
                                         }
-                                    }
 
-                                    //foreach (DirectoryInfo item in lowPriority)
-                                    //{
-                                    //    directoriesToExplore.Add(item);
-                                    //}
+                                        
+                                    }
                                 }
 
                                 // We can't go deeper unless we are root, skip it
