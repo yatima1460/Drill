@@ -1,32 +1,22 @@
 
 
 namespace Drill.Backend;
-public class DrillResult
+public record DrillResult
 {
+    public required string Icon { get; init; }
+    public required string Name { get; init; }
+    public required string Path { get; init; }
+    public required string Date { get; init; }
+    public required string Size { get; init; }
+    public required string FullPath { get; init; }
 
-    public required string Name;
-    public required string Path;
-    public required string Date;
-    public required string Size;
-    public required string Icon;
-    public required string FullPath;
+    public override int GetHashCode()
+    {
+        return FullPath.GetHashCode();
+    }
 
-    //public override bool Equals(object? obj)
-    //{
-    //    if (obj == null)
-    //        return false;
-    //    if (obj is not DrillResult)
-    //        return false;
-    //    return ((DrillResult)obj).FullPath.Equals(this.FullPath);
-    //}
-
-    //public override int GetHashCode()
-    //{
-    //    return FullPath.GetHashCode();
-    //}
-
-    //public override string? ToString()
-    //{
-    //    return FullPath;
-    //}
+    public override string? ToString()
+    {
+        return FullPath;
+    }
 }

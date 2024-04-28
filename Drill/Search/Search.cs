@@ -36,13 +36,14 @@ namespace Drill.Backend
                 return;
             }
 
+            LastSearchString = searchString;
+
             // If the search string is empty do nothing
             if (searchString == string.Empty)
             {
                 return;
             }
 
-            LastSearchString = searchString;
             stop = false;
 
             currentSearchTask = Task.Run(() =>
@@ -94,19 +95,12 @@ namespace Drill.Backend
                                     DrillResult drillResult = new()
                                     {
                                         Name = sub.Name,
-                                        FullPath = string.Empty,
-                                        Path = string.Empty,
-                                        Date = string.Empty,
-                                        //Name = sub.Name,
-                                        //FullPath = sub.FullName,
-                                        //Path = rootFolderInfo.FullName,
-                                        //Date = sub.LastWriteTime.ToString("F"),
-                                        //Size = isDirectory ? "" : StringUtils.GetHumanReadableSize((FileInfo)sub),
-                                        //Icon = isDirectory ? "📁" : ExtensionIcon.GetIcon(sub.Extension.ToLower())
-                                        Size = string.Empty,
-                                        Icon = string.Empty
+                                        FullPath = sub.FullName,
+                                        Path = rootFolderInfo.FullName,
+                                        Date = sub.LastWriteTime.ToString("F"),
+                                        Size = isDirectory ? "" : StringUtils.GetHumanReadableSize((FileInfo)sub),
+                                        Icon = isDirectory ? "📁" : ExtensionIcon.GetIcon(sub.Extension.ToLower())
                                     };
-                                    drillResult.Name = "test";
                                     ParallelResults.Enqueue(drillResult);
                                 }
 
