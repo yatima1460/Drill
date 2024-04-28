@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Windows.Input;
 
 using Drill.Backend;
+using Drill.Search;
 
 
 namespace Drill;
@@ -53,8 +54,8 @@ public partial class MainPage : ContentPage
             // Close the application
             // You can use different methods to close the application based on your platform and requirements
             // For example, you can use App.Current.Exit() in a .NET MAUI app
-            
-            Search.Stop();
+
+            Drill.Search.Search.Stop();
             Application.Current.Quit();
         }
     }
@@ -133,7 +134,7 @@ public partial class MainPage : ContentPage
 
         Dispatcher.StartTimer(TimeSpan.FromMilliseconds(100), () =>
         {
-            var results = Search.PopResults(100);
+            var results = Drill.Search.Search.PopResults(100);
             foreach (var item in results)
             {
                 // FIXME: this may crash stuff
@@ -236,13 +237,13 @@ public partial class MainPage : ContentPage
     private  void OnTextChanged(object sender, TextChangedEventArgs e)
     {
         // Stop current search
-        Search.Stop();
+        Drill.Search.Search.Stop();
 
         // Clear UI list
         Results.Clear();
 
         // Create new search
-        Search.StartAsync(e.NewTextValue, ErrorCallback);
+        Drill.Search.Search.StartAsync(e.NewTextValue, ErrorCallback);
     }
 
 

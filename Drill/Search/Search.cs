@@ -10,11 +10,12 @@ using static System.Runtime.InteropServices.JavaScript.JSType;
 using System.Xml.Linq;
 using static Drill.MainPage;
 
-namespace Drill.Backend
+
+namespace Drill.Search
 {
     class Search
     {
-        private static List<FileSystemInfo> cache = [];
+       
         public delegate void ErrorHandler(Exception e);
 
         private static bool stop = true;
@@ -46,32 +47,6 @@ namespace Drill.Backend
             }
 
             stop = false;
-
-            List<FileSystemInfo> newCache = [];
-            foreach (var item in cache)
-            {
-                if (item.Exists)
-                {
-                    if (StringUtils.TokenMatching(searchString, item.Name))
-                    {
-                        bool isDirectory = (item.Attributes & FileAttributes.Directory) == FileAttributes.Directory;
-
-                        // Better to create the DrillResult on the backend than the UI thread to not stall it
-                        DrillResult drillResult = new()
-                        {
-                            Name = item.Name,
-                            FullPath = item.FullName,
-                            Path = item.FullName,
-                            Date = item.LastWriteTime.ToString("F"),
-                            Size = isDirectory ? "" : StringUtils.GetHumanReadableSize((FileInfo)item),
-                            Icon = isDirectory ? "📁" : ExtensionIcon.GetIcon(item.Extension.ToLower())
-                        };
-                        ParallelResults.Enqueue(drillResult);
-                        newCache.Add(item);
-                    }
-                }
-            }
-            cache = newCache;
 
             currentSearchTask = Task.Run(() =>
             {
@@ -115,7 +90,7 @@ namespace Drill.Backend
 
                             foreach (FileSystemInfo sub in subs)
                             {
-                                cache.Add(sub);
+                                
                                 bool isDirectory = (sub.Attributes & FileAttributes.Directory) == FileAttributes.Directory;
                                 
                                 if (StringUtils.TokenMatching(searchString, sub.Name))
