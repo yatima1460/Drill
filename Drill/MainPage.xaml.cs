@@ -17,14 +17,6 @@ public partial class MainPage : ContentPage
     private readonly ObservableCollection<DrillResult> Results = [];
 
 
-    Task? currentSearchTask;
-
-
-    private static void ErrorCallbackBlackhole(Exception e)
-    {
-
-    }
-
     private void OnPointerEntered(object? sender, PointerEventArgs e)
     {
         ((Label)sender!)!.TextDecorations = TextDecorations.Underline;
@@ -166,11 +158,7 @@ public partial class MainPage : ContentPage
         {
             if (DeviceInfo.Current.Platform == DevicePlatform.MacCatalyst)
             {
-                Process.Start(new ProcessStartInfo
-                {
-                    FileName = "open",
-                    Arguments = "\"" + FullPath + "\""
-                });
+                Process.Start("open","\"" + FullPath + "\"");
             }
             if (DeviceInfo.Current.Platform == DevicePlatform.WinUI)
             {
@@ -197,11 +185,7 @@ public partial class MainPage : ContentPage
         {
             if (DeviceInfo.Current.Platform == DevicePlatform.MacCatalyst)
             {
-                Process.Start(new ProcessStartInfo
-                {
-                    FileName = "open",
-                    Arguments = "-R \"" + FullPath + "\""
-                });
+                Process.Start("open","-R \"" + FullPath + "\"");
             }
             if (DeviceInfo.Current.Platform == DevicePlatform.WinUI)
             {

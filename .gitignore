@@ -2,3 +2,4 @@ bin/
 obj/
 .DS_Store
 .vs
+/Build/output

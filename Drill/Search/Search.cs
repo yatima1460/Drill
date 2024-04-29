@@ -168,11 +168,9 @@ namespace Drill.Search
                                         
                                     }
                                 }
-
-                                // We can't go deeper unless we are root, skip it
-                                catch (UnauthorizedAccessException)
+                                catch (Exception e)
                                 {
-                                    
+                                    Debug.Print(e.Message);
                                     continue;
                                 }
                             }
@@ -181,6 +179,7 @@ namespace Drill.Search
                         catch (Exception e)
                         {
                             StopRequested = true;
+                            Debug.Print(e.Message);
                             errorHandler(e);
                         }
                     }));
@@ -189,6 +188,7 @@ namespace Drill.Search
             catch (Exception e)
             {
                 StopRequested = true;
+                Debug.Print(e.Message);
                 errorHandler(e);
             }
 
