@@ -10,6 +10,8 @@ using static System.Runtime.InteropServices.JavaScript.JSType;
 using System.Xml.Linq;
 using static Drill.MainPage;
 using static System.Environment;
+using System.Diagnostics;
+using Microsoft.Extensions.Logging;
 
 
 namespace Drill.Search
@@ -57,13 +59,22 @@ namespace Drill.Search
                             roots.Add(new DirectoryInfo(path));
                         }
                     }
-                    catch (Exception)
+                    catch (Exception e)
                     {
+                        Debug.Print(e.Message);
                         continue;
                     }
                 }
 
-                DriveInfo[] allDrives = DriveInfo.GetDrives();
+
+                DriveInfo[] allDrives = [];
+                try {
+                    allDrives = DriveInfo.GetDrives();
+                }
+                catch (Exception e)
+                {
+                    Debug.Print(e.Message);
+                }
                 foreach (DriveInfo d in allDrives)
                 {
                     if (d.IsReady == true && (d.DriveType == DriveType.Removable || d.DriveType == DriveType.Fixed || d.DriveType == DriveType.Network))
@@ -161,6 +172,7 @@ namespace Drill.Search
                                 // We can't go deeper unless we are root, skip it
                                 catch (UnauthorizedAccessException)
                                 {
+                                    
                                     continue;
                                 }
                             }
@@ -203,7 +215,7 @@ namespace Drill.Search
         {
             if (StopRequested)
             {
-                return new List<DrillResult>();
+                return [];
             }
             int minSize = Math.Min(count, ParallelResults.Count);
             List<DrillResult> results = new(minSize);

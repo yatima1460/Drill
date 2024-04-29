@@ -1,3 +1,9 @@
+
+#if __APPLE__
+using AppKit;
+using UIKit;
+#endif
+
 using Microsoft.Maui.Platform;
 
 #if __WINDOWS__
@@ -8,10 +14,6 @@ using Microsoft.Maui.Platform;
 //using Windows.UI.Core;
 #endif
 
-#if __APPLE__
-using AppKit;
-using UIKit;
-#endif
 
 public enum CursorIcon
 {
@@ -48,33 +50,33 @@ public static class CursorExtensions
         {
             switch (r.State)
             {
-                case UIGestureRecognizerState.Began:
+                case UIKit.UIGestureRecognizerState.Began:
                     GetNSCursor(cursor).Set();
                     break;
-                case UIGestureRecognizerState.Ended:
-                    NSCursor.ArrowCursor.Set();
+                case UIKit.UIGestureRecognizerState.Ended:
+                    AppKit.NSCursor.ArrowCursor.Set();
                     break;
             }
         }));
     }
 
-    static NSCursor GetNSCursor(CursorIcon cursor)
+    static AppKit.NSCursor GetNSCursor(CursorIcon cursor)
     {
         return cursor switch
         {
-            CursorIcon.Hand => NSCursor.PointingHandCursor,
-            CursorIcon.IBeam => NSCursor.IBeamCursor,
-            CursorIcon.Cross => NSCursor.CrosshairCursor,
-            CursorIcon.Arrow => NSCursor.ArrowCursor,
-            CursorIcon.SizeAll => NSCursor.ResizeUpCursor,
-            CursorIcon.Wait => NSCursor.OperationNotAllowedCursor,
-            _ => NSCursor.ArrowCursor,
+            CursorIcon.Hand => AppKit.NSCursor.PointingHandCursor,
+            CursorIcon.IBeam => AppKit.NSCursor.IBeamCursor,
+            CursorIcon.Cross => AppKit.NSCursor.CrosshairCursor,
+            CursorIcon.Arrow => AppKit.NSCursor.ArrowCursor,
+            CursorIcon.SizeAll => AppKit.NSCursor.ResizeUpCursor,
+            CursorIcon.Wait => AppKit.NSCursor.OperationNotAllowedCursor,
+            _ => AppKit.NSCursor.ArrowCursor,
         };
     }
    
-    class PointerUIHoverGestureRecognizer : UIHoverGestureRecognizer
+    class PointerUIHoverGestureRecognizer : UIKit.UIHoverGestureRecognizer
     {
-        public PointerUIHoverGestureRecognizer(Action<UIHoverGestureRecognizer> action) : base(action)
+        public PointerUIHoverGestureRecognizer(Action<UIKit.UIHoverGestureRecognizer> action) : base(action)
         {
         }
     }
