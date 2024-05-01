@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace Drill.Backend
 {
-    internal class StringUtils
+    internal static class StringUtils
     {
         internal static bool TokenMatching(string searchString, string fileName)
         {
@@ -24,7 +24,7 @@ namespace Drill.Backend
         internal static string GetHumanReadableSize(FileInfo fileSystemInfo)
         {
             long sizeInBytes = ((FileInfo)fileSystemInfo).Length;
-            string[] sizes = { "B", "KB", "MB", "GB", "TB" };
+            string[] sizes = ["B", "KB", "MB", "GB", "TB"];
             int order = 0;
             double size = sizeInBytes;
 

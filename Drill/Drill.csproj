@@ -45,7 +45,7 @@
 		<Platforms>ARM64;x64</Platforms>
 	</PropertyGroup>
 
-	<PropertyGroup Condition="'$(RuntimeIdentifier)' == 'maccatalyst-arm64' and '$(Configuration)' == 'Release'">
+	<PropertyGroup Condition="'$(RuntimeIdentifier)' == 'maccatalyst-arm64' ">
     	<!-- Needed to use Process.Start to open files and folders on Mac-->
 		<MtouchInterpreter>-all</MtouchInterpreter>
 	</PropertyGroup>
@@ -60,6 +60,7 @@
 
 	<PropertyGroup Condition="$([MSBuild]::IsOSPlatform('osx'))">
 		<DefineConstants>__OSX__</DefineConstants>
+		<RuntimeIdentifier>maccatalyst-arm64</RuntimeIdentifier>
 	</PropertyGroup>
 
 	<PropertyGroup>   

@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace Drill.Backend
 {
-    internal class ExtensionIcon
+    internal static class ExtensionIcon
     {
         /// <summary>
         /// Given an extension returns the associated emoji for the UI
@@ -67,6 +67,7 @@ namespace Drill.Backend
                 ".alac" => "🎵",
                 ".dsd" => "🎵",
                 ".exe" => "⚙️",
+                ".dylib" => "⚙️",
                 ".dll" => "⚙️",
                 ".sys" => "⚙️",
                 ".bat" => "⚙️",

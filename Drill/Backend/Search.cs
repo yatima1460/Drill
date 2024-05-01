@@ -9,27 +9,27 @@ using System.Threading.Tasks;
 using static System.Runtime.InteropServices.JavaScript.JSType;
 using System.Xml.Linq;
 using static Drill.MainPage;
-using static System.Environment;
+
 using System.Diagnostics;
 using Microsoft.Extensions.Logging;
 
 
-namespace Drill.Search
+namespace Drill.Backend
 {
     class Search
     {
 
         public delegate void FatalErrorCallback(Exception e);
-        private static bool StopRequested = false;
+        private static bool _stopRequested = false;
         private static readonly ConcurrentQueue<DrillResult> ParallelResults = new();
-        private static readonly ConcurrentBag<string> visited = [];
+        private static readonly ConcurrentBag<string> Visited = [];
         private static readonly List<Task> ParallelThreads = [];
 
         public static void StartAsync(string searchString, FatalErrorCallback errorHandler)
         {
             try
             {
-                if (StopRequested)
+                if (_stopRequested)
                 {
                     throw new Exception("Stop requested, can't start right now");
                 }
@@ -66,6 +66,15 @@ namespace Drill.Search
                     }
                 }
 
+                
+                try
+                {
+                    roots.Add(new DirectoryInfo($"/Users/{Environment.UserName}/Library/Mobile Documents/com~apple~CloudDocs/"));
+                }
+                catch (Exception e)
+                {
+                    Debug.Print(e.Message);
+                }
 
                 DriveInfo[] allDrives = [];
                 try {
@@ -95,33 +104,44 @@ namespace Drill.Search
                     ParallelThreads.Add(Task.Run(() =>
                     {
                         // string userFolderPath = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-
+                        
 
                         try
                         {
                             List<DirectoryInfo> directoriesToExplore = [root];
 
-                            while (StopRequested == false && directoriesToExplore.Count != 0)
+                            while (_stopRequested == false && directoriesToExplore.Count != 0)
                             {
                                 DirectoryInfo rootFolderInfo = directoriesToExplore[0];
                                 directoriesToExplore.RemoveAt(0);
 
 
                                 // To prevent any kind of loops
-                                if (visited.Contains(rootFolderInfo.FullName))
+                                if (Visited.Contains(rootFolderInfo.FullName))
                                 {
                                     continue;
                                 }
-                                visited.Add(rootFolderInfo.FullName);
+                                Visited.Add(rootFolderInfo.FullName);
 
 
                                 try
                                 {
+                                    // Directory.GetFileSystemEntries()
                                     FileSystemInfo[] subs = rootFolderInfo.GetFileSystemInfos("*", SearchOption.TopDirectoryOnly);
                                     
                                     foreach (FileSystemInfo sub in subs)
                                     {
-
+                                        // TODO move to Platforms
+                                        if (
+                                            sub.FullName == $"/Users/{Environment.UserName}/Pictures/Photos Library.photoslibrary" || 
+                                            sub.FullName == $"/Users/{Environment.UserName}/Library/Calendars" ||
+                                            sub.FullName == $"/Users/{Environment.UserName}/Library/Reminders"  ||
+                                            sub.FullName == $"/Users/{Environment.UserName}/Library/Contacts"
+                                            )
+                                        {
+                                            continue;
+                                        }
+                                   
                                         bool isDirectory = (sub.Attributes & FileAttributes.Directory) == FileAttributes.Directory;
                                         bool isResult = StringUtils.TokenMatching(searchString, sub.Name);
                                         
@@ -135,16 +155,16 @@ namespace Drill.Search
                                                 Path = rootFolderInfo.FullName,
                                                 Date = sub.LastWriteTime.ToString("F"),
                                                 Size = isDirectory ? "" : StringUtils.GetHumanReadableSize((FileInfo)sub),
+                                                // TODO: different icon for .app on Mac
                                                 Icon = isDirectory ? "📁" : ExtensionIcon.GetIcon(sub.Extension.ToLower())
                                             };
                                             ParallelResults.Enqueue(drillResult);
-
-
+                                            
                                             // If the result is also folder it means
                                             // it contains in the name the search string
-                                            // Go vertical because it could be important
                                             if (isDirectory)
                                             {
+                                                // Go vertical because it could be important
                                                 directoriesToExplore.Insert(0, (DirectoryInfo)sub);
                                             }
                                         }
@@ -178,7 +198,7 @@ namespace Drill.Search
                         }
                         catch (Exception e)
                         {
-                            StopRequested = true;
+                            _stopRequested = true;
                             Debug.Print(e.Message);
                             errorHandler(e);
                         }
@@ -187,7 +207,7 @@ namespace Drill.Search
             }
             catch (Exception e)
             {
-                StopRequested = true;
+                _stopRequested = true;
                 Debug.Print(e.Message);
                 errorHandler(e);
             }
@@ -196,24 +216,24 @@ namespace Drill.Search
 
         public static void Stop()
         {
-            if (StopRequested)
+            if (_stopRequested)
             {
                 throw new Exception("Stop already requested");
             }
-            StopRequested = true;
+            _stopRequested = true;
             foreach (Task item in ParallelThreads)
             {
                 item.Wait();
             }
             ParallelThreads.Clear();
             ParallelResults.Clear();
-            visited.Clear();
-            StopRequested = false;
+            Visited.Clear();
+            _stopRequested = false;
         }
 
         public static List<DrillResult> PopResults(int count)
         {
-            if (StopRequested)
+            if (_stopRequested)
             {
                 return [];
             }

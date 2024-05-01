@@ -1,11 +1,7 @@
-﻿using System.Collections.Concurrent;
-using System.Collections.ObjectModel;
-using System.Diagnostics;
+﻿using System.Collections.ObjectModel;
 using System.Windows.Input;
 
 using Drill.Backend;
-using Drill.Search;
-
 
 namespace Drill;
 public partial class MainPage : ContentPage
@@ -14,9 +10,34 @@ public partial class MainPage : ContentPage
     /// <summary>
     /// Collection that is read by the UI showing the results
     /// </summary>
-    private readonly ObservableCollection<DrillResult> Results = [];
+    private readonly ObservableCollection<DrillResult> _results = [];
 
+    public MainPage()
+    {
+        InitializeComponent();
 
+        BindingContext = this;
+
+        UI_Results.ItemsSource = _results;
+    }
+
+    protected override void OnAppearing()
+    {
+        base.OnAppearing();
+
+        Dispatcher.StartTimer(TimeSpan.FromMilliseconds(100), () =>
+        {
+            var results = Drill.Backend.Search.PopResults(_results.Count < 30 ? 30 : 5);
+            foreach (var item in results)
+            {
+                // FIXME: this may crash stuff
+                // stop this timer when [X] is pressed or application closing in general
+                _results.Add(item);
+            }
+
+            return true;
+        });
+    }
     private void OnPointerEntered(object? sender, PointerEventArgs e)
     {
         ((Label)sender!)!.TextDecorations = TextDecorations.Underline;
@@ -36,175 +57,35 @@ public partial class MainPage : ContentPage
         }
 
     }
-    private async void OnBackButtonPressed(object sender, EventArgs e)
-    {
-        // Close the application when the escape key is pressed
-        if (e is BackButtonPressedEventArgs args && args.Handled == false)
+
+
+    public ICommand OpenFile => new Command<string>(
+        execute: FullPath =>
         {
-            args.Handled = true; // Mark the event as handled to prevent further processing
-
-            // Close the application
-            // You can use different methods to close the application based on your platform and requirements
-            // For example, you can use App.Current.Exit() in a .NET MAUI app
-
-            Drill.Search.Search.Stop();
-            Application.Current.Quit();
-        }
-    }
-
-
-    void OnNameTapped(object sender, EventArgs args)
-    {
-        var spanSender = (Span)sender;
-        var fullPath = spanSender.BindingContext as string; // Assuming FullPath is of type string
-
-        OpenFilePath(fullPath);
-    }
-    public MainPage()
-    {
-        InitializeComponent();
-
-        BindingContext = this;
-
-        UI_Results.ItemsSource = Results;
-        
-
-
-        timer = new(TimerCallback, null, Timeout.Infinite, Timeout.Infinite);
-    }
-
-    private static void OpenFilePath(string FullPath)
-    {
-        // Open the directory
-        if (DeviceInfo.Current.Platform == DevicePlatform.MacCatalyst)
-        {
-            Process.Start(new ProcessStartInfo
+            try
             {
-                FileName = FullPath,
-                UseShellExecute = true,
-                Verb = "open"
-            });
-        }
-        else if (DeviceInfo.Current.Platform == DevicePlatform.WinUI)
-        {
-
-        }
-
-    }
-
-    private void PathTapped(object sender, System.EventArgs e)
-    {
-        if (sender is Label label)
-        {
-            string directoryPath = label.Text;
-
-
-            // Check if the directory path is valid
-            if (Directory.Exists(directoryPath))
-            {
-                // Open the directory
-                Process.Start(new ProcessStartInfo
-                {
-                    FileName = directoryPath,
-                    UseShellExecute = true,
-                    Verb = "open"
-                });
+                Drill.IO.OpenFile(FullPath);
             }
-            else
+            catch (Exception e)
             {
-                // Handle invalid directory path
-                // You can show an error message or take appropriate action
+                DisplayAlert("Error opening file", "FullPath: " + FullPath + "\n" + e.ToString(), "OK");
             }
         }
-    }
-
-    protected override void OnAppearing()
-    {
-        base.OnAppearing();
-
-        timer = new Timer(TimerCallback, null, Timeout.Infinite, Timeout.Infinite);
-
-        Dispatcher.StartTimer(TimeSpan.FromMilliseconds(100), () =>
+    );
+    
+    public ICommand OpenPath => new Command<string>(
+        execute: fullPath =>
         {
-            var results = Drill.Search.Search.PopResults(100);
-            foreach (var item in results)
+            try
             {
-                // FIXME: this may crash stuff
-                // stop this timer when [X] is pressed or application closing in general
-                Results.Add(item);
+                Drill.IO.OpenPath(fullPath);
             }
-
-
-            return true;
-        });
-    }
-
-
-    // Launcher.OpenAsync is provided by Essentials.
-    // public ICommand TapCommand => new Command<string>(async (url) => await Launcher.OpenAsync(url));
-    // public ICommand TapCommand => new Command<string>(async (url) => OpenFilePath(url));
-    public ICommand OpenFile => new Command<string>(async (url) => OpenFile_Internal(url));
-
-    public ICommand OpenPath => new Command<string>(async (url) => OpenPath_Internal(url));
-
-
-    /// <summary>
-    /// Opens the file provided
-    /// </summary>
-    /// <param name="FullPath"></param>
-    private void OpenFile_Internal(string FullPath)
-    {
-        try
-        {
-            if (DeviceInfo.Current.Platform == DevicePlatform.MacCatalyst)
+            catch (Exception e)
             {
-                Process.Start("open","\"" + FullPath + "\"");
-            }
-            if (DeviceInfo.Current.Platform == DevicePlatform.WinUI)
-            {
-                Process.Start(new ProcessStartInfo
-                {
-                    FileName = "explorer.exe",
-                    Arguments = "\"" + FullPath + "\""
-                });
+                DisplayAlert("Error opening file", "FullPath: " + fullPath + "\n" + e.ToString(), "OK");
             }
         }
-        catch (Exception e)
-        {
-            DisplayAlert("Error opening file", "FullPath: " + FullPath + "\n" + e.ToString(), "OK");
-        }
-    }
-
-    /// <summary>
-    /// Opens the local system file explorer to the folder containing the file provided and if supported selects it
-    /// </summary>
-    /// <param name="FullPath"></param>
-    private void OpenPath_Internal(string FullPath)
-    {
-        try
-        {
-            if (DeviceInfo.Current.Platform == DevicePlatform.MacCatalyst)
-            {
-                Process.Start("open","-R \"" + FullPath + "\"");
-            }
-            if (DeviceInfo.Current.Platform == DevicePlatform.WinUI)
-            {
-                Process.Start(new ProcessStartInfo
-                {
-                    FileName = "explorer.exe",
-                    Arguments = string.Format("/select,\"{0}\"", FullPath)
-                });
-            }
-        }
-        catch (Exception e)
-        {
-            DisplayAlert("Error opening path", "FullPath: " + FullPath + "\n" + e.ToString(), "OK");
-        }
-
-    }
-
-
-
+    );
 
     private List<string> blacklist = [
         "Photos Library.photoslibrary",
@@ -216,22 +97,21 @@ public partial class MainPage : ContentPage
 
     double Progress = 0.4;
 
-    private Timer timer;
 
     private  void OnTextChanged(object sender, TextChangedEventArgs e)
     {
         // Stop current search
-        Drill.Search.Search.Stop();
+        Drill.Backend.Search.Stop();
 
         // Clear UI list
-        Results.Clear();
+        _results.Clear();
 
         // Create new search
-        Drill.Search.Search.StartAsync(e.NewTextValue, ErrorCallback);
+        Drill.Backend.Search.StartAsync(e.NewTextValue, ErrorCallback);
     }
 
 
-    internal void ErrorCallback(Exception e)
+    private void ErrorCallback(Exception e)
     {
         Dispatcher.DispatchAsync(() =>
         {
@@ -241,11 +121,5 @@ public partial class MainPage : ContentPage
         });
     }
 
-    private void TimerCallback(object state)
-    {
-        string newText = (string)state;
-
-        
-    }
 }
 
