@@ -50,7 +50,9 @@ namespace Drill.Core
                     }
                     catch (Exception e)
                     {
+#if DEBUG
                         Debug.Print(e.Message);
+#endif
                         continue;
                     }
                 }
@@ -62,7 +64,9 @@ namespace Drill.Core
                 }
                 catch (Exception e)
                 {
+#if DEBUG
                     Debug.Print(e.Message);
+#endif
                 }
 
                 DriveInfo[] allDrives = [];
@@ -71,7 +75,9 @@ namespace Drill.Core
                 }
                 catch (Exception e)
                 {
+#if DEBUG
                     Debug.Print(e.Message);
+#endif
                 }
                 foreach (DriveInfo d in allDrives)
                 {
@@ -94,6 +100,13 @@ namespace Drill.Core
                     {
                         // string userFolderPath = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
                         
+                        // Other roots that we are exploring so we can skip them if we encounter them
+                        List<string> blacklisted = new();
+                        foreach (var item in roots)
+                        {
+                            blacklisted.Add(item.FullName);
+                        }
+                        blacklisted.Remove(root.FullName);
 
                         try
                         {
@@ -104,14 +117,11 @@ namespace Drill.Core
                                 DirectoryInfo rootFolderInfo = directoriesToExplore[0];
                                 directoriesToExplore.RemoveAt(0);
 
-
-                                // To prevent any kind of loops
-                                if (Visited.Contains(rootFolderInfo.FullName))
+                                // Because of tree structure we hit a root we are already exploring
+                                if (blacklisted.Contains(rootFolderInfo.FullName))
                                 {
                                     continue;
                                 }
-                                Visited.Add(rootFolderInfo.FullName);
-
 
                                 try
                                 {
@@ -147,15 +157,17 @@ namespace Drill.Core
                                                 // TODO: different icon for .app on Mac
                                                 Icon = isDirectory ? "📁" : ExtensionIcon.GetIcon(sub.Extension.ToLower())
                                             };
+
+                                            // this may stall for a sec
                                             ParallelResults.Enqueue(drillResult);
-                                            
+
                                             // If the result is also folder it means
                                             // it contains in the name the search string
                                             if (isDirectory)
                                             {
                                                 // Go vertical because it could be important
                                                 directoriesToExplore.Insert(0, (DirectoryInfo)sub);
-                                            }
+                                            }                             
                                         }
                                         else
                                         {
@@ -179,7 +191,9 @@ namespace Drill.Core
                                 }
                                 catch (Exception e)
                                 {
+#if DEBUG
                                     Debug.Print(e.Message);
+#endif
                                     continue;
                                 }
                             }
@@ -188,7 +202,9 @@ namespace Drill.Core
                         catch (Exception e)
                         {
                             _stopRequested = true;
+#if DEBUG
                             Debug.Print(e.Message);
+#endif
                             errorHandler(e);
                         }
                     }));
@@ -197,7 +213,9 @@ namespace Drill.Core
             catch (Exception e)
             {
                 _stopRequested = true;
+#if DEBUG
                 Debug.Print(e.Message);
+#endif
                 errorHandler(e);
             }
 

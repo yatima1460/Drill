@@ -15,7 +15,7 @@ public static class IO {
                     FileName = "explorer.exe",
                     Arguments = "\"" + FullPath + "\""
                 });
-        
+
     }
 
 
@@ -27,7 +27,7 @@ public static class IO {
                     FileName = "explorer.exe",
                     Arguments = string.Format("/select,\"{0}\"", FullPath)
                 });
-        
+
     }
    
 
