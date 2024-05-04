@@ -149,6 +149,14 @@
 	</ItemGroup>
 
 	<ItemGroup>
+	  <Compile Remove="Backend\**" />
+	  <EmbeddedResource Remove="Backend\**" />
+	  <MauiCss Remove="Backend\**" />
+	  <MauiXaml Remove="Backend\**" />
+	  <None Remove="Backend\**" />
+	</ItemGroup>
+
+	<ItemGroup>
 	  <None Include="..\LICENSE">
 	    <Pack>True</Pack>
 	    <PackagePath>\</PackagePath>
@@ -161,12 +169,5 @@
 		<PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="8.0.0" />
 	</ItemGroup>
 
-	<ItemGroup>
-	  <Folder Include="Backend\" />
-	</ItemGroup>
-
-	<ItemGroup>
-	  <ProjectReference Include="..\Core\Core.csproj" />
-	</ItemGroup>
 
 </Project>

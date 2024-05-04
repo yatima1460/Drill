@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8" ?>
-<ContentPage Title="Drill" Shell.FlyoutBehavior="Disabled" Shell.NavBarIsVisible="False" xmlns="http://schemas.microsoft.com/dotnet/2021/maui" xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml" x:Class="Drill.MainPage">
+<ContentPage Title="Drill" xmlns:dataTypes="clr-namespace:Core" xmlns:coll="clr-namespace:Drill" Shell.FlyoutBehavior="Disabled" Shell.NavBarIsVisible="False" xmlns="http://schemas.microsoft.com/dotnet/2021/maui" xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml" x:Class="Drill.MainPage">
     <Grid RowDefinitions="Auto,Auto,Auto,*" ColumnDefinitions="*">
         <Entry Grid.Row="0" x:Name = "UI_Search" Placeholder = "Search Everywhere" TextChanged="OnTextChanged" IsTextPredictionEnabled="False" />
         <Grid Grid.Row="1" ColumnDefinitions="0.025*,0.475*,0.2*,0.2*,0.1*" RowDefinitions="*">
@@ -10,20 +10,20 @@
             <Label Grid.Column="4" Text="Size" FontSize="20" FontAttributes="Bold"/>
         </Grid>
         <ProgressBar Grid.Row="2" Progress="{Binding Path=BindingContext.Progress, Source={x:Reference UI_Results}}"></ProgressBar>
-        <CollectionView ItemsUpdatingScrollMode="KeepScrollOffset" BackgroundColor="White" Grid.Row="3" x:Name = "UI_Results" EmptyView="" ItemsSource="{Binding Results, Mode=OneWay}">
+        <CollectionView x:DataType="coll:MainPage" ItemsUpdatingScrollMode="KeepScrollOffset" BackgroundColor="White" Grid.Row="3" x:Name = "UI_Results" EmptyView="" ItemsSource="{Binding Results, Mode=OneWay}">
             <CollectionView.ItemTemplate>
-                <DataTemplate>
+                <DataTemplate x:DataType="dataTypes:DrillResult">
                     <Grid Padding="10" ColumnDefinitions="0.025*,0.475*,0.2*,0.2*,0.1*" RowDefinitions="*">
                         <Label Grid.Column="0" LineBreakMode="NoWrap" Text="{Binding Icon}" FontSize="16" />
                         <Label Grid.Column="1" LineBreakMode="NoWrap" Text="{Binding Name}" TextColor="#0000EE" TextDecorations="None" FontSize="16"  Margin="0,0,4,0" >
                             <Label.GestureRecognizers>
-                                <TapGestureRecognizer Command="{Binding Path=BindingContext.OpenFile, Source={x:Reference UI_Results}}" CommandParameter="{Binding FullPath}" Buttons="Primary"/>
+                                <TapGestureRecognizer x:DataType="dataTypes:DrillResult" Command="{Binding Path=BindingContext.OpenFile, Source={x:Reference UI_Results}}" CommandParameter="{Binding FullPath}" Buttons="Primary"/>
                                 <PointerGestureRecognizer PointerEntered="OnPointerEntered" PointerExited="OnPointerExited" />
                             </Label.GestureRecognizers>
                         </Label>
                         <Label Grid.Column="2" LineBreakMode="NoWrap" Text="{Binding Path}" TextColor="#0000EE" TextDecorations="None" FontSize="16"  Margin="0,0,4,0" >
                             <Label.GestureRecognizers>
-                                <TapGestureRecognizer Command="{Binding Path=BindingContext.OpenPath, Source={x:Reference UI_Results}}" CommandParameter="{Binding FullPath}" Buttons="Primary"/>
+                                <TapGestureRecognizer x:DataType="dataTypes:DrillResult" Command="{Binding Path=BindingContext.OpenPath, Source={x:Reference UI_Results}}" CommandParameter="{Binding FullPath}" Buttons="Primary"/>
                                 <PointerGestureRecognizer PointerEntered="OnPointerEntered" PointerExited="OnPointerExited" />
                             </Label.GestureRecognizers>
                         </Label>

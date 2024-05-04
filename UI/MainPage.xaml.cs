@@ -1,16 +1,19 @@
 ﻿using System.Collections.ObjectModel;
 using System.Windows.Input;
+using Core;
 
-using Drill.Core;
 
 namespace Drill;
 public partial class MainPage : ContentPage
 {
 
+
+
     /// <summary>
     /// Collection that is read by the UI showing the results
     /// </summary>
-    private readonly ObservableCollection<DrillResult> _results = [];
+
+    public ObservableCollection<DrillResult> Results { get; set; } = [];
 
     public MainPage()
     {
@@ -18,7 +21,6 @@ public partial class MainPage : ContentPage
 
         BindingContext = this;
 
-        UI_Results.ItemsSource = _results;
     }
 
     protected override void OnAppearing()
@@ -27,12 +29,12 @@ public partial class MainPage : ContentPage
 
         Dispatcher.StartTimer(TimeSpan.FromMilliseconds(100), () =>
         {
-            var results = Drill.Core.Search.PopResults(_results.Count < 30 ? 30 : 5);
+            var results = Core.Search.PopResults(Results.Count < 30 ? 30 : 5);
             foreach (var item in results)
             {
                 // FIXME: this may crash stuff
                 // stop this timer when [X] is pressed or application closing in general
-                _results.Add(item);
+                Results.Add(item);
             }
 
             return true;
@@ -87,6 +89,8 @@ public partial class MainPage : ContentPage
         }
     );
 
+ 
+
     private List<string> blacklist = [
         "Photos Library.photoslibrary",
         ".Trash",
@@ -101,13 +105,13 @@ public partial class MainPage : ContentPage
     private  void OnTextChanged(object sender, TextChangedEventArgs e)
     {
         // Stop current search
-        Drill.Core.Search.Stop();
+        Core.Search.Stop();
 
         // Clear UI list
-        _results.Clear();
+        Results.Clear();
 
         // Create new search
-        Drill.Core.Search.StartAsync(e.NewTextValue, ErrorCallback);
+        Core.Search.StartAsync(e.NewTextValue, ErrorCallback);
     }
 
 

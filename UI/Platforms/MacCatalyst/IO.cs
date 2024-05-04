@@ -19,5 +19,9 @@ public static class IO {
         Process.Start("open","-R \"" + fullPath + "\"");
     }
    
+    // TODO:
+    //public static string[] GetInterestingRoots()
+    //{
 
+    //}
 }
