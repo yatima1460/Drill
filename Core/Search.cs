@@ -57,7 +57,7 @@ namespace Drill.Core
                     }
                 }
 
-                
+
                 try
                 {
                     roots.Add(new DirectoryInfo($"/Users/{Environment.UserName}/Library/Mobile Documents/com~apple~CloudDocs/"));
@@ -70,7 +70,8 @@ namespace Drill.Core
                 }
 
                 DriveInfo[] allDrives = [];
-                try {
+                try
+                {
                     allDrives = DriveInfo.GetDrives();
                 }
                 catch (Exception e)
@@ -99,9 +100,9 @@ namespace Drill.Core
                     ParallelThreads.Add(Task.Run(() =>
                     {
                         // string userFolderPath = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-                        
+
                         // Other roots that we are exploring so we can skip them if we encounter them
-                        List<string> blacklisted = new();
+                        List<string> blacklisted = [];
                         foreach (var item in roots)
                         {
                             blacklisted.Add(item.FullName);
@@ -126,24 +127,46 @@ namespace Drill.Core
                                 try
                                 {
                                     // Directory.GetFileSystemEntries()
-                                    FileSystemInfo[] subs = rootFolderInfo.GetFileSystemInfos("*", SearchOption.TopDirectoryOnly);
-                                    
-                                    foreach (FileSystemInfo sub in subs)
+                                    FileInfo[] subs = rootFolderInfo.GetFiles("*", SearchOption.TopDirectoryOnly);
+
+                                    foreach (FileInfo file in subs)
+                                    {
+                                        if (StringUtils.TokenMatching(searchString, file.Name))
+                                        {
+                                            // Better to create the DrillResult on the backend than the UI thread to not stall it
+                                            DrillResult drillResult = new()
+                                            {
+                                                Name = file.Name,
+                                                FullPath = file.FullName,
+                                                Path = rootFolderInfo.FullName,
+                                                Date = file.LastWriteTime.ToString("F"),
+                                                Size = StringUtils.GetHumanReadableSize(file),
+                                                // TODO: different icon for .app on Mac
+                                                Icon = ExtensionIcon.GetIcon(file.Extension.ToLower())
+                                            };
+
+                                            // this may stall for a sec
+                                            ParallelResults.Enqueue(drillResult);
+                                        }
+                                    }
+
+                                    DirectoryInfo[] di = rootFolderInfo.GetDirectories("*", SearchOption.TopDirectoryOnly);
+                                    foreach (DirectoryInfo sub in di)
                                     {
                                         // TODO move to Platforms
                                         if (
-                                            sub.FullName == $"/Users/{UserName}/Pictures/Photos Library.photoslibrary" || 
+                                            sub.FullName == $"/Users/{UserName}/Pictures/Photos Library.photoslibrary" ||
                                             sub.FullName == $"/Users/{UserName}/Library/Calendars" ||
-                                            sub.FullName == $"/Users/{UserName}/Library/Reminders"  ||
+                                            sub.FullName == $"/Users/{UserName}/Library/Reminders" ||
                                             sub.FullName == $"/Users/{UserName}/Library/Contacts"
                                             )
                                         {
                                             continue;
                                         }
-                                   
-                                        bool isDirectory = (sub.Attributes & FileAttributes.Directory) == FileAttributes.Directory;
+
+
                                         bool isResult = StringUtils.TokenMatching(searchString, sub.Name);
-                                        
+
                                         if (isResult)
                                         {
                                             // Better to create the DrillResult on the backend than the UI thread to not stall it
@@ -153,40 +176,35 @@ namespace Drill.Core
                                                 FullPath = sub.FullName,
                                                 Path = rootFolderInfo.FullName,
                                                 Date = sub.LastWriteTime.ToString("F"),
-                                                Size = isDirectory ? "" : StringUtils.GetHumanReadableSize((FileInfo)sub),
+                                                Size = "",
                                                 // TODO: different icon for .app on Mac
-                                                Icon = isDirectory ? "📁" : ExtensionIcon.GetIcon(sub.Extension.ToLower())
+                                                Icon = "📁"
                                             };
 
                                             // this may stall for a sec
                                             ParallelResults.Enqueue(drillResult);
 
-                                            // If the result is also folder it means
+                                            // the result is also folder it means
                                             // it contains in the name the search string
-                                            if (isDirectory)
-                                            {
-                                                // Go vertical because it could be important
-                                                directoriesToExplore.Insert(0, (DirectoryInfo)sub);
-                                            }                             
+                                            // Go vertical because it could be important
+                                            directoriesToExplore.Insert(0, sub);
                                         }
                                         else
                                         {
-                                            // If the current file is a directory we queue it for crawling
-                                            if (isDirectory)
-                                            {
-                                                //if (sub.Name.StartsWith(".") ||
-                                                //    (sub.Attributes & FileAttributes.Hidden) == FileAttributes.Hidden ||
-                                                //    (sub.Attributes & FileAttributes.System) == FileAttributes.System ||
-                                                //     (sub.Attributes & FileAttributes.Temporary) == FileAttributes.Temporary ||
-                                                //     sub.FullName.StartsWith("C:\\Windows")
-                                                //    )
 
-                                                // Go horizontal
-                                                directoriesToExplore.Add((DirectoryInfo)sub);
-                                            }
+                                            //if (sub.Name.StartsWith(".") ||
+                                            //    (sub.Attributes & FileAttributes.Hidden) == FileAttributes.Hidden ||
+                                            //    (sub.Attributes & FileAttributes.System) == FileAttributes.System ||
+                                            //     (sub.Attributes & FileAttributes.Temporary) == FileAttributes.Temporary ||
+                                            //     sub.FullName.StartsWith("C:\\Windows")
+                                            //    )
+
+                                            // Go horizontal
+                                            directoriesToExplore.Add(sub);
+
                                         }
 
-                                        
+
                                     }
                                 }
                                 catch (Exception e)
