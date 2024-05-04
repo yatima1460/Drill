@@ -18,6 +18,10 @@ namespace Drill.Core
         {
             return extension switch
             {
+                ".torrent" => "🌐",
+                ".ds_store" => "🍏",
+                ".lnk" => "🔗",
+                ".url" => "🔗",
                 ".png" => "🖼️",
                 ".jpg" => "🖼️",
                 ".jpeg" => "🖼️",
@@ -30,6 +34,7 @@ namespace Drill.Core
                 ".txt" => "📄",
                 ".doc" => "📄",
                 ".docx" => "📄",
+                ".chm" => "📄",
                 ".pdf" => "📄",
                 ".xls" => "📄",
                 ".xlsx" => "📄",
@@ -37,6 +42,7 @@ namespace Drill.Core
                 ".pptx" => "📄",
                 ".csv" => "📄",
                 ".zip" => "📦",
+                ".cab" => "📦",
                 ".rar" => "📦",
                 ".tar" => "📦",
                 ".gz" => "📦",
@@ -67,6 +73,7 @@ namespace Drill.Core
                 ".alac" => "🎵",
                 ".dsd" => "🎵",
                 ".exe" => "⚙️",
+                ".bin" => "⚙️",
                 ".dylib" => "⚙️",
                 ".dll" => "⚙️",
                 ".sys" => "⚙️",
@@ -75,6 +82,7 @@ namespace Drill.Core
                 ".cmd" => "⚙️",
                 ".com" => "⚙️",
                 ".css" => "📝",
+                ".nfo" => "📝",
                 ".html" => "📝",
                 ".js" => "📝",
                 ".json" => "📝",
@@ -86,13 +94,16 @@ namespace Drill.Core
                 ".py" => "📝",
                 ".rb" => "📝",
                 ".php" => "📝",
+                ".ini" => "📝",
                 ".sql" => "📝",
                 ".pl" => "📝",
                 ".swift" => "📝",
                 ".kt" => "📝",
                 ".go" => "📝",
+
+                // TODO: log in Debug mode when no extension
                 _ => "❓",
-            };
+            } ;
         }
     }
 }
