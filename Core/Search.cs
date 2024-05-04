@@ -90,8 +90,8 @@ namespace Drill.Core
                     }
                 }
 
-
-
+                // THIS IS HEAVY CALL WIN32 CACHE IT
+                var UserName = Environment.UserName;
 
                 foreach (DirectoryInfo root in roots)
                 {
@@ -132,10 +132,10 @@ namespace Drill.Core
                                     {
                                         // TODO move to Platforms
                                         if (
-                                            sub.FullName == $"/Users/{Environment.UserName}/Pictures/Photos Library.photoslibrary" || 
-                                            sub.FullName == $"/Users/{Environment.UserName}/Library/Calendars" ||
-                                            sub.FullName == $"/Users/{Environment.UserName}/Library/Reminders"  ||
-                                            sub.FullName == $"/Users/{Environment.UserName}/Library/Contacts"
+                                            sub.FullName == $"/Users/{UserName}/Pictures/Photos Library.photoslibrary" || 
+                                            sub.FullName == $"/Users/{UserName}/Library/Calendars" ||
+                                            sub.FullName == $"/Users/{UserName}/Library/Reminders"  ||
+                                            sub.FullName == $"/Users/{UserName}/Library/Contacts"
                                             )
                                         {
                                             continue;
