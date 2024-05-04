@@ -1,7 +1,7 @@
 
 
 namespace Drill.Core;
-public record DrillResult
+public readonly struct DrillResult
 {
     public required string Icon { get; init; }
     public required string Name { get; init; }

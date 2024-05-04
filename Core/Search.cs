@@ -248,7 +248,7 @@ namespace Drill.Core
             List<DrillResult> results = new(minSize);
             for (int i = 0; i < minSize; i++)
             {
-                if (ParallelResults.TryDequeue(out DrillResult? result))
+                if (ParallelResults.TryDequeue(out DrillResult result))
                 {
                     results.Add(result);
                 }

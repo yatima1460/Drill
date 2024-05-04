@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -8,16 +9,29 @@ namespace Drill.Core
 {
     internal static class StringUtils
     {
+
+        internal static readonly ConcurrentDictionary<Tuple<string, string>, bool> tokenCache = new();
+
         internal static bool TokenMatching(string searchString, string fileName)
         {
+            
+            var pair = new Tuple<string,string>(searchString, fileName);
+            if (tokenCache.TryGetValue(pair, out bool value))
+            {
+                return value;
+            }
+          
+
             string[] tokenizedSearchString = searchString.Split(" ");
             foreach (string token in tokenizedSearchString)
             {
                 if (!fileName.Contains(token, StringComparison.InvariantCultureIgnoreCase))
                 {
+                    tokenCache[pair] = false;
                     return false;
                 }
             }
+            tokenCache[pair] = true;
             return true;
         }
 
