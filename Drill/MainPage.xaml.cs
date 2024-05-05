@@ -1,6 +1,6 @@
 ﻿using System.Collections.ObjectModel;
 using System.Windows.Input;
-using Core;
+using Drill.Core;
 
 
 namespace Drill;
@@ -29,7 +29,7 @@ public partial class MainPage : ContentPage
 
         Dispatcher.StartTimer(TimeSpan.FromMilliseconds(100), () =>
         {
-            var results = Core.Search.PopResults(Results.Count < 30 ? 30 : 5);
+            var results = Drill.Core.Search.PopResults(Results.Count < 30 ? 30 : 5);
             foreach (var item in results)
             {
                 // FIXME: this may crash stuff

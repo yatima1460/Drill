@@ -1,15 +1,12 @@
 ﻿
-using System;
+
+using Drill.Core;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using static Core.Search;
 
 
-namespace Core
+
+
+namespace Drill.Core
 {
     internal class Crawler
     {
@@ -20,7 +17,7 @@ namespace Core
 
         // THIS IS HEAVY CALL WIN32 CACHE IT
         private readonly static string UserName = Environment.UserName;
-        private readonly FatalErrorCallback errorHandler;
+        //private readonly FatalErrorCallback errorHandler;
         private Thread thread;
         private static readonly ConcurrentQueue<DrillResult> ParallelResults = new();
 
@@ -31,7 +28,7 @@ namespace Core
             this.root = root;
             this.blacklisted = blacklisted;
             this.searchString = searchString;
-            this.errorHandler = errorHandler;
+            //this.errorHandler = errorHandler;
             this.thread = new Thread(this.StartSync);
 
         }
@@ -46,13 +43,13 @@ namespace Core
 
             try
             {
-                List<DirectoryInfo> directoriesToExplore = [root];
+                SearchQueue directoriesToExplore = new();
+                directoriesToExplore.AddHighPriority(root);
 
                 while (_stopRequested == false && directoriesToExplore.Count != 0)
                 {
-                    DirectoryInfo rootFolderInfo = directoriesToExplore[0];
-                    directoriesToExplore.RemoveAt(0);
-
+                    DirectoryInfo rootFolderInfo = directoriesToExplore.PopHighPriority();
+            
                     // Because of tree structure we hit a root we are already exploring
                     if (blacklisted.Contains(rootFolderInfo.FullName))
                     {
@@ -66,6 +63,7 @@ namespace Core
 
                         foreach (FileInfo file in subs)
                         {
+                            if (_stopRequested) break;
                             if (StringUtils.TokenMatching(searchString, file.Name))
                             {
                                 // Better to create the DrillResult on the backend than the UI thread to not stall it
@@ -76,7 +74,6 @@ namespace Core
                                     Path = rootFolderInfo.FullName,
                                     Date = file.LastWriteTime.ToString("F"),
                                     Size = StringUtils.GetHumanReadableSize(file),
-                                    // TODO: different icon for .app on Mac
                                     Icon = ExtensionIcon.GetIcon(file.Extension.ToLower())
                                 };
 
@@ -88,6 +85,7 @@ namespace Core
                         DirectoryInfo[] di = rootFolderInfo.GetDirectories("*", SearchOption.TopDirectoryOnly);
                         foreach (DirectoryInfo sub in di)
                         {
+                            if (_stopRequested) break;
                             // TODO move to Platforms
                             if (
                                 sub.FullName == $"/Users/{UserName}/Pictures/Photos Library.photoslibrary" ||
@@ -100,44 +98,66 @@ namespace Core
                             }
 
 
-                            bool isResult = StringUtils.TokenMatching(searchString, sub.Name);
-
-                            if (isResult)
+                            if (IO.IsSystem(sub))
                             {
-                                // Better to create the DrillResult on the backend than the UI thread to not stall it
-                                DrillResult drillResult = new()
-                                {
-                                    Name = sub.Name,
-                                    FullPath = sub.FullName,
-                                    Path = rootFolderInfo.FullName,
-                                    Date = sub.LastWriteTime.ToString("F"),
-                                    Size = "",
-                                    // TODO: different icon for .app on Mac
-                                    Icon = "📁"
-                                };
 
-                                // this may stall for a sec
-                                ParallelResults.Enqueue(drillResult);
-
-                                // the result is also folder it means
-                                // it contains in the name the search string
-                                // Go vertical because it could be important
-                                directoriesToExplore.Insert(0, sub);
+                                directoriesToExplore.AddLowPriority(sub);
                             }
                             else
                             {
+                                if (StringUtils.TokenMatching(searchString, sub.Name))
+                                {
+                                    // Better to create the DrillResult on the backend than the UI thread to not stall it
+                                    DrillResult drillResult = new()
+                                    {
+                                        Name = sub.Name,
+                                        FullPath = sub.FullName,
+                                        Path = rootFolderInfo.FullName,
+                                        Date = sub.LastWriteTime.ToString("F"),
+                                        Size = "",
+                                        // TODO: different icon for .app on Mac
+                                        Icon = "📁"
+                                    };
 
-                                //if (sub.Name.StartsWith(".") ||
-                                //    (sub.Attributes & FileAttributes.Hidden) == FileAttributes.Hidden ||
-                                //    (sub.Attributes & FileAttributes.System) == FileAttributes.System ||
-                                //     (sub.Attributes & FileAttributes.Temporary) == FileAttributes.Temporary ||
-                                //     sub.FullName.StartsWith("C:\\Windows")
-                                //    )
+                                    // this may stall for a sec
+                                    ParallelResults.Enqueue(drillResult);
 
-                                // Go horizontal
-                                directoriesToExplore.Add(sub);
-
+                                    // the result is also folder it means
+                                    // it contains in the name the search string
+                                    // Go vertical because it could be important
+                                    directoriesToExplore.AddHighPriority(sub);
+                                }
+                                else
+                                {
+                                    directoriesToExplore.AddNormalPriority(sub);
+                                }
                             }
+
+
+                          
+
+                           
+
+                            //List<DirectoryInfo> directoryInfosPrioritized = new List<DirectoryInfo>();
+
+                            //foreach (DirectoryInfo item in directoriesToExplore)
+                            //{
+                            //    if (sub.Name.StartsWith(".") ||
+                            //        (sub.Attributes & FileAttributes.Hidden) == FileAttributes.Hidden ||
+                            //        (sub.Attributes & FileAttributes.System) == FileAttributes.System ||
+                            //         (sub.Attributes & FileAttributes.Temporary) == FileAttributes.Temporary ||
+                            //         sub.FullName.StartsWith("C:\\Windows")
+                            //        )
+                            //    {
+                            //        directoriesToExplore.Add(sub);
+                            //    }
+                            //    else
+                            //    {
+                            //        directoriesToExplore.Insert(0, sub);
+                            //    }
+
+                            //}
+                            //directoriesToExplore = directoryInfosPrioritized;
 
 
                         }
@@ -158,7 +178,7 @@ namespace Core
 #if DEBUG
                 Debug.Print(e.Message);
 #endif
-                errorHandler(e);
+                //errorHandler(e);
             }
 
 

@@ -1,10 +1,10 @@
 ﻿
 
-using Core;
+
 using System.Collections.Concurrent;
 using System.Diagnostics;
 
-namespace Core
+namespace Drill.Core
 {
     public class Search
     {

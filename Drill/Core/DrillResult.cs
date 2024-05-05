@@ -1,6 +1,6 @@
 
 
-namespace Core
+namespace Drill.Core
 {
     public readonly struct DrillResult
     {
