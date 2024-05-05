@@ -9,15 +9,27 @@ namespace Drill.Core
     public class Search
     {
 
+        private static bool _stopRequested;
+
+        private static readonly ConcurrentQueue<DrillResult> ParallelResults = new();
+
+
+
+
         public delegate void FatalErrorCallback(Exception e);
-   
-        private static List<Crawler> crawlers = [];
+
+        
+
+        private static Task? scan;
 
         public static void StartAsync(string searchString, FatalErrorCallback errorHandler)
         {
             try
             {
-                if (crawlers.Count != 0)
+                  // THIS IS HEAVY CALL WIN32 CACHE IT
+                 string UserName = Environment.UserName;
+
+                if (scan != null)
                 {
                     throw new Exception("Crawlers already scanning");
                 }
@@ -28,48 +40,24 @@ namespace Drill.Core
                     return;
                 }
 
-                Environment.SpecialFolder[] specialFolders = [
-                    Environment.SpecialFolder.UserProfile,
-                    Environment.SpecialFolder.Recent,
-                    Environment.SpecialFolder.Desktop,
-                    Environment.SpecialFolder.MyDocuments,
-                    Environment.SpecialFolder.MyVideos,
-                    Environment.SpecialFolder.MyMusic,
-                    Environment.SpecialFolder.ProgramFilesX86,
-                    Environment.SpecialFolder.ProgramFiles,
-                ];
-
-                List<DirectoryInfo> roots = [];
-                foreach (Environment.SpecialFolder specialFolder in specialFolders)
-                {
-                    try
-                    {
-                        string path = Environment.GetFolderPath(specialFolder);
-                        if (Directory.Exists(path))
-                        {
-                            roots.Add(new DirectoryInfo(path));
-                        }
-                    }
-                    catch (Exception e)
-                    {
-#if DEBUG
-                        Debug.Print(e.Message);
-#endif
-                        continue;
-                    }
-                }
 
 
-                try
-                {
-                    roots.Add(new DirectoryInfo($"/Users/{Environment.UserName}/Library/Mobile Documents/com~apple~CloudDocs/"));
-                }
-                catch (Exception e)
-                {
-#if DEBUG
-                    Debug.Print(e.Message);
-#endif
-                }
+                SearchQueue directoriesToExplore = new();
+
+
+                directoriesToExplore.AddHighPriority(new DirectoryInfo(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)));
+                directoriesToExplore.AddHighPriority(new DirectoryInfo(Environment.GetFolderPath(Environment.SpecialFolder.Recent)));
+                directoriesToExplore.AddHighPriority(new DirectoryInfo(Environment.GetFolderPath(Environment.SpecialFolder.MyMusic)));
+                directoriesToExplore.AddNormalPriority(new DirectoryInfo(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles)));
+                directoriesToExplore.AddNormalPriority(new DirectoryInfo(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86)));
+                directoriesToExplore.AddHighPriority(new DirectoryInfo(Environment.GetFolderPath(Environment.SpecialFolder.Desktop)));
+                directoriesToExplore.AddHighPriority(new DirectoryInfo(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)));
+                directoriesToExplore.AddHighPriority(new DirectoryInfo(Environment.GetFolderPath(Environment.SpecialFolder.MyVideos)));
+                directoriesToExplore.AddHighPriority(new DirectoryInfo($"C:\\Users\\{UserName}\\Downloads"));
+                directoriesToExplore.AddLowPriority(new DirectoryInfo($"C:\\Users\\{UserName}\\AppData"));
+
+                directoriesToExplore.AddHighPriority(new DirectoryInfo($"/Users/{UserName}/Library/Mobile Documents/com~apple~CloudDocs/"));
+
 
                 DriveInfo[] allDrives = [];
                 try
@@ -82,31 +70,175 @@ namespace Drill.Core
                     Debug.Print(e.Message);
 #endif
                 }
+
                 foreach (DriveInfo d in allDrives)
                 {
-                    if (d.IsReady == true && (d.DriveType == DriveType.Removable || d.DriveType == DriveType.Fixed || d.DriveType == DriveType.Network))
+                    if (d.IsReady == true && d.RootDirectory.Exists)
                     {
-                        if (d.RootDirectory.Exists)
+
+                        if (d.DriveType == DriveType.Removable)
                         {
-                            roots.Add(d.RootDirectory);
+                            directoriesToExplore.AddHighPriority(d.RootDirectory);
                         }
+                        if (d.DriveType == DriveType.Fixed)
+                        {
+                            if (d.RootDirectory.FullName == "C:\\")
+                            {
+                                directoriesToExplore.AddLowPriority(d.RootDirectory);
+                            }
+                            directoriesToExplore.AddNormalPriority(d.RootDirectory);
+                        }
+                        if (d.DriveType == DriveType.Network)
+                        {
+                            directoriesToExplore.AddNormalPriority(d.RootDirectory);
+                        }
+
+                        directoriesToExplore.AddLowPriority(d.RootDirectory);
                     }
                 }
 
-                foreach (DirectoryInfo root in roots)
+
+                _stopRequested = false;
+                scan = new Task(() =>
                 {
-                    // Other roots that we are exploring so we can skip them if we encounter them
-                    List<string> blacklisted = [];
-                    foreach (var item in roots)
-                    {
-                        blacklisted.Add(item.FullName);
-                    }
-                    blacklisted.Remove(root.FullName);
 
-                    Crawler c = new(root, searchString, blacklisted, errorHandler);
-                    crawlers.Add(c);
-                    c.StartAsync();
-                }
+                    try
+                    {
+
+
+                        while (_stopRequested == false && directoriesToExplore.Count != 0)
+                        {
+                            DirectoryInfo rootFolderInfo = directoriesToExplore.PopHighestPriority();
+
+                            
+
+                            try
+                            {
+                                // Directory.GetFileSystemEntries()
+                                FileInfo[] subs = rootFolderInfo.GetFiles("*", SearchOption.TopDirectoryOnly);
+
+                                foreach (FileInfo file in subs)
+                                {
+                                    if (_stopRequested) break;
+                                    if (StringUtils.TokenMatching(searchString, file.Name))
+                                    {
+                                        // Better to create the DrillResult on the backend than the UI thread to not stall it
+                                        DrillResult drillResult = new()
+                                        {
+                                            Name = file.Name,
+                                            FullPath = file.FullName,
+                                            Path = rootFolderInfo.FullName,
+                                            Date = file.LastWriteTime.ToString("F"),
+                                            Size = StringUtils.GetHumanReadableSize(file),
+                                            Icon = ExtensionIcon.GetIcon(file.Extension.ToLower())
+                                        };
+
+                                        // this may stall for a sec
+                                        ParallelResults.Enqueue(drillResult);
+                                    }
+                                }
+
+                                DirectoryInfo[] di = rootFolderInfo.GetDirectories("*", SearchOption.TopDirectoryOnly);
+                                foreach (DirectoryInfo sub in di)
+                                {
+                                    if (_stopRequested) break;
+                                    // TODO move to Platforms
+                                    if (
+                                        sub.FullName == $"/Users/{UserName}/Pictures/Photos Library.photoslibrary" ||
+                                        sub.FullName == $"/Users/{UserName}/Library/Calendars" ||
+                                        sub.FullName == $"/Users/{UserName}/Library/Reminders" ||
+                                        sub.FullName == $"/Users/{UserName}/Library/Contacts"
+                                        )
+                                    {
+                                        continue;
+                                    }
+
+
+                                    if (IO.IsSystem(sub))
+                                    {
+
+                                        directoriesToExplore.AddLowPriority(sub);
+                                    }
+                                    else
+                                    {
+                                        if (StringUtils.TokenMatching(searchString, sub.Name))
+                                        {
+                                            // Better to create the DrillResult on the backend than the UI thread to not stall it
+                                            DrillResult drillResult = new()
+                                            {
+                                                Name = sub.Name,
+                                                FullPath = sub.FullName,
+                                                Path = rootFolderInfo.FullName,
+                                                Date = sub.LastWriteTime.ToString("F"),
+                                                Size = "",
+                                                // TODO: different icon for .app on Mac
+                                                Icon = "📁"
+                                            };
+
+                                            // this may stall for a sec
+                                            ParallelResults.Enqueue(drillResult);
+
+                                            // the result is also folder it means
+                                            // it contains in the name the search string
+                                            // Go vertical because it could be important
+                                            directoriesToExplore.AddHighPriority(sub);
+                                        }
+                                        else
+                                        {
+                                            directoriesToExplore.AddNormalPriority(sub);
+                                        }
+                                    }
+
+
+
+
+
+
+                                    //List<DirectoryInfo> directoryInfosPrioritized = new List<DirectoryInfo>();
+
+                                    //foreach (DirectoryInfo item in directoriesToExplore)
+                                    //{
+                                    //    if (sub.Name.StartsWith(".") ||
+                                    //        (sub.Attributes & FileAttributes.Hidden) == FileAttributes.Hidden ||
+                                    //        (sub.Attributes & FileAttributes.System) == FileAttributes.System ||
+                                    //         (sub.Attributes & FileAttributes.Temporary) == FileAttributes.Temporary ||
+                                    //         sub.FullName.StartsWith("C:\\Windows")
+                                    //        )
+                                    //    {
+                                    //        directoriesToExplore.Add(sub);
+                                    //    }
+                                    //    else
+                                    //    {
+                                    //        directoriesToExplore.Insert(0, sub);
+                                    //    }
+
+                                    //}
+                                    //directoriesToExplore = directoryInfosPrioritized;
+
+
+                                }
+                            }
+                            catch (Exception e)
+                            {
+#if DEBUG
+                        Debug.Print(e.Message);
+#endif
+                                continue;
+                            }
+                        }
+
+                    }
+                    catch (Exception e)
+                    {
+                        _stopRequested = true;
+#if DEBUG
+                Debug.Print(e.Message);
+#endif
+                        //errorHandler(e);
+                    }
+                });
+                scan.Start();
+
             }
             catch (Exception e)
             {
@@ -120,26 +252,32 @@ namespace Drill.Core
 
         public static void Stop()
         {
-            foreach (Crawler c in crawlers)
-            {
-                c.StopAsync();
+            _stopRequested = true;
+            if (scan != null)
+            {  
+                scan.Wait();
+                scan.Dispose();
+                scan = null;
             }
-            foreach (Crawler c in crawlers)
-            {
-                c.Wait();
-            }
-            crawlers.Clear();
+            ParallelResults.Clear();   
         }
 
         public static List<DrillResult> PopResults(int count)
         {
-            List<DrillResult> allResults = [];
-            foreach (Crawler item in crawlers)
+            if (_stopRequested)
             {
-                allResults.AddRange(item.PopResults(count));
+                return [];
             }
-           
-            return allResults;
+            int minSize = Math.Min(count, ParallelResults.Count);
+            List<DrillResult> results = new(minSize);
+            for (int i = 0; i < minSize; i++)
+            {
+                if (ParallelResults.TryDequeue(out DrillResult result))
+                {
+                    results.Add(result);
+                }
+            }
+            return results;
         }
     }
 }

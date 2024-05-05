@@ -11,10 +11,11 @@ namespace Drill.Core
     internal class SearchQueue : IEnumerable<DirectoryInfo>
     {
 
-        List<DirectoryInfo> _directoriesHigh = [];
-        List<DirectoryInfo> _directoriesNormal = [];
-        List<DirectoryInfo> _directoriesLow = [];
+        readonly Queue<DirectoryInfo> _directoriesHigh = [];
+        readonly Queue<DirectoryInfo> _directoriesNormal = [];
+        readonly Queue<DirectoryInfo> _directoriesLow = [];
 
+        HashSet<string> visited = [];
 
         public SearchQueue()
         {
@@ -31,19 +32,37 @@ namespace Drill.Core
         public int Count => _directoriesHigh.Count+ _directoriesNormal.Count+ _directoriesLow.Count;
 
 
+     
+   
+
         public void AddHighPriority(DirectoryInfo item)
         {
-            _directoriesHigh.Add(item);
+            if (visited.Contains(item.FullName))
+            {
+                return;
+            }
+            _directoriesHigh.Enqueue(item);
+            visited.Add(item.FullName);
         }
 
         internal void AddNormalPriority(DirectoryInfo item)
         {
-            _directoriesNormal.Add(item);
+            if (visited.Contains(item.FullName))
+            {
+                return;
+            }
+            _directoriesNormal.Enqueue(item);
+            visited.Add(item.FullName);
         }
 
         public void AddLowPriority(DirectoryInfo item)
         {
-            _directoriesLow.Add(item);
+            if (visited.Contains(item.FullName))
+            {
+                return;
+            }
+            _directoriesLow.Enqueue(item);
+            visited.Add(item.FullName);
         }
 
 
@@ -52,9 +71,10 @@ namespace Drill.Core
             _directoriesHigh.Clear();
             _directoriesNormal.Clear();
             _directoriesLow.Clear();
+            visited.Clear();
         }
 
-        private List<DirectoryInfo> GetHighestNotEmpty()
+        private Queue<DirectoryInfo> GetHighestNotEmpty()
         {
             if (_directoriesHigh.Count != 0)
             {
@@ -64,8 +84,11 @@ namespace Drill.Core
             {
                 return _directoriesNormal;
             }
-            
-            return _directoriesLow;
+            if (_directoriesLow.Count != 0)
+            {
+                return _directoriesLow;
+            }
+            return [];
         }
 
         public IEnumerator<DirectoryInfo> GetEnumerator()
@@ -79,12 +102,9 @@ namespace Drill.Core
         }
 
 
-        internal DirectoryInfo PopHighPriority()
+        internal DirectoryInfo PopHighestPriority()
         {
-            var mostImportant = GetHighestNotEmpty();
-            var r = mostImportant[0];
-            mostImportant.RemoveAt(0);
-            return r;
+            return GetHighestNotEmpty().Dequeue();
         }
 
        
