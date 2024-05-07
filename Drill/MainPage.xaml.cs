@@ -15,13 +15,20 @@ public partial class MainPage : ContentPage
 
     public ObservableCollection<DrillResult> Results { get; set; } = [];
 
+    private Search currentSearch;
+
+
     public MainPage()
     {
         InitializeComponent();
 
         BindingContext = this;
 
+        currentSearch = new Search("");
+
     }
+
+
 
     protected override void OnAppearing()
     {
@@ -29,7 +36,7 @@ public partial class MainPage : ContentPage
 
         Dispatcher.StartTimer(TimeSpan.FromMilliseconds(100), () =>
         {
-            var results = Drill.Core.Search.PopResults(Results.Count < 30 ? 30 : 5);
+            var results = currentSearch.PopResults(Results.Count < 30 ? 30 : 5);
             foreach (var item in results)
             {
                 // FIXME: this may crash stuff
@@ -102,16 +109,18 @@ public partial class MainPage : ContentPage
     double Progress = 0.4;
 
 
+
     private  void OnTextChanged(object sender, TextChangedEventArgs e)
     {
         // Stop current search
-        Core.Search.Stop();
+        currentSearch.Stop();
 
         // Clear UI list
         Results.Clear();
 
         // Create new search
-        Core.Search.StartAsync(e.NewTextValue, ErrorCallback);
+        currentSearch = new Search(e.NewTextValue);
+        currentSearch.StartAsync(ErrorCallback);
     }
 
 

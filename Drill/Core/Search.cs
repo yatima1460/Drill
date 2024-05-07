@@ -4,51 +4,45 @@
 using Microsoft.UI.Xaml.Controls;
 using System.Collections.Concurrent;
 using System.Diagnostics;
+using System.Threading;
 
 namespace Drill.Core
 {
     public class Search
     {
 
-        private static bool _stopRequested;
-
-        private static readonly ConcurrentQueue<DrillResult> ParallelResults = new();
+                
+        private readonly ConcurrentQueue<DrillResult> ParallelResults = new();
         private static readonly object UserName = Environment.UserName;
-        static readonly HashSet<string> dict = new HashSet<string>();
+
+        private readonly CancellationTokenSource cancellationTokenSource = new();
+
+        private SearchQueue directoriesToExplore;
+
+        private readonly string searchString;
 
 
-        static Search()
+#if DEBUG
+        private readonly List<DirectoryInfo> debugExploredDirs = [];
+        private bool dumpExecuted;
+
+#endif
+
+        public Search(string searchString)
         {
-            using var stream = FileSystem.OpenAppPackageFileAsync("words_alpha.txt").Result;
-            using var reader = new StreamReader(stream);
-
-            var contents = reader.ReadToEnd();
-
-            foreach (var item in contents.Split("\r\n"))
-            {
-                if (item.Length > 4)
-                    dict.Add(item);
-            }
-
-            // done
+            directoriesToExplore = new(searchString);
+            this.searchString = searchString;
         }
-
-        private enum SearchPriority
-        {
-            Low,
-            Normal,
-            High
-        }
-
 
         public delegate void FatalErrorCallback(Exception e);
 
 
 
-        private static Task? scan;
+        private  Task? scan;
 
-        public static async void StartAsync(string searchString, FatalErrorCallback errorHandler)
+        public void StartAsync(FatalErrorCallback errorHandler)
         {
+           
             try
             {
                 // THIS IS HEAVY CALL WIN32 CACHE IT
@@ -67,21 +61,21 @@ namespace Drill.Core
 
 
 
-                SearchQueue directoriesToExplore = new();
+                
 
 
-                directoriesToExplore.AddHighPriority(new DirectoryInfo(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)));
-                directoriesToExplore.AddHighPriority(new DirectoryInfo(Environment.GetFolderPath(Environment.SpecialFolder.Recent)));
-                directoriesToExplore.AddHighPriority(new DirectoryInfo(Environment.GetFolderPath(Environment.SpecialFolder.MyMusic)));
-                directoriesToExplore.AddNormalPriority(new DirectoryInfo(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles)));
-                directoriesToExplore.AddNormalPriority(new DirectoryInfo(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86)));
-                directoriesToExplore.AddHighPriority(new DirectoryInfo(Environment.GetFolderPath(Environment.SpecialFolder.Desktop)));
-                directoriesToExplore.AddHighPriority(new DirectoryInfo(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)));
-                directoriesToExplore.AddHighPriority(new DirectoryInfo(Environment.GetFolderPath(Environment.SpecialFolder.MyVideos)));
-                directoriesToExplore.AddHighPriority(new DirectoryInfo($"C:\\Users\\{UserName}\\Downloads"));
-                directoriesToExplore.AddLowPriority(new DirectoryInfo($"C:\\Users\\{UserName}\\AppData"));
+                directoriesToExplore.Add(new DirectoryInfo(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)), SearchPriority.High);
+                directoriesToExplore.Add(new DirectoryInfo(Environment.GetFolderPath(Environment.SpecialFolder.Recent)), SearchPriority.High);
+                directoriesToExplore.Add(new DirectoryInfo(Environment.GetFolderPath(Environment.SpecialFolder.MyMusic)), SearchPriority.High);
+                directoriesToExplore.Add(new DirectoryInfo(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles)), SearchPriority.Normal);
+                directoriesToExplore.Add(new DirectoryInfo(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86)), SearchPriority.Normal);
+                directoriesToExplore.Add(new DirectoryInfo(Environment.GetFolderPath(Environment.SpecialFolder.Desktop)), SearchPriority.High);
+                directoriesToExplore.Add(new DirectoryInfo(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)), SearchPriority.High);
+                directoriesToExplore.Add(new DirectoryInfo(Environment.GetFolderPath(Environment.SpecialFolder.MyVideos)), SearchPriority.High);
+                directoriesToExplore.Add(new DirectoryInfo($"C:\\Users\\{UserName}\\Downloads"), SearchPriority.High);
+                directoriesToExplore.Add(new DirectoryInfo($"C:\\Users\\{UserName}\\AppData"), SearchPriority.Low);
 
-                directoriesToExplore.AddHighPriority(new DirectoryInfo($"/Users/{UserName}/Library/Mobile Documents/com~apple~CloudDocs/"));
+                directoriesToExplore.Add(new DirectoryInfo($"/Users/{UserName}/Library/Mobile Documents/com~apple~CloudDocs/"), SearchPriority.High);
 
 
                 DriveInfo[] allDrives = [];
@@ -100,70 +94,64 @@ namespace Drill.Core
                 {
                     if (d.IsReady == true && d.RootDirectory.Exists)
                     {
-                        switch (d.DriveType)
-                        {
-                            case DriveType.Unknown:
-                                directoriesToExplore.AddLowPriority(d.RootDirectory);
-                                break;
-                            case DriveType.NoRootDirectory:
-                                break;
-                            case DriveType.Removable:
-                                directoriesToExplore.AddHighPriority(d.RootDirectory);
-                                break;
-                            case DriveType.Fixed:
-                                if (d.RootDirectory.FullName == "C:\\")
-                                {
-                                    directoriesToExplore.AddLowPriority(d.RootDirectory);
-                                }
-                                else
-                                {
-                                    directoriesToExplore.AddNormalPriority(d.RootDirectory);
-                                }
-                                break;
-                            case DriveType.Network:
-                                directoriesToExplore.AddNormalPriority(d.RootDirectory);
-                                break;
-                            case DriveType.CDRom:
-                                directoriesToExplore.AddLowPriority(d.RootDirectory);
-                                break;
-                            case DriveType.Ram:
-                                directoriesToExplore.AddNormalPriority(d.RootDirectory);
-                                break;
-                            default:
-                                directoriesToExplore.AddLowPriority(d.RootDirectory);
-                                break;
-                        }
+                        directoriesToExplore.Add(d.RootDirectory, SearchPriority.High);
                     }
                 }
 
 
-                _stopRequested = false;
+               
 
 
                 scan = new Task( async () =>
                 {
-                    while (_stopRequested == false && directoriesToExplore.Count != 0)
+                    while (!cancellationTokenSource.IsCancellationRequested && directoriesToExplore.Count != 0)
                     {
                         DirectoryInfo rootFolderInfo = directoriesToExplore.PopHighestPriority();
 
-                        CrawlFilesInDirectory(rootFolderInfo, searchString);
-                        List<Tuple<DirectoryInfo, SearchPriority>> newFindings = await CrawlDirectoriesInDirectory(rootFolderInfo, searchString);
-                        
-                        // TODO: move this in queue Add method
-                        foreach (var item in newFindings)
+#if DEBUG
+                        if (debugExploredDirs.Count < 1000)
                         {
-                            switch (item.Item2)
+                            debugExploredDirs.Add(rootFolderInfo);
+                        }
+                        else if (!dumpExecuted)
+                        {
+
+                            List<string> lines = [];
+                            foreach (var item in debugExploredDirs)
                             {
-                                case SearchPriority.Low:
-                                    directoriesToExplore.AddLowPriority(item.Item1);
-                                    break;
-                                case SearchPriority.Normal:
-                                    directoriesToExplore.AddNormalPriority(item.Item1);
-                                    break;
-                                case SearchPriority.High:
-                                    directoriesToExplore.AddHighPriority(item.Item1);
-                                    break;
+                                lines.Add(SearchQueue.GetDirectoryPriority(item, searchString) + "," + item.FullName);
                             }
+
+
+                            File.WriteAllLines(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), $"Drill-explored-{searchString}.txt"), lines);
+
+                            dumpExecuted = true;
+                        }
+
+#endif
+
+                        Dictionary<DirectoryInfo, SearchPriority> newFindings = [];
+
+                        FileInfo[] files = await DiskRead.GetFilesInDirectoryAsync(rootFolderInfo);
+                        DirectoryInfo[] directories = await DiskRead.GetDirectoriesInDirectoryAsync(rootFolderInfo);
+
+
+
+                        foreach (var item in GenerateDrillResults(rootFolderInfo, directories, searchString, cancellationTokenSource.Token))
+                        {
+                            ParallelResults.Enqueue(item);
+                        }
+
+                        foreach (var item in GenerateDrillResults(rootFolderInfo, files, searchString, cancellationTokenSource.Token))
+                        {
+                            ParallelResults.Enqueue(item);
+                        }
+
+                        
+                        foreach (var item in directories)
+                        {
+                            directoriesToExplore.Add(item);
+                           
                         }
 
 
@@ -182,14 +170,23 @@ namespace Drill.Core
             }
         }
 
-        private static async Task<List<Tuple<DirectoryInfo, SearchPriority>>> CrawlDirectoriesInDirectory(DirectoryInfo rootFolderInfo, string searchString)
+        /// <summary>
+        /// Given a list of directories filters them to generate drill results
+        /// </summary>
+        /// <param name="rootFolderInfo"></param>
+        /// <param name="directories"></param>
+        /// <param name="searchString"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        private static List<DrillResult> GenerateDrillResults(DirectoryInfo rootFolderInfo, DirectoryInfo[] directories, string searchString, CancellationToken cancellationToken)
         {
-            List<Tuple<DirectoryInfo, SearchPriority>> newFindings = [];
 
-            DirectoryInfo[] di = await DiskRead.GetDirectoriesInDirectoryAsync(rootFolderInfo);
-            foreach (DirectoryInfo sub in di)
+
+
+            List<DrillResult> results = new();
+            foreach (DirectoryInfo sub in directories)
             {
-                if (_stopRequested) break;
+                if (cancellationToken.IsCancellationRequested) break;
                 // TODO move to Platforms
                 if (
                     sub.FullName == $"/Users/{UserName}/Pictures/Photos Library.photoslibrary" ||
@@ -216,26 +213,34 @@ namespace Drill.Core
                     };
 
                     // this may stall for a sec
-                    ParallelResults.Enqueue(drillResult);
+                    results.Add(drillResult);
                 }
 
-                newFindings.Add(new Tuple<DirectoryInfo, SearchPriority>(sub, GetDirectoryPriority(sub, searchString)));
 
 
 
             }
 
-            return newFindings;
+            return results;
         }
 
-        private static async void CrawlFilesInDirectory(DirectoryInfo rootFolderInfo, string searchString)
+
+        /// <summary>
+        /// Given a folder generates Drill results of all the files inside
+        /// </summary>
+        /// <param name="rootFolderInfo"></param>
+        /// <param name="searchString"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        private static List<DrillResult> GenerateDrillResults(DirectoryInfo rootFolderInfo, FileInfo[] subs, string searchString, CancellationToken cancellationToken)
         {
             // Directory.GetFileSystemEntries()
-            FileInfo[] subs = await DiskRead.GetFilesInDirectoryAsync(rootFolderInfo);
+
+            List<DrillResult> results = new();
 
             foreach (FileInfo file in subs)
             {
-                if (_stopRequested) break;
+                if (cancellationToken.IsCancellationRequested) break;
                 if (StringUtils.TokenMatching(searchString, file.Name))
                 {
                     // Better to create the DrillResult on the backend than the UI thread to not stall it
@@ -250,61 +255,19 @@ namespace Drill.Core
                     };
 
                     // this may stall for a sec
-                    ParallelResults.Enqueue(drillResult);
+                    results.Add(drillResult);
                 }
             }
+
+            return results;
         }
 
-        private static SearchPriority GetDirectoryPriority(DirectoryInfo sub, string searchString)
+        
+
+        public  void Stop()
         {
-            if (
-            sub.Name.StartsWith(".")
-            || (sub.Attributes & FileAttributes.Hidden) == FileAttributes.Hidden ||
-            (sub.Attributes & FileAttributes.System) == FileAttributes.System ||
-            (sub.Attributes & FileAttributes.Temporary) == FileAttributes.Temporary ||
-            sub.FullName.StartsWith("C:\\Windows")
-            || sub.FullName.StartsWith($"C:\\Users\\{UserName}\\AppData")
-            || (sub.Parent != null && sub.Parent.FullName == "C:\\")
-            || (sub.Attributes & FileAttributes.ReparsePoint) == FileAttributes.ReparsePoint
-            )
-            {
-                return SearchPriority.Low;
-            }
-
-
-            if (StringUtils.TokenMatching(searchString, sub.Name))
-            {
-                // it contains in the name the search string
-                return SearchPriority.High;
-            }
-
-            if (dict.Contains(sub.Name.ToLower()))
-            {
-                // it contains in the name the search string
-                return SearchPriority.High;
-            }
-
-            if (
-                sub.Parent != null && sub.Parent.FullName == ($"C:\\Users\\{UserName}")
-                || (sub.LastAccessTime - DateTime.Now).TotalDays < 30
-               || (sub.LastWriteTime - DateTime.Now).TotalDays < 30
-                )
-            {
-                // it contains in the name the search string
-                return SearchPriority.High;
-            }
-
-
-
-
-
-            return SearchPriority.Normal;
-
-        }
-
-        public static void Stop()
-        {
-            _stopRequested = true;
+            cancellationTokenSource.Token.ThrowIfCancellationRequested();
+            cancellationTokenSource.Cancel();
             if (scan != null)
             {
                 scan.Wait();
@@ -314,9 +277,9 @@ namespace Drill.Core
             ParallelResults.Clear();
         }
 
-        public static List<DrillResult> PopResults(int count)
+        public List<DrillResult> PopResults(int count)
         {
-            if (_stopRequested)
+            if (cancellationTokenSource.Token.IsCancellationRequested)
             {
                 return [];
             }
