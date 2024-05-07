@@ -148,10 +148,11 @@ namespace Drill.Core
                         }
 
                         
-                        foreach (var item in directories)
+                        foreach (DirectoryInfo item in directories)
                         {
-                            directoriesToExplore.Add(item);
-                           
+                           // We don't follow symlinks
+                           if ((item.Attributes & FileAttributes.ReparsePoint) != FileAttributes.ReparsePoint)
+                                directoriesToExplore.Add(item);
                         }
 
 
@@ -293,6 +294,11 @@ namespace Drill.Core
                 }
             }
             return results;
+        }
+
+        public override string? ToString()
+        {
+            return $"{searchString} - {directoriesToExplore}";
         }
     }
 }

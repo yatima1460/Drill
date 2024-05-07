@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Microsoft.UI.Xaml.Controls;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -82,38 +83,63 @@ namespace Drill.Core
         public static SearchPriority GetDirectoryPriority(DirectoryInfo sub, string searchString)
         {
             if (
+                // all hidden folders
                 sub.Name.StartsWith(".")
             || (sub.Attributes & FileAttributes.Hidden) == FileAttributes.Hidden
+            // strange system folders
             || (sub.Attributes & FileAttributes.System) == FileAttributes.System
             || (sub.Attributes & FileAttributes.Temporary) == FileAttributes.Temporary
+            // Windows is a no-no
             || sub.FullName.StartsWith("C:\\Windows")
+            // very bad stuff
+            || sub.FullName.ToLower() == "node_modules"
+            || sub.FullName.ToLower() == "cache"
+            // often full of garbage
             || sub.FullName.StartsWith($"C:\\Users\\{UserName}\\AppData")
+            // all folders in C: are generally useless
             || (sub.Parent != null && sub.Parent.FullName == "C:\\")
-            || (sub.Attributes & FileAttributes.ReparsePoint) == FileAttributes.ReparsePoint
             )
             {
                 return SearchPriority.Low;
             }
 
 
-            // If very deep it's normal by default
+            // Cutoff: if the folder is very deep it's normal priority and never high
             if (sub.FullName.Split(Path.DirectorySeparatorChar, StringSplitOptions.RemoveEmptyEntries).Length > 6)
             {
                 return SearchPriority.Normal;
             }
 
-                if (
+            if (
+                // folder contains search string
                 StringUtils.TokenMatching(searchString, sub.Name)
-             || dict.Contains(sub.Name.ToLower())
+             // user folder
              || sub.FullName == $"C:\\Users\\{UserName}"
-             || (sub.Parent != null && sub.Parent.FullName == $"C:\\Users\\{UserName}")
+             // all main drives
+             || (sub.Parent == null)
+             // all folders in the user folder
+             || (sub.Parent != null && sub.Parent.FullName == $"C:\\Users\\{UserName}"
+             // english dictionary
+             || ContainsCommonWords(sub.Name)
+             )
             )
             {
                 return SearchPriority.High;
             }
 
-            return SearchPriority.Normal;
 
+
+            return SearchPriority.Normal;
+        }
+
+        private static bool ContainsCommonWords(string name)
+        {
+            var s = name.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            foreach (var item in s)
+            {
+                if (dict.Contains(item.ToLower())) return true;
+            }
+            return false;
         }
 
 
@@ -201,6 +227,9 @@ namespace Drill.Core
             return GetHighestNotEmpty().Dequeue();
         }
 
-
+        public override string? ToString()
+        {
+            return $"({_directoriesHigh.Count},{_directoriesNormal.Count},{_directoriesLow.Count})";
+        }
     }
 }

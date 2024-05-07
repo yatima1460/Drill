@@ -1,7 +1,12 @@
 ﻿using System.Collections.ObjectModel;
 using System.Windows.Input;
 using Drill.Core;
-
+using Microsoft.UI;
+using WinRT.Interop;
+using Microsoft.UI;
+using Microsoft.UI.Windowing;
+using System;
+using WinRT.Interop;
 
 namespace Drill;
 public partial class MainPage : ContentPage
@@ -16,6 +21,8 @@ public partial class MainPage : ContentPage
     public ObservableCollection<DrillResult> Results { get; set; } = [];
 
     private Search currentSearch;
+
+    string TitleT { get; set; } 
 
 
     public MainPage()
@@ -43,6 +50,8 @@ public partial class MainPage : ContentPage
                 // stop this timer when [X] is pressed or application closing in general
                 Results.Add(item);
             }
+
+            TitleT = "Drill - " + currentSearch;
 
             return true;
         });

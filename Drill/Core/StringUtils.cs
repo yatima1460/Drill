@@ -22,7 +22,7 @@ namespace Drill.Core
             }
           
 
-            string[] tokenizedSearchString = searchString.Split(" ");
+            string[] tokenizedSearchString = searchString.Split(" ", StringSplitOptions.RemoveEmptyEntries);
             foreach (string token in tokenizedSearchString)
             {
                 if (!fileName.Contains(token, StringComparison.InvariantCultureIgnoreCase))
