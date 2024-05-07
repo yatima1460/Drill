@@ -47,7 +47,7 @@ namespace Drill.Core
 
         private static Task? scan;
 
-        public static void StartAsync(string searchString, FatalErrorCallback errorHandler)
+        public static async void StartAsync(string searchString, FatalErrorCallback errorHandler)
         {
             try
             {
@@ -138,6 +138,8 @@ namespace Drill.Core
 
 
                 _stopRequested = false;
+
+
                 scan = new Task( async () =>
                 {
                     while (_stopRequested == false && directoriesToExplore.Count != 0)
