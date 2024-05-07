@@ -22,6 +22,7 @@ namespace Drill.Core
         readonly string searchString;
         readonly static string UserName = Environment.UserName;
 
+
         HashSet<string> visited = [];
 
         static SearchQueue()
@@ -82,6 +83,18 @@ namespace Drill.Core
 
         public static SearchPriority GetDirectoryPriority(DirectoryInfo sub, string searchString)
         {
+            // all main drives are important besides C:
+            if (sub.Parent == null)
+            {
+                // all folders in C: are generally useless
+                if (sub.FullName == "C:\\")
+                    return SearchPriority.Low;
+                return SearchPriority.High;
+            }
+
+           
+
+
             if (
                 // all hidden folders
                 sub.Name.StartsWith(".")
@@ -96,8 +109,6 @@ namespace Drill.Core
             || sub.FullName.ToLower() == "cache"
             // often full of garbage
             || sub.FullName.StartsWith($"C:\\Users\\{UserName}\\AppData")
-            // all folders in C: are generally useless
-            || (sub.Parent != null && sub.Parent.FullName == "C:\\")
             // If the folder is deep inside an hidden folder
             || sub.FullName.Contains(Path.DirectorySeparatorChar + ".")
             )
@@ -117,8 +128,6 @@ namespace Drill.Core
                 StringUtils.TokenMatching(searchString, sub.Name)
              // user folder
              || sub.FullName == $"C:\\Users\\{UserName}"
-             // all main drives
-             || (sub.Parent == null)
              // all folders in the user folder
              || sub.Parent != null && sub.Parent.FullName == $"C:\\Users\\{UserName}"
              // english dictionary
@@ -129,8 +138,22 @@ namespace Drill.Core
                 return SearchPriority.High;
             }
 
+            // If folder contains the username it's generally very important
+            if (sub.Name.ToLower().Contains(UserName.ToLower()))
+            {
+                return SearchPriority.High;
+            }
 
+            // If name is long and does not contain spaces or separating characters it's generally something from a tool
+            if (sub.Name.Length > 16 && !sub.Name.Contains("-") && !sub.Name.Contains(" ") && !sub.Name.Contains("_"))
+            {
+                return SearchPriority.High;
+            }
 
+            // Priority is normal if heuristics has no idea what to do
+#if DEBUG
+           // TODO: log here 
+#endif
             return SearchPriority.Normal;
         }
 

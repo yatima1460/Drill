@@ -67,7 +67,15 @@
 	</PropertyGroup>
 	
 	<PropertyGroup>   
-    	<SatelliteResourceLanguages>en-US;en</SatelliteResourceLanguages>
+    	<SatelliteResourceLanguages>en-US;en</SatelliteResourceLanguages>   
+    	<GenerateAppInstallerFile>False</GenerateAppInstallerFile>   
+    	<AppxPackageSigningEnabled>False</AppxPackageSigningEnabled>   
+    	<AppxPackageSigningTimestampDigestAlgorithm>SHA256</AppxPackageSigningTimestampDigestAlgorithm>   
+    	<AppxAutoIncrementPackageRevision>True</AppxAutoIncrementPackageRevision>   
+    	<AppxPackageDir>C:\Users\yatima\Desktop\DrillTest</AppxPackageDir>   
+    	<AppxSymbolPackageEnabled>True</AppxSymbolPackageEnabled>   
+    	<GenerateTestArtifacts>True</GenerateTestArtifacts>   
+    	<HoursBetweenUpdateChecks>0</HoursBetweenUpdateChecks>
 	</PropertyGroup>
 
 	<PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|net8.0-maccatalyst|AnyCPU'">
