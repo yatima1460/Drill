@@ -98,6 +98,8 @@ namespace Drill.Core
             || sub.FullName.StartsWith($"C:\\Users\\{UserName}\\AppData")
             // all folders in C: are generally useless
             || (sub.Parent != null && sub.Parent.FullName == "C:\\")
+            // If the folder is deep inside an hidden folder
+            || sub.FullName.Contains(Path.DirectorySeparatorChar + ".")
             )
             {
                 return SearchPriority.Low;
@@ -118,10 +120,10 @@ namespace Drill.Core
              // all main drives
              || (sub.Parent == null)
              // all folders in the user folder
-             || (sub.Parent != null && sub.Parent.FullName == $"C:\\Users\\{UserName}"
+             || sub.Parent != null && sub.Parent.FullName == $"C:\\Users\\{UserName}"
              // english dictionary
              || ContainsCommonWords(sub.Name)
-             )
+   
             )
             {
                 return SearchPriority.High;
