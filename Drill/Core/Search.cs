@@ -12,8 +12,32 @@ namespace Drill.Core
         private static bool _stopRequested;
 
         private static readonly ConcurrentQueue<DrillResult> ParallelResults = new();
+        private static readonly object UserName = Environment.UserName;
+        static readonly HashSet<string> dict = new HashSet<string>();
 
 
+        static Search()
+        {
+            using var stream =  FileSystem.OpenAppPackageFileAsync("words_alpha.txt").Result;
+            using var reader = new StreamReader(stream);
+
+            var contents = reader.ReadToEnd();
+            
+            foreach (var item in contents.Split("\r\n"))
+            {
+                if (item.Length > 4)
+                dict.Add(item);
+            }
+
+            // done
+        }
+
+        private enum SearchPriority
+        {
+            Low,
+            Normal,
+            High
+        }
 
 
         public delegate void FatalErrorCallback(Exception e);
@@ -75,25 +99,39 @@ namespace Drill.Core
                 {
                     if (d.IsReady == true && d.RootDirectory.Exists)
                     {
-
-                        if (d.DriveType == DriveType.Removable)
+                        switch (d.DriveType)
                         {
-                            directoriesToExplore.AddHighPriority(d.RootDirectory);
-                        }
-                        if (d.DriveType == DriveType.Fixed)
-                        {
-                            if (d.RootDirectory.FullName == "C:\\")
-                            {
+                            case DriveType.Unknown:
                                 directoriesToExplore.AddLowPriority(d.RootDirectory);
-                            }
-                            directoriesToExplore.AddNormalPriority(d.RootDirectory);
+                                break;
+                            case DriveType.NoRootDirectory:
+                                break;
+                            case DriveType.Removable:
+                                directoriesToExplore.AddHighPriority(d.RootDirectory);
+                                break;
+                            case DriveType.Fixed:
+                                if (d.RootDirectory.FullName == "C:\\")
+                                {
+                                    directoriesToExplore.AddLowPriority(d.RootDirectory);
+                                }
+                                else
+                                {
+                                    directoriesToExplore.AddNormalPriority(d.RootDirectory);
+                                }
+                                break;
+                            case DriveType.Network:
+                                directoriesToExplore.AddNormalPriority(d.RootDirectory);
+                                break;
+                            case DriveType.CDRom:
+                                directoriesToExplore.AddLowPriority(d.RootDirectory);
+                                break;
+                            case DriveType.Ram:
+                                directoriesToExplore.AddNormalPriority(d.RootDirectory);
+                                break;
+                            default:
+                                directoriesToExplore.AddLowPriority(d.RootDirectory);
+                                break;
                         }
-                        if (d.DriveType == DriveType.Network)
-                        {
-                            directoriesToExplore.AddNormalPriority(d.RootDirectory);
-                        }
-
-                        directoriesToExplore.AddLowPriority(d.RootDirectory);
                     }
                 }
 
@@ -153,41 +191,39 @@ namespace Drill.Core
                                         continue;
                                     }
 
-
-                                    if (IO.IsSystem(sub))
+                                    if (StringUtils.TokenMatching(searchString, sub.Name))
                                     {
+                                        // Better to create the DrillResult on the backend than the UI thread to not stall it
+                                        DrillResult drillResult = new()
+                                        {
+                                            Name = sub.Name,
+                                            FullPath = sub.FullName,
+                                            Path = rootFolderInfo.FullName,
+                                            Date = sub.LastWriteTime.ToString("F"),
+                                            Size = "",
+                                            // TODO: different icon for .app on Mac
+                                            Icon = "📁"
+                                        };
 
-                                        directoriesToExplore.AddLowPriority(sub);
+                                        // this may stall for a sec
+                                        ParallelResults.Enqueue(drillResult);
                                     }
-                                    else
+
+
+                                        switch (GetDirectoryPriority(sub, searchString))
                                     {
-                                        if (StringUtils.TokenMatching(searchString, sub.Name))
-                                        {
-                                            // Better to create the DrillResult on the backend than the UI thread to not stall it
-                                            DrillResult drillResult = new()
-                                            {
-                                                Name = sub.Name,
-                                                FullPath = sub.FullName,
-                                                Path = rootFolderInfo.FullName,
-                                                Date = sub.LastWriteTime.ToString("F"),
-                                                Size = "",
-                                                // TODO: different icon for .app on Mac
-                                                Icon = "📁"
-                                            };
-
-                                            // this may stall for a sec
-                                            ParallelResults.Enqueue(drillResult);
-
-                                            // the result is also folder it means
-                                            // it contains in the name the search string
-                                            // Go vertical because it could be important
-                                            directoriesToExplore.AddHighPriority(sub);
-                                        }
-                                        else
-                                        {
+                                        case SearchPriority.Low:
+                                            directoriesToExplore.AddLowPriority(sub);
+                                            break;
+                                        case SearchPriority.Normal:
                                             directoriesToExplore.AddNormalPriority(sub);
-                                        }
+                                            break;
+                                        case SearchPriority.High:
+                                            directoriesToExplore.AddHighPriority(sub);
+                                            break;
                                     }
+
+                                    
 
 
 
@@ -248,6 +284,53 @@ namespace Drill.Core
 #endif
                 errorHandler(e);
             }
+        }
+
+        private static SearchPriority GetDirectoryPriority(DirectoryInfo sub, string searchString)
+        {
+            if (
+            sub.Name.StartsWith(".") 
+            || (sub.Attributes & FileAttributes.Hidden) == FileAttributes.Hidden ||
+            (sub.Attributes & FileAttributes.System) == FileAttributes.System ||
+            (sub.Attributes & FileAttributes.Temporary) == FileAttributes.Temporary ||
+            sub.FullName.StartsWith("C:\\Windows")
+            || sub.FullName.StartsWith($"C:\\Users\\{UserName}\\AppData")
+            || (sub.Parent != null &&  sub.Parent.FullName == "C:\\")
+            || (sub.Attributes & FileAttributes.ReparsePoint) == FileAttributes.ReparsePoint
+            )
+            {
+                return SearchPriority.Low;
+            }
+
+
+            if (StringUtils.TokenMatching(searchString, sub.Name))
+            {
+                // it contains in the name the search string
+                return SearchPriority.High;
+            }
+
+            if (dict.Contains(sub.Name.ToLower()))
+            {
+                // it contains in the name the search string
+                return SearchPriority.High;
+            }
+
+            if (
+                sub.Parent != null && sub.Parent.FullName == ($"C:\\Users\\{UserName}")
+                || (sub.LastAccessTime - DateTime.Now).TotalDays < 30
+               || (sub.LastWriteTime - DateTime.Now).TotalDays < 30
+                )
+            {
+                // it contains in the name the search string
+                return SearchPriority.High;
+            }
+
+
+
+
+
+            return SearchPriority.Normal;
+
         }
 
         public static void Stop()
