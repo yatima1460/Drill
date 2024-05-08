@@ -15,9 +15,7 @@ namespace Drill.Core
     internal class SearchQueue : IEnumerable<DirectoryInfo>
     {
 
-        readonly Queue<DirectoryInfo> _directoriesHigh = [];
-        readonly Queue<DirectoryInfo> _directoriesNormal = [];
-        readonly Queue<DirectoryInfo> _directoriesLow = [];
+        readonly Dictionary<SearchPriority, Queue<DirectoryInfo>> _priorityQueue = [];
         static readonly HashSet<string> dict = new HashSet<string>();
 
         readonly string searchString;
@@ -45,39 +43,26 @@ namespace Drill.Core
         public SearchQueue(string searchString)
         {
             this.searchString = searchString;
+            foreach (SearchPriority item in Enum.GetValues(typeof(SearchPriority)))
+            {
+                _priorityQueue[item] = new();
+            }
         }
 
 
         public void Add(DirectoryInfo item, SearchPriority priority)
         {
-            switch (priority)
+            if (visited.Contains(item.FullName))
             {
-                case SearchPriority.Low:
-                    AddLowPriority(item);
-                    break;
-                case SearchPriority.Normal:
-                    AddNormalPriority(item);
-                    break;
-                case SearchPriority.High:
-                    AddHighPriority(item);
-                    break;
+                return;
             }
+            _priorityQueue[priority].Enqueue(item);
+            visited.Add(item.FullName);
         }
 
         public void Add(DirectoryInfo item)
         {
-            switch (GetDirectoryPriority(item, searchString))
-            {
-                case SearchPriority.Low:
-                    AddLowPriority(item);
-                    break;
-                case SearchPriority.Normal:
-                    AddNormalPriority(item);
-                    break;
-                case SearchPriority.High:
-                    AddHighPriority(item);
-                    break;
-            }
+            Add(item, GetDirectoryPriority(item, searchString));
         }
 
 
@@ -93,7 +78,7 @@ namespace Drill.Core
                 return SearchPriority.High;
             }
 
-           
+
 
 
             if (
@@ -133,7 +118,7 @@ namespace Drill.Core
              || sub.Parent != null && sub.Parent.FullName == $"C:\\Users\\{UserName}"
              // english dictionary
              || ContainsCommonWords(sub.Name)
-   
+
             )
             {
                 return SearchPriority.High;
@@ -153,7 +138,7 @@ namespace Drill.Core
 
             // Priority is normal if heuristics has no idea what to do
 #if DEBUG
-           // TODO: log here 
+            // TODO: log here 
 #endif
             return SearchPriority.Normal;
         }
@@ -175,64 +160,27 @@ namespace Drill.Core
         //    set => _directories[index] = value; 
         //}
 
-        public int Count => _directoriesHigh.Count + _directoriesNormal.Count + _directoriesLow.Count;
 
 
 
 
 
-        private void AddHighPriority(DirectoryInfo item)
-        {
-            if (visited.Contains(item.FullName))
-            {
-                return;
-            }
-            _directoriesHigh.Enqueue(item);
-            visited.Add(item.FullName);
-        }
-
-        private void AddNormalPriority(DirectoryInfo item)
-        {
-            if (visited.Contains(item.FullName))
-            {
-                return;
-            }
-            _directoriesNormal.Enqueue(item);
-            visited.Add(item.FullName);
-        }
-
-        private void AddLowPriority(DirectoryInfo item)
-        {
-            if (visited.Contains(item.FullName))
-            {
-                return;
-            }
-            _directoriesLow.Enqueue(item);
-            visited.Add(item.FullName);
-        }
-
+      
 
         public void Clear()
         {
-            _directoriesHigh.Clear();
-            _directoriesNormal.Clear();
-            _directoriesLow.Clear();
+            _priorityQueue.Clear();
             visited.Clear();
         }
 
         private Queue<DirectoryInfo> GetHighestNotEmpty()
         {
-            if (_directoriesHigh.Count != 0)
+            foreach (SearchPriority item in Enum.GetValues(typeof(SearchPriority)))
             {
-                return _directoriesHigh;
-            }
-            if (_directoriesNormal.Count != 0)
-            {
-                return _directoriesNormal;
-            }
-            if (_directoriesLow.Count != 0)
-            {
-                return _directoriesLow;
+                if (_priorityQueue[item].Count > 0)
+                {
+                    return _priorityQueue[item];
+                }
             }
             return [];
         }
@@ -248,16 +196,13 @@ namespace Drill.Core
         }
 
 
-        internal DirectoryInfo? PopHighestPriority()
-        {
-            var highest = GetHighestNotEmpty();
-            highest.TryDequeue(out DirectoryInfo? result);
-            return result;
+        internal bool PopHighestPriority(out DirectoryInfo? result)
+        { 
+            var flag = GetHighestNotEmpty().TryDequeue(out DirectoryInfo? result2);
+            result = result2;
+            return flag;
         }
 
-        public override string? ToString()
-        {
-            return $"({_directoriesHigh.Count},{_directoriesNormal.Count},{_directoriesLow.Count})";
-        }
+       
     }
 }

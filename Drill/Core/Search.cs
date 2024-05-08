@@ -100,11 +100,10 @@ namespace Drill.Core
 
                 scan = new Task(() =>
                 {
-                    while (!cancellationTokenSource.IsCancellationRequested && directoriesToExplore.Count != 0)
+                    while (!cancellationTokenSource.IsCancellationRequested && directoriesToExplore.PopHighestPriority(out DirectoryInfo? rootFolderInfo))
                     {
-                        DirectoryInfo? rootFolderInfo = directoriesToExplore.PopHighestPriority();
-                        if (rootFolderInfo == null)
-                            continue;
+                   
+                   
 
                         //#if DEBUG
                         //                        if (debugExploredDirs.Count < 1000)
