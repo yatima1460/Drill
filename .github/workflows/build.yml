@@ -30,6 +30,7 @@ jobs:
     - name: Build Win
       run: dotnet publish --maxCpuCount -f net8.0-windows10.0.19041.0 -c Release -p:RuntimeIdentifierOverride=win10-x64 -p:WindowsPackageType=None .\Drill\Drill.csproj
 
+
     - name: Upload Win
       uses: actions/upload-artifact@v4
       with:
@@ -37,12 +38,12 @@ jobs:
         path: Drill\bin\Release\net8.0-windows10.0.19041.0\win10-x64\publish
         if-no-files-found: error
 
-    - name: Build Mac
-      run: dotnet publish --maxCpuCount -f net8.0-maccatalyst -c Release -p:RuntimeIdentifierOverride=maccatalyst-arm64 -p:WindowsPackageType=None .\Drill\Drill.csproj
+    #- name: Build Mac
+    #  run: dotnet publish --maxCpuCount -f net8.0-maccatalyst -c Release -p:RuntimeIdentifierOverride=maccatalyst-arm64 -p:WindowsPackageType=None .\Drill\Drill.csproj
   
-    - name: Upload Mac
-      uses: actions/upload-artifact@v4
-      with:
-        name: Drill_win10-x64
-        path: Drill\bin\Release\net8.0-maccatalyst\maccatalyst-arm64\publish
-        if-no-files-found: error
+    #- name: Upload Mac
+    #  uses: actions/upload-artifact@v4
+    #  with:
+    #    name: Drill_win10-x64
+    #    path: Drill\bin\Release\net8.0-maccatalyst\maccatalyst-arm64\publish
+    #    if-no-files-found: error
