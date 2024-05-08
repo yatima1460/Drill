@@ -14,7 +14,7 @@ namespace Drill.Core
         /// </summary>
         /// <param name="extension"></param>
         /// <returns></returns>
-        public static string GetIcon(string extension)
+        public static string GetIcon(in string extension)
         {
             return extension switch
             {

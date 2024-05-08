@@ -10,9 +10,9 @@ namespace Drill.Core
     internal static class StringUtils
     {
 
-        internal static readonly ConcurrentDictionary<Tuple<string, string>, bool> tokenCache = new();
+        internal static readonly Dictionary<Tuple<string, string>, bool> tokenCache = [];
 
-        internal static bool TokenMatching(string searchString, string fileName)
+        internal static bool TokenMatching(in string searchString, in string fileName)
         {
             
             var pair = new Tuple<string,string>(searchString, fileName);
@@ -35,7 +35,7 @@ namespace Drill.Core
             return true;
         }
 
-        internal static string GetHumanReadableSize(FileInfo fileSystemInfo)
+        internal static string GetHumanReadableSize(in FileInfo fileSystemInfo)
         {
             long sizeInBytes = ((FileInfo)fileSystemInfo).Length;
             string[] sizes = ["B", "KB", "MB", "GB", "TB"];

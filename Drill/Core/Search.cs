@@ -28,7 +28,7 @@ namespace Drill.Core
 
 #endif
 
-        public Search(string searchString)
+        public Search(in string searchString)
         {
             directoriesToExplore = new(searchString);
             this.searchString = searchString;
@@ -40,7 +40,7 @@ namespace Drill.Core
 
         private Task? scan;
 
-        public void StartAsync(FatalErrorCallback errorHandler)
+        public void StartAsync(in FatalErrorCallback errorHandler)
         {
 
             try
@@ -183,7 +183,7 @@ namespace Drill.Core
         /// <param name="searchString"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        private static List<DrillResult> GenerateDrillResults(DirectoryInfo rootFolderInfo, DirectoryInfo[] directories, string searchString, CancellationToken cancellationToken)
+        private static List<DrillResult> GenerateDrillResults(in DirectoryInfo rootFolderInfo, in DirectoryInfo[] directories, in string searchString, in CancellationToken cancellationToken)
         {
 
 
@@ -237,7 +237,7 @@ namespace Drill.Core
         /// <param name="searchString"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        private static List<DrillResult> GenerateDrillResults(DirectoryInfo rootFolderInfo, FileInfo[] subs, string searchString, CancellationToken cancellationToken)
+        private static List<DrillResult> GenerateDrillResults(in DirectoryInfo rootFolderInfo, in FileInfo[] subs, in string searchString, in CancellationToken cancellationToken)
         {
             // Directory.GetFileSystemEntries()
 
@@ -282,7 +282,7 @@ namespace Drill.Core
             ParallelResults.Clear();
         }
 
-        public List<DrillResult> PopResults(int count)
+        public List<DrillResult> PopResults(in int count)
         {
             if (cancellationTokenSource.Token.IsCancellationRequested)
             {
@@ -302,7 +302,7 @@ namespace Drill.Core
 
         public override string? ToString()
         {
-            return $"{searchString} - {directoriesToExplore}";
+            return searchString;
         }
     }
 }
