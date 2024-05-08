@@ -11,7 +11,7 @@ namespace Drill.Core
     public class Search
     {
 
-                
+
         private readonly ConcurrentQueue<DrillResult> ParallelResults = new();
         private static readonly object UserName = Environment.UserName;
 
@@ -38,11 +38,11 @@ namespace Drill.Core
 
 
 
-        private  Task? scan;
+        private Task? scan;
 
         public void StartAsync(FatalErrorCallback errorHandler)
         {
-           
+
             try
             {
                 // THIS IS HEAVY CALL WIN32 CACHE IT
@@ -61,7 +61,7 @@ namespace Drill.Core
 
 
 
-                
+
 
 
                 directoriesToExplore.Add(new DirectoryInfo(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)), SearchPriority.High);
@@ -98,64 +98,70 @@ namespace Drill.Core
                     }
                 }
 
-
-               
-
-
-                scan = new Task( () =>
+                scan = new Task(() =>
                 {
                     while (!cancellationTokenSource.IsCancellationRequested && directoriesToExplore.Count != 0)
                     {
-                        DirectoryInfo rootFolderInfo = directoriesToExplore.PopHighestPriority();
+                        DirectoryInfo? rootFolderInfo = directoriesToExplore.PopHighestPriority();
+                        if (rootFolderInfo == null)
+                            continue;
 
-#if DEBUG
-                        if (debugExploredDirs.Count < 1000)
-                        {
-                            debugExploredDirs.Add(rootFolderInfo);
-                        }
-                        else if (!dumpExecuted)
-                        {
+                        //#if DEBUG
+                        //                        if (debugExploredDirs.Count < 1000)
+                        //                        {
+                        //                            debugExploredDirs.Add(rootFolderInfo);
+                        //                        }
+                        //                        else if (!dumpExecuted)
+                        //                        {
 
-                            List<string> lines = [];
-                            foreach (var item in debugExploredDirs)
+                        //                            List<string> lines = [];
+                        //                            foreach (var item in debugExploredDirs)
+                        //                            {
+                        //                                lines.Add(SearchQueue.GetDirectoryPriority(item, searchString) + "," + item.FullName);
+                        //                            }
+
+
+                        //                            File.WriteAllLines(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), $"Drill-explored-{searchString}.txt"), lines);
+
+                        //                            dumpExecuted = true;
+                        //                        }
+
+                        //#endif
+
+                        FileSystemInfo[] fsi = DiskRead.SafeGetFileSystemInfosInDirectory(rootFolderInfo);
+
+
+                        List<FileInfo> filesList = new(fsi.Length);
+                        List<DirectoryInfo> directoriesList = new(fsi.Length);
+                        foreach (var item in fsi)
+                        {
+                            if ((item.Attributes & FileAttributes.Directory) == FileAttributes.Directory)
                             {
-                                lines.Add(SearchQueue.GetDirectoryPriority(item, searchString) + "," + item.FullName);
+                                directoriesList.Add((DirectoryInfo)item);
                             }
-
-
-                            File.WriteAllLines(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), $"Drill-explored-{searchString}.txt"), lines);
-
-                            dumpExecuted = true;
+                            else
+                            {
+                                filesList.Add((FileInfo)item);
+                            }
                         }
 
-#endif
-
-                        Dictionary<DirectoryInfo, SearchPriority> newFindings = [];
-
-                        FileInfo[] files = DiskRead.SafeGetFilesInDirectory(rootFolderInfo);
-                        DirectoryInfo[] directories = DiskRead.SafeGetDirectoriesInDirectory(rootFolderInfo);
-
-
-
-                        foreach (var item in GenerateDrillResults(rootFolderInfo, directories, searchString, cancellationTokenSource.Token))
+                        foreach (var item in GenerateDrillResults(rootFolderInfo, directoriesList.ToArray(), searchString, cancellationTokenSource.Token))
                         {
                             ParallelResults.Enqueue(item);
                         }
 
-                        foreach (var item in GenerateDrillResults(rootFolderInfo, files, searchString, cancellationTokenSource.Token))
+                        foreach (var item in GenerateDrillResults(rootFolderInfo, filesList.ToArray(), searchString, cancellationTokenSource.Token))
                         {
                             ParallelResults.Enqueue(item);
                         }
 
-                        
-                        foreach (DirectoryInfo item in directories)
+
+                        foreach (DirectoryInfo item in directoriesList)
                         {
-                           // We don't follow symlinks
-                           if ((item.Attributes & FileAttributes.ReparsePoint) != FileAttributes.ReparsePoint)
+                            // We don't follow symlinks
+                            if ((item.Attributes & FileAttributes.ReparsePoint) != FileAttributes.ReparsePoint)
                                 directoriesToExplore.Add(item);
                         }
-
-
                     }
                 });
                 scan.Start();
@@ -263,9 +269,9 @@ namespace Drill.Core
             return results;
         }
 
-        
 
-        public  void Stop()
+
+        public void Stop()
         {
             cancellationTokenSource.Token.ThrowIfCancellationRequested();
             cancellationTokenSource.Cancel();

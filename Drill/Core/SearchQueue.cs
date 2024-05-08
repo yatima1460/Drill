@@ -1,6 +1,7 @@
 ﻿using Microsoft.UI.Xaml.Controls;
 using System;
 using System.Collections;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
@@ -247,9 +248,11 @@ namespace Drill.Core
         }
 
 
-        internal DirectoryInfo PopHighestPriority()
+        internal DirectoryInfo? PopHighestPriority()
         {
-            return GetHighestNotEmpty().Dequeue();
+            var highest = GetHighestNotEmpty();
+            highest.TryDequeue(out DirectoryInfo? result);
+            return result;
         }
 
         public override string? ToString()
