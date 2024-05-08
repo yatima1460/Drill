@@ -145,9 +145,9 @@ namespace Drill.Core
             }
 
             // If name is long and does not contain spaces or separating characters it's generally something from a tool
-            if (sub.Name.Length > 16 && !sub.Name.Contains("-") && !sub.Name.Contains(" ") && !sub.Name.Contains("_"))
+            if (sub.Name.Length > 16 && !sub.Name.Contains('-') && !sub.Name.Contains(' ') && !sub.Name.Contains('_'))
             {
-                return SearchPriority.High;
+                return SearchPriority.Low;
             }
 
             // Priority is normal if heuristics has no idea what to do
