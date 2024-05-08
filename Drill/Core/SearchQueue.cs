@@ -3,6 +3,7 @@ using System;
 using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
@@ -12,11 +13,11 @@ using System.Threading.Tasks;
 
 namespace Drill.Core
 {
-    internal class SearchQueue : IEnumerable<DirectoryInfo>
+    internal class SearchQueue
     {
 
         readonly Dictionary<SearchPriority, Queue<DirectoryInfo>> _priorityQueue = [];
-        static readonly HashSet<string> dict = new HashSet<string>();
+        static readonly ImmutableHashSet<string> dict;
 
         readonly string searchString;
         readonly static string UserName = Environment.UserName;
@@ -27,6 +28,7 @@ namespace Drill.Core
         static SearchQueue()
         {
 
+            HashSet<string> dictMut = new();
             using var stream = FileSystem.OpenAppPackageFileAsync("words_alpha.txt").Result;
             using var reader = new StreamReader(stream);
 
@@ -34,10 +36,11 @@ namespace Drill.Core
 
             foreach (var item in contents.Split("\r\n"))
             {
-                if (item.Length > 4)
-                    dict.Add(item);
-
+                dictMut.Add(item);
             }
+            reader.Close();
+            stream.Close();
+            dict = dictMut.ToImmutableHashSet<string>();
         }
 
         public SearchQueue(string searchString)
@@ -45,21 +48,12 @@ namespace Drill.Core
             this.searchString = searchString;
             foreach (SearchPriority item in Enum.GetValues(typeof(SearchPriority)))
             {
-                _priorityQueue[item] = new();
+                _priorityQueue[item] = new(1000);
             }
         }
 
 
-        public void Add(DirectoryInfo item)
-        {
-            if (visited.Contains(item.FullName))
-            {
-                return;
-            }
-            _priorityQueue[GetDirectoryPriority(item, searchString)].Enqueue(item);
-            visited.Add(item.FullName);
-        }
-
+     
 
 
         public static SearchPriority GetDirectoryPriority(DirectoryInfo sub, string searchString)
@@ -197,15 +191,7 @@ namespace Drill.Core
             return [];
         }
 
-        public IEnumerator<DirectoryInfo> GetEnumerator()
-        {
-            return ((IEnumerable<DirectoryInfo>)GetHighestNotEmpty()).GetEnumerator();
-        }
 
-        IEnumerator IEnumerable.GetEnumerator()
-        {
-            return ((IEnumerable)GetHighestNotEmpty()).GetEnumerator();
-        }
 
 
         internal bool PopHighestPriority(out DirectoryInfo? result)
@@ -215,6 +201,30 @@ namespace Drill.Core
             return flag;
         }
 
+        internal void Add(DirectoryInfo item, SearchPriority priority)
+        {
+            if (visited.Contains(item.FullName))
+            {
+                return;
+            }
+            _priorityQueue[priority].Enqueue(item);
+            visited.Add(item.FullName);
+        }
+
+        public void Add(DirectoryInfo item)
+        {
+            Add(item, GetDirectoryPriority(item, searchString));
+        }
+
+        internal void Add(string v)
+        {
+            Add(new DirectoryInfo(v));
+        }
+
+        internal void Add(Environment.SpecialFolder specialFolder)
+        {
+            Add(Environment.GetFolderPath(specialFolder));
+        }
 
     }
 }

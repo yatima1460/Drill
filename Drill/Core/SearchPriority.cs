@@ -6,13 +6,13 @@ using System.Threading.Tasks;
 
 namespace Drill.Core
 {
-  enum SearchPriority
-        {
-            Highest,
-            High,
-            Normal,
-            Low,
-            Lowest
-        }
+    internal enum SearchPriority
+    {
+        Highest,
+        High,
+        Normal,
+        Low,
+        Lowest
+    }
 
 }

@@ -64,18 +64,17 @@ namespace Drill.Core
 
 
 
-                directoriesToExplore.Add(new DirectoryInfo(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)));
-                directoriesToExplore.Add(new DirectoryInfo(Environment.GetFolderPath(Environment.SpecialFolder.Recent)));
-                directoriesToExplore.Add(new DirectoryInfo(Environment.GetFolderPath(Environment.SpecialFolder.MyMusic)));
-                directoriesToExplore.Add(new DirectoryInfo(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles)));
-                directoriesToExplore.Add(new DirectoryInfo(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86)));
-                directoriesToExplore.Add(new DirectoryInfo(Environment.GetFolderPath(Environment.SpecialFolder.Desktop)));
-                directoriesToExplore.Add(new DirectoryInfo(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)));
-                directoriesToExplore.Add(new DirectoryInfo(Environment.GetFolderPath(Environment.SpecialFolder.MyVideos)));
-                directoriesToExplore.Add(new DirectoryInfo($"C:\\Users\\{UserName}\\Downloads"));
-                directoriesToExplore.Add(new DirectoryInfo($"C:\\Users\\{UserName}\\AppData"));
-
-                directoriesToExplore.Add(new DirectoryInfo($"/Users/{UserName}/Library/Mobile Documents/com~apple~CloudDocs/"));
+                directoriesToExplore.Add(Environment.SpecialFolder.UserProfile);
+                directoriesToExplore.Add(Environment.SpecialFolder.Recent);
+                directoriesToExplore.Add(Environment.SpecialFolder.MyMusic);
+                directoriesToExplore.Add(Environment.SpecialFolder.ProgramFiles);
+                directoriesToExplore.Add(Environment.SpecialFolder.ProgramFilesX86);
+                directoriesToExplore.Add(Environment.SpecialFolder.Desktop);
+                directoriesToExplore.Add(Environment.SpecialFolder.MyDocuments);
+                directoriesToExplore.Add(Environment.SpecialFolder.MyVideos);
+                directoriesToExplore.Add($"C:\\Users\\{UserName}\\Downloads");
+                //directoriesToExplore.Add($"C:\\Users\\{UserName}\\AppData");
+                directoriesToExplore.Add($"/Users/{UserName}/Library/Mobile Documents/com~apple~CloudDocs/");
 
 
                 DriveInfo[] allDrives = [];
