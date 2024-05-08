@@ -102,7 +102,7 @@ namespace Drill.Core
                
 
 
-                scan = new Task( async () =>
+                scan = new Task( () =>
                 {
                     while (!cancellationTokenSource.IsCancellationRequested && directoriesToExplore.Count != 0)
                     {
@@ -132,8 +132,8 @@ namespace Drill.Core
 
                         Dictionary<DirectoryInfo, SearchPriority> newFindings = [];
 
-                        FileInfo[] files = await DiskRead.GetFilesInDirectoryAsync(rootFolderInfo);
-                        DirectoryInfo[] directories = await DiskRead.GetDirectoriesInDirectoryAsync(rootFolderInfo);
+                        FileInfo[] files = DiskRead.SafeGetFilesInDirectory(rootFolderInfo);
+                        DirectoryInfo[] directories = DiskRead.SafeGetDirectoriesInDirectory(rootFolderInfo);
 
 
 

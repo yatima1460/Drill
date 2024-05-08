@@ -11,7 +11,7 @@ namespace Drill.Core
     {
 
 
-        private static FileInfo[] _safeGetFilesInDirectory(DirectoryInfo directoryInfo)
+        public static FileInfo[] SafeGetFilesInDirectory(DirectoryInfo directoryInfo)
         {
             try
             {
@@ -24,7 +24,7 @@ namespace Drill.Core
         }
 
 
-        private static DirectoryInfo[] _safeGetDirectoriesInDirectory(DirectoryInfo directoryInfo)
+        public static DirectoryInfo[] SafeGetDirectoriesInDirectory(DirectoryInfo directoryInfo)
         {
             try
             {
@@ -39,13 +39,13 @@ namespace Drill.Core
         public static async Task<FileInfo[]> GetFilesInDirectoryAsync(DirectoryInfo directoryInfo)
         {
             // Run the synchronous file operation in a background task
-            return await Task.Run(() => _safeGetFilesInDirectory(directoryInfo));
+            return await Task.Run(() => SafeGetFilesInDirectory(directoryInfo));
         }
 
         public static async Task<DirectoryInfo[]> GetDirectoriesInDirectoryAsync(DirectoryInfo directoryInfo)
         {
             // Run the synchronous file operation in a background task
-            return await Task.Run(() => _safeGetDirectoriesInDirectory(directoryInfo));
+            return await Task.Run(() => SafeGetDirectoriesInDirectory(directoryInfo));
         }
     }
 }
