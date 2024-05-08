@@ -50,35 +50,40 @@ namespace Drill.Core
         }
 
 
-        public void Add(DirectoryInfo item, SearchPriority priority)
+        public void Add(DirectoryInfo item)
         {
             if (visited.Contains(item.FullName))
             {
                 return;
             }
-            _priorityQueue[priority].Enqueue(item);
+            _priorityQueue[GetDirectoryPriority(item, searchString)].Enqueue(item);
             visited.Add(item.FullName);
-        }
-
-        public void Add(DirectoryInfo item)
-        {
-            Add(item, GetDirectoryPriority(item, searchString));
         }
 
 
 
         public static SearchPriority GetDirectoryPriority(DirectoryInfo sub, string searchString)
         {
-            // all main drives are important besides C:
+            // all main drives are very important besides C:
             if (sub.Parent == null)
             {
                 // all folders in C: are generally useless
                 if (sub.FullName == "C:\\")
                     return SearchPriority.Low;
-                return SearchPriority.High;
+                return SearchPriority.Highest;
             }
 
+            if (sub.FullName == $"/Users/{UserName}/Library/Mobile Documents/com~apple~CloudDocs/")
+            {
+                return SearchPriority.Highest;
+            }
 
+            if (sub.FullName.ToLower() == "node_modules"
+                            || (sub.Attributes & FileAttributes.Temporary) == FileAttributes.Temporary
+                )
+            {
+                return SearchPriority.Lowest;
+            }
 
 
             if (
@@ -87,11 +92,10 @@ namespace Drill.Core
             || (sub.Attributes & FileAttributes.Hidden) == FileAttributes.Hidden
             // strange system folders
             || (sub.Attributes & FileAttributes.System) == FileAttributes.System
-            || (sub.Attributes & FileAttributes.Temporary) == FileAttributes.Temporary
+
             // Windows is a no-no
             || sub.FullName.StartsWith("C:\\Windows")
             // very bad stuff
-            || sub.FullName.ToLower() == "node_modules"
             || sub.FullName.ToLower() == "cache"
             // often full of garbage
             || sub.FullName.StartsWith($"C:\\Users\\{UserName}\\AppData")
@@ -103,6 +107,8 @@ namespace Drill.Core
             }
 
 
+
+
             // Cutoff: if the folder is very deep it's normal priority and never high
             if (sub.FullName.Split(Path.DirectorySeparatorChar, StringSplitOptions.RemoveEmptyEntries).Length > 6)
             {
@@ -110,10 +116,16 @@ namespace Drill.Core
             }
 
             if (
-                // folder contains search string
-                StringUtils.TokenMatching(searchString, sub.Name)
+               // folder contains search string
+               StringUtils.TokenMatching(searchString, sub.Name))
+
+            {
+                return SearchPriority.Highest;
+            }
+
+            if (
              // user folder
-             || sub.FullName == $"C:\\Users\\{UserName}"
+             sub.FullName == $"C:\\Users\\{UserName}"
              // all folders in the user folder
              || sub.Parent != null && sub.Parent.FullName == $"C:\\Users\\{UserName}"
              // english dictionary
@@ -165,7 +177,7 @@ namespace Drill.Core
 
 
 
-      
+
 
         public void Clear()
         {
@@ -197,12 +209,12 @@ namespace Drill.Core
 
 
         internal bool PopHighestPriority(out DirectoryInfo? result)
-        { 
+        {
             var flag = GetHighestNotEmpty().TryDequeue(out DirectoryInfo? result2);
             result = result2;
             return flag;
         }
 
-       
+
     }
 }

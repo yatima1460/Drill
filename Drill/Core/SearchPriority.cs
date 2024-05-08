@@ -8,9 +8,11 @@ namespace Drill.Core
 {
   enum SearchPriority
         {
+            Highest,
             High,
             Normal,
-            Low
+            Low,
+            Lowest
         }
 
 }

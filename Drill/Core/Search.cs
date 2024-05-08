@@ -64,18 +64,18 @@ namespace Drill.Core
 
 
 
-                directoriesToExplore.Add(new DirectoryInfo(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)), SearchPriority.High);
-                directoriesToExplore.Add(new DirectoryInfo(Environment.GetFolderPath(Environment.SpecialFolder.Recent)), SearchPriority.High);
-                directoriesToExplore.Add(new DirectoryInfo(Environment.GetFolderPath(Environment.SpecialFolder.MyMusic)), SearchPriority.High);
-                directoriesToExplore.Add(new DirectoryInfo(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles)), SearchPriority.Normal);
-                directoriesToExplore.Add(new DirectoryInfo(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86)), SearchPriority.Normal);
-                directoriesToExplore.Add(new DirectoryInfo(Environment.GetFolderPath(Environment.SpecialFolder.Desktop)), SearchPriority.High);
-                directoriesToExplore.Add(new DirectoryInfo(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)), SearchPriority.High);
-                directoriesToExplore.Add(new DirectoryInfo(Environment.GetFolderPath(Environment.SpecialFolder.MyVideos)), SearchPriority.High);
-                directoriesToExplore.Add(new DirectoryInfo($"C:\\Users\\{UserName}\\Downloads"), SearchPriority.High);
-                directoriesToExplore.Add(new DirectoryInfo($"C:\\Users\\{UserName}\\AppData"), SearchPriority.Low);
+                directoriesToExplore.Add(new DirectoryInfo(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)));
+                directoriesToExplore.Add(new DirectoryInfo(Environment.GetFolderPath(Environment.SpecialFolder.Recent)));
+                directoriesToExplore.Add(new DirectoryInfo(Environment.GetFolderPath(Environment.SpecialFolder.MyMusic)));
+                directoriesToExplore.Add(new DirectoryInfo(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles)));
+                directoriesToExplore.Add(new DirectoryInfo(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86)));
+                directoriesToExplore.Add(new DirectoryInfo(Environment.GetFolderPath(Environment.SpecialFolder.Desktop)));
+                directoriesToExplore.Add(new DirectoryInfo(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)));
+                directoriesToExplore.Add(new DirectoryInfo(Environment.GetFolderPath(Environment.SpecialFolder.MyVideos)));
+                directoriesToExplore.Add(new DirectoryInfo($"C:\\Users\\{UserName}\\Downloads"));
+                directoriesToExplore.Add(new DirectoryInfo($"C:\\Users\\{UserName}\\AppData"));
 
-                directoriesToExplore.Add(new DirectoryInfo($"/Users/{UserName}/Library/Mobile Documents/com~apple~CloudDocs/"), SearchPriority.High);
+                directoriesToExplore.Add(new DirectoryInfo($"/Users/{UserName}/Library/Mobile Documents/com~apple~CloudDocs/"));
 
 
                 DriveInfo[] allDrives = [];
@@ -94,7 +94,7 @@ namespace Drill.Core
                 {
                     if (d.IsReady == true && d.RootDirectory.Exists)
                     {
-                        directoriesToExplore.Add(d.RootDirectory, SearchPriority.High);
+                        directoriesToExplore.Add(d.RootDirectory);
                     }
                 }
 
