@@ -21,6 +21,7 @@
     <ProduceReferenceAssembly>False</ProduceReferenceAssembly>
     <AnalysisLevel>latest-all</AnalysisLevel>
     <NeutralLanguage>en-US</NeutralLanguage>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">

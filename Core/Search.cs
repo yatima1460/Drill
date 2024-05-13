@@ -126,15 +126,18 @@ namespace Drill.Core
                         //#endif
 
                         FileSystemInfo[] fsi = DiskRead.SafeGetFileSystemInfosInDirectory(rootFolderInfo);
-
-
+                        subDirectoriesCountCache.Add(rootFolderInfo.FullName, fsi.Length);
                         List<FileInfo> filesList = new(fsi.Length);
                         List<DirectoryInfo> directoriesList = new(fsi.Length);
                         foreach (var item in fsi)
                         {
+                            if (cancellationTokenSource.IsCancellationRequested)
+                                break;
                             if ((item.Attributes & FileAttributes.Directory) == FileAttributes.Directory)
                             {
                                 directoriesList.Add((DirectoryInfo)item);
+                               
+
                             }
                             else
                             {
@@ -144,17 +147,23 @@ namespace Drill.Core
 
                         foreach (var item in GenerateDrillResults(rootFolderInfo, directoriesList.ToArray(), searchString, cancellationTokenSource.Token))
                         {
+                            if (cancellationTokenSource.IsCancellationRequested)
+                                break;
                             ParallelResults.Enqueue(item);
                         }
 
                         foreach (var item in GenerateDrillResults(rootFolderInfo, filesList.ToArray(), searchString, cancellationTokenSource.Token))
                         {
+                            if (cancellationTokenSource.IsCancellationRequested)
+                                break;
                             ParallelResults.Enqueue(item);
                         }
 
 
                         foreach (DirectoryInfo item in directoriesList)
                         {
+                            if (cancellationTokenSource.IsCancellationRequested)
+                                break;
                             // We don't follow symlinks
                             if ((item.Attributes & FileAttributes.ReparsePoint) != FileAttributes.ReparsePoint)
                                 directoriesToExplore.Add(item);
@@ -173,6 +182,8 @@ namespace Drill.Core
                 errorHandler(e);
             }
         }
+
+        readonly Dictionary<string, int> subDirectoriesCountCache = new();
 
         /// <summary>
         /// Given a list of directories filters them to generate drill results
@@ -210,8 +221,8 @@ namespace Drill.Core
                         Name = sub.Name,
                         FullPath = sub.FullName,
                         Path = rootFolderInfo.FullName,
-                        Date = sub.LastWriteTime.ToString("F"),
-                        Size = "",
+                        Date = sub.LastWriteTime.ToShortDateString() + " " + sub.LastWriteTime.ToShortTimeString(),
+                        Size = string.Empty,
                         // TODO: different icon for .app on Mac
                         Icon = "📁"
                     };
@@ -253,8 +264,8 @@ namespace Drill.Core
                         Name = file.Name,
                         FullPath = file.FullName,
                         Path = rootFolderInfo.FullName,
-                        Date = file.LastWriteTime.ToString("F"),
-                        Size = StringUtils.GetHumanReadableSize(file),
+                        Date = file.LastWriteTime.ToShortDateString() + " " + file.LastWriteTime.ToShortTimeString(),
+                        Size = StringUtils.GetHumanReadableSize(file.Length),
                         Icon = ExtensionIcon.GetIcon(file.Extension.ToLower())
                     };
 

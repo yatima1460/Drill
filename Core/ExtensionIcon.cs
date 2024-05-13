@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace Drill.Core
 {
-    internal static class ExtensionIcon
+    public static class ExtensionIcon
     {
         /// <summary>
         /// Given an extension returns the associated emoji for the UI

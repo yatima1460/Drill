@@ -28,126 +28,123 @@
         /// </summary>
         private void InitializeComponent()
         {
-            this.versionNumber = new System.Windows.Forms.Label();
-            this.websiteLink = new System.Windows.Forms.LinkLabel();
-            this.versionText = new System.Windows.Forms.Label();
-            this.emailLink = new System.Windows.Forms.LinkLabel();
-            this.tableLayoutPanel1 = new System.Windows.Forms.TableLayoutPanel();
-            this.logo = new System.Windows.Forms.PictureBox();
-            this.tableLayoutPanel1.SuspendLayout();
-            ((System.ComponentModel.ISupportInitialize)(this.logo)).BeginInit();
-            this.SuspendLayout();
+            versionNumber = new Label();
+            websiteLink = new LinkLabel();
+            versionText = new Label();
+            emailLink = new LinkLabel();
+            tableLayoutPanel1 = new TableLayoutPanel();
+            logo = new PictureBox();
+            tableLayoutPanel1.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)logo).BeginInit();
+            SuspendLayout();
             // 
             // versionNumber
             // 
-            this.versionNumber.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
-            | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
-            this.versionNumber.AutoSize = true;
-            this.versionNumber.Location = new System.Drawing.Point(3, 287);
-            this.versionNumber.Name = "versionNumber";
-            this.versionNumber.Size = new System.Drawing.Size(587, 25);
-            this.versionNumber.TabIndex = 2;
-            this.versionNumber.Text = "ERROR: CAN\'T GET VERSION NUMBER";
-            this.versionNumber.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
+            versionNumber.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
+            versionNumber.AutoSize = true;
+            versionNumber.Location = new Point(2, 173);
+            versionNumber.Margin = new Padding(2, 0, 2, 0);
+            versionNumber.Name = "versionNumber";
+            versionNumber.Size = new Size(411, 15);
+            versionNumber.TabIndex = 2;
+            versionNumber.Text = "ERROR: CAN'T GET VERSION NUMBER";
+            versionNumber.TextAlign = ContentAlignment.MiddleCenter;
             // 
             // websiteLink
             // 
-            this.websiteLink.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
-            | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
-            this.websiteLink.AutoSize = true;
-            this.websiteLink.Location = new System.Drawing.Point(3, 312);
-            this.websiteLink.Name = "websiteLink";
-            this.websiteLink.Size = new System.Drawing.Size(587, 25);
-            this.websiteLink.TabIndex = 4;
-            this.websiteLink.TabStop = true;
-            this.websiteLink.Text = "https://drill.software";
-            this.websiteLink.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
-            this.websiteLink.LinkClicked += new System.Windows.Forms.LinkLabelLinkClickedEventHandler(this.websiteLink_LinkClicked);
+            websiteLink.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
+            websiteLink.AutoSize = true;
+            websiteLink.Location = new Point(2, 188);
+            websiteLink.Margin = new Padding(2, 0, 2, 0);
+            websiteLink.Name = "websiteLink";
+            websiteLink.Size = new Size(411, 15);
+            websiteLink.TabIndex = 4;
+            websiteLink.TabStop = true;
+            websiteLink.Text = "https://drill.software";
+            websiteLink.TextAlign = ContentAlignment.MiddleCenter;
+            websiteLink.LinkClicked += websiteLink_LinkClicked;
             // 
             // versionText
             // 
-            this.versionText.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
-            | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
-            this.versionText.AutoSize = true;
-            this.versionText.Location = new System.Drawing.Point(3, 262);
-            this.versionText.Name = "versionText";
-            this.versionText.Size = new System.Drawing.Size(587, 25);
-            this.versionText.TabIndex = 1;
-            this.versionText.Text = "Version: ";
-            this.versionText.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
+            versionText.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
+            versionText.AutoSize = true;
+            versionText.Location = new Point(2, 158);
+            versionText.Margin = new Padding(2, 0, 2, 0);
+            versionText.Name = "versionText";
+            versionText.Size = new Size(411, 15);
+            versionText.TabIndex = 1;
+            versionText.Text = "Version: ";
+            versionText.TextAlign = ContentAlignment.MiddleCenter;
             // 
             // emailLink
             // 
-            this.emailLink.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
-            | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
-            this.emailLink.AutoSize = true;
-            this.emailLink.Location = new System.Drawing.Point(3, 337);
-            this.emailLink.Name = "emailLink";
-            this.emailLink.Size = new System.Drawing.Size(587, 48);
-            this.emailLink.TabIndex = 5;
-            this.emailLink.TabStop = true;
-            this.emailLink.Text = "contact@drill.software";
-            this.emailLink.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
-            this.emailLink.LinkClicked += new System.Windows.Forms.LinkLabelLinkClickedEventHandler(this.emailLink_LinkClicked);
+            emailLink.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
+            emailLink.AutoSize = true;
+            emailLink.Location = new Point(2, 203);
+            emailLink.Margin = new Padding(2, 0, 2, 0);
+            emailLink.Name = "emailLink";
+            emailLink.Size = new Size(411, 15);
+            emailLink.TabIndex = 5;
+            emailLink.TabStop = true;
+            emailLink.Text = "contact@drill.software";
+            emailLink.TextAlign = ContentAlignment.MiddleCenter;
+            emailLink.LinkClicked += emailLink_LinkClicked;
             // 
             // tableLayoutPanel1
             // 
-            this.tableLayoutPanel1.ColumnCount = 1;
-            this.tableLayoutPanel1.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle());
-            this.tableLayoutPanel1.Controls.Add(this.logo, 0, 0);
-            this.tableLayoutPanel1.Controls.Add(this.emailLink, 0, 4);
-            this.tableLayoutPanel1.Controls.Add(this.versionText, 0, 1);
-            this.tableLayoutPanel1.Controls.Add(this.websiteLink, 0, 3);
-            this.tableLayoutPanel1.Controls.Add(this.versionNumber, 0, 2);
-            this.tableLayoutPanel1.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.tableLayoutPanel1.Location = new System.Drawing.Point(0, 0);
-            this.tableLayoutPanel1.Name = "tableLayoutPanel1";
-            this.tableLayoutPanel1.RowCount = 5;
-            this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle());
-            this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle());
-            this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle());
-            this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle());
-            this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle());
-            this.tableLayoutPanel1.Size = new System.Drawing.Size(593, 385);
-            this.tableLayoutPanel1.TabIndex = 6;
+            tableLayoutPanel1.ColumnCount = 1;
+            tableLayoutPanel1.ColumnStyles.Add(new ColumnStyle());
+            tableLayoutPanel1.Controls.Add(logo, 0, 0);
+            tableLayoutPanel1.Controls.Add(emailLink, 0, 4);
+            tableLayoutPanel1.Controls.Add(versionText, 0, 1);
+            tableLayoutPanel1.Controls.Add(websiteLink, 0, 3);
+            tableLayoutPanel1.Controls.Add(versionNumber, 0, 2);
+            tableLayoutPanel1.Dock = DockStyle.Fill;
+            tableLayoutPanel1.Location = new Point(0, 0);
+            tableLayoutPanel1.Margin = new Padding(2);
+            tableLayoutPanel1.Name = "tableLayoutPanel1";
+            tableLayoutPanel1.RowCount = 6;
+            tableLayoutPanel1.RowStyles.Add(new RowStyle());
+            tableLayoutPanel1.RowStyles.Add(new RowStyle());
+            tableLayoutPanel1.RowStyles.Add(new RowStyle());
+            tableLayoutPanel1.RowStyles.Add(new RowStyle());
+            tableLayoutPanel1.RowStyles.Add(new RowStyle());
+            tableLayoutPanel1.RowStyles.Add(new RowStyle(SizeType.Absolute, 20F));
+            tableLayoutPanel1.Size = new Size(415, 231);
+            tableLayoutPanel1.TabIndex = 6;
             // 
             // logo
             // 
-            this.logo.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
-            | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
-            this.logo.Image = global::WinForms.Properties.Resources.drill;
-            this.logo.Location = new System.Drawing.Point(3, 3);
-            this.logo.Name = "logo";
-            this.logo.Size = new System.Drawing.Size(587, 256);
-            this.logo.SizeMode = System.Windows.Forms.PictureBoxSizeMode.CenterImage;
-            this.logo.TabIndex = 0;
-            this.logo.TabStop = false;
+            logo.Dock = DockStyle.Fill;
+            logo.Image = Properties.Resources.drill;
+            logo.Location = new Point(2, 2);
+            logo.Margin = new Padding(2);
+            logo.Name = "logo";
+            logo.Size = new Size(411, 154);
+            logo.SizeMode = PictureBoxSizeMode.CenterImage;
+            logo.TabIndex = 0;
+            logo.TabStop = false;
             // 
             // AboutForm
             // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(10F, 25F);
-            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.BackColor = System.Drawing.Color.WhiteSmoke;
-            this.ClientSize = new System.Drawing.Size(593, 385);
-            this.Controls.Add(this.tableLayoutPanel1);
-            this.DoubleBuffered = true;
-            this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedSingle;
-            this.MaximizeBox = false;
-            this.Name = "AboutForm";
-            this.ShowIcon = false;
-            this.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
-            this.Text = "❓ About";
-            this.Load += new System.EventHandler(this.AboutForm_Load);
-            this.tableLayoutPanel1.ResumeLayout(false);
-            this.tableLayoutPanel1.PerformLayout();
-            ((System.ComponentModel.ISupportInitialize)(this.logo)).EndInit();
-            this.ResumeLayout(false);
-
+            AutoScaleDimensions = new SizeF(7F, 15F);
+            AutoScaleMode = AutoScaleMode.Font;
+            BackColor = Color.WhiteSmoke;
+            ClientSize = new Size(415, 231);
+            Controls.Add(tableLayoutPanel1);
+            DoubleBuffered = true;
+            FormBorderStyle = FormBorderStyle.FixedSingle;
+            Margin = new Padding(2);
+            MaximizeBox = false;
+            Name = "AboutForm";
+            ShowIcon = false;
+            StartPosition = FormStartPosition.CenterParent;
+            Text = "❓ About";
+            Load += AboutForm_Load;
+            tableLayoutPanel1.ResumeLayout(false);
+            tableLayoutPanel1.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)logo).EndInit();
+            ResumeLayout(false);
         }
 
         #endregion

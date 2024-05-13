@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -35,10 +36,10 @@ namespace Drill.Core
             return true;
         }
 
-        internal static string GetHumanReadableSize(in FileInfo fileSystemInfo)
+        static readonly string[] sizes = [" B", "KB", "MB", "GB", "TB"];
+
+        internal static string GetHumanReadableSize(in long sizeInBytes)
         {
-            long sizeInBytes = ((FileInfo)fileSystemInfo).Length;
-            string[] sizes = ["B", "KB", "MB", "GB", "TB"];
             int order = 0;
             double size = sizeInBytes;
 
@@ -50,6 +51,8 @@ namespace Drill.Core
 
             return $"{size:0.#} {sizes[order]}"; // Formatting size with appropriate unit
         }
+
+
     }
 
 

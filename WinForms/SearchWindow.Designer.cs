@@ -156,7 +156,8 @@
             // 
             // menuStrip
             // 
-            menuStrip.BackColor = Color.Transparent;
+            menuStrip.BackColor = Color.White;
+            menuStrip.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
             menuStrip.ImageScalingSize = new Size(24, 24);
             menuStrip.Items.AddRange(new ToolStripItem[] { fileToolStripMenuItem, resultsCountToolStripMenuItem, debugToolStripMenuItem, aboutToolStripMenuItem, toolStripMenuItem1 });
             menuStrip.Location = new Point(0, 0);
@@ -176,13 +177,14 @@
             // exportResultsTocsvToolStripMenuItem
             // 
             exportResultsTocsvToolStripMenuItem.Name = "exportResultsTocsvToolStripMenuItem";
-            exportResultsTocsvToolStripMenuItem.Size = new Size(191, 22);
-            exportResultsTocsvToolStripMenuItem.Text = "Export results to .csv...";
+            exportResultsTocsvToolStripMenuItem.Size = new Size(189, 22);
+            exportResultsTocsvToolStripMenuItem.Text = "Export results to .tsv...";
+            exportResultsTocsvToolStripMenuItem.Click += exportResultsTocsvToolStripMenuItem_Click_2;
             // 
             // exitToolStripMenuItem
             // 
             exitToolStripMenuItem.Name = "exitToolStripMenuItem";
-            exitToolStripMenuItem.Size = new Size(191, 22);
+            exitToolStripMenuItem.Size = new Size(189, 22);
             exitToolStripMenuItem.Text = "Exit";
             exitToolStripMenuItem.Click += exitToolStripMenuItem_Click;
             // 
@@ -236,7 +238,7 @@
             fileSearchInput.Margin = new Padding(4);
             fileSearchInput.MaxLength = 260;
             fileSearchInput.Name = "fileSearchInput";
-            fileSearchInput.PlaceholderText = "Drill for...";
+            fileSearchInput.PlaceholderText = "Search everywhere...";
             fileSearchInput.Size = new Size(1600, 50);
             fileSearchInput.TabIndex = 5;
             fileSearchInput.TextChanged += searchBox_TextChanged;
@@ -246,6 +248,7 @@
             fileSearchResults.BorderStyle = BorderStyle.None;
             fileSearchResults.Columns.AddRange(new ColumnHeader[] { columnHeader3, columnHeader4, columnHeader5, columnHeader6 });
             fileSearchResults.Dock = DockStyle.Fill;
+            fileSearchResults.Font = new Font("Consolas", 9F);
             fileSearchResults.FullRowSelect = true;
             fileSearchResults.GridLines = true;
             fileSearchResults.HeaderStyle = ColumnHeaderStyle.Nonclickable;
@@ -260,6 +263,7 @@
             fileSearchResults.KeyDown += searchBox_KeyDown;
             fileSearchResults.MouseClick += searchResults_MouseClick;
             fileSearchResults.MouseDoubleClick += searchResults_MouseDoubleClick;
+            fileSearchResults.Resize += fileSearchResults_Resize;
             // 
             // columnHeader3
             // 
@@ -308,6 +312,7 @@
             ClientSize = new Size(1608, 730);
             Controls.Add(tableLayoutPanel1);
             Controls.Add(menuStrip);
+            Font = new Font("Consolas", 9F);
             Icon = (Icon)resources.GetObject("$this.Icon");
             MainMenuStrip = menuStrip;
             Margin = new Padding(4);

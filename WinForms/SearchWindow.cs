@@ -18,50 +18,24 @@ namespace WinForms
             InitializeComponent();
         }
 
+        private const string menuSearchString = "🔍 Search";
 
-
-
-        // Global state for the UI
-
-        /// <summary>
-        /// Modules always kept loaded so user can use checkboxes in the UI
-        /// </summary>
-        //private Drill.ModulesData drillModulesLoadedInUI;
-
-        /// <summary>
-        /// The current search context is kept here so we can stop it
-        /// By default an empty struct is created
-        /// </summary>
-        //private Drill.SearchContext drillSearchData = new Drill.SearchContext();
         Search drillSearch = new("");
 
-        /// <summary>
-        /// Array storing the results found by the Drill threads
-        /// </summary>
-        /// 
-        private ArrayList resultsBag = ArrayList.Synchronized(new ArrayList());
+
+        private readonly List<DrillResult> resultsBag = new(100);
 
 
-        FiltersForm filtersForm;
+        Dictionary<string, int> extensionIconCache = new(100);
+
+        int oldResultsCount = 0;
+        bool sortEnabled = false;
 
 
 
-        Dictionary<string, int> extensionIconCache = new Dictionary<string, int>();
-        int folderIcon = -1;
-
-        // Init
         private void SearchWindow_Load(object sender, EventArgs e)
         {
-            
-
-            //Trace.Listeners.Add(new TextWriterTraceListener());
             Trace.Listeners.Add(new ConsoleTraceListener());
-
-
-            //drillModulesLoadedInUI = Drill.LoadAllDefaultModules();
-            
-          
-
 
             // Center the actual form
             Rectangle screenSize = Screen.FromControl(this).Bounds;
@@ -81,165 +55,74 @@ namespace WinForms
             // Disable sorting in ListView
             fileSearchResults.ListViewItemSorter = null;
 
-            // Ticker for virtual list results
+            // Timer to pop results
             refreshVirtualListTicker.Enabled = true;
             refreshVirtualListTicker.Interval = 10;
             refreshVirtualListTicker.Start();
 
-           
-
-
+            // List that holds the results
             fileSearchResults.VirtualMode = true;
             fileSearchResults.RetrieveVirtualItem += SearchResults_RetrieveVirtualItem;
-
-            // Set ListView to virtual mode
             fileSearchResults.View = View.Details;
             fileSearchResults.Scrollable = true;
-
 
             // Focus the search box
             fileSearchInput.Select();
 
             // Load columns on list
-            SetupList();
+            // Obtain a handle to the system image list.
+            NativeMethods.SHFILEINFO shfi = new();
+            IntPtr hSysImgList = NativeMethods.SHGetFileInfo("", 0, ref shfi, (uint)Marshal.SizeOf(shfi), NativeMethods.SHGFI_SYSICONINDEX | NativeMethods.SHGFI_SMALLICON);
+            Debug.Assert(hSysImgList != IntPtr.Zero);  // cross our fingers and hope to succeed!
+
+            // Set the ListView control to use that image list.
+            NativeMethods.SendMessage(fileSearchResults.Handle, NativeMethods.LVM_SETIMAGELIST, NativeMethods.LVSIL_SMALL, hSysImgList);
+
+            // If the ListView control already had an image list, delete the old one.
+
+
+            // Set up the ListView control's basic properties.
+            // Put it in "Details" mode, create a column so that "Details" mode will work,
+            // and set its theme so it will look like the one used by Explorer.
+
+            ResultsAutoSizeColumns();
+
+            // TODO: figure out what this does exactly
+            // When this is removed the window becomes unstable if minimized and then reopened
+            if (fileSearchResults.Handle.ToInt32() != 0)
+                _ = NativeMethods.SetWindowTheme(fileSearchResults.Handle, "Explorer", null);
         }
 
-        //private void resultsCallback(DrillResult obj)
-        //{
-        //    resultsBag.Add(obj);
-        //}
 
         private ListViewItem CreateListItem(DrillResult drillResult)
         {
-
-            int iconToUse = 0;
-
-            if (!extensionIconCache.ContainsKey(drillResult.FullPath))
+            if (!extensionIconCache.TryGetValue(drillResult.FullPath, out int iconToUse))
             {
-                NativeMethods.SHFILEINFO shfi = new NativeMethods.SHFILEINFO();
-                IntPtr himl = NativeMethods.SHGetFileInfo(drillResult.FullPath,
-                                                             0,
-                                                             ref shfi,
-                                                             (uint)Marshal.SizeOf(shfi),
-                                                             NativeMethods.SHGFI_DISPLAYNAME
-                                                               | NativeMethods.SHGFI_SYSICONINDEX
-                                                               | NativeMethods.SHGFI_SMALLICON);
+                NativeMethods.SHFILEINFO shfi = new();
+                _ = NativeMethods.SHGetFileInfo(
+                    drillResult.FullPath,
+                    0,
+                    ref shfi,
+                    (uint)Marshal.SizeOf(shfi),
+                    NativeMethods.SHGFI_DISPLAYNAME | NativeMethods.SHGFI_SYSICONINDEX | NativeMethods.SHGFI_SMALLICON
+                );
 
                 iconToUse = shfi.iIcon;
                 extensionIconCache[drillResult.FullPath] = iconToUse;
             }
 
-            iconToUse = extensionIconCache[drillResult.FullPath];
-            //Empty "sheet of paper" icon
-            //if (!drillResult.IsFolder)
-            //{
+            ListViewItem item = new()
+            {
+                Text = drillResult.Name,
+                ImageIndex = iconToUse,
+                UseItemStyleForSubItems = false
+            };
 
-            //bool valid = false;
-
-            // Check if icon is cached
-            //if (drillResult.Extension == ".exe")
-            //{
-            //    if (!extensionIconCache.ContainsKey(drillResult.FullPath))
-            //    {
-            //        //try
-            //        //{
-
-            //        // If not cached read it and cache it
-            //        NativeMethods.SHFILEINFO shfi = new NativeMethods.SHFILEINFO();
-            //        IntPtr himl = NativeMethods.SHGetFileInfo(drillResult.FullPath,
-            //                                                     0,
-            //                                                     ref shfi,
-            //                                                     (uint)Marshal.SizeOf(shfi),
-            //                                                     NativeMethods.SHGFI_DISPLAYNAME
-            //                                                       | NativeMethods.SHGFI_SYSICONINDEX
-            //                                                       | NativeMethods.SHGFI_SMALLICON);
-
-            //        if (shfi.iIcon > -1)
-            //        {
-            //            extensionIconCache[drillResult.FullPath] = shfi.iIcon;
-
-            //        }
-
-            //    }
-            //    else
-            //    {
-            //        iconToUse = extensionIconCache[drillResult.FullPath];
-            //    }
-            //}
-            //else
-            //{
-            //    if (!extensionIconCache.ContainsKey(drillResult.Extension))
-            //    {
-            //try
-            //{
-
-            // If not cached read it and cache it
-            //NativeMethods.SHFILEINFO shfi = new NativeMethods.SHFILEINFO();
-            //        IntPtr himl = NativeMethods.SHGetFileInfo(drillResult.FullPath,
-            //                                                     0,
-            //                                                     ref shfi,
-            //                                                     (uint)Marshal.SizeOf(shfi),
-            //                                                     NativeMethods.SHGFI_DISPLAYNAME
-            //                                                       | NativeMethods.SHGFI_SYSICONINDEX
-            //                                                       | NativeMethods.SHGFI_LARGEICON);
-
-
-
-            //if (shfi.iIcon > -1)
-            //{
-            //    extensionIconCache[drillResult.Extension] = shfi.iIcon;
-
-            //}
-
-            //}
-            //else
-            //{
-            //iconToUse = extensionIconCache[drillResult.Extension];
-            //}
-            //}
-
-
-
-            // if (valid)
-
-
-
-            //}
-            //else
-            //{
-            //    if (folderIcon == -1)
-            //    {
-            //        NativeMethods.SHFILEINFO shfi = new NativeMethods.SHFILEINFO();
-            //        IntPtr himl = NativeMethods.SHGetFileInfo("C:\\Windows",
-            //                                                     0,
-            //                                                     ref shfi,
-            //                                                     (uint)Marshal.SizeOf(shfi),
-            //                                                     NativeMethods.SHGFI_DISPLAYNAME
-            //                                                       | NativeMethods.SHGFI_SYSICONINDEX
-            //                                                       | NativeMethods.SHGFI_SMALLICON);
-            //        folderIcon = shfi.iIcon;
-
-            //    }
-
-            //    iconToUse = folderIcon;
-            //}
-            
-            var item = new ListViewItem(drillResult.Name, iconToUse);
-            //if (drillResult.Extension == ".exe")
-            //if (drillResult.Filter.GetType().Name.Contains("Exact"))
-            //    item.Font = new Font(item.Font, FontStyle.Bold);
-            item.UseItemStyleForSubItems = false;
-            //item.SubItems.Add(DrillResult.FindReason);
-
-            item.SubItems.Add(drillResult.Path);//, Color.Aqua, Color.White, item.Font);
-
+            item.SubItems.Add(drillResult.Path);
             item.SubItems.Add(drillResult.Size);
-          
-
             item.SubItems.Add(drillResult.Date);
-            
-           //item.SubItems.Add(drillResult.Filter.GetName());
-           item.Tag = drillResult;
+
+            item.Tag = drillResult;
 
             return item;
         }
@@ -249,94 +132,21 @@ namespace WinForms
         {
             try
             {
-
-
-                DrillResult drillResult;
-                //if (virtualCache.ContainsKey(e.ItemIndex))
-                //{
-                //    DrillResult = virtualCache[e.ItemIndex];
-                //}
-                //else
-                //{
-                drillResult = (DrillResult)resultsBag[e.ItemIndex];
-                //    virtualCache[e.ItemIndex] = DrillResult;
-                //}
-
+                DrillResult drillResult = resultsBag[e.ItemIndex];
                 e.Item = CreateListItem(drillResult);
-             
-
             }
-
             catch (Exception fatalError)
             {
                 MessageBox.Show(fatalError.Message);
             }
         }
 
-        private void SetupList()
-        {
-            // Obtain a handle to the system image list.
-            NativeMethods.SHFILEINFO shfi = new NativeMethods.SHFILEINFO();
-            IntPtr hSysImgList = NativeMethods.SHGetFileInfo("",
-                                                             0,
-                                                             ref shfi,
-                                                             (uint)Marshal.SizeOf(shfi),
-                                                             NativeMethods.SHGFI_SYSICONINDEX
-                                                              | NativeMethods.SHGFI_SMALLICON);
-            Debug.Assert(hSysImgList != IntPtr.Zero);  // cross our fingers and hope to succeed!
-
-            // Set the ListView control to use that image list.
-            NativeMethods.SendMessage(fileSearchResults.Handle,
-                                                           NativeMethods.LVM_SETIMAGELIST,
-                                                           NativeMethods.LVSIL_SMALL,
-                                                           hSysImgList);
-
-            // If the ListView control already had an image list, delete the old one.
-
-
-            // Set up the ListView control's basic properties.
-            // Put it in "Details" mode, create a column so that "Details" mode will work,
-            // and set its theme so it will look like the one used by Explorer.
-
-            var screensize = fileSearchResults.Size;
-
-            // Name
-            fileSearchResults.Columns[0].Width = (int)(screensize.Width * 0.5f);
-
-            // Folder
-            fileSearchResults.Columns[1].Width = (int)(screensize.Width * 0.2f);
-
-            // Size
-            fileSearchResults.Columns[2].Width = (int)(screensize.Width * 0.1f);
-            fileSearchResults.Columns[2].TextAlign = HorizontalAlignment.Right;
-
-            // Date
-            fileSearchResults.Columns[3].Width = (int)(screensize.Width * 0.2f);
-
-            // Filter
-            //fileSearchResults.Columns[4].Width = (int)(screensize.Width * 0.15f);
-
-            NativeMethods.SetWindowTheme(fileSearchResults.Handle, "Explorer", null);
-            //fileSearchResults.Columns.Add("Name", 255 + 100);
-            ////searchResults.Columns.Add("Why this result?", 155);
-            //fileSearchResults.Columns.Add("Folder", 255);
-            //fileSearchResults.Columns.Add("Size", 150).TextAlign = HorizontalAlignment.Right;
-            //fileSearchResults.Columns.Add("Date", 150);
-        }
-
-
-
-
-
-
-        int oldResultsCount = 0;
-        bool sortEnabled = false;
 
         private void RefreshVirtualListCountTick(object sender, EventArgs e)
         {
             int resultsCount = resultsBag.Count;
 
-            var results = drillSearch.PopResults(resultsBag.Count < 50 ? 50 : 5);
+            var results = drillSearch.PopResults(5);
             foreach (var item in results)
             {
                 resultsBag.Add(item);
@@ -349,60 +159,20 @@ namespace WinForms
                 resultsBag.Sort();
             }
 
+            // Flash the minimized window icon if new results
+            //if (oldResultsCount != resultsCount && this.WindowState == FormWindowState.Minimized)
+            //    NativeMethods.FlashWindowEx(this);
+
             // Update virtual list count
             fileSearchResults.VirtualListSize = resultsCount;
 
             // Update Search tab with found search results
             // 'if' needed to prevent stupid WinForms flickering
-
-
-            var newText = resultsCount == 0 ? "⚙️ Engine" : "⚙️ Engine(" + resultsCount + ")";
+            var newText = resultsCount == 0 ? menuSearchString : menuSearchString + "(" + resultsCount + ")";
             if (newText != resultsCountToolStripMenuItem.Text)
-                resultsCountToolStripMenuItem.Text = resultsCount == 0 ? "⚙️ Engine" : "⚙️ Engine (" + resultsCount + ")";
+                resultsCountToolStripMenuItem.Text = newText;
 
             exportResultsTocsvToolStripMenuItem.Enabled = resultsCount != 0;
-
-
-            int maxThreads;
-            int none;
-            ThreadPool.GetMaxThreads(out maxThreads, out none);
-            int availableThreads;
-            ThreadPool.GetAvailableThreads(out availableThreads, out none);
-
-            //var crawlersCount = drillContext.GetActiveCrawlersCount();
-            //toolStripThreadsCount.Text = "Threads: " + drillContext.GetActiveCrawlersCount();
-            
-
-            //int originalRoots = drillContext.GetOriginalNumberOfRoots();
-
-            //if (originalRoots != 0)
-            //{
-            //    //toolStripDiskScan.Text = "Disk Scan ("+ (originalRoots-crawlersCount) + "/" + originalRoots + "):";
-            //    toolStripProgressBar1.Value = (int)((((float)originalRoots - (float)crawlersCount) / ((float)originalRoots)) * 100.0f);
-            //}
-
-            //else
-            //{
-            //    //toolStripDiskScan.Text = "Disk Scan:";
-            //    toolStripProgressBar1.Value = 0;
-            //}
-
-
-
-
-
-            //if (resultsCount == 0)
-            //{
-            //    Text = "Drill";
-            //}
-            //else
-            //{
-
-
-            //    if (this.WindowState == FormWindowState.Minimized)
-            //        NativeMethods.FlashWindowEx(this);
-
-            //}
         }
 
 
@@ -417,7 +187,7 @@ namespace WinForms
             {
                 if (fileSearchResults.FocusedItem.Bounds.Contains(e.Location))
                 {
-                   
+
                     contextMenuRightClickFile.Show(Cursor.Position);
 
                 }
@@ -496,19 +266,14 @@ namespace WinForms
         /// </summary>
         private void ResetUI()
         {
-            //drivesToolStripMenuItem1.Enabled = true;
-            //filtersToolStripMenuItem1.Enabled = true;
-            //heuristicsToolStripMenuItem.Enabled = true;
-
             resultsBag.Clear();
+
             // Reset virtual list
             refreshVirtualListTicker.Stop();
             refreshVirtualListTicker.Enabled = false;
             fileSearchResults.VirtualListSize = 0;
-            // Clear only the items, dont use .Clear() because it will destroy the columns as well
-            fileSearchResults.Items.Clear();
-            resultsCountToolStripMenuItem.Text = "⚙️ Engine";
-            oldResultsCount = 0;
+            resultsCountToolStripMenuItem.Text = menuSearchString;
+            oldResultsCount = -1;
         }
 
         #endregion
@@ -522,29 +287,30 @@ namespace WinForms
                 Close();
             }
 
-            // Open first element when pressing Enter
-            if (e.KeyCode == Keys.Enter)
-            {
-                if (fileSearchResults.Items.Count > 0)
-                {
-                    fileSearchResults.FocusedItem = fileSearchResults.Items[0];
-                    Process.Start("explorer.exe", ((DrillResult)fileSearchResults.FocusedItem.Tag).FullPath);
-                }
-            }
+            // FIXME: Open first element when pressing Enter
+            //if (e.KeyCode == Keys.Enter)
+            //{
+            //    if (fileSearchResults.Items.Count > 0)
+            //    {
+            //        fileSearchResults.FocusedItem = fileSearchResults.Items[0];
+            //        Process.Start("explorer.exe", ((DrillResult)fileSearchResults.FocusedItem.Tag).FullPath);
+            //    }
+            //}
 
-            if (e.KeyCode == Keys.Down)
-            {
-                if (fileSearchResults.Items.Count > 0)
-                {
+            // FIXME: can go down with arrow keys no mouse needed
+            //if (e.KeyCode == Keys.Down)
+            //{
+            //    if (fileSearchResults.Items.Count > 0)
+            //    {
 
-                    fileSearchResults.Focus();
-                    var lvi = fileSearchResults.Items[0];
-                    lvi.Focused = true;
-                    //searchResults.FocusedItem = searchResults.Items[0];
-                    //e.SuppressKeyPress = true;
-                    //searchResults.FocusedItem = searchResults.Items[0];
-                }
-            }
+            //        fileSearchResults.Focus();
+            //        var lvi = fileSearchResults.Items[0];
+            //        lvi.Focused = true;
+            //        //searchResults.FocusedItem = searchResults.Items[0];
+            //        //e.SuppressKeyPress = true;
+            //        //searchResults.FocusedItem = searchResults.Items[0];
+            //    }
+            //}
         }
 
 
@@ -565,13 +331,13 @@ namespace WinForms
             public const uint LVSIL_STATE = 2;
             public const uint LVSIL_GROUPHEADER = 3;
 
-            [DllImport("user32")]
+            [DllImport("user32", CharSet = CharSet.Unicode)]
             public static extern IntPtr SendMessage(IntPtr hWnd,
                                                     uint msg,
                                                     uint wParam,
                                                     IntPtr lParam);
 
-            [DllImport("comctl32")]
+            [DllImport("comctl32", CharSet = CharSet.Unicode)]
             public static extern bool ImageList_Destroy(IntPtr hImageList);
 
             public const uint SHGFI_DISPLAYNAME = 0x200;
@@ -592,7 +358,7 @@ namespace WinForms
                 public string szTypeName;
             };
 
-            [DllImport("shell32")]
+            [DllImport("shell32", CharSet = CharSet.Unicode)]
             public static extern IntPtr SHGetFileInfo(string pszPath,
                                                       uint dwFileAttributes,
                                                       ref SHFILEINFO psfi,
@@ -605,7 +371,7 @@ namespace WinForms
                                                     string pszSubIdList);
 
             // To support flashing.
-            [DllImport("user32.dll")]
+            [DllImport("user32.dll", CharSet = CharSet.Unicode)]
             [return: MarshalAs(UnmanagedType.Bool)]
             static extern bool FlashWindowEx(ref FLASHWINFO pwfi);
 
@@ -642,7 +408,7 @@ namespace WinForms
             }
         }
 
-        
+
 
         private void exitToolStripMenuItem_Click(object sender, EventArgs e)
         {
@@ -658,8 +424,8 @@ namespace WinForms
             //heuristicsToolStripMenuItem.Enabled = true;
         }
 
-   
-  
+
+
 
         private void menuStrip_ItemClicked(object sender, ToolStripItemClickedEventArgs e)
         {
@@ -695,7 +461,7 @@ namespace WinForms
 
         private void exportResultsTocsvToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            
+
 
         }
 
@@ -706,46 +472,9 @@ namespace WinForms
 
         private void exportResultsTocsvToolStripMenuItem_Click_1(object sender, EventArgs e)
         {
-            try
-            {
-                SaveFileDialog saveFileDialog = new SaveFileDialog();
-                saveFileDialog.CheckPathExists = true;
-                saveFileDialog.FileName = "export.csv";
 
-                string sfdname = saveFileDialog.FileName;
-                if (saveFileDialog.ShowDialog(this) == DialogResult.OK)
-                {
-                    var path = Path.GetFullPath(saveFileDialog.FileName);
 
-                    string tsv = "Name\tFolder\tSize\tDate\n";
-                    var toExport = resultsBag.Clone();
-                    var arr = ((ArrayList)toExport).ToArray();
 
-                    for (int i = 0; i < arr.Length; i++)
-                    {
-                        try
-                        {
-                            DrillResult dr = (DrillResult)arr[i];
-
-                            tsv += dr.Name + '\t' + dr.Path + '\t' + dr.Size + '\t' + dr.Date + '\n';
-                        }
-                        catch (Exception eee)
-                        {
-                            Trace.TraceError(eee.Message);
-                        }
-                    }
-                   
-                    File.WriteAllText(path, tsv);
-
-                    Process.Start("explorer.exe", "/select,\""+ path + "\"");
-                }
-            }
-            catch (Exception ee)
-            {
-                MessageBox.Show(ee.Message);
-            }
-           
-         
         }
 
         private void aboutToolStripMenuItem_Click(object sender, EventArgs e)
@@ -787,10 +516,8 @@ namespace WinForms
             {
                 // TODO: dispatcher Winforms
             });
-            //drillSearchData = Drill.StartSearch(drillModulesLoadedInUI, , resultsCallback);
 
             searchStringChangedTimer.Stop();
-
         }
 
 
@@ -808,7 +535,71 @@ namespace WinForms
             DrillResult dr = (DrillResult)fileSearchResults.FocusedItem.Tag;
             ShellHelper.OpenAs(this.Handle, dr.FullPath);
         }
+
+        private void exportResultsTocsvToolStripMenuItem_Click_2(object sender, EventArgs e)
+        {
+            try
+            {
+                SaveFileDialog saveFileDialog = new SaveFileDialog();
+                saveFileDialog.CheckPathExists = true;
+                saveFileDialog.FileName = "export.tsv";
+
+                string sfdname = saveFileDialog.FileName;
+                if (saveFileDialog.ShowDialog(this) == DialogResult.OK)
+                {
+                    var path = Path.GetFullPath(saveFileDialog.FileName);
+
+                    string tsv = "Name\tFolder\tSize\tDate\n";
+                    var toExport = resultsBag[..];
+                    var arr = ((List<DrillResult>)toExport).ToArray();
+
+                    for (int i = 0; i < arr.Length; i++)
+                    {
+                        try
+                        {
+                            DrillResult dr = (DrillResult)arr[i];
+
+                            tsv += dr.Name + '\t' + dr.Path + '\t' + dr.Size + '\t' + dr.Date + '\n';
+                        }
+                        catch (Exception eee)
+                        {
+                            Trace.TraceError(eee.Message);
+                        }
+                    }
+
+                    File.WriteAllText(path, tsv);
+
+                    Process.Start("explorer.exe", "/select,\"" + path + "\"");
+                }
+            }
+            catch (Exception ee)
+            {
+                MessageBox.Show(ee.Message);
+            }
+        }
+
+        private void ResultsAutoSizeColumns()
+        {
+            var screensize = fileSearchResults.Size;
+
+            // Name
+            fileSearchResults.Columns[0].Width = (int)(screensize.Width * 0.5f);
+
+            // Folder
+            fileSearchResults.Columns[1].Width = (int)(screensize.Width * 0.2f);
+
+            // Size
+            fileSearchResults.Columns[2].Width = (int)(screensize.Width * 0.1f);
+            fileSearchResults.Columns[2].TextAlign = HorizontalAlignment.Right;
+
+            // Date
+            fileSearchResults.Columns[3].Width = (int)(screensize.Width * 0.2f);
+        }
+
+        private void fileSearchResults_Resize(object sender, EventArgs e)
+        {
+            ResultsAutoSizeColumns();
+        }
     }
 
 }
-//string userName = System.Security.Principal.WindowsIdentity.GetCurrent().Name;
