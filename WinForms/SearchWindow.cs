@@ -237,7 +237,7 @@ namespace WinForms
           
 
             item.SubItems.Add(drillResult.Date);
-            item.SubItems.Add("NO FILTER");
+            
            //item.SubItems.Add(drillResult.Filter.GetName());
            item.Tag = drillResult;
 
@@ -301,20 +301,20 @@ namespace WinForms
             var screensize = fileSearchResults.Size;
 
             // Name
-            fileSearchResults.Columns[0].Width = (int)(screensize.Width * 0.4f);
+            fileSearchResults.Columns[0].Width = (int)(screensize.Width * 0.5f);
 
             // Folder
-            fileSearchResults.Columns[1].Width = (int)(screensize.Width * 0.15f);
+            fileSearchResults.Columns[1].Width = (int)(screensize.Width * 0.2f);
 
             // Size
             fileSearchResults.Columns[2].Width = (int)(screensize.Width * 0.1f);
             fileSearchResults.Columns[2].TextAlign = HorizontalAlignment.Right;
 
             // Date
-            fileSearchResults.Columns[3].Width = (int)(screensize.Width * 0.15f);
+            fileSearchResults.Columns[3].Width = (int)(screensize.Width * 0.2f);
 
             // Filter
-            fileSearchResults.Columns[4].Width = (int)(screensize.Width * 0.15f);
+            //fileSearchResults.Columns[4].Width = (int)(screensize.Width * 0.15f);
 
             NativeMethods.SetWindowTheme(fileSearchResults.Handle, "Explorer", null);
             //fileSearchResults.Columns.Add("Name", 255 + 100);
@@ -496,9 +496,9 @@ namespace WinForms
         /// </summary>
         private void ResetUI()
         {
-            drivesToolStripMenuItem1.Enabled = true;
-            filtersToolStripMenuItem1.Enabled = true;
-            heuristicsToolStripMenuItem.Enabled = true;
+            //drivesToolStripMenuItem1.Enabled = true;
+            //filtersToolStripMenuItem1.Enabled = true;
+            //heuristicsToolStripMenuItem.Enabled = true;
 
             resultsBag.Clear();
             // Reset virtual list
@@ -653,9 +653,9 @@ namespace WinForms
         private void stopToolStripMenuItem_Click(object sender, EventArgs e)
         {
             drillSearch.Stop();
-            drivesToolStripMenuItem1.Enabled = true;
-            filtersToolStripMenuItem1.Enabled = true;
-            heuristicsToolStripMenuItem.Enabled = true;
+            //drivesToolStripMenuItem1.Enabled = true;
+            //filtersToolStripMenuItem1.Enabled = true;
+            //heuristicsToolStripMenuItem.Enabled = true;
         }
 
    
@@ -775,9 +775,9 @@ namespace WinForms
             refreshVirtualListTicker.Interval = 10;
             refreshVirtualListTicker.Start();
 
-            drivesToolStripMenuItem1.Enabled = false;
-            filtersToolStripMenuItem1.Enabled = false;
-            heuristicsToolStripMenuItem.Enabled = false;
+            //drivesToolStripMenuItem1.Enabled = false;
+            //filtersToolStripMenuItem1.Enabled = false;
+            //heuristicsToolStripMenuItem.Enabled = false;
 
             var searchString = fileSearchInput.Text.Trim();
 

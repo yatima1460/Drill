@@ -1,7 +1,12 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="Current" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <PropertyGroup />
+  <PropertyGroup>
+    <_LastSelectedProfileId>C:\Users\yatima\Documents\GitHub\Drill\WinForms\Properties\PublishProfiles\FolderProfile.pubxml</_LastSelectedProfileId>
+  </PropertyGroup>
   <ItemGroup>
+    <Compile Update="Drill.cs">
+      <SubType>Form</SubType>
+    </Compile>
     <Compile Update="Menus\AboutForm.cs">
       <SubType>Form</SubType>
     </Compile>
