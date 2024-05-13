@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace Drill.Core
 {
-    internal static class StringUtils
+    public static class StringUtils
     {
 
         internal static readonly Dictionary<Tuple<string, string>, bool> tokenCache = [];
