@@ -270,7 +270,6 @@ namespace Drill.Core
 
         public void Stop()
         {
-            cancellationTokenSource.Token.ThrowIfCancellationRequested();
             cancellationTokenSource.Cancel();
             if (scan != null)
             {

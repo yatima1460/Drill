@@ -7,6 +7,7 @@ using System.Diagnostics;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using WinForms.Menus;
+using Drill.Core;
 
 namespace WinForms
 {
@@ -18,8 +19,8 @@ namespace WinForms
         }
 
 
-        
-        
+
+
         // Global state for the UI
 
         /// <summary>
@@ -32,6 +33,7 @@ namespace WinForms
         /// By default an empty struct is created
         /// </summary>
         //private Drill.SearchContext drillSearchData = new Drill.SearchContext();
+        Search drillSearch = new("");
 
         /// <summary>
         /// Array storing the results found by the Drill threads
@@ -102,10 +104,10 @@ namespace WinForms
             SetupList();
         }
 
-        private void resultsCallback(DrillResult obj)
-        {
-            resultsBag.Add(obj);
-        }
+        //private void resultsCallback(DrillResult obj)
+        //{
+        //    resultsBag.Add(obj);
+        //}
 
         private ListViewItem CreateListItem(DrillResult drillResult)
         {
@@ -222,21 +224,19 @@ namespace WinForms
             //    iconToUse = folderIcon;
             //}
             
-            var item = new ListViewItem(drillResult.BaseName, iconToUse);
+            var item = new ListViewItem(drillResult.Name, iconToUse);
             //if (drillResult.Extension == ".exe")
             //if (drillResult.Filter.GetType().Name.Contains("Exact"))
             //    item.Font = new Font(item.Font, FontStyle.Bold);
             item.UseItemStyleForSubItems = false;
             //item.SubItems.Add(DrillResult.FindReason);
 
-            item.SubItems.Add(drillResult.ContainingFolder);//, Color.Aqua, Color.White, item.Font);
+            item.SubItems.Add(drillResult.Path);//, Color.Aqua, Color.White, item.Font);
 
-            if (!drillResult.IsFolder)
-                item.SubItems.Add(StringUtils.BytesToString(drillResult.Size));
-            else
-                item.SubItems.Add("");
+            item.SubItems.Add(drillResult.Size);
+          
 
-            item.SubItems.Add(drillResult.LastWriteTime.ToString());
+            item.SubItems.Add(drillResult.Date);
             item.SubItems.Add("NO FILTER");
            //item.SubItems.Add(drillResult.Filter.GetName());
            item.Tag = drillResult;
@@ -336,6 +336,12 @@ namespace WinForms
         {
             int resultsCount = resultsBag.Count;
 
+            var results = drillSearch.PopResults(resultsBag.Count < 50 ? 50 : 5);
+            foreach (var item in results)
+            {
+                resultsBag.Add(item);
+            }
+
             // Sort only if results count changed or enabled
             if (sortEnabled && oldResultsCount != resultsCount)
             {
@@ -402,7 +408,7 @@ namespace WinForms
 
         private void Window_Closing(object sender, FormClosingEventArgs e)
         {
-            Drill.StopAsync(drillSearchData.crawlers);
+            drillSearch.Stop();
         }
 
         private void searchResults_MouseClick(object sender, MouseEventArgs e)
@@ -449,13 +455,13 @@ namespace WinForms
 
         private void copySize(object sender, EventArgs e)
         {
-            Clipboard.SetText(StringUtils.BytesToString(((DrillResult)fileSearchResults.FocusedItem.Tag).Size));
+            Clipboard.SetText(((DrillResult)fileSearchResults.FocusedItem.Tag).Size);
         }
 
 
         private void copyModifiedDate(object sender, EventArgs e)
         {
-            Clipboard.SetText(((DrillResult)fileSearchResults.FocusedItem.Tag).LastWriteTime.ToString());
+            Clipboard.SetText(((DrillResult)fileSearchResults.FocusedItem.Tag).Date);
         }
 
         private void copyFullPath(object sender, EventArgs e)
@@ -472,17 +478,17 @@ namespace WinForms
 
         private void copyName(object sender, EventArgs e)
         {
-            Clipboard.SetText(((DrillResult)fileSearchResults.FocusedItem.Tag).BaseName.Split(".")[0]);
+            Clipboard.SetText(((DrillResult)fileSearchResults.FocusedItem.Tag).Name.Split(".")[0]);
         }
 
         private void copyNameWithExtension(object sender, EventArgs e)
         {
-            Clipboard.SetText(((DrillResult)fileSearchResults.FocusedItem.Tag).BaseName);
+            Clipboard.SetText(((DrillResult)fileSearchResults.FocusedItem.Tag).Name);
         }
 
         private void copyContainingFolderFullPath(object sender, EventArgs e)
         {
-            Clipboard.SetText(((DrillResult)fileSearchResults.FocusedItem.Tag).ContainingFolder);
+            Clipboard.SetText(((DrillResult)fileSearchResults.FocusedItem.Tag).Path);
         }
 
         /// <summary>
@@ -512,7 +518,7 @@ namespace WinForms
             // Exit when pressing ESC
             if (e.KeyCode == Keys.Escape)
             {
-                Drill.StopAsync(drillSearchData.crawlers);
+                drillSearch.Stop();
                 Close();
             }
 
@@ -640,13 +646,13 @@ namespace WinForms
 
         private void exitToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            Drill.StopAsync(drillSearchData.crawlers);
+            drillSearch.Stop();
             Close();
         }
 
         private void stopToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            Drill.StopAsync(drillSearchData.crawlers);
+            drillSearch.Stop();
             drivesToolStripMenuItem1.Enabled = true;
             filtersToolStripMenuItem1.Enabled = true;
             heuristicsToolStripMenuItem.Enabled = true;
@@ -663,23 +669,23 @@ namespace WinForms
 
         private void drivesToolStripMenuItem1_Click(object sender, EventArgs e)
         {
-            var d = new RootsForm(drillModulesLoadedInUI.drives);
-            d.Text = drivesToolStripMenuItem1.Text;
-            d.ShowDialog(this);
+            //var d = new RootsForm(drillModulesLoadedInUI.drives);
+            //d.Text = drivesToolStripMenuItem1.Text;
+            //d.ShowDialog(this);
         }
 
         private void filtersToolStripMenuItem1_Click(object sender, EventArgs e)
         {
-            var f = new FiltersForm(drillModulesLoadedInUI.filters);
-            f.Text = filtersToolStripMenuItem1.Text;
-            f.ShowDialog(this);
+            //var f = new FiltersForm(drillModulesLoadedInUI.filters);
+            //f.Text = filtersToolStripMenuItem1.Text;
+            //f.ShowDialog(this);
         }
 
         private void heuristicsToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            var h = new HeuristicsForm(drillModulesLoadedInUI.heuristics);
-            h.Text = heuristicsToolStripMenuItem.Text;
-            h.ShowDialog(this);
+            //var h = new HeuristicsForm(drillModulesLoadedInUI.heuristics);
+            //h.Text = heuristicsToolStripMenuItem.Text;
+            //h.ShowDialog(this);
         }
 
         private void fileSearchResults_SelectedIndexChanged_1(object sender, EventArgs e)
@@ -721,7 +727,7 @@ namespace WinForms
                         {
                             DrillResult dr = (DrillResult)arr[i];
 
-                            tsv += dr.BaseName + '\t' + dr.ContainingFolder + '\t' + dr.Size + '\t' + dr.LastWriteTime + '\n';
+                            tsv += dr.Name + '\t' + dr.Path + '\t' + dr.Size + '\t' + dr.Date + '\n';
                         }
                         catch (Exception eee)
                         {
@@ -755,7 +761,7 @@ namespace WinForms
 
         private void searchStringChangedTimer_Tick(object sender, EventArgs e)
         {
-            Drill.StopAsync(drillSearchData.crawlers);
+            drillSearch.Stop();
             ResetUI();
 
             // If user deletes all text in the search box there is nothing else to do
@@ -773,8 +779,15 @@ namespace WinForms
             filtersToolStripMenuItem1.Enabled = false;
             heuristicsToolStripMenuItem.Enabled = false;
 
+            var searchString = fileSearchInput.Text.Trim();
+
             // Start the backend search
-            drillSearchData = Drill.StartSearch(drillModulesLoadedInUI, fileSearchInput.Text.Trim(), resultsCallback);
+            drillSearch = new Search(searchString);
+            drillSearch.StartAsync((x) =>
+            {
+                // TODO: dispatcher Winforms
+            });
+            //drillSearchData = Drill.StartSearch(drillModulesLoadedInUI, , resultsCallback);
 
             searchStringChangedTimer.Stop();
 
