@@ -1,10 +1,9 @@
 ﻿
 
 
-using Microsoft.UI.Xaml.Controls;
+
 using System.Collections.Concurrent;
 using System.Diagnostics;
-using System.Threading;
 
 namespace Drill.Core
 {

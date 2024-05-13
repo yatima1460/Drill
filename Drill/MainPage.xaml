@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8" ?>
-<ContentPage Title="{Binding Path=BindingContext.Progress, Source={x:Reference UI_Results}}" xmlns:dataTypes="clr-namespace:Drill.Core" xmlns:coll="clr-namespace:Drill" Shell.FlyoutBehavior="Disabled" Shell.NavBarIsVisible="False" xmlns="http://schemas.microsoft.com/dotnet/2021/maui" xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml" x:Class="Drill.MainPage">
+<ContentPage Title="{Binding Path=BindingContext.Progress, Source={x:Reference UI_Results}}" xmlns:dataTypes="clr-namespace:Drill.Core;assembly=Core" xmlns:coll="clr-namespace:Drill" Shell.FlyoutBehavior="Disabled" Shell.NavBarIsVisible="False" xmlns="http://schemas.microsoft.com/dotnet/2021/maui" xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml" x:Class="Drill.MainPage">
     <Grid RowDefinitions="Auto,Auto,Auto,*" ColumnDefinitions="*">
         <Entry Grid.Row="0" x:Name = "UI_Search" Placeholder = "Search Everywhere" TextChanged="OnTextChanged" IsTextPredictionEnabled="False" />
         <Grid Grid.Row="1" ColumnDefinitions="0.025*,0.475*,0.2*,0.2*,0.1*" RowDefinitions="*">

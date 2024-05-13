@@ -2,8 +2,10 @@
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace Drill.Core
 {
@@ -16,20 +18,21 @@ namespace Drill.Core
 
         static Heuristics()
         {
-
-            HashSet<string> dictMut = new();
-            using var stream = FileSystem.OpenAppPackageFileAsync("words_alpha.txt").Result;
-            using var reader = new StreamReader(stream);
-
-            var contents = reader.ReadToEnd();
-
-            foreach (var item in contents.Split("\r\n"))
+            string? path = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+            if (path == null)
             {
-                dictMut.Add(item);
+                Console.WriteLine("Executing assembly path is null???");
+                dict = [];
+                return;
             }
-            reader.Close();
-            stream.Close();
-            dict = dictMut.ToImmutableHashSet<string>();
+            var DictPath = Path.Combine(path, "words_alpha.txt");
+            if (!File.Exists(DictPath))
+            {
+                Console.WriteLine("Can't find words dictionary");
+                dict = [];
+                return;
+            }
+            dict = [.. File.ReadAllLines(DictPath)];
         }
 
 
