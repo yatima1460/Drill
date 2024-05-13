@@ -59,8 +59,8 @@
             columnHeader4 = new ColumnHeader();
             columnHeader5 = new ColumnHeader();
             columnHeader6 = new ColumnHeader();
-            searchStringChangedTimer = new System.Windows.Forms.Timer(components);
             tableLayoutPanel1 = new TableLayoutPanel();
+            searchStringChangedTimer = new System.Windows.Forms.Timer(components);
             contextMenuRightClickFile.SuspendLayout();
             menuStrip.SuspendLayout();
             tableLayoutPanel1.SuspendLayout();
@@ -285,11 +285,6 @@
             columnHeader6.Text = "Date";
             columnHeader6.Width = 150;
             // 
-            // searchStringChangedTimer
-            // 
-            searchStringChangedTimer.Interval = 250;
-            searchStringChangedTimer.Tick += searchStringChangedTimer_Tick;
-            // 
             // tableLayoutPanel1
             // 
             tableLayoutPanel1.ColumnCount = 1;
@@ -304,6 +299,11 @@
             tableLayoutPanel1.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
             tableLayoutPanel1.Size = new Size(1608, 706);
             tableLayoutPanel1.TabIndex = 7;
+            // 
+            // searchStringChangedTimer
+            // 
+            searchStringChangedTimer.Interval = 250;
+            searchStringChangedTimer.Tick += searchStringChangedTimer_Tick;
             // 
             // SearchWindow
             // 
@@ -361,7 +361,7 @@
         private ToolStripMenuItem exportResultsTocsvToolStripMenuItem;
         private ToolStripMenuItem toolStripMenuItem1;
         private ToolStripMenuItem debugToolStripMenuItem;
-        private System.Windows.Forms.Timer searchStringChangedTimer;
         private TableLayoutPanel tableLayoutPanel1;
+        private System.Windows.Forms.Timer searchStringChangedTimer;
     }
 }

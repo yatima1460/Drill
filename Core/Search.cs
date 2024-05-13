@@ -41,146 +41,131 @@ namespace Drill.Core
 
         public void StartAsync(in FatalErrorCallback errorHandler)
         {
+            if (scan != null)
+            {
+                throw new Exception("Drill already scanning");
+            }
 
+            if (searchString == string.Empty)
+            {
+                return;
+            }
+
+            directoriesToExplore.Add(Environment.SpecialFolder.UserProfile);
+            directoriesToExplore.Add(Environment.SpecialFolder.Recent);
+            directoriesToExplore.Add(Environment.SpecialFolder.MyMusic);
+            directoriesToExplore.Add(Environment.SpecialFolder.ProgramFiles);
+            directoriesToExplore.Add(Environment.SpecialFolder.ProgramFilesX86);
+            directoriesToExplore.Add(Environment.SpecialFolder.Desktop);
+            directoriesToExplore.Add(Environment.SpecialFolder.MyDocuments);
+            directoriesToExplore.Add(Environment.SpecialFolder.MyVideos);
+            directoriesToExplore.Add($"C:\\Users\\{UserName}\\Downloads");
+            directoriesToExplore.Add($"/Users/{UserName}/Library/Mobile Documents/com~apple~CloudDocs/");
+
+
+            DriveInfo[] allDrives = [];
             try
             {
-                // THIS IS HEAVY CALL WIN32 CACHE IT
-                string UserName = Environment.UserName;
-
-                if (scan != null)
-                {
-                    throw new Exception("Crawlers already scanning");
-                }
-
-                // If the search string is empty do nothing
-                if (searchString == string.Empty)
-                {
-                    return;
-                }
-
-
-
-
-
-
-                directoriesToExplore.Add(Environment.SpecialFolder.UserProfile);
-                directoriesToExplore.Add(Environment.SpecialFolder.Recent);
-                directoriesToExplore.Add(Environment.SpecialFolder.MyMusic);
-                directoriesToExplore.Add(Environment.SpecialFolder.ProgramFiles);
-                directoriesToExplore.Add(Environment.SpecialFolder.ProgramFilesX86);
-                directoriesToExplore.Add(Environment.SpecialFolder.Desktop);
-                directoriesToExplore.Add(Environment.SpecialFolder.MyDocuments);
-                directoriesToExplore.Add(Environment.SpecialFolder.MyVideos);
-                directoriesToExplore.Add($"C:\\Users\\{UserName}\\Downloads");
-                //directoriesToExplore.Add($"C:\\Users\\{UserName}\\AppData");
-                directoriesToExplore.Add($"/Users/{UserName}/Library/Mobile Documents/com~apple~CloudDocs/");
-
-
-                DriveInfo[] allDrives = [];
-                try
-                {
-                    allDrives = DriveInfo.GetDrives();
-                }
-                catch (Exception e)
-                {
-#if DEBUG
-                    Debug.Print(e.Message);
-#endif
-                }
-
-                foreach (DriveInfo d in allDrives)
-                {
-                    if (d.IsReady == true && d.RootDirectory.Exists)
-                    {
-                        directoriesToExplore.Add(d.RootDirectory);
-                    }
-                }
-
-                scan = new Task(() =>
-                {
-                    while (!cancellationTokenSource.IsCancellationRequested && directoriesToExplore.PopHighestPriority(out DirectoryInfo? rootFolderInfo))
-                    {
-                   
-                   
-
-                        //#if DEBUG
-                        //                        if (debugExploredDirs.Count < 1000)
-                        //                        {
-                        //                            debugExploredDirs.Add(rootFolderInfo);
-                        //                        }
-                        //                        else if (!dumpExecuted)
-                        //                        {
-
-                        //                            List<string> lines = [];
-                        //                            foreach (var item in debugExploredDirs)
-                        //                            {
-                        //                                lines.Add(SearchQueue.GetDirectoryPriority(item, searchString) + "," + item.FullName);
-                        //                            }
-
-
-                        //                            File.WriteAllLines(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), $"Drill-explored-{searchString}.txt"), lines);
-
-                        //                            dumpExecuted = true;
-                        //                        }
-
-                        //#endif
-
-                        FileSystemInfo[] fsi = DiskRead.SafeGetFileSystemInfosInDirectory(rootFolderInfo);
-                        subDirectoriesCountCache.Add(rootFolderInfo.FullName, fsi.Length);
-                        List<FileInfo> filesList = new(fsi.Length);
-                        List<DirectoryInfo> directoriesList = new(fsi.Length);
-                        foreach (var item in fsi)
-                        {
-                            if (cancellationTokenSource.IsCancellationRequested)
-                                break;
-                            if ((item.Attributes & FileAttributes.Directory) == FileAttributes.Directory)
-                            {
-                                directoriesList.Add((DirectoryInfo)item);
-                               
-
-                            }
-                            else
-                            {
-                                filesList.Add((FileInfo)item);
-                            }
-                        }
-
-                        foreach (var item in GenerateDrillResults(rootFolderInfo, directoriesList.ToArray(), searchString, cancellationTokenSource.Token))
-                        {
-                            if (cancellationTokenSource.IsCancellationRequested)
-                                break;
-                            ParallelResults.Enqueue(item);
-                        }
-
-                        foreach (var item in GenerateDrillResults(rootFolderInfo, filesList.ToArray(), searchString, cancellationTokenSource.Token))
-                        {
-                            if (cancellationTokenSource.IsCancellationRequested)
-                                break;
-                            ParallelResults.Enqueue(item);
-                        }
-
-
-                        foreach (DirectoryInfo item in directoriesList)
-                        {
-                            if (cancellationTokenSource.IsCancellationRequested)
-                                break;
-                            // We don't follow symlinks
-                            if ((item.Attributes & FileAttributes.ReparsePoint) != FileAttributes.ReparsePoint)
-                                directoriesToExplore.Add(item);
-                        }
-                    }
-                });
-                scan.Start();
-
+                allDrives = DriveInfo.GetDrives();
             }
             catch (Exception e)
             {
-                Stop();
 #if DEBUG
-                Debug.Print(e.Message);
+                    Debug.Print(e.Message);
 #endif
-                errorHandler(e);
             }
+
+            foreach (DriveInfo d in allDrives)
+            {
+                if (cancellationTokenSource.IsCancellationRequested)
+                    return;
+                if (d.IsReady == true && d.RootDirectory.Exists)
+                {
+                    directoriesToExplore.Add(d.RootDirectory);
+                }
+            }
+
+            scan = new Task(() =>
+            {
+                while (directoriesToExplore.PopHighestPriority(out DirectoryInfo? rootFolderInfo))
+                {
+
+                    if (cancellationTokenSource.IsCancellationRequested)
+                        return;
+
+                    //#if DEBUG
+                    //                        if (debugExploredDirs.Count < 1000)
+                    //                        {
+                    //                            debugExploredDirs.Add(rootFolderInfo);
+                    //                        }
+                    //                        else if (!dumpExecuted)
+                    //                        {
+
+                    //                            List<string> lines = [];
+                    //                            foreach (var item in debugExploredDirs)
+                    //                            {
+                    //                                lines.Add(SearchQueue.GetDirectoryPriority(item, searchString) + "," + item.FullName);
+                    //                            }
+
+
+                    //                            File.WriteAllLines(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), $"Drill-explored-{searchString}.txt"), lines);
+
+                    //                            dumpExecuted = true;
+                    //                        }
+
+                    //#endif
+
+                    FileSystemInfo[] fsi = DiskRead.SafeGetFileSystemInfosInDirectory(rootFolderInfo);
+                    subDirectoriesCountCache.Add(rootFolderInfo.FullName, fsi.Length);
+                    List<FileInfo> filesList = new(fsi.Length);
+                    List<DirectoryInfo> directoriesList = new(fsi.Length);
+                    foreach (var item in fsi)
+                    {
+                        if (cancellationTokenSource.IsCancellationRequested)
+                            return;
+
+                        if ((item.Attributes & FileAttributes.Directory) == FileAttributes.Directory)
+                        {
+                            directoriesList.Add((DirectoryInfo)item);
+
+
+                        }
+                        else
+                        {
+                            filesList.Add((FileInfo)item);
+                        }
+                    }
+
+                    foreach (var item in GenerateDrillResults(rootFolderInfo, directoriesList.ToArray(), searchString, cancellationTokenSource.Token))
+                    {
+                        if (cancellationTokenSource.IsCancellationRequested)
+                            return;
+
+                        ParallelResults.Enqueue(item);
+                    }
+
+                    foreach (var item in GenerateDrillResults(rootFolderInfo, filesList.ToArray(), searchString, cancellationTokenSource.Token))
+                    {
+                        if (cancellationTokenSource.IsCancellationRequested)
+                            return;
+
+                        ParallelResults.Enqueue(item);
+                    }
+
+
+                    foreach (DirectoryInfo item in directoriesList)
+                    {
+                        if (cancellationTokenSource.IsCancellationRequested)
+                            return;
+
+                        // We don't follow symlinks
+                        if ((item.Attributes & FileAttributes.ReparsePoint) != FileAttributes.ReparsePoint)
+                            directoriesToExplore.Add(item);
+                    }
+                }
+            });
+            scan.Start();
+
         }
 
         readonly Dictionary<string, int> subDirectoriesCountCache = new();
@@ -198,10 +183,11 @@ namespace Drill.Core
 
 
 
-            List<DrillResult> results = new();
+            List<DrillResult> results = [];
             foreach (DirectoryInfo sub in directories)
             {
-                if (cancellationToken.IsCancellationRequested) break;
+                if (cancellationToken.IsCancellationRequested) 
+                    return [];
                 // TODO move to Platforms
                 if (
                     sub.FullName == $"/Users/{UserName}/Pictures/Photos Library.photoslibrary" ||
@@ -255,7 +241,8 @@ namespace Drill.Core
 
             foreach (FileInfo file in subs)
             {
-                if (cancellationToken.IsCancellationRequested) break;
+                if (cancellationToken.IsCancellationRequested) 
+                    return [];
                 if (StringUtils.TokenMatching(searchString, file.Name))
                 {
                     // Better to create the DrillResult on the backend than the UI thread to not stall it
@@ -279,28 +266,31 @@ namespace Drill.Core
 
 
 
-        public void Stop()
+        public AggregateException? Stop()
         {
             cancellationTokenSource.Cancel();
             if (scan != null)
             {
                 scan.Wait();
+                var e = scan.Exception;
                 scan.Dispose();
                 scan = null;
+                return e;
             }
             ParallelResults.Clear();
+            return null;
         }
 
         public List<DrillResult> PopResults(in int count)
         {
-            if (cancellationTokenSource.Token.IsCancellationRequested)
-            {
-                return [];
-            }
             int minSize = Math.Min(count, ParallelResults.Count);
             List<DrillResult> results = new(minSize);
             for (int i = 0; i < minSize; i++)
             {
+                if (cancellationTokenSource.Token.IsCancellationRequested)
+                {
+                    return [];
+                }
                 if (ParallelResults.TryDequeue(out DrillResult result))
                 {
                     results.Add(result);

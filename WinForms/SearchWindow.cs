@@ -178,7 +178,9 @@ namespace WinForms
 
         private void Window_Closing(object sender, FormClosingEventArgs e)
         {
-            drillSearch.Stop();
+            var ee = drillSearch.Stop();
+            if (ee != null)
+                MessageBox.Show(ee.Message);
         }
 
         private void searchResults_MouseClick(object sender, MouseEventArgs e)
@@ -433,35 +435,9 @@ namespace WinForms
         }
 
 
-        private void drivesToolStripMenuItem1_Click(object sender, EventArgs e)
-        {
-            //var d = new RootsForm(drillModulesLoadedInUI.drives);
-            //d.Text = drivesToolStripMenuItem1.Text;
-            //d.ShowDialog(this);
-        }
-
-        private void filtersToolStripMenuItem1_Click(object sender, EventArgs e)
-        {
-            //var f = new FiltersForm(drillModulesLoadedInUI.filters);
-            //f.Text = filtersToolStripMenuItem1.Text;
-            //f.ShowDialog(this);
-        }
-
-        private void heuristicsToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            //var h = new HeuristicsForm(drillModulesLoadedInUI.heuristics);
-            //h.Text = heuristicsToolStripMenuItem.Text;
-            //h.ShowDialog(this);
-        }
 
         private void fileSearchResults_SelectedIndexChanged_1(object sender, EventArgs e)
         {
-
-        }
-
-        private void exportResultsTocsvToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-
 
         }
 
@@ -470,12 +446,6 @@ namespace WinForms
             sortEnabled = autoSortingToolStripMenuItem.Checked;
         }
 
-        private void exportResultsTocsvToolStripMenuItem_Click_1(object sender, EventArgs e)
-        {
-
-
-
-        }
 
         private void aboutToolStripMenuItem_Click(object sender, EventArgs e)
         {
@@ -516,7 +486,6 @@ namespace WinForms
             {
                 // TODO: dispatcher Winforms
             });
-
             searchStringChangedTimer.Stop();
         }
 

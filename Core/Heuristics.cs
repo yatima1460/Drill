@@ -1,10 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
+using System.Xml.Linq;
 using static System.Net.Mime.MediaTypeNames;
 
 namespace Drill.Core
@@ -37,57 +39,57 @@ namespace Drill.Core
 
 
 
-        public static SearchPriority GetDirectoryPriority(in DirectoryInfo sub, in string searchString)
+        public static HeuristicsDirectoryPriority GetDirectoryPriority(in DirectoryInfo sub, in string searchString)
         {
-            // all main drives are very important besides C:
+            // All main drives are very important besides C:
             if (sub.Parent == null)
             {
-                // all folders in C: are generally useless
+                // all folders in C: are generally system related
                 if (sub.FullName == "C:\\")
-                    return SearchPriority.Low;
-                return SearchPriority.Highest;
+                    return HeuristicsDirectoryPriority.SystemOrHiddenOrToolRelated;
+                // Other drives are for sure used by humans
+                return HeuristicsDirectoryPriority.UsedByAHuman;
             }
 
-            if (sub.FullName == $"/Users/{UserName}/Library/Mobile Documents/com~apple~CloudDocs/")
+            if (sub.Name == "node_modules"
+            || (sub.Attributes & FileAttributes.Temporary) == FileAttributes.Temporary
+            || sub.Name.Equals("cache", StringComparison.CurrentCultureIgnoreCase)
+            || sub.Name.Equals("tmp", StringComparison.CurrentCultureIgnoreCase)
+             || sub.Name.Equals("temp", StringComparison.CurrentCultureIgnoreCase)
+             // If the folder is deep inside an hidden folder  
+             || sub.FullName.Contains(Path.DirectorySeparatorChar + ".")
+            )
             {
-                return SearchPriority.Highest;
-            }
-
-            if (sub.FullName.ToLower() == "node_modules"
-                            || (sub.Attributes & FileAttributes.Temporary) == FileAttributes.Temporary
-                )
-            {
-                return SearchPriority.Lowest;
+                return HeuristicsDirectoryPriority.TemporaryOrCache;
             }
 
 
-            if (
-                // all hidden folders
-                sub.Name.StartsWith(".")
-            || (sub.Attributes & FileAttributes.Hidden) == FileAttributes.Hidden
+            if ((sub.Attributes & FileAttributes.Hidden) == FileAttributes.Hidden
             // strange system folders
             || (sub.Attributes & FileAttributes.System) == FileAttributes.System
-
+              // all hidden folders 
+              || sub.Name.StartsWith(".")
             // Windows is a no-no
             || sub.FullName.StartsWith("C:\\Windows")
-            // very bad stuff
-            || sub.FullName.ToLower() == "cache"
             // often full of garbage
             || sub.FullName.StartsWith($"C:\\Users\\{UserName}\\AppData")
-            // If the folder is deep inside an hidden folder
             || sub.FullName.Contains(Path.DirectorySeparatorChar + ".")
             )
             {
-                return SearchPriority.Low;
+                return HeuristicsDirectoryPriority.SystemOrHiddenOrToolRelated;
             }
 
+           
 
+            if (sub.FullName == $"/Users/{UserName}/Library/Mobile Documents/com~apple~CloudDocs/")
+            {
+                return HeuristicsDirectoryPriority.UsedByAHuman;
+            }
 
-
-            // Cutoff: if the folder is very deep it's normal priority and never high
+            // Cutoff: if the folder is very deep it's unknown priority and never high
             if (sub.FullName.Split(Path.DirectorySeparatorChar, StringSplitOptions.RemoveEmptyEntries).Length > 6)
             {
-                return SearchPriority.Normal;
+                return HeuristicsDirectoryPriority.Unknown;
             }
 
             if (
@@ -95,52 +97,46 @@ namespace Drill.Core
                StringUtils.TokenMatching(searchString, sub.Name))
 
             {
-                return SearchPriority.Highest;
+                return HeuristicsDirectoryPriority.PossiblyCreatedByAHuman;
             }
+
+         
+            
 
             if (
              // user folder
              sub.FullName == $"C:\\Users\\{UserName}"
              // all folders in the user folder
              || sub.Parent != null && sub.Parent.FullName == $"C:\\Users\\{UserName}"
-             // english dictionary
-             || ContainsCommonWords(sub.Name)
-
+             // If folder contains the username it's generally very important
+             || sub.Name.ToLower().Contains(UserName.ToLower())
+            // If folder is inside a folder with the username it's generally very important
+             || sub.Parent.Name.ToLower().Contains(UserName.ToLower())
             )
             {
-                return SearchPriority.High;
+                return HeuristicsDirectoryPriority.UsedByAHuman;
             }
 
-            // If folder contains the username it's generally very important
-            if (sub.Name.ToLower().Contains(UserName.ToLower()))
-            {
-                return SearchPriority.High;
-            }
 
             // If name is long and does not contain spaces or separating characters it's generally something from a tool
             if (sub.Name.Length > 16 && !sub.Name.Contains('-') && !sub.Name.Contains(' ') && !sub.Name.Contains('_'))
             {
-                return SearchPriority.Low;
+                return HeuristicsDirectoryPriority.SystemOrHiddenOrToolRelated;
+            }
+
+            // english dictionary
+            foreach (string wordInTheFullPath in sub.FullName.ToLower().Split(separator: (char[])[Path.DirectorySeparatorChar, ' ','-','_'], options: StringSplitOptions.RemoveEmptyEntries))
+            {
+                if (dict.Contains(wordInTheFullPath)) return HeuristicsDirectoryPriority.PossiblyCreatedByAHuman;
             }
 
             // Priority is normal if heuristics has no idea what to do
 #if DEBUG
-            // TODO: log here 
+            Debug.WriteLine("Unknown Priority: " + sub.FullName);
 #endif
-            return SearchPriority.Normal;
+            return HeuristicsDirectoryPriority.Unknown;
         }
 
-     
-
-        private static bool ContainsCommonWords(in string name)
-        {
-            var s = name.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-            foreach (var item in s)
-            {
-                if (dict.Contains(item.ToLower())) return true;
-            }
-            return false;
-        }
 
     }
 }

@@ -1,66 +1,41 @@
 ﻿
 
+using System.Diagnostics;
+
 namespace Drill.Core
 {
     internal class SearchQueue
     {
-
-
-
-        readonly Dictionary<SearchPriority, Queue<DirectoryInfo>> _priorityQueue = [];
-
-
+        readonly Dictionary<HeuristicsDirectoryPriority, Queue<DirectoryInfo>> priorityQueue = [];
         readonly string searchString;
-        HashSet<string> visited = [];
-
-    
+        readonly HashSet<string> visited = [];
 
         public SearchQueue(in string searchString)
         {
             this.searchString = searchString;
-            foreach (SearchPriority item in Enum.GetValues(typeof(SearchPriority)))
+            foreach (HeuristicsDirectoryPriority item in Enum.GetValues(typeof(HeuristicsDirectoryPriority)))
             {
-                _priorityQueue[item] = new(1000);
+                priorityQueue[item] = new(1000);
             }
         }
 
-
-     
-
-
-        //public DirectoryInfo this[int index] 
-        //{ 
-        //    get => _directories[index]; 
-        //    set => _directories[index] = value; 
-        //}
-
-
-
-
-
-
-
-
         public void Clear()
         {
-            _priorityQueue.Clear();
+            priorityQueue.Clear();
             visited.Clear();
         }
 
         private Queue<DirectoryInfo> GetHighestNotEmpty()
         {
-            foreach (SearchPriority item in Enum.GetValues(typeof(SearchPriority)))
+            foreach (HeuristicsDirectoryPriority item in Enum.GetValues(typeof(HeuristicsDirectoryPriority)))
             {
-                if (_priorityQueue[item].Count > 0)
+                if (priorityQueue[item].Count > 0)
                 {
-                    return _priorityQueue[item];
+                    return priorityQueue[item];
                 }
             }
             return [];
         }
-
-
-
 
         internal bool PopHighestPriority(out DirectoryInfo? result)
         {
@@ -69,13 +44,13 @@ namespace Drill.Core
             return flag;
         }
 
-        internal void Add(in DirectoryInfo item, in SearchPriority priority)
+        internal void Add(in DirectoryInfo item, in HeuristicsDirectoryPriority priority)
         {
             if (visited.Contains(item.FullName))
             {
                 return;
             }
-            _priorityQueue[priority].Enqueue(item);
+            priorityQueue[priority].Enqueue(item);
             visited.Add(item.FullName);
         }
 
@@ -84,14 +59,28 @@ namespace Drill.Core
             Add(item, Heuristics.GetDirectoryPriority(item, searchString));
         }
 
-        internal void Add(in string v)
+        internal void Add(in string FullPath)
         {
-            Add(new DirectoryInfo(v));
+            try
+            {
+                Add(new DirectoryInfo(FullPath));
+            }
+            catch (Exception e)
+            {
+                Debug.WriteLine(e);
+            }
         }
 
         internal void Add(in Environment.SpecialFolder specialFolder)
         {
-            Add(Environment.GetFolderPath(specialFolder));
+            try
+            {
+                Add(Environment.GetFolderPath(specialFolder));
+            }
+            catch (Exception e)
+            {
+                Debug.WriteLine(e);
+            }
         }
 
     }
