@@ -28,13 +28,13 @@ jobs:
       uses: microsoft/setup-msbuild@v2
 
     - name: Build win-x64
-      run: dotnet publish WinForms\WinForms.csproj /p:PublishProfile=win-64.pubxml /p:PublishDir=publish
+      run: dotnet publish WinForms\WinForms.csproj /p:PublishProfile=win-64 /p:PublishDir=publish
 
     - name: Upload Win
       uses: actions/upload-artifact@v4
       with:
         name: Drill_win-x64
-        path: publish
+        path: WinForms\publish
         if-no-files-found: error
         
     #- name: Build MAUI
