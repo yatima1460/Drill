@@ -1,6 +1,6 @@
 ﻿
 using System.Collections.Immutable;
-
+using System.Diagnostics;
 using System.Reflection;
 
 
@@ -20,19 +20,21 @@ namespace Drill.Core
 
             if (resourceName == null)
             {
-                Console.WriteLine("Can't find words dictionary in embedded resources");
+                Debug.WriteLine("Can't find words dictionary in embedded resources");
                 dict = [];
                 return;
             }
 
             using var stream = assembly.GetManifestResourceStream(resourceName);
-            if (stream != null)
+            if (stream == null)
             {
-                using var reader = new StreamReader(stream);
-                dict = reader.ReadToEnd().Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries).ToImmutableHashSet<string>();
+                Debug.WriteLine("words dictionary resource stream is null");
+                dict = [];
+                return;
             }
 
-            dict = [];
+            using var reader = new StreamReader(stream);
+            dict = [.. reader.ReadToEnd().Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)];
         }
 
 

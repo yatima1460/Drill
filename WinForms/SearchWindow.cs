@@ -22,9 +22,10 @@ namespace WinForms
 
         Search drillSearch = new("");
 
+        //TODO: replace this with ListViewItem
+        private readonly Dictionary<FileSystemInfo, DrillResult> itemsCache = new();
 
         private readonly List<FileSystemInfo> resultsBag = new(100);
-
 
         Dictionary<string, int> extensionIconCache = new(100);
 
@@ -127,7 +128,6 @@ namespace WinForms
             return item;
         }
 
-        Dictionary<FileSystemInfo, DrillResult> itemsCache = new();
 
         private void SearchResults_RetrieveVirtualItem(object sender, RetrieveVirtualItemEventArgs e)
         {
@@ -310,12 +310,16 @@ namespace WinForms
         /// </summary>
         private void ResetUI()
         {
-            resultsBag.Clear();
-
-            // Reset virtual list
+            // Stop adding more items to the UI
             refreshVirtualListTicker.Stop();
             refreshVirtualListTicker.Enabled = false;
+
+            // Clean results found
+            resultsBag.Clear();
             fileSearchResults.VirtualListSize = 0;
+            
+            // Clean items cache
+            itemsCache.Clear();
             resultsCountToolStripMenuItem.Text = menuSearchString;
             oldResultsCount = -1;
         }
