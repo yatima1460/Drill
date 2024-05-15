@@ -1,5 +1,8 @@
 name: Build
 
+permissions:
+      contents: write
+      
 on:
   push:
     branches: [ "master" ]
@@ -32,18 +35,22 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: Drill_win-x64
-        path: bin\Drill_win-x64.exe
+        path: bin/Drill_win-x64.exe
         if-no-files-found: error
 
     - name: Create a Release
       if: github.event_name == 'push' && github.ref == 'refs/heads/master'
-      uses: "marvinpinto/action-automatic-releases@latest"
+      uses: ncipollo/release-action@v1
       with:
-        repo_token: "${{ secrets.GITHUB_TOKEN }}"
-        automatic_release_tag: "latest"
+        artifacts: bin/Drill_win-x64.exe
+        artifactErrorsFailBuild: true
+        draft: false
         prerelease: true
-        title: "Development Build"
-        files: bin\Drill_win-x64.exe
+        makeLatest: true
+        name: "Latest Release"
+        tag: latest
+        updateOnlyUnreleased: true
+        allowUpdates: true
 
 
     #- name: Build MAUI
