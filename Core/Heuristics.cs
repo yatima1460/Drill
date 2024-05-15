@@ -15,21 +15,24 @@ namespace Drill.Core
 
         static Heuristics()
         {
-            string? path = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
-            if (path == null)
+            var assembly = Assembly.GetExecutingAssembly();
+            var resourceName = assembly.GetManifestResourceNames().FirstOrDefault(name => name.EndsWith("words_alpha.txt"));
+
+            if (resourceName == null)
             {
-                Console.WriteLine("Executing assembly path is null???");
+                Console.WriteLine("Can't find words dictionary in embedded resources");
                 dict = [];
                 return;
             }
-            var DictPath = Path.Combine(path, "words_alpha.txt");
-            if (!File.Exists(DictPath))
+
+            using var stream = assembly.GetManifestResourceStream(resourceName);
+            if (stream != null)
             {
-                Console.WriteLine("Can't find words dictionary");
-                dict = [];
-                return;
+                using var reader = new StreamReader(stream);
+                dict = reader.ReadToEnd().Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries).ToImmutableHashSet<string>();
             }
-            dict = [.. File.ReadAllLines(DictPath)];
+
+            dict = [];
         }
 
 
