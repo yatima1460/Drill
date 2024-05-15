@@ -116,19 +116,18 @@ namespace Drill.Core
                     //#endif
 
                     FileSystemInfo[] fsi = DiskRead.SafeGetFileSystemInfosInDirectory(rootFolderInfo);
-                    subDirectoriesCountCache.Add(rootFolderInfo.FullName, fsi.Length);
                     List<FileInfo> filesList = new(fsi.Length);
                     List<DirectoryInfo> directoriesList = new(fsi.Length);
-                    foreach (var item in fsi)
+                  
+                    for (int i = 0; i < fsi.Length; i++)
                     {
+                        FileSystemInfo item = fsi[i];
                         if (cancellationTokenSource.IsCancellationRequested)
                             return;
 
                         if ((item.Attributes & FileAttributes.Directory) == FileAttributes.Directory)
                         {
                             directoriesList.Add((DirectoryInfo)item);
-
-
                         }
                         else
                         {
@@ -136,16 +135,20 @@ namespace Drill.Core
                         }
                     }
 
-                    foreach (var item in GenerateDrillResults(rootFolderInfo, directoriesList.ToArray(), searchString, cancellationTokenSource.Token))
+                    List<DrillResult> directoriesResults = GenerateDrillResults(rootFolderInfo, directoriesList.ToArray(), searchString, cancellationTokenSource.Token);
+                    for (int i = 0; i < directoriesResults.Count; i++)
                     {
+                        DrillResult item = directoriesResults[i];
                         if (cancellationTokenSource.IsCancellationRequested)
                             return;
 
                         ParallelResults.Enqueue(item);
                     }
 
-                    foreach (var item in GenerateDrillResults(rootFolderInfo, filesList.ToArray(), searchString, cancellationTokenSource.Token))
+                    List<DrillResult> filesResults = GenerateDrillResults(rootFolderInfo, filesList.ToArray(), searchString, cancellationTokenSource.Token);
+                    for (int i = 0; i < filesResults.Count; i++)
                     {
+                        DrillResult item = filesResults[i];
                         if (cancellationTokenSource.IsCancellationRequested)
                             return;
 
@@ -153,8 +156,9 @@ namespace Drill.Core
                     }
 
 
-                    foreach (DirectoryInfo item in directoriesList)
+                    for (int i = 0; i < directoriesList.Count; i++)
                     {
+                        DirectoryInfo item = directoriesList[i];
                         if (cancellationTokenSource.IsCancellationRequested)
                             return;
 
