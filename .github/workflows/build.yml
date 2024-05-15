@@ -37,14 +37,17 @@ jobs:
 
     - name: Create a Release
       if: github.event_name == 'push' && github.ref == 'refs/heads/master'
-      uses: "marvinpinto/action-automatic-releases@latest"
+      uses: softprops/action-gh-release@v2
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        repo_token: "${{ secrets.GITHUB_TOKEN }}"
-        automatic_release_tag: "latest"
+        name: Rolling Release
+        tag_name: latest
+        body: |
+          rolling release
+        draft: false
         prerelease: true
-        title: "Development Build"
         files: bin\Drill_win-x64.exe
-
 
     #- name: Build MAUI
     #  run: dotnet publish --maxCpuCount -f net8.0-windows10.0.19041.0 -c Release -p:RuntimeIdentifierOverride=win10-x64 -p:WindowsPackageType=None .\Drill\Drill.csproj
