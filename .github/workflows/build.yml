@@ -1,5 +1,8 @@
 name: Build
 
+permissions:
+      contents: write
+      
 on:
   push:
     branches: [ "master" ]
@@ -32,22 +35,23 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: Drill_win-x64
-        path: bin\Drill_win-x64.exe
+        path: bin/Drill_win-x64.exe
         if-no-files-found: error
 
     - name: Create a Release
       if: github.event_name == 'push' && github.ref == 'refs/heads/master'
-      uses: softprops/action-gh-release@v2
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      uses: ncipollo/release-action@v1
       with:
-        name: Rolling Release
-        tag_name: latest
-        body: |
-          rolling release
+        artifacts: bin/Drill_win-x64.exe
+        artifactErrorsFailBuild: true
         draft: false
         prerelease: true
-        files: bin\Drill_win-x64.exe
+        makeLatest: true
+        name: "Latest Release"
+        tag: latest
+        updateOnlyUnreleased: true
+        allowUpdates: true
+
 
     #- name: Build MAUI
     #  run: dotnet publish --maxCpuCount -f net8.0-windows10.0.19041.0 -c Release -p:RuntimeIdentifierOverride=win10-x64 -p:WindowsPackageType=None .\Drill\Drill.csproj
