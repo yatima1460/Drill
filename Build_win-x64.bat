@@ -1,5 +1,11 @@
 @echo off
 
+dotnet restore WinForms\WinForms.csproj --locked-mode
+if %ERRORLEVEL% neq 0 (
+    echo Restore failed with error code %ERRORLEVEL%.
+    exit /b %ERRORLEVEL%
+)
+
 dotnet clean -maxCpuCount WinForms\WinForms.csproj
 if %ERRORLEVEL% neq 0 (
     echo Cleaning failed with error code %ERRORLEVEL%.

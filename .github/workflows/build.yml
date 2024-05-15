@@ -26,6 +26,7 @@ jobs:
       uses: actions/setup-dotnet@v4
       with:
         dotnet-version: 8.0.x
+        cache: true
 
     - name: Build win-x64
       run: Build_win-x64.bat
