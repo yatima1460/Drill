@@ -2,7 +2,9 @@
 
 
 
+using System;
 using System.Collections.Concurrent;
+using System.IO;
 
 
 namespace Drill.Core
@@ -51,6 +53,11 @@ namespace Drill.Core
                 return;
             }
 
+
+            directoriesToExplore.Add(@"C:\Program Files (x86)\Steam\steamapps\common");
+            directoriesToExplore.Add($"C:\\Users\\{UserName}\\AppData\\Roaming\\Microsoft\\Windows\\Start Menu\\Programs\\Steam");
+            directoriesToExplore.Add($"C:\\Users\\{UserName}\\AppData\\Roaming\\Microsoft\\Windows\\Start Menu");
+            directoriesToExplore.Add(@"C:\ProgramData\Microsoft\Windows\Start Menu");
             directoriesToExplore.Add(Environment.SpecialFolder.UserProfile);
             directoriesToExplore.Add(Environment.SpecialFolder.Recent);
             directoriesToExplore.Add(Environment.SpecialFolder.MyMusic);
