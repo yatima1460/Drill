@@ -1,4 +1,8 @@
 ﻿
+
+using System.Diagnostics;
+
+
 namespace Drill.Core
 {
     internal static class DiskRead
@@ -12,6 +16,7 @@ namespace Drill.Core
             }
             catch (Exception e)
             {
+                Debug.WriteLine(e);
                 return [];
             }
         }

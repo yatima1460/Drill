@@ -524,10 +524,7 @@ namespace WinForms
 
             // Start the backend search
             drillSearch = new Search(searchString);
-            drillSearch.StartAsync((x) =>
-            {
-                // TODO: dispatcher Winforms
-            });
+            drillSearch.StartAsync();
             searchStringChangedTimer.Stop();
         }
 

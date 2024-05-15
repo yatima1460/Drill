@@ -4,53 +4,54 @@
 
 using System;
 using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.IO;
 
 
 namespace Drill.Core
 {
-    public class Search
+    public class Search(string searchString)
     {
-
-
+        /// <summary>
+        /// Data structure containing the actual results found
+        /// </summary>
         private readonly ConcurrentQueue<FileSystemInfo> ParallelResults = new();
+
+        /// <summary>
+        /// OS username, cached because this call can be quite expensive (at least on Windows)
+        /// </summary>
         private static readonly object UserName = Environment.UserName;
 
+        /// <summary>
+        /// Basically a pointer to a fancy boolean to decide when to stop the scan
+        /// </summary>
         private readonly CancellationTokenSource cancellationTokenSource = new();
 
-        private SearchQueue directoriesToExplore;
+        /// <summary>
+        /// Smart queue of stuff to scan, sorted using heuristics
+        /// </summary>
+        private readonly SearchQueue directoriesToExplore = new(searchString);
 
-        private readonly string searchString;
-
-
-#if DEBUG
-        private readonly List<DirectoryInfo> debugExploredDirs = [];
-        private bool dumpExecuted;
-
-#endif
-
-        public Search(in string searchString)
-        {
-            directoriesToExplore = new(searchString);
-            this.searchString = searchString;
-        }
-
-        public delegate void FatalErrorCallback(Exception e);
-
-
-
+        /// <summary>
+        /// The parallel task scanning
+        /// </summary>
         private Task? scan;
 
-        public void StartAsync(in FatalErrorCallback errorHandler)
+
+        /// <summary>
+        /// Starts a scan
+        /// </summary>
+        /// <exception cref="DrillException">Error if already scanning or empty search string</exception>
+        public void StartAsync()
         {
             if (scan != null)
             {
-                throw new Exception("Drill already scanning");
+                throw new DrillException("Drill already scanning");
             }
 
             if (searchString == string.Empty)
             {
-                return;
+                throw new DrillException("Can't scan using an empty string");
             }
 
 
@@ -77,9 +78,7 @@ namespace Drill.Core
             }
             catch (Exception e)
             {
-#if DEBUG
-                    Debug.Print(e.Message);
-#endif
+                Debug.Print(e.Message);
             }
 
             foreach (DriveInfo d in allDrives)
@@ -96,7 +95,11 @@ namespace Drill.Core
             {
                 while (!cancellationTokenSource.IsCancellationRequested && directoriesToExplore.PopHighestPriority(out DirectoryInfo? rootFolderInfo))
                 {
-
+                    // We have explored everything possible, it's time to stop
+                    if (rootFolderInfo == null)
+                    {
+                        break;
+                    }
                     //#if DEBUG
                     //                        if (debugExploredDirs.Count < 1000)
                     //                        {
@@ -119,10 +122,21 @@ namespace Drill.Core
 
                     //#endif
 
-                    FileSystemInfo[] fsi = DiskRead.SafeGetFileSystemInfosInDirectory(rootFolderInfo);
+                    // Reading the disk once and then figuring out which FileSystemInfo
+                    // is a file and which is a folder using Attributes seems faster
+                    // than actually reading 2 times with GetDirectories and GetFiles
+                    FileSystemInfo[] fsi;
+                    try
+                    {
+                        fsi = rootFolderInfo.GetFileSystemInfos("*", SearchOption.TopDirectoryOnly);
+                    }
+                    catch (Exception e)
+                    {
+                        Debug.WriteLine(e);
+                        continue;
+                    }
                     List<FileInfo> filesList = new(fsi.Length);
                     List<DirectoryInfo> directoriesList = new(fsi.Length);
-                  
                     for (int i = 0; i < fsi.Length; i++)
                     {
                         FileSystemInfo item = fsi[i];
@@ -139,38 +153,47 @@ namespace Drill.Core
                         }
                     }
 
-                    List<DirectoryInfo> directoriesResults = GenerateDrillResults(directoriesList.ToArray(), searchString, cancellationTokenSource.Token);
-                    for (int i = 0; i < directoriesResults.Count; i++)
+                    // Iterate over all stuff found and check if it's a result
+                    for (int i = 0; i < fsi.Length; i++)
                     {
-                        DirectoryInfo item = directoriesResults[i];
                         if (cancellationTokenSource.IsCancellationRequested)
                             return;
 
-                        ParallelResults.Enqueue(item);
+                        FileSystemInfo item = fsi[i];
+
+                        if (StringUtils.TokenMatching(searchString, item.Name))
+                        {
+                            // this may stall for a sec
+                            ParallelResults.Enqueue(item);       
+                        }
                     }
-
-                    List<FileInfo> filesResults = GenerateDrillResults(filesList.ToArray(), searchString, cancellationTokenSource.Token);
-                    for (int i = 0; i < filesResults.Count; i++)
-                    {
-                        FileInfo item = filesResults[i];
-                        if (cancellationTokenSource.IsCancellationRequested)
-                            return;
-
-                        ParallelResults.Enqueue(item);
-                    }
-
-
+                    
+                    // Now we iterate over the directories that were found
+                    // and if they are not fully banned we queue them
                     for (int i = 0; i < directoriesList.Count; i++)
                     {
-                        DirectoryInfo item = directoriesList[i];
                         if (cancellationTokenSource.IsCancellationRequested)
                             return;
+
+                        DirectoryInfo item = directoriesList[i];
+                        // TODO move to Platforms
+                        if (
+                            item.FullName == $"/Users/{UserName}/Pictures/Photos Library.photoslibrary" ||
+                            item.FullName == $"/Users/{UserName}/Library/Calendars" ||
+                            item.FullName == $"/Users/{UserName}/Library/Reminders" ||
+                            item.FullName == $"/Users/{UserName}/Library/Contacts"
+                            )
+                        {
+                            continue;
+                        }    
 
                         // We don't follow symlinks
                         if ((item.Attributes & FileAttributes.ReparsePoint) != FileAttributes.ReparsePoint)
                             directoriesToExplore.Add(item);
                     }
                 }
+
+                Debug.WriteLine("Search done.");
             });
             scan.Start();
 
