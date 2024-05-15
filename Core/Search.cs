@@ -11,7 +11,7 @@ namespace Drill.Core
     {
 
 
-        private readonly ConcurrentQueue<DrillResult> ParallelResults = new();
+        private readonly ConcurrentQueue<FileSystemInfo> ParallelResults = new();
         private static readonly object UserName = Environment.UserName;
 
         private readonly CancellationTokenSource cancellationTokenSource = new();
@@ -87,11 +87,8 @@ namespace Drill.Core
 
             scan = new Task(() =>
             {
-                while (directoriesToExplore.PopHighestPriority(out DirectoryInfo? rootFolderInfo))
+                while (!cancellationTokenSource.IsCancellationRequested && directoriesToExplore.PopHighestPriority(out DirectoryInfo? rootFolderInfo))
                 {
-
-                    if (cancellationTokenSource.IsCancellationRequested)
-                        return;
 
                     //#if DEBUG
                     //                        if (debugExploredDirs.Count < 1000)
@@ -135,20 +132,20 @@ namespace Drill.Core
                         }
                     }
 
-                    List<DrillResult> directoriesResults = GenerateDrillResults(rootFolderInfo, directoriesList.ToArray(), searchString, cancellationTokenSource.Token);
+                    List<DirectoryInfo> directoriesResults = GenerateDrillResults(directoriesList.ToArray(), searchString, cancellationTokenSource.Token);
                     for (int i = 0; i < directoriesResults.Count; i++)
                     {
-                        DrillResult item = directoriesResults[i];
+                        DirectoryInfo item = directoriesResults[i];
                         if (cancellationTokenSource.IsCancellationRequested)
                             return;
 
                         ParallelResults.Enqueue(item);
                     }
 
-                    List<DrillResult> filesResults = GenerateDrillResults(rootFolderInfo, filesList.ToArray(), searchString, cancellationTokenSource.Token);
+                    List<FileInfo> filesResults = GenerateDrillResults(filesList.ToArray(), searchString, cancellationTokenSource.Token);
                     for (int i = 0; i < filesResults.Count; i++)
                     {
-                        DrillResult item = filesResults[i];
+                        FileInfo item = filesResults[i];
                         if (cancellationTokenSource.IsCancellationRequested)
                             return;
 
@@ -182,12 +179,12 @@ namespace Drill.Core
         /// <param name="searchString"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        private static List<DrillResult> GenerateDrillResults(in DirectoryInfo rootFolderInfo, in DirectoryInfo[] directories, in string searchString, in CancellationToken cancellationToken)
+        private static List<DirectoryInfo> GenerateDrillResults(in DirectoryInfo[] directories, in string searchString, in CancellationToken cancellationToken)
         {
 
 
 
-            List<DrillResult> results = [];
+            List<DirectoryInfo> results = [];
             foreach (DirectoryInfo sub in directories)
             {
                 if (cancellationToken.IsCancellationRequested) 
@@ -205,20 +202,10 @@ namespace Drill.Core
 
                 if (StringUtils.TokenMatching(searchString, sub.Name))
                 {
-                    // Better to create the DrillResult on the backend than the UI thread to not stall it
-                    DrillResult drillResult = new()
-                    {
-                        Name = sub.Name,
-                        FullPath = sub.FullName,
-                        Path = rootFolderInfo.FullName,
-                        Date = sub.LastWriteTime.ToShortDateString() + " " + sub.LastWriteTime.ToShortTimeString(),
-                        Size = string.Empty,
-                        // TODO: different icon for .app on Mac
-                        Icon = "📁"
-                    };
+                   
 
                     // this may stall for a sec
-                    results.Add(drillResult);
+                    results.Add(new DirectoryInfo(sub.FullName));
                 }
 
 
@@ -237,11 +224,11 @@ namespace Drill.Core
         /// <param name="searchString"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        private static List<DrillResult> GenerateDrillResults(in DirectoryInfo rootFolderInfo, in FileInfo[] subs, in string searchString, in CancellationToken cancellationToken)
+        private static List<FileInfo> GenerateDrillResults(in FileInfo[] subs, in string searchString, in CancellationToken cancellationToken)
         {
             // Directory.GetFileSystemEntries()
 
-            List<DrillResult> results = new();
+            List<FileInfo> results = new();
 
             foreach (FileInfo file in subs)
             {
@@ -249,19 +236,9 @@ namespace Drill.Core
                     return [];
                 if (StringUtils.TokenMatching(searchString, file.Name))
                 {
-                    // Better to create the DrillResult on the backend than the UI thread to not stall it
-                    DrillResult drillResult = new()
-                    {
-                        Name = file.Name,
-                        FullPath = file.FullName,
-                        Path = rootFolderInfo.FullName,
-                        Date = file.LastWriteTime.ToShortDateString() + " " + file.LastWriteTime.ToShortTimeString(),
-                        Size = StringUtils.GetHumanReadableSize(file.Length),
-                        Icon = ExtensionIcon.GetIcon(file.Extension.ToLower())
-                    };
 
                     // this may stall for a sec
-                    results.Add(drillResult);
+                    results.Add(new FileInfo(file.FullName));
                 }
             }
 
@@ -285,17 +262,17 @@ namespace Drill.Core
             return null;
         }
 
-        public List<DrillResult> PopResults(in int count)
+        public List<FileSystemInfo> PopResults(in int count)
         {
             int minSize = Math.Min(count, ParallelResults.Count);
-            List<DrillResult> results = new(minSize);
+            List<FileSystemInfo> results = new(minSize);
             for (int i = 0; i < minSize; i++)
             {
                 if (cancellationTokenSource.Token.IsCancellationRequested)
                 {
                     return [];
                 }
-                if (ParallelResults.TryDequeue(out DrillResult result))
+                if (ParallelResults.TryDequeue(out FileSystemInfo result))
                 {
                     results.Add(result);
                 }

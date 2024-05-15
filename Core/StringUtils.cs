@@ -38,7 +38,7 @@ namespace Drill.Core
 
         static readonly string[] sizes = [" B", "KB", "MB", "GB", "TB"];
 
-        internal static string GetHumanReadableSize(in long sizeInBytes)
+        public static string GetHumanReadableSize(in long sizeInBytes)
         {
             int order = 0;
             double size = sizeInBytes;

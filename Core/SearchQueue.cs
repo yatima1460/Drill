@@ -6,9 +6,9 @@ namespace Drill.Core
 {
     internal class SearchQueue
     {
-        readonly Dictionary<HeuristicsDirectoryPriority, Queue<DirectoryInfo>> priorityQueue = [];
+        readonly Dictionary<HeuristicsDirectoryPriority, Queue<DirectoryInfo>> priorityQueue = new(1000);
         readonly string searchString;
-        readonly HashSet<string> visited = [];
+        readonly HashSet<string> visited = new(1000);
 
         public SearchQueue(in string searchString)
         {

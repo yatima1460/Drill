@@ -23,7 +23,7 @@ namespace WinForms
         Search drillSearch = new("");
 
 
-        private readonly List<DrillResult> resultsBag = new(100);
+        private readonly List<FileSystemInfo> resultsBag = new(100);
 
 
         Dictionary<string, int> extensionIconCache = new(100);
@@ -127,12 +127,54 @@ namespace WinForms
             return item;
         }
 
+        Dictionary<FileSystemInfo, DrillResult> itemsCache = new();
 
         private void SearchResults_RetrieveVirtualItem(object sender, RetrieveVirtualItemEventArgs e)
         {
             try
             {
-                DrillResult drillResult = resultsBag[e.ItemIndex];
+                FileSystemInfo sub = resultsBag[e.ItemIndex];
+
+                if (itemsCache.TryGetValue(sub, out DrillResult value))
+                {
+                    e.Item = CreateListItem(value);
+                    return;
+                }
+
+                DrillResult drillResult;
+
+                bool isDirectory = (sub.Attributes & FileAttributes.Directory) == FileAttributes.Directory;
+
+                if (isDirectory)
+                {
+                    drillResult = new()
+                    {
+                        Name = sub.Name,
+                        FullPath = sub.FullName,
+                        Path = Path.GetDirectoryName(sub.FullName),
+                        Date = sub.LastWriteTime.ToShortDateString() + " " + sub.LastWriteTime.ToShortTimeString(),
+                        Size = string.Empty,
+                        // TODO: different icon for .app on Mac
+                        Icon = "📁"
+                    };
+                }
+                else
+                {
+                    drillResult = new()
+                    {
+                        Name = sub.Name,
+                        FullPath = sub.FullName,
+                        Path = Path.GetDirectoryName(sub.FullName),
+                        Date = sub.LastWriteTime.ToShortDateString() + " " + sub.LastWriteTime.ToShortTimeString(),
+                        Size = StringUtils.GetHumanReadableSize(((FileInfo)sub).Length),
+                        Icon = ExtensionIcon.GetIcon(sub.Extension.ToLower())
+                    };
+                }
+
+                e.Item = CreateListItem(drillResult);
+
+                itemsCache.Add(sub, drillResult);
+
                 e.Item = CreateListItem(drillResult);
             }
             catch (Exception fatalError)
@@ -507,44 +549,44 @@ namespace WinForms
 
         private void exportResultsTocsvToolStripMenuItem_Click_2(object sender, EventArgs e)
         {
-            try
-            {
-                SaveFileDialog saveFileDialog = new SaveFileDialog();
-                saveFileDialog.CheckPathExists = true;
-                saveFileDialog.FileName = "export.tsv";
+            //try
+            //{
+            //    SaveFileDialog saveFileDialog = new SaveFileDialog();
+            //    saveFileDialog.CheckPathExists = true;
+            //    saveFileDialog.FileName = "export.tsv";
 
-                string sfdname = saveFileDialog.FileName;
-                if (saveFileDialog.ShowDialog(this) == DialogResult.OK)
-                {
-                    var path = Path.GetFullPath(saveFileDialog.FileName);
+            //    string sfdname = saveFileDialog.FileName;
+            //    if (saveFileDialog.ShowDialog(this) == DialogResult.OK)
+            //    {
+            //        var path = Path.GetFullPath(saveFileDialog.FileName);
 
-                    string tsv = "Name\tFolder\tSize\tDate\n";
-                    var toExport = resultsBag[..];
-                    var arr = ((List<DrillResult>)toExport).ToArray();
+            //        string tsv = "Name\tFolder\tSize\tDate\n";
+            //        var toExport = resultsBag[..];
+            //        var arr = ((List<DrillResult>)toExport).ToArray();
 
-                    for (int i = 0; i < arr.Length; i++)
-                    {
-                        try
-                        {
-                            DrillResult dr = (DrillResult)arr[i];
+            //        for (int i = 0; i < arr.Length; i++)
+            //        {
+            //            try
+            //            {
+            //                DrillResult dr = (DrillResult)arr[i];
 
-                            tsv += dr.Name + '\t' + dr.Path + '\t' + dr.Size + '\t' + dr.Date + '\n';
-                        }
-                        catch (Exception eee)
-                        {
-                            Trace.TraceError(eee.Message);
-                        }
-                    }
+            //                tsv += dr.Name + '\t' + dr.Path + '\t' + dr.Size + '\t' + dr.Date + '\n';
+            //            }
+            //            catch (Exception eee)
+            //            {
+            //                Trace.TraceError(eee.Message);
+            //            }
+            //        }
 
-                    File.WriteAllText(path, tsv);
+            //        File.WriteAllText(path, tsv);
 
-                    Process.Start("explorer.exe", "/select,\"" + path + "\"");
-                }
-            }
-            catch (Exception ee)
-            {
-                MessageBox.Show(ee.Message);
-            }
+            //        Process.Start("explorer.exe", "/select,\"" + path + "\"");
+            //    }
+            //}
+            //catch (Exception ee)
+            //{
+            //    MessageBox.Show(ee.Message);
+            //}
         }
 
         private void ResultsAutoSizeColumns()
