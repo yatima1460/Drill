@@ -25,7 +25,7 @@ jobs:
         dotnet-version: 8.0.x
 
     - name: Build win-x64
-      run: Build_-win-x64.bat
+      run: Build_win-x64.bat
       shell: cmd
 
     - name: Upload win-x64
