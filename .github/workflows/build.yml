@@ -28,7 +28,7 @@ jobs:
       uses: microsoft/setup-msbuild@v2
 
     - name: Build win-x64
-      run: dotnet publish WinForms\WinForms.csproj /p:PublishProfile=WinForms\Properties\PublishProfiles\win-64.pubxml /p:PublishDir=publish
+      run: dotnet publish WinForms\WinForms.csproj /p:PublishProfile=win-64.pubxml /p:PublishDir=publish
 
     - name: Upload Win
       uses: actions/upload-artifact@v4
