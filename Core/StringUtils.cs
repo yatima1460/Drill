@@ -1,10 +1,12 @@
 ﻿
+using System.Collections.Concurrent;
+
 namespace Drill.Core
 {
     public static class StringUtils
     {
 
-        internal static readonly Dictionary<Tuple<string, string>, bool> tokenCache = [];
+        internal static readonly ConcurrentDictionary<Tuple<string, string>, bool> tokenCache = [];
 
         internal static bool TokenMatching(in string searchString, in string fileName)
         {

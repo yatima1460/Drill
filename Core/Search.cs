@@ -54,45 +54,45 @@ namespace Drill.Core
                 throw new DrillException("Can't scan using an empty string");
             }
 
-
-            directoriesToExplore.Add(@"C:\Program Files (x86)\Steam\steamapps\common");
-            directoriesToExplore.Add($"C:\\Users\\{UserName}\\AppData\\Roaming\\Microsoft\\Windows\\Start Menu\\Programs\\Steam");
-            directoriesToExplore.Add($"C:\\Users\\{UserName}\\AppData\\Roaming\\Microsoft\\Windows\\Start Menu");
-            directoriesToExplore.Add(@"C:\ProgramData\Microsoft\Windows\Start Menu");
-            directoriesToExplore.Add(Environment.SpecialFolder.UserProfile);
-            directoriesToExplore.Add(Environment.SpecialFolder.Recent);
-            directoriesToExplore.Add(Environment.SpecialFolder.MyMusic);
-            directoriesToExplore.Add(Environment.SpecialFolder.ProgramFiles);
-            directoriesToExplore.Add(Environment.SpecialFolder.ProgramFilesX86);
-            directoriesToExplore.Add(Environment.SpecialFolder.Desktop);
-            directoriesToExplore.Add(Environment.SpecialFolder.MyDocuments);
-            directoriesToExplore.Add(Environment.SpecialFolder.MyVideos);
-            directoriesToExplore.Add($"C:\\Users\\{UserName}\\Downloads");
-            directoriesToExplore.Add($"/Users/{UserName}/Library/Mobile Documents/com~apple~CloudDocs/");
-
-
-            DriveInfo[] allDrives = [];
-            try
-            {
-                allDrives = DriveInfo.GetDrives();
-            }
-            catch (Exception e)
-            {
-                Debug.Print(e.Message);
-            }
-
-            foreach (DriveInfo d in allDrives)
-            {
-                if (cancellationTokenSource.IsCancellationRequested)
-                    return;
-                if (d.IsReady == true && d.RootDirectory.Exists)
-                {
-                    directoriesToExplore.Add(d.RootDirectory);
-                }
-            }
-
             scan = new Task(() =>
             {
+                // Set interesting directories as roots
+                directoriesToExplore.Add(@"C:\Program Files (x86)\Steam\steamapps\common");
+                directoriesToExplore.Add($"C:\\Users\\{UserName}\\AppData\\Roaming\\Microsoft\\Windows\\Start Menu\\Programs\\Steam");
+                directoriesToExplore.Add($"C:\\Users\\{UserName}\\AppData\\Roaming\\Microsoft\\Windows\\Start Menu");
+                directoriesToExplore.Add(@"C:\ProgramData\Microsoft\Windows\Start Menu");
+                directoriesToExplore.Add(Environment.SpecialFolder.UserProfile);
+                directoriesToExplore.Add(Environment.SpecialFolder.Recent);
+                directoriesToExplore.Add(Environment.SpecialFolder.MyMusic);
+                directoriesToExplore.Add(Environment.SpecialFolder.ProgramFiles);
+                directoriesToExplore.Add(Environment.SpecialFolder.ProgramFilesX86);
+                directoriesToExplore.Add(Environment.SpecialFolder.Desktop);
+                directoriesToExplore.Add(Environment.SpecialFolder.MyDocuments);
+                directoriesToExplore.Add(Environment.SpecialFolder.MyVideos);
+                directoriesToExplore.Add($"C:\\Users\\{UserName}\\Downloads");
+                directoriesToExplore.Add($"/Users/{UserName}/Library/Mobile Documents/com~apple~CloudDocs/");
+
+                // Set all drives as roots
+                DriveInfo[] allDrives = [];
+                try
+                {
+                    allDrives = DriveInfo.GetDrives();
+                }
+                catch (Exception e)
+                {
+                    Debug.Print(e.Message);
+                }
+                foreach (DriveInfo d in allDrives)
+                {
+                    if (cancellationTokenSource.IsCancellationRequested)
+                        return;
+                    if (d.IsReady == true && d.RootDirectory.Exists)
+                    {
+                        directoriesToExplore.Add(d.RootDirectory);
+                    }
+                }
+
+                // Now we start to scan for real
                 while (!cancellationTokenSource.IsCancellationRequested && directoriesToExplore.PopHighestPriority(out DirectoryInfo? rootFolderInfo))
                 {
                     // We have explored everything possible, it's time to stop
@@ -194,89 +194,17 @@ namespace Drill.Core
                 }
 
                 Debug.WriteLine("Search done.");
-            });
+            }, cancellationTokenSource.Token, TaskCreationOptions.LongRunning);
             scan.Start();
 
         }
 
-        readonly Dictionary<string, int> subDirectoriesCountCache = new();
 
         /// <summary>
-        /// Given a list of directories filters them to generate drill results
+        /// Stops the search
+        /// Does nothing if already stopped
         /// </summary>
-        /// <param name="rootFolderInfo"></param>
-        /// <param name="directories"></param>
-        /// <param name="searchString"></param>
-        /// <param name="cancellationToken"></param>
-        /// <returns></returns>
-        private static List<DirectoryInfo> GenerateDrillResults(in DirectoryInfo[] directories, in string searchString, in CancellationToken cancellationToken)
-        {
-
-
-
-            List<DirectoryInfo> results = [];
-            foreach (DirectoryInfo sub in directories)
-            {
-                if (cancellationToken.IsCancellationRequested) 
-                    return [];
-                // TODO move to Platforms
-                if (
-                    sub.FullName == $"/Users/{UserName}/Pictures/Photos Library.photoslibrary" ||
-                    sub.FullName == $"/Users/{UserName}/Library/Calendars" ||
-                    sub.FullName == $"/Users/{UserName}/Library/Reminders" ||
-                    sub.FullName == $"/Users/{UserName}/Library/Contacts"
-                    )
-                {
-                    continue;
-                }
-
-                if (StringUtils.TokenMatching(searchString, sub.Name))
-                {
-                   
-
-                    // this may stall for a sec
-                    results.Add(new DirectoryInfo(sub.FullName));
-                }
-
-
-
-
-            }
-
-            return results;
-        }
-
-
-        /// <summary>
-        /// Given a folder generates Drill results of all the files inside
-        /// </summary>
-        /// <param name="rootFolderInfo"></param>
-        /// <param name="searchString"></param>
-        /// <param name="cancellationToken"></param>
-        /// <returns></returns>
-        private static List<FileInfo> GenerateDrillResults(in FileInfo[] subs, in string searchString, in CancellationToken cancellationToken)
-        {
-            // Directory.GetFileSystemEntries()
-
-            List<FileInfo> results = new();
-
-            foreach (FileInfo file in subs)
-            {
-                if (cancellationToken.IsCancellationRequested) 
-                    return [];
-                if (StringUtils.TokenMatching(searchString, file.Name))
-                {
-
-                    // this may stall for a sec
-                    results.Add(new FileInfo(file.FullName));
-                }
-            }
-
-            return results;
-        }
-
-
-
+        /// <returns>AggregateException? if it happened in the Task run</returns>
         public AggregateException? Stop()
         {
             cancellationTokenSource.Cancel();
@@ -292,6 +220,11 @@ namespace Drill.Core
             return null;
         }
 
+        /// <summary>
+        /// Pop the latest results from the search
+        /// </summary>
+        /// <param name="count">The number of results to pop</param>
+        /// <returns>The latest results or empty if stop requested</returns>
         public List<FileSystemInfo> PopResults(in int count)
         {
             int minSize = Math.Min(count, ParallelResults.Count);
@@ -308,11 +241,6 @@ namespace Drill.Core
                 }
             }
             return results;
-        }
-
-        public override string? ToString()
-        {
-            return searchString;
         }
     }
 }
