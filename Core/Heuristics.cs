@@ -120,10 +120,15 @@ namespace Drill.Core
             }
 
             // english dictionary
-            foreach (string wordInTheFullPath in sub.FullName.ToLower().Split(separator: (char[])[Path.DirectorySeparatorChar, ' ','-','_'], options: StringSplitOptions.RemoveEmptyEntries))
-            {
-                if (dict.Contains(wordInTheFullPath)) return HeuristicsDirectoryPriority.PossiblyCreatedByAHuman;
-            }
+            //foreach (string wordInTheFullPath in sub.FullName.ToLower().Split(separator: (char[])[Path.DirectorySeparatorChar, ' ','-','_'], options: StringSplitOptions.RemoveEmptyEntries))
+            //{
+            //    if (dict.Contains(wordInTheFullPath)) return HeuristicsDirectoryPriority.PossiblyCreatedByAHuman;
+            //}
+          
+            if (dict.Contains(sub.Name.ToLower())) return HeuristicsDirectoryPriority.PossiblyCreatedByAHuman;
+        
+            
+
 
             // Priority is normal if heuristics has no idea what to do
 #if DEBUG
