@@ -242,6 +242,7 @@
             fileSearchInput.Size = new Size(1600, 50);
             fileSearchInput.TabIndex = 5;
             fileSearchInput.TextChanged += searchBox_TextChanged;
+            fileSearchInput.KeyDown += searchBox_KeyDown;
             // 
             // fileSearchResults
             // 
