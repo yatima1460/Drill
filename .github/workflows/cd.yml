@@ -16,8 +16,7 @@ on:
 permissions:
   contents: read
 
-env:
-  QT_QPA_PLATFORM: offscreen
+
 
 jobs:
 
@@ -46,6 +45,8 @@ jobs:
   linux-cd:
     name: Linux CD
     runs-on: ubuntu-latest
+    env:
+      QT_QPA_PLATFORM: linuxfb
     steps:
       - uses: actions/checkout@v4.2.2
       - name: Set up Python 3.12
@@ -105,6 +106,8 @@ jobs:
 
     name: Windows CD
     runs-on: windows-latest
+    env:
+      QT_QPA_PLATFORM: offscreen
     permissions:
       contents: write
     steps:
