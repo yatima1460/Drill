@@ -22,7 +22,7 @@ Very fast file searcher without indexing
 - Betting on the future: being tested only for SSDs/M.2 or fast RAID arrays
 
 
-![](https://raw.githubusercontent.com/yatima1460/Drill/main/docs/screenshot.png)
+![](docs/screenshot.png)
 
 
 ## Run
@@ -37,6 +37,12 @@ Just grab the latest version and run the executable
 pip3 install -r requirements-run.txt
 python3 src/main.py
 ```
+
+
+## What happened to the old code?
+
+The old D code and other experimental versions are available in the other branches
+This `main` branch started as an orphan branch to make a clean cut with the old Drill
 
 ## What is this in detail
 
