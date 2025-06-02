@@ -125,7 +125,7 @@ jobs:
         if-no-files-found: error
     - name: Zip exe
       run: |
-        $zipFile = "build/Drill-windows.zip"
+        $zipFile = "build/Drill-v${{ github.run_number }}-windows.zip"
         Compress-Archive -Path "build/exe.win-amd64-3.12/*" -DestinationPath $zipFile
         Write-Host "Zipped files to $zipFile"
     - name: Create GitHub Release
@@ -135,7 +135,7 @@ jobs:
         tag_name: release-${{ github.run_number }}
         name: Release ${{ github.run_number }}
         generate_release_notes: true
-        files: build/Drill-windows.zip
+        files: build/Drill-v${{ github.run_number }}-windows.zip
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
