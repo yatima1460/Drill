@@ -27,7 +27,7 @@ def test_fast_typing(app, qtbot):
         window.search_bar.setText(text)
         qtbot.wait(100)
     window.search_bar.setText("")
-    assert window.windowTitle() == "Drill"
+    assert window.search is None
     
     window.close()
     assert not window.isVisible()
@@ -84,7 +84,7 @@ def test_open_search_and_delete_input(app, qtbot):
     window.search_bar.setText("")
     
     qtbot.wait(1000)
-    assert window.windowTitle() == "Drill"
+    assert window.search is None
     
     qtbot.wait(3000)
     
@@ -104,7 +104,7 @@ def test_open_search_and_change_input(app, qtbot):
     window.search_bar.setText("document")
     
     qtbot.wait(1000)
-    assert window.windowTitle() != "Drill"
+    assert window.search is not None
     
     qtbot.wait(3000)
     
