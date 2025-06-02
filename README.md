@@ -68,24 +68,6 @@ Second change is excluding some obvious folders while crawling like `Windows` an
 # Contributing
 Read the Issues and check the labels for high priority ones
 
-# TODOs
-
-- Backend
-    - settings in .config/drill-search
-    - Commas in numbers strings
-        - Correct separator based on current system internationalization
-    - AM/PM time base
-    - Metadata searching and new tokens (mp3, etc...)
-
-- ncurses
-
-    - Error messagebox if opening file fails
-    - .rpm
-    - Snap
-    - Flatpak
-    - Drag and drop?
-
-
 ## Contributors
 
 ### Code Contributors

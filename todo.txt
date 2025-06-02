@@ -2,21 +2,35 @@
 
 
 
+# TODOs
+
 
 
 backend:
 - priority queues
+- settings in .config/drill-search
+- Commas in numbers strings
+    - Correct separator based on current system internationalization
+- AM/PM time base
+- Metadata searching and new tokens (mp3, etc...)
 
 qt:
 - virtual list?
 - emoji fix?
 
+other interfaces:
+- ncurses
+- cli
+
 features:
 - regex search
-
+- Error messagebox if opening file fails
+- .rpm
+- Snap
+- Flatpak
+- Drag and drop?
 
 tests:
 
 - search unfindable string and see nothing crashes until the end
-- search "."
 - search itself
