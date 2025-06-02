@@ -16,7 +16,8 @@ on:
 permissions:
   contents: read
 
-
+env:
+  QT_QPA_PLATFORM: offscreen
 
 jobs:
 
@@ -45,8 +46,6 @@ jobs:
   linux-cd:
     name: Linux CD
     runs-on: ubuntu-latest
-    env:
-      QT_QPA_PLATFORM: linuxfb
     steps:
       - uses: actions/checkout@v4.2.2
       - name: Set up Python 3.12
@@ -55,6 +54,8 @@ jobs:
           python-version: "3.12"
       - name: Install dependencies
         run: |
+          sudo apt-get update
+          sudo apt-get install -y freeglut3-dev
           python -m pip install --upgrade pip
           pip install -r requirements-cd.txt
       - name: Lint with flake8
@@ -106,8 +107,6 @@ jobs:
 
     name: Windows CD
     runs-on: windows-latest
-    env:
-      QT_QPA_PLATFORM: offscreen
     permissions:
       contents: write
     steps:
