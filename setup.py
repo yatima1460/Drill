@@ -2,15 +2,14 @@ from cx_Freeze import setup, Executable  # type: ignore
 from setuptools import find_packages
 import sys
 import os
-from PyQt5.QtCore import QLibraryInfo
-
+from PyQt6.QtCore import QLibraryInfo
 
 # Build options for all platforms
 build_exe_options = {
     "packages": [
-        "PyQt5.QtCore",
-        "PyQt5.QtGui",
-        "PyQt5.QtWidgets",
+        "PyQt6.QtCore",
+        "PyQt6.QtGui",
+        "PyQt6.QtWidgets",
         "multiprocessing",
         "logging",
         "os",
@@ -21,10 +20,10 @@ build_exe_options = {
         "unittest", 
         "pydoc", 
         "test", 
-        "PyQt5.QtQml", 
-        "PyQt5.QtQuick",
-        "PyQt5.QtQuick3D",
-        "PyQt5.QtQuickWidgets",
+        "PyQt6.QtQml", 
+        "PyQt6.QtQuick",
+        "PyQt6.QtQuick3D",
+        "PyQt6.QtQuickWidgets",
         "ai",
         "mlx",
         "mlx_lm",
@@ -36,7 +35,6 @@ build_exe_options = {
     "include_msvcr": True,
     "path": ["src"] + sys.path
 }
-
 
 # Platform-specific options
 if sys.platform == "win32":
@@ -52,7 +50,12 @@ else:
     target_name = "Drill"
 
 executables = [
-    Executable(script="src/main.py", target_name=target_name, base=base, icon="src/assets/drill.icns" if sys.platform != "win32" else "src/assets/drill.ico"),
+    Executable(
+        script="src/main.py",
+        target_name=target_name,
+        base=base,
+        icon="src/assets/drill.icns" if sys.platform != "win32" else "src/assets/drill.ico"
+    ),
 ]
 
 build_options = {
