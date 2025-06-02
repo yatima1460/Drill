@@ -1,0 +1,58 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "[Run without debugger]",
+            "type": "shell",
+            "command": "${command:python.interpreterPath}",
+            "args": ["main.py"],
+            // working directory
+            "options": {
+                "cwd": "${workspaceFolder}/src"
+            },
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            }
+        },
+        {
+            "label": "[Run Tests]",
+            "type": "shell",
+            "command": "${command:python.interpreterPath}",
+            "args": ["-m", "pytest", "tests/"],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            }
+        },
+        {
+            "label": "[Run Lint]",
+            "type": "shell",
+            "command": "${command:python.interpreterPath}",
+            "args": ["-m", "flake8", "./src"],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            }
+          
+        }
+    ]
+}

@@ -1,0 +1,4 @@
+cx_Freeze==8.3.0
+flake8==7.2.0
+PyQt5==5.15.11
+pytest-qt==4.4.0

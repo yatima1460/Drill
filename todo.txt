@@ -1,0 +1,22 @@
+
+
+
+
+
+
+backend:
+- priority queues
+
+qt:
+- virtual list?
+- emoji fix?
+
+features:
+- regex search
+
+
+tests:
+
+- search unfindable string and see nothing crashes until the end
+- search "."
+- search itself
