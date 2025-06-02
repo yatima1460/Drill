@@ -89,7 +89,7 @@ import time
             
 def worker(dir_queue: Queue, result_queue: Queue, running: threading.Event, search_text: str, roots: set[str], fuzzy: bool, maximum_depth):
     
-    logger = logging.getLogger(f"Worker")
+    logger = logging.getLogger("Worker")
     # logger.setLevel(logging.INFO)
     handler = logging.StreamHandler()
     formatter = logging.Formatter('[%(threadName)s][%(levelname)s]: %(message)s')
