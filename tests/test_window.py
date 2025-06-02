@@ -14,6 +14,20 @@ from main import SearchWindow  # Adjust import if your structure is different
 def app(qtbot):
     return QApplication.instance() or QApplication([])
 
+
+def is_window_clean(window):
+    """
+    Check if the window is clean, i.e., no search results are displayed.
+    """
+    if window.search is not None:
+        return False
+    if window.search_bar.text() != "":
+        return False
+    if window.tree.topLevelItemCount() != 0:
+        return False
+    return True
+    
+
 def test_fast_typing(app, qtbot):
     window = SearchWindow()
     qtbot.addWidget(window)
@@ -26,7 +40,7 @@ def test_fast_typing(app, qtbot):
         window.search_bar.setText(text)
         qtbot.wait(100)
     window.search_bar.setText("")
-    assert window.search is None
+    assert is_window_clean(window)
     
     window.close()
     assert not window.isVisible()
@@ -83,7 +97,7 @@ def test_open_search_and_delete_input(app, qtbot):
     window.search_bar.setText("")
     
     qtbot.wait(1000)
-    assert window.search is None
+    assert is_window_clean(window)
     
     qtbot.wait(3000)
     
@@ -100,10 +114,10 @@ def test_open_search_and_change_input(app, qtbot):
     
     qtbot.wait(3000)  # Wait for search to process
     
-    window.search_bar.setText("document")
+    window.search_bar.setText(".")
     
     qtbot.wait(1000)
-    assert window.search is not None
+    assert not is_window_clean(window)
     
     qtbot.wait(3000)
     

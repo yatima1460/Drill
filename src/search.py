@@ -85,23 +85,31 @@ def token_search(filename, search_text, fuzzy):
 import datetime
 import multiprocessing
 from queue import PriorityQueue, Queue
-
+import time
+            
 def worker(dir_queue: Queue, result_queue: Queue, running: threading.Event, search_text: str, roots: set[str], fuzzy: bool, maximum_depth):
     
-    logging.basicConfig(level=logging.INFO, format='[%(processName)s][%(levelname)s]: %(message)s')
-
+    logger = logging.getLogger(f"Worker")
+    # logger.setLevel(logging.INFO)
+    handler = logging.StreamHandler()
+    formatter = logging.Formatter('[%(threadName)s][%(levelname)s]: %(message)s')
+    handler.setFormatter(formatter)
+    if not logger.handlers:
+        logger.addHandler(handler)
+    logger.propagate = False
     while running.is_set():
         try:
-            # Get directory or wait for max second
-            current_dir = dir_queue.get(timeout=10)
+
+            current_dir = dir_queue.get()
 
             sep_count = current_dir.count(os.sep)
             if sep_count > maximum_depth[0]:
                 maximum_depth[0] = sep_count
-                logging.info(f"Longest path updated: {current_dir} (separators: {sep_count})")
+                logger.info(f"Longest path updated: {current_dir} (separators: {sep_count})")
         except queue.Empty:
-            logging.info("No directories to process after max timeout, stopping...")
-            break
+            logger.warning("No directories to process, worker is waiting...")
+            # TODO: fix this? basically the idea is that if we encounter a very slow disk we should not kill workers
+            time.sleep(0.1)
         try:
             #FIXME: except InterruptedError
             with os.scandir(current_dir) as it:
@@ -117,22 +125,22 @@ def worker(dir_queue: Queue, result_queue: Queue, running: threading.Event, sear
                     try:
                         is_dir = entry.is_dir(follow_symlinks=False)
                     except OSError:
-                        logging.info(f"Cannot determine if {entry.path} is a directory")
+                        logger.info(f"Cannot determine if {entry.path} is a directory")
                         is_dir = False
                     if is_dir:
                         
                         subdirectory = entry.path
                         
                         if not can_access_directory(subdirectory):
-                            logging.debug(f"Cannot access directory: {subdirectory} - skipping")
+                            logger.debug(f"Cannot access directory: {subdirectory} - skipping")
                             continue
                         if not os.path.exists(subdirectory):
-                            logging.warning(f"Directory does not exist: {subdirectory} - skipping")
+                            logger.warning(f"Directory does not exist: {subdirectory} - skipping")
                             continue
 
                         # the idea is to treat roots just like symlinks
                         if entry.path in roots:
-                            logging.info("Skipping root directory: %s", subdirectory)
+                            logger.info("Skipping root directory: %s", subdirectory)
                             continue
                         # add beginning of queue if matches token search otherwise add to end
                   
@@ -170,11 +178,11 @@ def worker(dir_queue: Queue, result_queue: Queue, running: threading.Event, sear
                             is_dir
                         ))
         except KeyboardInterrupt:
-            logging.info("Keyboard interrupt detected, stopping...")
+            logger.info("Keyboard interrupt detected, stopping...")
             break
         except BaseException as e:
-            logging.exception(f"crashed scanning {current_dir} - recovering... - {e}")
-    logging.info("exited")
+            logger.exception(f"crashed scanning {current_dir} - recovering... - {e}")
+    logger.info("exited")
 
 class Search:
     def __init__(self, search_text):
@@ -220,7 +228,7 @@ class Search:
         self.maximum_depth = [0] 
 
         # Start workers
-        cpu_count = multiprocessing.cpu_count()
+        cpu_count = self.executor._max_workers
         for i in range(cpu_count):
             p = self.executor.submit(worker, self.dir_queue, self.result_queue, self.running, self.search_text, self.roots, self.fuzzy, self.maximum_depth)
             #p.name = f"Worker-{i}"
@@ -232,12 +240,17 @@ class Search:
             self.items.append(self.result_queue.get())
 
     def stop(self):
+        '''
+        Stop the search asynchronously.
+        Keep in mind that you should stop any kind of UI update before calling this method.
+        '''
         logging.info("Asked to stop search")
         self.running.clear()
-
+        logging.info("Set running event to False")
         self.dir_queue = queue.Queue()
-        self.executor.shutdown(wait=True, cancel_futures=True)
-        logging.info("Search stopped")
+        logging.info("Cleared directory queue")
+        self.executor.shutdown(wait=False, cancel_futures=True)
+        logging.info("Executor shutdown initiated")
 
     def pop_result(self) -> Optional[SearchResult]:
         try:

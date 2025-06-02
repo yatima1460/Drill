@@ -35,7 +35,7 @@ class SearchWindow(QWidget):
             if self.search:
                 self.search.stop()
                 self.search = None
-                print("stopped previous search")
+                logging.info("stopped previous search")
             self.close()
         else:
             super().keyPressEvent(event)
@@ -98,6 +98,7 @@ class SearchWindow(QWidget):
                 self.setWindowTitle(f"Drill - {SEARCH_LIMIT}+ items found, search stopped")
                 self.ui_update_timer.stop()
                 self.search.stop()
+                
                 self.search = None
             
 
@@ -304,17 +305,19 @@ class SearchWindow(QWidget):
 
     def search_input_changed(self):
         """Called only after typing inactivity"""
-        print("search_input_changed triggered")
+        logging.info("search_input_changed triggered")
         self.tree.clear()
         
         
         if self.search:
             # Stop the previous search
+            # First stop the UI update so we don't get any stray results
+            self.ui_update_timer.stop()
+            # Now we can stop the search without waiting for the workers to finish
             self.search.stop()
             self.search = None
             self.setWindowTitle("Drill")
-            self.ui_update_timer.stop()
-            print("stopped previous search")
+            logging.info("stopped previous search")
         
         
         if self.pending_search_text:
