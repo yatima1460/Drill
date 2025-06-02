@@ -1,26 +1,29 @@
 import sys
-from PyQt5.QtWidgets import (
-    QApplication, QWidget, QVBoxLayout, QLineEdit, QTreeWidget, QTreeWidgetItem, QDesktopWidget, QMessageBox
+from PyQt6.QtWidgets import (
+    QApplication, QWidget, QVBoxLayout, QLineEdit, QTreeWidget, QTreeWidgetItem, QMessageBox
 )
-from PyQt5.QtCore import QTimer
+from PyQt6.QtGui import QAction
+from PyQt6.QtGui import QGuiApplication
+
+from PyQt6.QtCore import QTimer
 import os
 import subprocess
 from search import Search
 
-from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QMenu, QAction
-from PyQt5.QtCore import QMimeData, QSize
-from PyQt5.QtGui import QClipboard
-from PyQt5.QtGui import QFont  # Add this to your existing imports
-from PyQt5.QtGui import QIcon
-from PyQt5.QtWidgets import QStyle
+from PyQt6.QtCore import Qt
+from PyQt6.QtWidgets import QMenu
+from PyQt6.QtCore import QMimeData, QSize
+from PyQt6.QtGui import QClipboard
+from PyQt6.QtGui import QFont  # Add this to your existing imports
+from PyQt6.QtGui import QIcon
+from PyQt6.QtWidgets import QStyle
 import logging
 import multiprocessing
 from typing import Optional
 
 from search import SearchResult
-from PyQt5.QtGui import QPixmap
-from PyQt5.QtCore import QEvent
+from PyQt6.QtGui import QPixmap
+from PyQt6.QtCore import QEvent
 
 from utils import get_file_icon
 
@@ -28,7 +31,7 @@ class SearchWindow(QWidget):
 
 
     def keyPressEvent(self, event):
-        if event.key() == Qt.Key_Escape:
+        if event.key() == Qt.Key.Key_Escape:
             if self.search:
                 self.search.stop()
                 self.search = None
@@ -81,7 +84,7 @@ class SearchWindow(QWidget):
             item.setToolTip(1, result[1])
             item.setToolTip(2, result[2])
             item.setToolTip(3, result[3]) 
-            item.setTextAlignment(2, Qt.AlignRight | Qt.AlignVCenter)  # Size column is index 2
+            item.setTextAlignment(2, Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)  # Size column is index 2
             self.tree.addTopLevelItem(item)
             item.setIcon(0, qicon)
             # Apply monospace to Size (column 2) and Date (column 3)
@@ -122,7 +125,7 @@ class SearchWindow(QWidget):
         # Icons
         style = self.style()
         #self.default_icon = self.style.standardIcon(QStyle.SP_MessageBoxQuestion)
-        folder_icon = style.standardIcon(QStyle.SP_DirOpenIcon)
+        folder_icon = style.standardIcon(QStyle.StandardPixmap.SP_DirOpenIcon)
 
         open_action = QAction("Open", self)
         if sys.platform.startswith('darwin'):
@@ -150,7 +153,7 @@ class SearchWindow(QWidget):
         copy_size_action.triggered.connect(lambda: self.copy_to_clipboard(item.text(2)))
         viewport = self.tree.viewport()
         if viewport:
-            menu.exec_(viewport.mapToGlobal(pos))
+            menu.exec(viewport.mapToGlobal(pos))
 
     def get_full_path(self, item):
         filename = item.text(0)
@@ -190,7 +193,7 @@ class SearchWindow(QWidget):
             try:
                 icon = QIcon("assets/drill.svg")  # Use .icns for macOS if available
                 self.setWindowIcon(icon)
-                # Set Dock icon (PyQt5 does not do this by default)
+                # Set Dock icon (PyQt6 does not do this by default)
                 app = QApplication.instance()
                 if app:
                     pixmap = QPixmap("assets/drill.icns")
@@ -215,7 +218,7 @@ class SearchWindow(QWidget):
         self.__set_window_icon()
         
         # Get screen size and set window size to half
-        screen = QDesktopWidget().screenGeometry()
+        screen = QGuiApplication.primaryScreen().geometry()
         width = screen.width() // 2
         height = screen.height() // 2
         self.resize(width, height)
@@ -226,7 +229,7 @@ class SearchWindow(QWidget):
         
         # Load monospace font used for some columns
         self.monospace_font = QFont("Monospace")  # or "Courier", "Consolas", etc.
-        self.monospace_font.setStyleHint(QFont.Monospace)  # Ensures monospace fallback
+        self.monospace_font.setStyleHint(QFont.StyleHint.Monospace)  # Ensures monospace fallback
         
         # UI Tick
         self.ui_update_timer = QTimer(self)
@@ -257,7 +260,7 @@ class SearchWindow(QWidget):
         self.tree.setHeaderLabels(["Name", "Path", "Size", "Date"])
         self.tree.itemDoubleClicked.connect(self.open_file_on_double_click)
         self.tree.setRootIsDecorated(False)  # No tree expand/collapse arrows
-        self.tree.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.tree.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.tree.customContextMenuRequested.connect(self.show_context_menu)
         self.tree.setAlternatingRowColors(True)
         self.tree.setAccessibleName("Search results")
@@ -275,23 +278,23 @@ class SearchWindow(QWidget):
         # Down arrow in search bar: move to first result
 
                 
-        if source == self.search_bar and event.type() == QEvent.KeyPress:
-            if event.key() == Qt.Key_Down:
+        if source == self.search_bar and event.type() == QEvent.Type.KeyPress:
+            if event.key() == Qt.Key.Key_Down:
                 if self.tree.topLevelItemCount() > 0:
                     first_item = self.tree.topLevelItem(0)
                     self.tree.setCurrentItem(first_item)
                     self.tree.setFocus()
                     return True  # Event handled
         # Up arrow in tree: move back to search bar if at first item
-        if source == self.tree and event.type() == QEvent.KeyPress:
+        if source == self.tree and event.type() == QEvent.Type.KeyPress:
             
-            if event.key() in (Qt.Key_Return, Qt.Key_Enter):
+            if event.key() in (Qt.Key.Key_Return, Qt.Key.Key_Enter):
                 current_item = self.tree.currentItem()
                 if current_item:
                     self.open_file_on_double_click(current_item)
                     return True  # Event handled
                 
-            if event.key() == Qt.Key_Up:
+            if event.key() == Qt.Key.Key_Up:
                 current = self.tree.currentItem()
                 if current and self.tree.indexOfTopLevelItem(current) == 0:
                     self.search_bar.setFocus()
@@ -339,4 +342,4 @@ if __name__ == "__main__":
     app = QApplication(sys.argv)
     window = SearchWindow()
     window.show()
-    sys.exit(app.exec_())
+    sys.exit(app.exec())
