@@ -3,8 +3,8 @@ import os
 import queue
 from heuristics import get_root_directories
 import unicodedata
-from PyQt5.QtWidgets import QFileIconProvider
-from PyQt5.QtCore import QFileInfo
+from PyQt6.QtWidgets import QFileIconProvider
+from PyQt6.QtCore import QFileInfo
 import logging
 from typing import Optional, Tuple, List
 from concurrent.futures import ThreadPoolExecutor, Future

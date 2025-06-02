@@ -1,15 +1,14 @@
 
 
 
-from PyQt5.QtGui import QIcon
-from PyQt5.QtCore import QTimer, QFileInfo
-from PyQt5.QtWidgets import (
-    QApplication, QWidget, QVBoxLayout, QLineEdit, QTreeWidget, QTreeWidgetItem, QDesktopWidget, QHeaderView, QMessageBox, QFileIconProvider
+from PyQt6.QtGui import QIcon
+from PyQt6.QtCore import QTimer, QFileInfo
+from PyQt6.QtWidgets import (
+    QFileIconProvider
 )
 
 import os
 import logging
-from PyQt5.QtWidgets import QStyle
 from typing import Optional, Tuple, List
 from functools import lru_cache
 

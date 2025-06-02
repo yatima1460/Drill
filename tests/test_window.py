@@ -1,8 +1,7 @@
 # tests/test_window.py
-# tests/test_app_window.py
 
 import pytest
-from PyQt5.QtWidgets import QApplication
+from PyQt6.QtWidgets import QApplication
 import os
 import sys
 
@@ -110,4 +109,3 @@ def test_open_search_and_change_input(app, qtbot):
     
     window.close()
     assert not window.isVisible()
-    
