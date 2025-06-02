@@ -22,7 +22,7 @@ class CLI:
         
         self.search = Search(query)
         
-        results = self.search.start()
+        #results = self.search.start()
         
         # Print the results
         print(f"Search results for: '{query}'")

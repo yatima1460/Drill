@@ -108,9 +108,7 @@ jobs:
     - name: Run tests
       run: python -m pytest tests/
     - name: Run cx_freeze
-      run: |
-        pip install cx_Freeze
-        python setup.py build_exe
+      run: python setup.py build_exe
     - name: Upload exe
       uses: actions/upload-artifact@v4.6.2
       with:
