@@ -2,6 +2,10 @@
 
 Very fast file searcher without indexing
 
+[Download latest release](https://github.com/yatima1460/Drill/releases/latest)
+
+
+
 [![CD](https://github.com/yatima1460/Drill/actions/workflows/cd.yml/badge.svg)](https://github.com/yatima1460/Drill/actions/workflows/cd.yml)
 [![Financial Contributors on Open Collective](https://opencollective.com/Drill/all/badge.svg?label=financial+contributors)](https://opencollective.com/Drill) [![GitHub issues](https://img.shields.io/github/issues/yatima1460/Drill.svg)](https://github.com/yatima1460/Drill/issues)
 [![GitHub forks](https://img.shields.io/github/forks/yatima1460/Drill.svg)](https://github.com/yatima1460/Drill/network)
