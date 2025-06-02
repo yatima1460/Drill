@@ -22,7 +22,7 @@ Very fast file searcher without indexing
 - Betting on the future: being tested only for SSDs/M.2 or fast RAID arrays
 
 
-![](https://raw.githubusercontent.com/yatima1460/Drill/gh-pages/screenshot.png)
+![](https://raw.githubusercontent.com/yatima1460/Drill/main/docs/screenshot.png)
 
 
 ## Run
