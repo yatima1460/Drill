@@ -219,7 +219,7 @@ class Search:
         if os.name == 'nt':
             drives = [f"{d}:\\" for d in 'ABCDEFGHIJKLMNOPQRSTUVWXYZ' if os.path.exists(f"{d}:\\")]
             for drive in drives:
-                self.dir_queue.put(drive)
+                self.dir_queue.add(DrillEntry(drive))
         else:
             # Add all self.roots to the queue
             for root in self.roots:
