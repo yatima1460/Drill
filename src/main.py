@@ -107,7 +107,7 @@ class SearchWindow(QWidget):
             if self.search.is_done():
                 self.setWindowTitle(f"Drill - {self.tree.topLevelItemCount()} items found - done")
             else:
-                self.setWindowTitle(f"Drill - {self.tree.topLevelItemCount()} items found - {self.search.processes_count()} processes running - {self.search.total_to_scan()} directories to scan - {self.search.get_longest_path()} depth reached")
+                self.setWindowTitle(f"Drill - {self.tree.topLevelItemCount()} items found - {self.search.processes_count()} processes running - {self.search.total_to_scan()} directories to scan")
         else:
             self.setWindowTitle("Drill")
 
