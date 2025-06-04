@@ -51,5 +51,22 @@ class DrillEntry:
     def __hash__(self):
         return hash(self.path)
     
-    # def __lt__(self, other):
-    #     pass
+    def __lt__(self, other) -> bool:
+        
+        # Not hidden files should come first
+        if self.name.startswith(".") and not other.name.startswith("."):
+            return False
+        if not self.name.startswith(".") and other.name.startswith("."):
+            return True
+
+        # Most recently modified files should come first
+        if self.modified_time != other.modified_time:
+            return self.modified_time > other.modified_time
+
+        # Less importance to folders deep in the hierarchy
+        self_slashes = self.path.count("/")
+        other_slashes = other.path.count("/")
+        if self_slashes != other_slashes:
+            return self_slashes < other_slashes
+
+        return False
