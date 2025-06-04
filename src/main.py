@@ -268,6 +268,9 @@ class SearchWindow(QWidget):
         self.tree.setIconSize(QSize(32, 32))
         self.tree.installEventFilter(self)
         
+        # Smooth scrolling of the results list
+        self.tree.setVerticalScrollMode(QTreeWidget.ScrollMode.ScrollPerPixel)
+        
         # Set up the layout
         layout = QVBoxLayout()
         layout.addWidget(self.search_bar)
