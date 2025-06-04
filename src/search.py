@@ -9,7 +9,6 @@ import logging
 from typing import Optional, Tuple, List
 from concurrent.futures import ThreadPoolExecutor, Future
 import threading
-from sortedqueue import SortedQueue
 from os import DirEntry
 from drillentry import DrillEntry
 
@@ -89,8 +88,9 @@ import datetime
 import multiprocessing
 from queue import PriorityQueue, Queue
 import time
+from sortedcontainers import SortedSet
             
-def worker(dir_queue: SortedQueue, result_queue: Queue, running: threading.Event, search_text: str, roots: set[str], fuzzy: bool, maximum_depth):
+def worker(dir_queue: SortedSet, result_queue: Queue, running: threading.Event, search_text: str, roots: set[str], fuzzy: bool, maximum_depth):
     
     logger = logging.getLogger("Worker")
     # logger.setLevel(logging.INFO)
@@ -103,7 +103,7 @@ def worker(dir_queue: SortedQueue, result_queue: Queue, running: threading.Event
     while running.is_set():
         try:
 
-            current_dir: DrillEntry = dir_queue.get()
+            current_dir: DrillEntry = dir_queue.pop(0)
 
             # sep_count = current_dir.count(os.sep)
             # if sep_count > maximum_depth[0]:
@@ -147,7 +147,7 @@ def worker(dir_queue: SortedQueue, result_queue: Queue, running: threading.Event
                             continue
                         # add beginning of queue if matches token search otherwise add to end
                   
-                        dir_queue.put(DrillEntry(entry.path))
+                        dir_queue.add(DrillEntry(entry.path))
                         
 
                         # if subdirectory not in visited:
@@ -195,7 +195,7 @@ class Search:
         self.search_text = search_text
         self.items: list[list[str]] = []
         self.executor = ThreadPoolExecutor(thread_name_prefix="SearchWorker")
-        self.dir_queue = SortedQueue()
+        self.dir_queue = SortedSet()
         self.result_queue = queue.Queue()
         self.running = threading.Event()
         self.processes: List[Future] = []
@@ -225,7 +225,7 @@ class Search:
             for root in self.roots:
                 if os.path.exists(root):
                     logging.info(f"Adding root to queue: {root}")
-                    self.dir_queue.put(DrillEntry(root))
+                    self.dir_queue.add(DrillEntry(root))
                 else:
                     logging.warning(f"Root path does not exist: {root}")
         
@@ -266,7 +266,7 @@ class Search:
         return len(self.processes)
     
     def total_to_scan(self):
-        return self.dir_queue.qsize()
+        return len(self.dir_queue)
     
     def get_longest_path(self):
         current_longest = self.maximum_depth[0]

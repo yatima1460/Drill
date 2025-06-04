@@ -14,7 +14,8 @@ build_exe_options = {
         "logging",
         "os",
         "sys",
-        "threading"
+        "threading",
+        "sortedcontainers"
     ] + list(find_packages("src")),
     "excludes": [
         "unittest", 
@@ -27,7 +28,8 @@ build_exe_options = {
         "ai",
         "mlx",
         "mlx_lm",
-        "transformers"
+        "transformers",
+        "sortedcontainers-stubs"
     ],
     "include_files": [
         ("src/assets", "assets")
