@@ -25,4 +25,18 @@ def get_file_icon(path: str) -> Optional[QIcon]:
         logging.error(f"Error getting file icon: {e}")
         return None
 
-    
+@lru_cache(maxsize=512)
+def get_file_modified_time(path: str) -> Optional[float]:
+    """
+    Get the last modified time of a file.
+    Returns None if the file does not exist or an error occurs.
+    """
+    try:
+        file_info = QFileInfo(path)
+        if file_info.exists():
+            return file_info.lastModified().toSecsSinceEpoch()
+        else:
+            return None
+    except BaseException as e:
+        logging.error(f"Error getting file modified time: {e}")
+        return None

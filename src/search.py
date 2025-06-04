@@ -9,6 +9,9 @@ import logging
 from typing import Optional, Tuple, List
 from concurrent.futures import ThreadPoolExecutor, Future
 import threading
+from sortedqueue import SortedQueue
+from os import DirEntry
+from drillentry import DrillEntry
 
 SearchResult = Tuple[str, str, str, str, bool]
 
@@ -87,7 +90,7 @@ import multiprocessing
 from queue import PriorityQueue, Queue
 import time
             
-def worker(dir_queue: Queue, result_queue: Queue, running: threading.Event, search_text: str, roots: set[str], fuzzy: bool, maximum_depth):
+def worker(dir_queue: SortedQueue, result_queue: Queue, running: threading.Event, search_text: str, roots: set[str], fuzzy: bool, maximum_depth):
     
     logger = logging.getLogger("Worker")
     # logger.setLevel(logging.INFO)
@@ -100,19 +103,19 @@ def worker(dir_queue: Queue, result_queue: Queue, running: threading.Event, sear
     while running.is_set():
         try:
 
-            current_dir = dir_queue.get()
+            current_dir: DrillEntry = dir_queue.get()
 
-            sep_count = current_dir.count(os.sep)
-            if sep_count > maximum_depth[0]:
-                maximum_depth[0] = sep_count
-                logger.info(f"Longest path updated: {current_dir} (separators: {sep_count})")
+            # sep_count = current_dir.count(os.sep)
+            # if sep_count > maximum_depth[0]:
+            #     maximum_depth[0] = sep_count
+            #     logger.info(f"Longest path updated: {current_dir} (separators: {sep_count})")
         except queue.Empty:
             logger.warning("No directories to process, worker is waiting...")
             # TODO: fix this? basically the idea is that if we encounter a very slow disk we should not kill workers
             time.sleep(0.1)
         try:
             #FIXME: except InterruptedError
-            with os.scandir(current_dir) as it:
+            with os.scandir(current_dir.path) as it:
                 for entry in it:
                     if not running.is_set(): 
                         break
@@ -144,7 +147,7 @@ def worker(dir_queue: Queue, result_queue: Queue, running: threading.Event, sear
                             continue
                         # add beginning of queue if matches token search otherwise add to end
                   
-                        dir_queue.put(entry.path)
+                        dir_queue.put(DrillEntry(entry.path))
                         
 
                         # if subdirectory not in visited:
@@ -172,7 +175,7 @@ def worker(dir_queue: Queue, result_queue: Queue, running: threading.Event, sear
                         
                         result_queue.put((
                             entry.name,
-                            current_dir,
+                            current_dir.path,
                             size,
                             formatted_time,
                             is_dir
@@ -192,7 +195,7 @@ class Search:
         self.search_text = search_text
         self.items: list[list[str]] = []
         self.executor = ThreadPoolExecutor(thread_name_prefix="SearchWorker")
-        self.dir_queue = queue.Queue()
+        self.dir_queue = SortedQueue()
         self.result_queue = queue.Queue()
         self.running = threading.Event()
         self.processes: List[Future] = []
@@ -221,7 +224,8 @@ class Search:
             # Add all self.roots to the queue
             for root in self.roots:
                 if os.path.exists(root):
-                    self.dir_queue.put(root)
+                    logging.info(f"Adding root to queue: {root}")
+                    self.dir_queue.put(DrillEntry(root))
                 else:
                     logging.warning(f"Root path does not exist: {root}")
         
