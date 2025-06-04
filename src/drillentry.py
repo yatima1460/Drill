@@ -6,6 +6,15 @@ class DrillEntry:
       
         self.name = os.path.basename(fullpath) if len(fullpath) > 1 else fullpath  # / is a special case
         self.path = fullpath
+        
+        try:
+            self.is_hidden = self.name.startswith(".")
+            # Check Windows hidden attribute
+            if not self.is_hidden and os.name == 'nt':
+                attrs = os.stat(fullpath).st_file_attributes
+                self.is_hidden = bool(attrs & (os.stat.FILE_ATTRIBUTE_HIDDEN | os.stat.FILE_ATTRIBUTE_SYSTEM))
+        except Exception:
+            self.is_hidden = False
             
         try:
             self.is_dir = os.path.isdir(fullpath)
@@ -52,11 +61,13 @@ class DrillEntry:
         return hash(self.path)
     
     def __lt__(self, other) -> bool:
-        
+        '''
+        Returns True if this entry is more important than the other entry.
+        '''
         # Not hidden files should come first
-        if self.name.startswith(".") and not other.name.startswith("."):
+        if self.is_hidden and not other.is_hidden:
             return False
-        if not self.name.startswith(".") and other.name.startswith("."):
+        if not self.is_hidden and other.is_hidden:
             return True
 
         # Most recently modified files should come first
