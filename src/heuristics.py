@@ -59,3 +59,42 @@ def get_root_directories():
         home = os.path.expanduser('~')
         roots.update(home)
     return roots
+
+def system_directories():
+    """
+    Returns a list of system directories that are not considered important
+    """
+    if os.name == 'nt':
+        return [
+            'C:\\Windows',
+            'C:\\ProgramData',
+            'C:\\Program Files',
+            'C:\\Program Files (x86)',
+            'C:\\Users',
+            'C:\\$Recycle.Bin',
+            'C:\\System Volume Information'
+        ]
+    elif sys.platform == 'darwin':
+        return [
+            '/System',
+            '/Library',
+            '/private',
+            '/usr',
+            '/bin',
+            '/sbin'
+        ]
+    else:
+        return [
+            '/'
+            '/etc',
+            '/var',
+            '/usr',
+            '/bin',
+            '/sbin'
+        ]
+    
+def is_in_system_dirs(path: str) -> bool:
+    for system_dir in system_directories():
+        if path.startswith(system_dir):
+            return True
+    return False

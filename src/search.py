@@ -134,12 +134,12 @@ def worker(dir_queue: SortedSet, result_queue: Queue, running: threading.Event, 
                         
                         subdirectory = entry.path
                         
-                        if not can_access_directory(subdirectory):
-                            logger.debug(f"Cannot access directory: {subdirectory} - skipping")
-                            continue
-                        if not os.path.exists(subdirectory):
-                            logger.warning(f"Directory does not exist: {subdirectory} - skipping")
-                            continue
+                        # if not can_access_directory(subdirectory):
+                        #     logger.debug(f"Cannot access directory: {subdirectory} - skipping")
+                        #     continue
+                        # if not os.path.exists(subdirectory):
+                        #     logger.warning(f"Directory does not exist: {subdirectory} - skipping")
+                        #     continue
 
                         # the idea is to treat roots just like symlinks
                         if entry.path in roots:

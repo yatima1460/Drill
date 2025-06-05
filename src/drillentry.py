@@ -1,14 +1,17 @@
 import os
 from os import DirEntry
 
+
+from heuristics import is_in_system_dirs
+
 class DrillEntry:
     def __init__(self, fullpath):
       
-        self.name = os.path.basename(fullpath) if len(fullpath) > 1 else fullpath  # / is a special case
         self.path = fullpath
+        self.name = os.path.basename(fullpath) if len(fullpath) > 1 else fullpath  # / is a special case
         
         try:
-            self.is_hidden = self.name.startswith(".")
+            self.is_hidden = self.name.startswith(".") or self.name.endswith("~") or self.name.endswith(".app") or is_in_system_dirs(fullpath)
             # Check Windows hidden attribute
             if not self.is_hidden and os.name == 'nt':
                 attrs = os.stat(fullpath).st_file_attributes
@@ -64,19 +67,20 @@ class DrillEntry:
         '''
         Returns True if this entry is more important than the other entry.
         '''
-        # Not hidden files should come first
+
+        # Regular folders should come first
         if self.is_hidden and not other.is_hidden:
             return False
         if not self.is_hidden and other.is_hidden:
             return True
 
-        # Most recently modified files should come first
+        # Between two regular folders most recently modified folders should come first
         if self.modified_time != other.modified_time:
             return self.modified_time > other.modified_time
-
+        
         # Less importance to folders deep in the hierarchy
-        self_slashes = self.path.count("/")
-        other_slashes = other.path.count("/")
+        self_slashes = self.path.count(os.sep)
+        other_slashes = other.path.count(os.sep)
         if self_slashes != other_slashes:
             return self_slashes < other_slashes
 
