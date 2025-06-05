@@ -40,3 +40,19 @@ def get_file_modified_time(path: str) -> Optional[float]:
     except BaseException as e:
         logging.error(f"Error getting file modified time: {e}")
         return None
+    
+    
+@lru_cache(maxsize=512)
+def human_readable(size, suffix='B'):
+    # Uses KB, MB, GB, TB, etc. (not KiB, MiB...)
+    units = ['', 'K', 'M', 'G', 'T', 'P', 'E', 'Z']
+    if 0 < abs(size) < 1024:
+        # For any nonzero value less than 1024, show as "1 KB"
+        return "1 KB"
+    elif size == 0:
+        return "Empty"
+    for unit in units:
+        if abs(size) < 1024.0:
+            return f"{size:3.0f} {unit}{suffix}"
+        size /= 1024.0
+    return f"{size:.1f} Y{suffix}"

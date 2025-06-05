@@ -46,19 +46,6 @@ def normalize_text(text):
     return ''.join(c for c in normalized if unicodedata.category(c) != 'Mn')
 
 
-def human_readable(size, suffix='B'):
-    # Uses KB, MB, GB, TB, etc. (not KiB, MiB...)
-    units = ['', 'K', 'M', 'G', 'T', 'P', 'E', 'Z']
-    if 0 < abs(size) < 1024:
-        # For any nonzero value less than 1024, show as "1 KB"
-        return "1 KB"
-    elif size == 0:
-        return "Empty"
-    for unit in units:
-        if abs(size) < 1024.0:
-            return f"{size:3.0f} {unit}{suffix}"
-        size /= 1024.0
-    return f"{size:.1f} Y{suffix}"
 
 import difflib
 
@@ -120,19 +107,15 @@ def worker(dir_queue: SortedSet, result_queue: Queue, running: threading.Event, 
                     if not running.is_set(): 
                         break
                     
-                   
-                        
+                    
+                    drillEntry = DrillEntry(entry.path)    
                     # Check if the entry is a symlink    
                     #icon = get_icon_for_path(entry.path)
                     #if icon is None:
-                    try:
-                        is_dir = entry.is_dir(follow_symlinks=False)
-                    except OSError:
-                        logger.info(f"Cannot determine if {entry.path} is a directory")
-                        is_dir = False
-                    if is_dir:
+                   
+                    if drillEntry.is_dir and not drillEntry.is_symlink:
                         
-                        subdirectory = entry.path
+                        
                         
                         # if not can_access_directory(subdirectory):
                         #     logger.debug(f"Cannot access directory: {subdirectory} - skipping")
@@ -142,12 +125,12 @@ def worker(dir_queue: SortedSet, result_queue: Queue, running: threading.Event, 
                         #     continue
 
                         # the idea is to treat roots just like symlinks
-                        if entry.path in roots:
-                            logger.info("Skipping root directory: %s", subdirectory)
+                        if drillEntry.path in roots:
+                            logger.info("Skipping root directory: %s", drillEntry.path)
                             continue
                         # add beginning of queue if matches token search otherwise add to end
                   
-                        dir_queue.add(DrillEntry(entry.path))
+                        dir_queue.add(drillEntry)
                         
 
                         # if subdirectory not in visited:
@@ -157,28 +140,13 @@ def worker(dir_queue: SortedSet, result_queue: Queue, running: threading.Event, 
                     #FIXME: roots are not being added to search results
                     #FIXME: ⁉️ emoji not appearing
                     if token_search(entry.name, search_text, fuzzy):
-                        
-                        # Check if the file is a symlink
-                        
-                        formatted_time = "?"
-                        size = "?"
-                        if not entry.is_symlink():
-                            stat = entry.stat()
-                            mod_time = datetime.datetime.fromtimestamp(stat.st_mtime)
-                            formatted_time = mod_time.strftime('%Y/%m/%d %H:%M:%S')
-                            size = stat.st_size
-                            if size == 0 and is_dir: 
-                                size = ""
-                            else:
-                                size = human_readable(size)
 
-                        
                         result_queue.put((
-                            entry.name,
-                            current_dir.path,
-                            size,
-                            formatted_time,
-                            is_dir
+                            drillEntry.name,
+                            os.path.dirname(drillEntry.path),
+                            drillEntry.size,
+                            drillEntry.formatted_time,
+                            drillEntry.is_dir
                         ))
         except KeyboardInterrupt:
             logger.info("Keyboard interrupt detected, stopping...")

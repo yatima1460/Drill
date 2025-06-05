@@ -3,13 +3,19 @@ from os import DirEntry
 
 
 from heuristics import is_in_system_dirs
+from utils import human_readable
+import datetime
 
 class DrillEntry:
-    def __init__(self, fullpath):
+    def __init__(self, fullpath: str):
       
+       
+        if not isinstance(fullpath, str):
+            raise TypeError("fullpath must be a string")
         self.path = fullpath
         self.name = os.path.basename(fullpath) if len(fullpath) > 1 else fullpath  # / is a special case
         
+        # TODO: lazy init of this stuff
         try:
             self.is_hidden = self.name.startswith(".") or self.name.endswith("~") or self.name.endswith(".app") or is_in_system_dirs(fullpath)
             # Check Windows hidden attribute
@@ -34,22 +40,32 @@ class DrillEntry:
         except Exception:
             self.is_symlink = False
         
+        self.formatted_time = "?"
         try:
             stat = os.stat(fullpath)
             
             try:
                 self.size = stat.st_size
+                if self.size == 0 and self.is_dir: 
+                    self.size = ""
+                else:
+                    self.size = human_readable(self.size)
             except Exception:
-                self.size = 0
+                self.size = "?"
                 
             try:
                 self.modified_time = stat.st_mtime
+                if not self.is_symlink:
+                    mod_time = datetime.datetime.fromtimestamp(self.modified_time)
+                    self.formatted_time = mod_time.strftime('%Y/%m/%d %H:%M:%S')
+                           
+                        
             except Exception:
-                self.modified_time = 0
+                self.modified_time = "?"
             
         except Exception:
-            self.size = 0
-            self.modified_time = 0
+            self.size = "?"
+            self.modified_time = "?"
         
     def __eq__(self, other):
         return self.path == other.path
@@ -74,7 +90,7 @@ class DrillEntry:
         if not self.is_hidden and other.is_hidden:
             return True
 
-        # Between two regular folders most recently modified folders should come first
+        # # Between two regular folders most recently modified folders should come first
         if self.modified_time != other.modified_time:
             return self.modified_time > other.modified_time
         
