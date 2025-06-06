@@ -3,7 +3,36 @@
 import os
 
 import sys
+from typing import List
+from functools import lru_cache
 
+
+WORDS_ALPHA = None
+
+@lru_cache(maxsize=10240)
+def is_any_token_in_english_dictionary(text: str) -> bool:
+    """
+    Checks if any token in the given text is in the English dictionary.
+    """
+    global WORDS_ALPHA
+    if WORDS_ALPHA is None:
+        with open(os.path.join(os.path.dirname(__file__), 'assets', 'wordsalpha.txt'), 'r') as f:
+            WORDS_ALPHA = set(line.strip() for line in f)
+    return any(token.lower() in WORDS_ALPHA for token in text.split())
+
+@lru_cache(maxsize=512)
+def is_in_english_dictionary(word: str) -> bool:
+    """
+    Checks if the given word is in the English dictionary.
+    """
+    global WORDS_ALPHA
+    if WORDS_ALPHA is None:
+        with open(os.path.join(os.path.dirname(__file__), 'assets', 'wordsalpha.txt'), 'r') as f:
+            WORDS_ALPHA = set(line.strip() for line in f)
+    return word in WORDS_ALPHA  
+    
+
+@lru_cache(maxsize=512)
 def get_root_directories():
     roots = set()
     
@@ -46,6 +75,12 @@ def get_root_directories():
             '/Applications',
             '/',
         ]
+        # Keep in mind that on Mac:
+        # /Volumes
+        # /Volumes/Macintosh HD/Volumes
+        # /System/Volumes/Data/Volumes/
+        # will point to the same root directory
+        #
         # Add network drives
         network_drives = ["/Volumes" + os.sep + folder for folder in os.listdir('/Volumes') if os.path.isdir(os.path.join('/Volumes', folder))]
         # Add root

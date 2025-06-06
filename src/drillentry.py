@@ -6,6 +6,8 @@ from heuristics import is_in_system_dirs
 from utils import human_readable
 import datetime
 
+from heuristics import is_in_english_dictionary, is_any_token_in_english_dictionary
+
 class DrillEntry:
     def __init__(self, fullpath: str):
       
@@ -25,8 +27,14 @@ class DrillEntry:
             self.is_symlink = False
         
         self.formatted_time = "?"
+        self.id = fullpath
         try:
             stat = os.stat(fullpath)
+            
+            try:
+                self.id = (stat.st_dev, stat.st_ino)
+            except Exception:
+                pass
             
             try:
                 self.size = stat.st_size
@@ -98,6 +106,12 @@ class DrillEntry:
         Returns True if this entry is more important than the other entry.
         '''
 
+        self_dict = is_in_english_dictionary(self.name.lower())
+        other_dict = is_in_english_dictionary(other.name.lower())
+        if self_dict and not other_dict:
+            return True
+        if not self_dict and other_dict:
+            return False
            
         # Regular folders should come first
         if self.is_hidden and not other.is_hidden:

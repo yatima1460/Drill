@@ -77,7 +77,7 @@ from queue import PriorityQueue, Queue
 import time
 from sortedcontainers import SortedSet
             
-def worker(dir_queue: SortedSet, result_queue: Queue, running: threading.Event, search_text: str, roots: set[str], fuzzy: bool, maximum_depth):
+def worker(dir_queue: SortedSet, visited: set, result_queue: Queue, running: threading.Event, search_text: str, roots: set[str], fuzzy: bool, maximum_depth):
     
     logger = logging.getLogger("Worker")
     # logger.setLevel(logging.INFO)
@@ -112,6 +112,12 @@ def worker(dir_queue: SortedSet, result_queue: Queue, running: threading.Event, 
                     # Check if the entry is a symlink    
                     #icon = get_icon_for_path(entry.path)
                     #if icon is None:
+                    
+                    if drillEntry.id in visited:
+                        logger.debug("Already visited: %s", drillEntry.path)
+                        continue
+                    visited.add(drillEntry.id)
+                        
                    
                     if drillEntry.is_dir and not drillEntry.is_symlink:
                         
@@ -167,6 +173,7 @@ class Search:
         self.result_queue = queue.Queue()
         self.running = threading.Event()
         self.processes: List[Future] = []
+        self.visited = set()
         logging.info("Search init %s", self.search_text)
         multiprocessing.current_process().name = "UI"
         if search_text.startswith("fuzzy:"):
@@ -202,7 +209,7 @@ class Search:
         # Start workers
         cpu_count = self.executor._max_workers
         for i in range(cpu_count):
-            p = self.executor.submit(worker, self.dir_queue, self.result_queue, self.running, self.search_text, self.roots, self.fuzzy, self.maximum_depth)
+            p = self.executor.submit(worker, self.dir_queue, self.visited, self.result_queue, self.running, self.search_text, self.roots, self.fuzzy, self.maximum_depth)
             #p.name = f"Worker-{i}"
             logging.info("Created worker %s",p)
             self.processes.append(p)
