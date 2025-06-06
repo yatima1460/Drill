@@ -47,9 +47,9 @@ def get_root_directories():
             '/',
         ]
         # Add network drives
-        #network_drives = ["/Volumes/Macintosh HD"]
+        network_drives = ["/Volumes" + os.sep + folder for folder in os.listdir('/Volumes') if os.path.isdir(os.path.join('/Volumes', folder))]
         # Add root
-        #important_folders.extend(network_drives)
+        important_folders.extend(network_drives)
         #important_folders.extend([os.path.join(folder, subfolder) for folder in network_drives for subfolder in os.listdir(folder)])
         #important_folders.append("/")
        

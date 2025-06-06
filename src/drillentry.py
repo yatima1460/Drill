@@ -14,27 +14,11 @@ class DrillEntry:
             raise TypeError("fullpath must be a string")
         self.path = fullpath
         self.name = os.path.basename(fullpath) if len(fullpath) > 1 else fullpath  # / is a special case
-        
-        # TODO: lazy init of this stuff
-        try:
-            self.is_hidden = self.name.startswith(".") or self.name.endswith("~") or self.name.endswith(".app") or is_in_system_dirs(fullpath)
-            # Check Windows hidden attribute
-            if not self.is_hidden and os.name == 'nt':
-                attrs = os.stat(fullpath).st_file_attributes
-                self.is_hidden = bool(attrs & (os.stat.FILE_ATTRIBUTE_HIDDEN | os.stat.FILE_ATTRIBUTE_SYSTEM))
-        except Exception:
-            self.is_hidden = False
             
-        try:
-            self.is_dir = os.path.isdir(fullpath)
-        except Exception:
-            self.is_dir = False
-            
-        try:
-            self.is_file = os.path.isfile(fullpath)
-        except Exception:
-            self.is_file = False
-            
+        self._is_hidden = None
+        self._is_dir = None
+        self._is_file = None
+  
         try:
             self.is_symlink = os.path.islink(fullpath)
         except Exception:
@@ -66,7 +50,37 @@ class DrillEntry:
         except Exception:
             self.size = "?"
             self.modified_time = "?"
-        
+         
+    @property   
+    def is_dir(self):
+        if self._is_dir is None:
+            try:
+                self._is_dir = os.path.isdir(self.path)
+            except Exception:
+                self._is_dir = False
+        return self._is_dir
+    
+    @property
+    def is_file(self):
+        if self._is_file is None:
+            try:
+                self._is_file = os.path.isfile(self.path)
+            except Exception:
+                self._is_file = False
+                
+    @property
+    def is_hidden(self):
+        if self._is_hidden is None:
+            try:
+                self._is_hidden = self.name.startswith(".") or self.name.endswith("~") or self.name.endswith(".app") or is_in_system_dirs(fullpath)
+                # Check Windows hidden attribute
+                if not self._is_hidden and os.name == 'nt':
+                    attrs = os.stat(self.path).st_file_attributes
+                    self._is_hidden = bool(attrs & (os.stat.FILE_ATTRIBUTE_HIDDEN | os.stat.FILE_ATTRIBUTE_SYSTEM))
+            except Exception:
+                self._is_hidden = False
+        return self._is_hidden
+            
     def __eq__(self, other):
         return self.path == other.path
         
@@ -84,20 +98,32 @@ class DrillEntry:
         Returns True if this entry is more important than the other entry.
         '''
 
+           
         # Regular folders should come first
         if self.is_hidden and not other.is_hidden:
             return False
         if not self.is_hidden and other.is_hidden:
             return True
 
-        # # Between two regular folders most recently modified folders should come first
-        if self.modified_time != other.modified_time:
-            return self.modified_time > other.modified_time
-        
         # Less importance to folders deep in the hierarchy
         self_slashes = self.path.count(os.sep)
         other_slashes = other.path.count(os.sep)
         if self_slashes != other_slashes:
             return self_slashes < other_slashes
+     
+        # Less importance to folders with an overall longer path
+        self_length = len(self.path)
+        other_length = len(other.path)
+        if self_length != other_length:
+            return self_length < other_length
+        
+        # NOTE: using the date is very bad heuristics,
+        # Drill will get lost into a sea of recent folders created often automatically by applications.
+        # So this should be one of the last heuristics
+        # Only useful to break ties as a last resort
+        #
+        # Between two regular folders most recently modified folders should come first
+        if self.modified_time != other.modified_time:
+            return self.modified_time > other.modified_time
 
         return False
