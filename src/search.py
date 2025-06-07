@@ -12,8 +12,6 @@ import threading
 from os import DirEntry
 from drillentry import DrillEntry
 
-SearchResult = Tuple[str, str, str, str, bool]
-
 import ctypes
 
 def can_access_directory(path):
@@ -147,13 +145,7 @@ def worker(dir_queue: SortedSet, visited: set, result_queue: Queue, running: thr
                     #FIXME: ⁉️ emoji not appearing
                     if token_search(entry.name, search_text, fuzzy):
 
-                        result_queue.put((
-                            drillEntry.name,
-                            os.path.dirname(drillEntry.path),
-                            drillEntry.size,
-                            drillEntry.formatted_time,
-                            drillEntry.is_dir
-                        ))
+                        result_queue.put(drillEntry)
         except KeyboardInterrupt:
             logger.info("Keyboard interrupt detected, stopping...")
             break
@@ -231,7 +223,7 @@ class Search:
         self.executor.shutdown(wait=False, cancel_futures=True)
         logging.info("Executor shutdown initiated")
 
-    def pop_result(self) -> Optional[SearchResult]:
+    def pop_result(self) -> Optional[DrillEntry]:
         try:
             return self.result_queue.get(block=False)
         except queue.Empty:

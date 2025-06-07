@@ -26,6 +26,7 @@ from PyQt6.QtGui import QPixmap
 from PyQt6.QtCore import QEvent
 
 from utils import get_file_icon
+from drillentry import DrillEntry
 
 class SearchWindow(QWidget):
 
@@ -71,22 +72,21 @@ class SearchWindow(QWidget):
             self.resize_columns()
             self.dirty_columns = False
         if self.search:
-            result: Optional[SearchResult] = self.search.pop_result()
+            result: Optional[DrillEntry] = self.search.pop_result()
             if result is None:
                 return
       
-            qicon = get_file_icon(os.path.join(result[1], result[0]))
-            if not qicon:
-                qicon = self.default_icon
+            
+            
 
-            item = QTreeWidgetItem(result[:4])
-            item.setToolTip(0, result[0])
-            item.setToolTip(1, result[1])
-            item.setToolTip(2, result[2])
-            item.setToolTip(3, result[3]) 
+            item = QTreeWidgetItem((result.name, result.containing_folder, result.size, result.formatted_time))
+            item.setToolTip(0, result.name)
+            item.setToolTip(1, result.containing_folder)
+            item.setToolTip(2, result.size)
+            item.setToolTip(3, result.formatted_time) 
             item.setTextAlignment(2, Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)  # Size column is index 2
             self.tree.addTopLevelItem(item)
-            item.setIcon(0, qicon)
+            item.setIcon(0, result.qicon)
             # Apply monospace to Size (column 2) and Date (column 3)
             
             item.setFont(2, self.monospace_font)  # Size column

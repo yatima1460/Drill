@@ -8,6 +8,7 @@ import datetime
 
 from heuristics import is_in_english_dictionary, is_any_token_in_english_dictionary
 
+from utils import get_file_icon
 class DrillEntry:
     def __init__(self, fullpath: str):
       
@@ -20,14 +21,22 @@ class DrillEntry:
         self._is_hidden = None
         self._is_dir = None
         self._is_file = None
+        
+        self._qicon = None
+        self.containing_folder = os.path.dirname(fullpath)
   
         try:
             self.is_symlink = os.path.islink(fullpath)
         except Exception:
             self.is_symlink = False
+            
+        # Icon should be loaded on the worker side that creates the DrillEntry
+        self._qicon = get_file_icon(self.path)
         
         self.formatted_time = "?"
         self.id = fullpath
+        self.size = "?"
+        self.modified_time = "?"
         try:
             stat = os.stat(fullpath)
             
@@ -37,27 +46,29 @@ class DrillEntry:
                 pass
             
             try:
-                self.size = stat.st_size
-                if self.size == 0 and self.is_dir: 
+                byte_size = stat.st_size
+                if byte_size == 0 and self.is_dir: 
                     self.size = ""
                 else:
-                    self.size = human_readable(self.size)
+                    self.size = human_readable(byte_size)
             except Exception:
-                self.size = "?"
+                pass
                 
             try:
                 self.modified_time = stat.st_mtime
                 if not self.is_symlink:
                     mod_time = datetime.datetime.fromtimestamp(self.modified_time)
                     self.formatted_time = mod_time.strftime('%Y/%m/%d %H:%M:%S')
-                           
-                        
+                                    
             except Exception:
-                self.modified_time = "?"
+                pass
             
         except Exception:
-            self.size = "?"
-            self.modified_time = "?"
+            pass
+            
+    @property
+    def qicon(self):
+        return self._qicon
          
     @property   
     def is_dir(self):
@@ -90,7 +101,7 @@ class DrillEntry:
         return self._is_hidden
             
     def __eq__(self, other):
-        return self.path == other.path
+        return self.id == other.id
         
     def __repr__(self):
         return self.path

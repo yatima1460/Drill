@@ -12,7 +12,7 @@ import logging
 from typing import Optional, Tuple, List
 from functools import lru_cache
 
-@lru_cache(maxsize=512)
+@lru_cache(maxsize=100000)
 def get_file_icon(path: str) -> Optional[QIcon]:
     """
     Get the file icon for a given path or None, with memoization.
