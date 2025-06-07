@@ -30,13 +30,21 @@ from drillentry import DrillEntry
 
 class SearchWindow(QWidget):
 
+    def fully_stop_search(self):
+        """Stops the search and clears the results."""
+        if self.search:
+            # First stop the UI update so we don't get any stray results
+            self.ui_update_timer.stop()
+            self.search.stop()
+            self.search = None
+            self.tree.clear()
+            self.setWindowTitle("Drill")
+            logging.info("stopped previous search")
+        
 
     def keyPressEvent(self, event):
         if event.key() == Qt.Key.Key_Escape:
-            if self.search:
-                self.search.stop()
-                self.search = None
-                logging.info("stopped previous search")
+            self.fully_stop_search()
             self.close()
         else:
             super().keyPressEvent(event)
@@ -98,7 +106,6 @@ class SearchWindow(QWidget):
                 self.setWindowTitle(f"Drill - {SEARCH_LIMIT}+ items found, search stopped")
                 self.ui_update_timer.stop()
                 self.search.stop()
-                
                 self.search = None
             
 
@@ -309,19 +316,8 @@ class SearchWindow(QWidget):
     def search_input_changed(self):
         """Called only after typing inactivity"""
         logging.info("search_input_changed triggered")
-        self.tree.clear()
-        
-        
-        if self.search:
-            # Stop the previous search
-            # First stop the UI update so we don't get any stray results
-            self.ui_update_timer.stop()
-            # Now we can stop the search without waiting for the workers to finish
-            self.search.stop()
-            self.search = None
-            self.setWindowTitle("Drill")
-            logging.info("stopped previous search")
-        
+
+        self.fully_stop_search()
         
         if self.pending_search_text:
             stripped = self.pending_search_text.strip()
@@ -338,8 +334,9 @@ class SearchWindow(QWidget):
 
     def closeEvent(self, event):
         if self.search:
+            self.ui_update_timer.stop()
             self.search.stop()
-        self.search = None
+            self.search = None
         event.accept()
 
 if __name__ == "__main__":
