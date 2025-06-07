@@ -15,6 +15,7 @@ def app(qtbot):
     return QApplication.instance() or QApplication([])
 
 
+
 def is_window_clean(window):
     """
     Check if the window is clean, i.e., no search results are displayed.
@@ -26,7 +27,23 @@ def is_window_clean(window):
     if window.tree.topLevelItemCount() != 0:
         return False
     return True
+
+from PyQt6.QtCore import Qt
+
+def test_exit_with_escape(app, qtbot):
+    window = SearchWindow()
+    qtbot.addWidget(window)
+    window.show()
+    assert window.isVisible() 
     
+    window.search_bar.setText(".")
+    
+    qtbot.wait(1000) 
+    
+    qtbot.keyPress(window, Qt.Key.Key_Escape)
+    
+    assert not window.isVisible()
+    #assert is_window_clean(window)
 
 def test_fast_typing(app, qtbot):
     window = SearchWindow()
