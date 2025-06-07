@@ -21,7 +21,7 @@ import logging
 import multiprocessing
 from typing import Optional
 
-from search import SearchResult
+
 from PyQt6.QtGui import QPixmap
 from PyQt6.QtCore import QEvent
 

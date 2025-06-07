@@ -91,7 +91,7 @@ class DrillEntry:
     def is_hidden(self):
         if self._is_hidden is None:
             try:
-                self._is_hidden = self.name.startswith(".") or self.name.endswith("~") or self.name.endswith(".app") or is_in_system_dirs(fullpath)
+                self._is_hidden = self.name.startswith(".") or self.name.endswith("~") or self.name.endswith(".app") or is_in_system_dirs(self.path)
                 # Check Windows hidden attribute
                 if not self._is_hidden and os.name == 'nt':
                     attrs = os.stat(self.path).st_file_attributes
