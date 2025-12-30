@@ -196,18 +196,12 @@ class Search:
             logging.info(f"Root directory: {root}")
 
         # Initialize directory queue
-        if os.name == 'nt':
-            drives = [f"{d}:\\" for d in 'ABCDEFGHIJKLMNOPQRSTUVWXYZ' if os.path.exists(f"{d}:\\")]
-            for drive in drives:
-                self.dir_queue.add(DrillEntry(drive))
-        else:
-            # Add all self.roots to the queue
-            for root in self.roots:
-                if os.path.exists(root):
-                    logging.info(f"Adding root to queue: {root}")
-                    self.dir_queue.add(DrillEntry(root))
-                else:
-                    logging.warning(f"Root path does not exist: {root}")
+        for root in self.roots:
+            if os.path.exists(root):
+                logging.info(f"Adding root to queue: {root}")
+                self.dir_queue.add(DrillEntry(root))
+            else:
+                logging.warning(f"Root path does not exist: {root}")
         
         self.maximum_depth = [0] 
 
