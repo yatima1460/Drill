@@ -22,6 +22,7 @@ class DrillEntry:
         self._is_dir = None
         self._is_file = None
         
+        # Icon loading is deferred to qicon property - must happen on UI thread
         self._qicon = None
         self.containing_folder = os.path.dirname(fullpath)
   
@@ -29,9 +30,6 @@ class DrillEntry:
             self.is_symlink = os.path.islink(fullpath)
         except Exception:
             self.is_symlink = False
-            
-        # Icon should be loaded on the worker side that creates the DrillEntry
-        self._qicon = get_file_icon(self.path)
         
         self.formatted_time = "?"
         self.id = fullpath
@@ -68,6 +66,10 @@ class DrillEntry:
             
     @property
     def qicon(self):
+        # Icons MUST be loaded on the UI thread - Qt GUI objects are not thread-safe
+        # This property is accessed from main.py when adding items to the tree widget
+        if self._qicon is None:
+            self._qicon = get_file_icon(self.path)
         return self._qicon
          
     @property   
