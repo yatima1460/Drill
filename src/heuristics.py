@@ -1,5 +1,3 @@
-
-
 import os
 
 import sys
@@ -44,6 +42,7 @@ def get_root_directories():
         # Add important folders
         userprofile = os.environ['USERPROFILE']
         important_folders = [
+            os.path.join(userprofile),
             os.path.join(userprofile, 'Desktop'),
             os.path.join(userprofile, 'Documents'),
             os.path.join(userprofile, 'Downloads'),
@@ -58,6 +57,27 @@ def get_root_directories():
         # add programs x86 and program files in C:
         important_folders.append(os.path.join('C:\\', 'Program Files (x86)'))
         important_folders.append(os.path.join('C:\\', 'Program Files'))
+
+        # Add common game paths and their subfolders
+        game_library_roots = [
+            os.path.join('C:\\', 'Program Files (x86)', 'Steam', 'steamapps', 'common'),
+            os.path.join('C:\\', 'Program Files', 'Epic Games'),
+            os.path.join('C:\\', 'GOG Games')
+        ]
+
+        # Check other drives for Steam libraries
+        for drive in drives:
+            game_library_roots.append(os.path.join(drive, 'SteamLibrary', 'steamapps', 'common'))
+
+
+        for game_root in game_library_roots:
+            if os.path.exists(game_root):
+                important_folders.append(game_root)
+                for subfolder in os.listdir(game_root):
+                    full_path = os.path.join(game_root, subfolder)
+                    if os.path.isdir(full_path):
+                        important_folders.append(full_path)
+                        
         # Add important folders to roots (only if they exist)
         roots.update(set([folder for folder in important_folders if os.path.exists(folder)]))
     elif sys.platform == 'darwin':
