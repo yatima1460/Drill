@@ -37,7 +37,7 @@ def get_root_directories():
     roots = set()
     
     
-    if os.name == 'nt':
+    if sys.platform == 'win32':
         # Windows: all drives
         drives = [f"{d}:\\" for d in 'ABCDEFGHIJKLMNOPQRSTUVWXYZ' if os.path.exists(f"{d}:\\")]
         roots.update(set(drives))
