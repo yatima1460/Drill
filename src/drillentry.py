@@ -39,7 +39,10 @@ class DrillEntry:
             stat = os.stat(fullpath)
             
             try:
-                self.id = (stat.st_dev, stat.st_ino)
+                if stat.st_ino != 0:
+                    self.id = (stat.st_dev, stat.st_ino)
+                else:
+                    self.id = fullpath
             except Exception:
                 pass
             
