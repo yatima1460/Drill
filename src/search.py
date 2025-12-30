@@ -73,9 +73,9 @@ import datetime
 import multiprocessing
 from queue import PriorityQueue, Queue
 import time
-from sortedcontainers import SortedSet
+from sortedcontainers import SortedSet, SortedList
             
-def worker(dir_queue: SortedSet, visited: set, result_queue: Queue, running: threading.Event, search_text: str, roots: set[str], fuzzy: bool, maximum_depth):
+def worker(dir_queue: SortedList, visited: set, result_queue: Queue, running: threading.Event, search_text: str, roots: set[str], fuzzy: bool, maximum_depth, queue_lock: threading.Lock, visited_lock: threading.Lock):
     
     logger = logging.getLogger("Worker")
     # logger.setLevel(logging.INFO)
@@ -87,17 +87,23 @@ def worker(dir_queue: SortedSet, visited: set, result_queue: Queue, running: thr
     logger.propagate = False
     while running.is_set():
         try:
-
-            current_dir: DrillEntry = dir_queue.pop(0)
+            with queue_lock:
+                if not dir_queue:
+                    current_dir = None
+                else:
+                    current_dir: DrillEntry = dir_queue.pop(0)
+            
+            if current_dir is None:
+                time.sleep(0.1)
+                continue
 
             # sep_count = current_dir.count(os.sep)
             # if sep_count > maximum_depth[0]:
             #     maximum_depth[0] = sep_count
             #     logger.info(f"Longest path updated: {current_dir} (separators: {sep_count})")
-        except queue.Empty:
-            logger.warning("No directories to process, worker is waiting...")
-            # TODO: fix this? basically the idea is that if we encounter a very slow disk we should not kill workers
+        except IndexError:
             time.sleep(0.1)
+            continue
         try:
             #FIXME: except InterruptedError
             with os.scandir(current_dir.path) as it:
@@ -105,18 +111,18 @@ def worker(dir_queue: SortedSet, visited: set, result_queue: Queue, running: thr
                     if not running.is_set(): 
                         break
                     
-                    
                     drillEntry = DrillEntry(entry.path)    
                     # Check if the entry is a symlink    
                     #icon = get_icon_for_path(entry.path)
                     #if icon is None:
                     
-                    if drillEntry.id in visited:
-                        logger.debug("Already visited: %s", drillEntry.path)
-                        continue
-                    visited.add(drillEntry.id)
+                    with visited_lock:
+                        if drillEntry.id in visited:
+                            logger.debug("Already visited: %s", drillEntry.path)
+                            continue
+                        visited.add(drillEntry.id)
                         
-                   
+
                     if drillEntry.is_dir and not drillEntry.is_symlink:
                         
                         
@@ -133,8 +139,8 @@ def worker(dir_queue: SortedSet, visited: set, result_queue: Queue, running: thr
                             logger.info("Skipping root directory: %s", drillEntry.path)
                             continue
                         # add beginning of queue if matches token search otherwise add to end
-                  
-                        dir_queue.add(drillEntry)
+                        with queue_lock:
+                            dir_queue.add(drillEntry)
                         
 
                         # if subdirectory not in visited:
@@ -164,6 +170,8 @@ class Search:
         self.dir_queue = SortedSet()
         self.result_queue = queue.Queue()
         self.running = threading.Event()
+        self.queue_lock = threading.Lock()
+        self.visited_lock = threading.Lock()
         self.processes: List[Future] = []
         self.visited = set()
         logging.info("Search init %s", self.search_text)
@@ -201,7 +209,7 @@ class Search:
         # Start workers
         cpu_count = self.executor._max_workers
         for i in range(cpu_count):
-            p = self.executor.submit(worker, self.dir_queue, self.visited, self.result_queue, self.running, self.search_text, self.roots, self.fuzzy, self.maximum_depth)
+            p = self.executor.submit(worker, self.dir_queue, self.visited, self.result_queue, self.running, self.search_text, self.roots, self.fuzzy, self.maximum_depth, self.queue_lock, self.visited_lock)
             #p.name = f"Worker-{i}"
             logging.info("Created worker %s",p)
             self.processes.append(p)
@@ -218,7 +226,8 @@ class Search:
         logging.info("Asked to stop search")
         self.running.clear()
         logging.info("Set running event to False")
-        self.dir_queue = queue.Queue()
+        with self.queue_lock:
+            self.dir_queue.clear()
         logging.info("Cleared directory queue")
         self.executor.shutdown(wait=False, cancel_futures=True)
         logging.info("Executor shutdown initiated")
@@ -233,7 +242,8 @@ class Search:
         return len(self.processes)
     
     def total_to_scan(self):
-        return len(self.dir_queue)
+        with self.queue_lock:
+            return len(self.dir_queue)
     
     def get_longest_path(self):
         current_longest = self.maximum_depth[0]
@@ -244,4 +254,3 @@ class Search:
             if not p.done():
                 return False
         return True
-        
