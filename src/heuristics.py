@@ -120,7 +120,7 @@ def system_directories():
         ]
     else:
         return [
-            '/'
+            '/',
             '/etc',
             '/var',
             '/usr',
