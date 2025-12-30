@@ -30,6 +30,27 @@ def is_window_clean(window):
 
 from PyQt6.QtCore import Qt
 
+@pytest.mark.skipif(not os.path.exists(r"C:\Program Files (x86)\Steam\steamapps\common\Hearts of Iron IV\hoi4.exe"), reason="hoi4.exe not found")
+def test_find_hoi4(app, qtbot):
+    window = SearchWindow()
+    qtbot.addWidget(window)
+    window.show()
+    
+    target_file = "hoi4.exe"
+    window.search_bar.setText(target_file)
+    
+    # Wait for search to find the file. We use a longer timeout because it's a real search.
+    # We check if any item in the tree has the name hoi4.exe
+    def check_for_hoi4():
+        for i in range(window.tree.topLevelItemCount()):
+            item = window.tree.topLevelItem(i)
+            if item.text(0).lower() == target_file.lower():
+                return True
+        return False
+
+    qtbot.waitUntil(check_for_hoi4, timeout=10000)
+    window.close()
+
 def test_exit_with_escape(app, qtbot):
     window = SearchWindow()
     qtbot.addWidget(window)
