@@ -75,7 +75,7 @@ from queue import PriorityQueue, Queue
 import time
 from sortedcontainers import SortedSet, SortedList
             
-def worker(dir_queue: SortedList, visited: set, result_queue: Queue, running: threading.Event, search_text: str, roots: set[str], fuzzy: bool, maximum_depth, queue_lock: threading.Lock, visited_lock: threading.Lock):
+def worker(my_queue: SortedSet, visited: set, result_queue: Queue, running: threading.Event, search_text: str, roots: set[str], fuzzy: bool, maximum_depth, visited_lock: threading.Lock, all_queues: List[SortedSet], queue_locks: List[threading.Lock], my_index: int):
     
     logger = logging.getLogger("Worker")
     # logger.setLevel(logging.INFO)
@@ -86,12 +86,21 @@ def worker(dir_queue: SortedList, visited: set, result_queue: Queue, running: th
         logger.addHandler(handler)
     logger.propagate = False
     while running.is_set():
+        current_dir = None
         try:
-            with queue_lock:
-                if not dir_queue:
-                    current_dir = None
-                else:
-                    current_dir: DrillEntry = dir_queue.pop(0)
+            with queue_locks[my_index]:
+                if my_queue:
+                    current_dir = my_queue.pop(0)
+            
+            if current_dir is None:
+                # Try to steal from other queues
+                for i in range(len(all_queues)):
+                    if i == my_index:
+                        continue
+                    with queue_locks[i]:
+                        if all_queues[i]:
+                            current_dir = all_queues[i].pop(0)
+                            break
             
             if current_dir is None:
                 time.sleep(0.1)
@@ -139,8 +148,8 @@ def worker(dir_queue: SortedList, visited: set, result_queue: Queue, running: th
                             logger.info("Skipping root directory: %s", drillEntry.path)
                             continue
                         # add beginning of queue if matches token search otherwise add to end
-                        with queue_lock:
-                            dir_queue.add(drillEntry)
+                        with queue_locks[my_index]:
+                            my_queue.add(drillEntry)
                         
 
                         # if subdirectory not in visited:
@@ -170,10 +179,10 @@ class Search:
         self.search_text = search_text
         self.items: list[list[str]] = []
         self.executor = ThreadPoolExecutor(thread_name_prefix="SearchWorker")
-        self.dir_queue = SortedSet()
+        self.queues: List[SortedSet] = []
+        self.queue_locks: List[threading.Lock] = []
         self.result_queue = queue.Queue()
         self.running = threading.Event()
-        self.queue_lock = threading.Lock()
         self.visited_lock = threading.Lock()
         self.processes: List[Future] = []
         self.visited = set()
@@ -195,20 +204,24 @@ class Search:
         for root in self.roots:
             logging.info(f"Root directory: {root}")
 
-        # Initialize directory queue
-        for root in self.roots:
+        # Initialize directory queues
+        cpu_count = self.executor._max_workers
+        self.queues = [SortedSet() for _ in range(cpu_count)]
+        self.queue_locks = [threading.Lock() for _ in range(cpu_count)]
+
+        for i, root in enumerate(self.roots):
             if os.path.exists(root):
                 logging.info(f"Adding root to queue: {root}")
-                self.dir_queue.add(DrillEntry(root))
+                idx = i % cpu_count
+                self.queues[idx].add(DrillEntry(root))
             else:
                 logging.warning(f"Root path does not exist: {root}")
         
         self.maximum_depth = [0] 
 
         # Start workers
-        cpu_count = self.executor._max_workers
         for i in range(cpu_count):
-            p = self.executor.submit(worker, self.dir_queue, self.visited, self.result_queue, self.running, self.search_text, self.roots, self.fuzzy, self.maximum_depth, self.queue_lock, self.visited_lock)
+            p = self.executor.submit(worker, self.queues[i], self.visited, self.result_queue, self.running, self.search_text, self.roots, self.fuzzy, self.maximum_depth, self.visited_lock, self.queues, self.queue_locks, i)
             #p.name = f"Worker-{i}"
             logging.debug("Created worker %s",p)
             self.processes.append(p)
@@ -225,9 +238,10 @@ class Search:
         logging.info("Asked to stop search")
         self.running.clear()
         logging.info("Set running event to False")
-        with self.queue_lock:
-            self.dir_queue.clear()
-        logging.info("Cleared directory queue")
+        for i in range(len(self.queues)):
+            with self.queue_locks[i]:
+                self.queues[i].clear()
+        logging.info("Cleared directory queues")
         self.executor.shutdown(wait=False, cancel_futures=True)
         logging.info("Executor shutdown initiated")
 
@@ -241,8 +255,10 @@ class Search:
         return len(self.processes)
     
     def total_to_scan(self):
-        with self.queue_lock:
-            return len(self.dir_queue)
+        total = 0
+        for i in range(len(self.queues)):
+            total += len(self.queues[i])
+        return total
     
     def get_longest_path(self):
         current_longest = self.maximum_depth[0]
