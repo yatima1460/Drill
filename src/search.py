@@ -155,6 +155,9 @@ def worker(dir_queue: SortedList, visited: set, result_queue: Queue, running: th
         except KeyboardInterrupt:
             logger.info("Keyboard interrupt detected, stopping...")
             break
+        except PermissionError:
+            logger.debug(f"Permission denied: {current_dir.path} - skipping")
+            continue
         except BaseException as e:
             logger.exception(f"crashed scanning {current_dir} - recovering... - {e}")
     logger.info("exited")
@@ -189,6 +192,8 @@ class Search:
 
 
         self.roots = get_root_directories()
+        for root in self.roots:
+            logging.info(f"Root directory: {root}")
 
         # Initialize directory queue
         if os.name == 'nt':
@@ -211,7 +216,7 @@ class Search:
         for i in range(cpu_count):
             p = self.executor.submit(worker, self.dir_queue, self.visited, self.result_queue, self.running, self.search_text, self.roots, self.fuzzy, self.maximum_depth, self.queue_lock, self.visited_lock)
             #p.name = f"Worker-{i}"
-            logging.info("Created worker %s",p)
+            logging.debug("Created worker %s",p)
             self.processes.append(p)
 
     def poll_results(self):
