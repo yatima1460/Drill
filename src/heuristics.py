@@ -58,6 +58,8 @@ def get_root_directories():
         # add programs x86 and program files in C:
         important_folders.append(os.path.join('C:\\', 'Program Files (x86)'))
         important_folders.append(os.path.join('C:\\', 'Program Files'))
+        # Add important folders to roots (only if they exist)
+        roots.update(set([folder for folder in important_folders if os.path.exists(folder)]))
     elif sys.platform == 'darwin':
         # macOS: main user folders and Applications
         home = os.path.expanduser('~')
