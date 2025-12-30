@@ -324,7 +324,6 @@ class SearchWindow(QWidget):
             if not stripped:
                 self.pending_search_text = None
                 return
-            self.search_bar.setText(stripped)
             # Start a new search
             self.ui_update_timer.start(16)
             self.search = Search(self.pending_search_text)
