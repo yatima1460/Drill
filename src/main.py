@@ -100,7 +100,7 @@ class SearchWindow(QWidget):
             item.setFont(2, self.monospace_font)  # Size column
             item.setFont(3, self.monospace_font)  # Date column
 
-            SEARCH_LIMIT = 1000
+            SEARCH_LIMIT = 10000
             if self.tree.topLevelItemCount() > SEARCH_LIMIT:
                 print("stopping search due to too many results")
                 self.setWindowTitle(f"Drill - {SEARCH_LIMIT}+ items found, search stopped")
