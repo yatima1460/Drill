@@ -52,7 +52,22 @@
                 "focus": false,
                 "panel": "shared"
             }
-          
+        },
+        {
+            "label": "[Build Windows EXE]",
+            "type": "shell",
+            "command": "${command:python.interpreterPath}",
+            "args": ["setup.py", "build_exe"],
+            "group": {
+                "kind": "build",
+                "isDefault": false
+            },
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            }
         }
     ]
 }
