@@ -7,10 +7,26 @@
 %USERPROFILE%\Pictures
 %USERPROFILE%\Videos
 %USERPROFILE%\Music
+%USERPROFILE%\Saved Games
 %USERPROFILE%\AppData\Local\Programs
+%APPDATA%
+%LOCALAPPDATA%
 C:\Program Files
 C:\Program Files (x86)
 C:\GOG Games
 C:\Program Files (x86)\Steam\steamapps\common\*
 C:\Program Files\Epic Games
 *:\SteamLibrary\steamapps\common\*
+*:\Games\*
+*:\Riot Games\*
+*:\XboxGames\*
+*:\Ubisoft Game Launcher\games\*
+*:\Battle.net\*
+*:\Origin Games\*
+*:\EA Games\*
+*:\Amazon Games\Library\*
+C:\Program Files\Epic Games\UE_*
+*:\Unreal Engine\*
+*:\UE_*
+%USERPROFILE%\Documents\Unreal Projects\*
+%LOCALAPPDATA%\UnrealEngine\*
