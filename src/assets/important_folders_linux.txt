@@ -1,0 +1,10 @@
+# Linux folders
+~
+~/Desktop
+~/Documents
+~/Downloads
+~/Pictures
+~/Videos
+~/Music
+/usr/bin
+/usr/local/bin

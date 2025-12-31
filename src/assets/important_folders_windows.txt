@@ -1,0 +1,14 @@
+# Windows folders
+%USERPROFILE%
+%USERPROFILE%\Desktop
+%USERPROFILE%\Documents
+%USERPROFILE%\Downloads
+%USERPROFILE%\Pictures
+%USERPROFILE%\Videos
+%USERPROFILE%\Music
+%USERPROFILE%\AppData\Local\Programs
+C:\Program Files
+C:\Program Files (x86)
+C:\GOG Games
+C:\Program Files (x86)\Steam\steamapps\common
+C:\Program Files\Epic Games

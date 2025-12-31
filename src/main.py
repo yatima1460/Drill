@@ -225,6 +225,11 @@ class SearchWindow(QWidget):
         self.setWindowTitle("Drill")
         self.__set_window_icon()
         
+        from heuristics import get_root_directories
+        logging.info("Root directories:")
+        for folder in get_root_directories():
+            logging.info(f"Root directory: {folder}")
+        
         # Get screen size and set window size to half
         screen = QGuiApplication.primaryScreen().geometry()
         width = screen.width() // 2
