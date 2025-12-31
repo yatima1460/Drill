@@ -8,9 +8,30 @@ from PyQt6.QtWidgets import (
 )
 
 import os
+import sys
 import logging
 from typing import Optional, Tuple, List
 from functools import lru_cache
+
+def get_resource_path(relative_path: str) -> str:
+    """ Get absolute path to resource, works for dev and for bundled apps """
+    if hasattr(sys, '_MEIPASS'):
+        return os.path.join(sys._MEIPASS, relative_path)
+    
+    # For other bundlers or dev
+    base_path = os.path.dirname(os.path.abspath(__file__))
+    
+    # Handle cases where we might be running from inside a zip (e.g. py2exe)
+    if '.zip' in base_path:
+        # If the path contains .zip, we are likely inside a library.zip
+        # We want to look for assets in the same directory as the zip file
+        parts = base_path.split(os.sep)
+        for i, part in enumerate(parts):
+            if part.endswith('.zip'):
+                base_path = os.sep.join(parts[:i])
+                break
+
+    return os.path.join(base_path, relative_path)
 
 _ICON_PROVIDER = None
 

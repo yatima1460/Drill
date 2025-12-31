@@ -3,6 +3,7 @@ import os
 import sys
 from typing import List
 from functools import lru_cache
+from utils import get_resource_path
 
 
 WORDS_ALPHA = None
@@ -14,8 +15,12 @@ def is_any_token_in_english_dictionary(text: str) -> bool:
     """
     global WORDS_ALPHA
     if WORDS_ALPHA is None:
-        with open(os.path.join(os.path.dirname(__file__), 'assets', 'wordsalpha.txt'), 'r') as f:
-            WORDS_ALPHA = set(line.strip() for line in f)
+        try:
+            with open(get_resource_path(os.path.join('assets', 'wordsalpha.txt')), 'r') as f:
+                WORDS_ALPHA = set(line.strip() for line in f)
+        except Exception as e:
+            print(f"Error loading dictionary: {e}")
+            WORDS_ALPHA = set()
     return any(token.lower() in WORDS_ALPHA for token in text.split())
 
 @lru_cache(maxsize=512)
@@ -25,8 +30,12 @@ def is_in_english_dictionary(word: str) -> bool:
     """
     global WORDS_ALPHA
     if WORDS_ALPHA is None:
-        with open(os.path.join(os.path.dirname(__file__), 'assets', 'wordsalpha.txt'), 'r') as f:
-            WORDS_ALPHA = set(line.strip() for line in f)
+        try:
+            with open(get_resource_path(os.path.join('assets', 'wordsalpha.txt')), 'r') as f:
+                WORDS_ALPHA = set(line.strip() for line in f)
+        except Exception as e:
+            print(f"Error loading dictionary: {e}")
+            WORDS_ALPHA = set()
     return word in WORDS_ALPHA  
     
 

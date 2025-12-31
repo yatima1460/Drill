@@ -25,7 +25,7 @@ from typing import Optional
 from PyQt6.QtGui import QPixmap
 from PyQt6.QtCore import QEvent
 
-from utils import get_file_icon
+from utils import get_file_icon, get_resource_path
 from drillentry import DrillEntry
 
 class SearchWindow(QWidget):
@@ -199,18 +199,18 @@ class SearchWindow(QWidget):
     def __set_window_icon(self):
         if sys.platform.startswith('darwin'):
             try:
-                icon = QIcon("assets/drill.svg")  # Use .icns for macOS if available
+                icon = QIcon(get_resource_path(os.path.join("assets", "drill.svg")))  # Use .icns for macOS if available
                 self.setWindowIcon(icon)
                 # Set Dock icon (PyQt6 does not do this by default)
                 app = QApplication.instance()
                 if app:
-                    pixmap = QPixmap("assets/drill.icns")
+                    pixmap = QPixmap(get_resource_path(os.path.join("assets", "drill.icns")))
                     if not pixmap.isNull():
                         app.setWindowIcon(icon)
                     # For Dock icon, use NSApplication API via PyObjC
                     try:
                         from AppKit import NSImage, NSApp
-                        nsimage = NSImage.alloc().initByReferencingFile_("assets/drill.icns")
+                        nsimage = NSImage.alloc().initByReferencingFile_(get_resource_path(os.path.join("assets", "drill.icns")))
                         if nsimage:
                             NSApp.setApplicationIconImage_(nsimage)
                     except ImportError:
@@ -218,7 +218,7 @@ class SearchWindow(QWidget):
             except BaseException as e:
                 logging.warning(f"Could not set macOS icon: {e}")
         else:
-            self.setWindowIcon(QIcon("assets/drill.svg"))
+            self.setWindowIcon(QIcon(get_resource_path(os.path.join("assets", "drill.svg"))))
 
     def __init__(self):
         super().__init__()
