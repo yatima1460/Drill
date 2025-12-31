@@ -344,6 +344,20 @@ class SearchWindow(QWidget):
         event.accept()
 
 if __name__ == "__main__":
+    # Attach to console on Windows if frozen to see logs in terminal
+    if sys.platform == 'win32' and getattr(sys, 'frozen', False):
+        import ctypes
+        # Try to attach to the parent process console
+        if ctypes.windll.kernel32.AttachConsole(-1):
+            # Redirect stdout and stderr to the console
+            # Use 'w' mode and explicit encoding to avoid issues
+            try:
+                sys.stdout = open('CONOUT$', 'w', buffering=1, encoding='utf-8')
+                sys.stderr = open('CONOUT$', 'w', buffering=1, encoding='utf-8')
+                print("\n[Drill] Attached to console. Logging initialized.")
+            except Exception:
+                pass
+
     logging.basicConfig(level=logging.INFO, format='[%(processName)s][%(levelname)s]: %(message)s')
     multiprocessing.freeze_support()
     app = QApplication(sys.argv)
