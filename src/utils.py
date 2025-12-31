@@ -15,21 +15,43 @@ from functools import lru_cache
 
 def get_resource_path(relative_path: str) -> str:
     """ Get absolute path to resource, works for dev and for bundled apps """
+    # 1. Check PyInstaller
     if hasattr(sys, '_MEIPASS'):
         return os.path.join(sys._MEIPASS, relative_path)
     
-    # For other bundlers or dev
+    # 2. Check cx_Freeze / frozen apps
+    if getattr(sys, 'frozen', False):
+        base_path = os.path.dirname(sys.executable)
+        # Try directly in base path
+        path = os.path.join(base_path, relative_path)
+        if os.path.exists(path):
+            return path
+        # Try in lib folder (sometimes cx_Freeze puts things there)
+        path = os.path.join(base_path, 'lib', relative_path)
+        if os.path.exists(path):
+            return path
+
+    # 3. For dev or other cases
+    # Get the directory of the current file (src/)
     base_path = os.path.dirname(os.path.abspath(__file__))
     
     # Handle cases where we might be running from inside a zip (e.g. py2exe)
     if '.zip' in base_path:
-        # If the path contains .zip, we are likely inside a library.zip
-        # We want to look for assets in the same directory as the zip file
         parts = base_path.split(os.sep)
         for i, part in enumerate(parts):
             if part.endswith('.zip'):
                 base_path = os.sep.join(parts[:i])
                 break
+    
+    # Try relative to base_path
+    path = os.path.join(base_path, relative_path)
+    if os.path.exists(path):
+        return path
+        
+    # Try one level up (if we are in src/ and assets is in root)
+    path = os.path.join(os.path.dirname(base_path), relative_path)
+    if os.path.exists(path):
+        return path
 
     return os.path.join(base_path, relative_path)
 
