@@ -147,9 +147,6 @@ def system_directories():
         return [
             'C:\\Windows',
             'C:\\ProgramData',
-            'C:\\Program Files',
-            'C:\\Program Files (x86)',
-            'C:\\Users',
             'C:\\$Recycle.Bin',
             'C:\\System Volume Information'
         ]

@@ -12,6 +12,14 @@ import logging
 from typing import Optional, Tuple, List
 from functools import lru_cache
 
+_ICON_PROVIDER = None
+
+def get_icon_provider():
+    global _ICON_PROVIDER
+    if _ICON_PROVIDER is None:
+        _ICON_PROVIDER = QFileIconProvider()
+    return _ICON_PROVIDER
+
 @lru_cache(maxsize=100000)
 def get_file_icon(path: str) -> Optional[QIcon]:
     """
@@ -19,7 +27,7 @@ def get_file_icon(path: str) -> Optional[QIcon]:
     """
     try:
         file_info = QFileInfo(path)
-        file_icon = QFileIconProvider().icon(file_info)
+        file_icon = get_icon_provider().icon(file_info)
         return file_icon
     except BaseException as e:
         logging.error(f"Error getting file icon: {e}")

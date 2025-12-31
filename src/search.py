@@ -3,7 +3,7 @@ import os
 import queue
 from heuristics import get_root_directories
 import unicodedata
-from PyQt6.QtWidgets import QFileIconProvider
+from PyQt6.QtWidgets import QFileIconProvider, QMessageBox
 from PyQt6.QtCore import QFileInfo
 import logging
 from typing import Optional, Tuple, List
@@ -118,46 +118,31 @@ def worker(my_queue: SortedSet, visited: set, result_queue: Queue, running: thre
                     if not running.is_set(): 
                         break
                     
-                    drillEntry = DrillEntry(entry.path)    
-                    # Check if the entry is a symlink    
-                    #icon = get_icon_for_path(entry.path)
-                    #if icon is None:
-                    
-                    with visited_lock:
-                        if drillEntry.id in visited:
-                            logger.debug("Already visited: %s", drillEntry.path)
-                            continue
-                        visited.add(drillEntry.id)
-                        
+                    # only create DrillEntry if it's a directory or matches search
+                    is_dir = False
+                    try:
+                        is_dir = entry.is_dir(follow_symlinks=False)
+                    except OSError:
+                        continue
 
-                    if drillEntry.is_dir and not drillEntry.is_symlink:
+                    if is_dir:
+                        drillEntry = DrillEntry(entry.path)
+                        with visited_lock:
+                            if drillEntry.id in visited:
+                                logger.debug("Already visited: %s", drillEntry.id)
+                                continue
+                            visited.add(drillEntry.id)
                         
-                        
-                        
-                        # if not can_access_directory(subdirectory):
-                        #     logger.debug(f"Cannot access directory: {subdirectory} - skipping")
-                        #     continue
-                        # if not os.path.exists(subdirectory):
-                        #     logger.warning(f"Directory does not exist: {subdirectory} - skipping")
-                        #     continue
-
-                        # the idea is to treat roots just like symlinks
                         if drillEntry.path in roots:
                             logger.info("Skipping root directory: %s", drillEntry.path)
                             continue
-                        # add beginning of queue if matches token search otherwise add to end
+                            
                         with queue_locks[my_index]:
                             my_queue.add(drillEntry)
-                        
-
-                        # if subdirectory not in visited:
-                        #     dir_queue.put(entry.path)                  
-                        #     visited.add(subdirectory)
-                    #elif entry.is_file(follow_symlinks=False):
-                    #FIXME: roots are not being added to search results
-                    #FIXME: ⁉️ emoji not appearing
+                    
                     if token_search(entry.name, search_text, fuzzy):
-
+                        if not is_dir:
+                            drillEntry = DrillEntry(entry.path)
                         result_queue.put(drillEntry)
         except KeyboardInterrupt:
             logger.info("Keyboard interrupt detected, stopping...")
@@ -194,35 +179,39 @@ class Search:
             self.fuzzy = False
 
     def start(self):
-        logging.info("Search started")
-        self.running.set()
+        try:
+            logging.info("Search started")
+            self.running.set()
 
 
-        self.roots = get_root_directories()
-        for root in self.roots:
-            logging.info(f"Root directory: {root}")
+            self.roots = get_root_directories()
+            for root in self.roots:
+                logging.info(f"Root directory: {root}")
 
-        # Initialize directory queues
-        cpu_count = self.executor._max_workers
-        self.queues = [SortedSet() for _ in range(cpu_count)]
-        self.queue_locks = [threading.Lock() for _ in range(cpu_count)]
+            # Initialize directory queues
+            cpu_count = getattr(self.executor, '_max_workers', os.cpu_count() or 4)
+            self.queues = [SortedSet() for _ in range(cpu_count)]
+            self.queue_locks = [threading.Lock() for _ in range(cpu_count)]
 
-        for i, root in enumerate(self.roots):
-            if os.path.exists(root):
-                logging.info(f"Adding root to queue: {root}")
-                idx = i % cpu_count
-                self.queues[idx].add(DrillEntry(root))
-            else:
-                logging.warning(f"Root path does not exist: {root}")
-        
-        self.maximum_depth = [0] 
+            for i, root in enumerate(self.roots):
+                if os.path.exists(root):
+                    logging.info(f"Adding root to queue: {root}")
+                    idx = i % cpu_count
+                    self.queues[idx].add(DrillEntry(root))
+                else:
+                    logging.warning(f"Root path does not exist: {root}")
+            
+            self.maximum_depth = [0] 
 
-        # Start workers
-        for i in range(cpu_count):
-            p = self.executor.submit(worker, self.queues[i], self.visited, self.result_queue, self.running, self.search_text, self.roots, self.fuzzy, self.maximum_depth, self.visited_lock, self.queues, self.queue_locks, i)
-            #p.name = f"Worker-{i}"
-            logging.debug("Created worker %s",p)
-            self.processes.append(p)
+            # Start workers
+            for i in range(cpu_count):
+                p = self.executor.submit(worker, self.queues[i], self.visited, self.result_queue, self.running, self.search_text, self.roots, self.fuzzy, self.maximum_depth, self.visited_lock, self.queues, self.queue_locks, i)
+                #p.name = f"Worker-{i}"
+                logging.debug("Created worker %s",p)
+                self.processes.append(p)
+        except Exception as e:
+            QMessageBox.critical(None, "Search Error", f"Failed to start search: {e}")
+            self.running.clear()
 
     def poll_results(self):
         while not self.result_queue.empty():
@@ -255,7 +244,8 @@ class Search:
     def total_to_scan(self):
         total = 0
         for i in range(len(self.queues)):
-            total += len(self.queues[i])
+            with self.queue_locks[i]:
+                total += len(self.queues[i])
         return total
     
     def get_longest_path(self):

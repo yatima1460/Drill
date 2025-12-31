@@ -32,17 +32,20 @@ class DrillEntry:
             self.is_symlink = False
         
         self.formatted_time = "?"
-        self.id = fullpath
+        self.id = os.path.normcase(os.path.abspath(fullpath))
         self.size = "?"
         self.modified_time = "?"
         try:
             stat = os.stat(fullpath)
             
             try:
-                if stat.st_ino != 0:
-                    self.id = (stat.st_dev, stat.st_ino)
-                else:
-                    self.id = fullpath
+                # On Windows, st_ino is not guaranteed to be unique, 
+                # but (dev, ino) is still useful for detecting hard links/junctions on NTFS.
+                # However, for our purposes, the normalized path is usually enough 
+                # since we skip symlinks to avoid loops.
+                if os.name != 'nt':
+                    if stat.st_ino != 0:
+                        self.id = (stat.st_dev, stat.st_ino)
             except Exception:
                 pass
             
