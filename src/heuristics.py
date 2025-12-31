@@ -43,7 +43,7 @@ def is_in_english_dictionary(word: str) -> bool:
 def get_root_directories():
     roots = set()
     
-    # Add all logical drives on Windows
+    # Get all logical drives on Windows for expansion
     drives = []
     if sys.platform == 'win32':
         import ctypes
@@ -57,17 +57,15 @@ def get_root_directories():
                 drive_type = ctypes.windll.kernel32.GetDriveTypeW(drive_path)
                 if drive_type in (2, 3, 4):  # Removable, Fixed, Remote
                     drives.append(drive_path)
-        roots.update(set(drives))
 
-    # 2. Read important folders from file
-    important_folders = []
+    # Read roots from file
     try:
         if sys.platform == 'win32':
-            config_filename = 'important_folders_windows.txt'
+            config_filename = 'roots_windows.txt'
         elif sys.platform == 'darwin':
-            config_filename = 'important_folders_mac.txt'
+            config_filename = 'roots_mac.txt'
         else:
-            config_filename = 'important_folders_linux.txt'
+            config_filename = 'roots_linux.txt'
             
         config_path = get_resource_path(os.path.join('assets', config_filename))
         if os.path.exists(config_path):
@@ -78,41 +76,34 @@ def get_root_directories():
                         continue
                     
                     # Expand environment variables and ~
-                    path = os.path.expanduser(os.path.expandvars(line))
-                    if os.path.exists(path):
-                        important_folders.append(os.path.normpath(path))
+                    line = os.path.expanduser(os.path.expandvars(line))
+                    
+                    paths_to_process = []
+                    if line.startswith('*:'):
+                        suffix = line[2:].lstrip('\\/')
+                        for drive in drives:
+                            paths_to_process.append(os.path.join(drive, suffix))
+                    else:
+                        paths_to_process.append(line)
+                        
+                    for path in paths_to_process:
+                        if path.endswith('*'):
+                            base_path = path[:-1].rstrip('\\/')
+                            if os.path.exists(base_path) and os.path.isdir(base_path):
+                                try:
+                                    for entry in os.listdir(base_path):
+                                        full_path = os.path.join(base_path, entry)
+                                        if os.path.isdir(full_path):
+                                            roots.add(os.path.normpath(full_path))
+                                except PermissionError:
+                                    pass
+                        else:
+                            if os.path.exists(path):
+                                roots.add(os.path.normpath(path))
+                                
     except Exception as e:
         print(f"Error reading {config_filename}: {e}")
 
-    # Dynamic discovery for games (Steam libraries on other drives)
-    if sys.platform == 'win32':
-        game_library_roots = []
-        for drive in drives:
-            # Common SteamLibrary pattern on non-C drives
-            game_library_roots.append(os.path.normpath(os.path.join(drive, 'SteamLibrary', 'steamapps', 'common')))
-        
-        for game_root in game_library_roots:
-            if os.path.exists(game_root):
-                important_folders.append(game_root)
-                try:
-                    for subfolder in os.listdir(game_root):
-                        full_path = os.path.normpath(os.path.join(game_root, subfolder))
-                        if os.path.isdir(full_path):
-                            important_folders.append(full_path)
-                except PermissionError:
-                    pass
-
-    # Apple specific dynamic discovery (Network drives)
-    if sys.platform == 'darwin':
-        try:
-            network_drives = ["/Volumes" + os.sep + folder for folder in os.listdir('/Volumes') if os.path.isdir(os.path.join('/Volumes', folder))]
-            important_folders.extend(network_drives)
-        except Exception:
-            pass
-
-    # Add all discovered folders to roots
-    roots.update(set([os.path.normpath(folder) for folder in important_folders if os.path.exists(folder)]))
-    
     if not roots:
         # Fallback to home directory if nothing else found
         roots.add(os.path.normpath(os.path.expanduser('~')))

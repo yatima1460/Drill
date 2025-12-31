@@ -8,3 +8,4 @@
 ~/Library/Mobile Documents/com~apple~CloudDocs
 /Applications
 /
+/Volumes/*

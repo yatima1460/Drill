@@ -1,4 +1,5 @@
 # Windows folders
+*:\
 %USERPROFILE%
 %USERPROFILE%\Desktop
 %USERPROFILE%\Documents
@@ -10,5 +11,6 @@
 C:\Program Files
 C:\Program Files (x86)
 C:\GOG Games
-C:\Program Files (x86)\Steam\steamapps\common
+C:\Program Files (x86)\Steam\steamapps\common\*
 C:\Program Files\Epic Games
+*:\SteamLibrary\steamapps\common\*
