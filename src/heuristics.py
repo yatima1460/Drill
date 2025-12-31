@@ -1,6 +1,6 @@
 import os
-
 import sys
+import logging
 from typing import List
 from functools import lru_cache
 from utils import get_resource_path
@@ -68,6 +68,7 @@ def get_root_directories():
             config_filename = 'roots_linux.txt'
             
         config_path = get_resource_path(os.path.join('assets', config_filename))
+        logging.info(f"Loading roots from: {config_path}")
         if os.path.exists(config_path):
             with open(config_path, 'r') as f:
                 for line in f:
@@ -95,18 +96,28 @@ def get_root_directories():
                                         full_path = os.path.join(base_path, entry)
                                         if os.path.isdir(full_path):
                                             roots.add(os.path.normpath(full_path))
+                                            logging.debug(f"Added root from wildcard: {full_path}")
                                 except PermissionError:
                                     pass
                         else:
                             if os.path.exists(path):
                                 roots.add(os.path.normpath(path))
-                                
+                                logging.debug(f"Added root: {path}")
+        else:
+            logging.warning(f"Roots config file not found: {config_path}")
     except Exception as e:
-        print(f"Error reading {config_filename}: {e}")
+        logging.error(f"Error reading {config_filename}: {e}")
 
+    if not roots:
+        # Fallback to all drives if on Windows and nothing found in config
+        if sys.platform == 'win32' and drives:
+            roots.update(set(drives))
+            logging.info("No roots found in config, falling back to all drives")
+        
     if not roots:
         # Fallback to home directory if nothing else found
         roots.add(os.path.normpath(os.path.expanduser('~')))
+        logging.info(f"No roots found, falling back to home: {os.path.expanduser('~')}")
         
     return roots
 
