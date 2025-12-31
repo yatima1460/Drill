@@ -148,7 +148,10 @@ def worker(my_queue: SortedSet, visited: set, result_queue: Queue, running: thre
             logger.info("Keyboard interrupt detected, stopping...")
             break
         except PermissionError:
-            logger.debug(f"Permission denied: {current_dir.path} - skipping")
+            logger.debug(f"Access denied: {current_dir.path} - skipping")
+            continue
+        except FileNotFoundError:
+            logger.debug(f"File not found: {current_dir.path} - skipping")
             continue
         except BaseException as e:
             logger.exception(f"crashed scanning {current_dir} - recovering... - {e}")
