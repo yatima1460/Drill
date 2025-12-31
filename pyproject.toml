@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel", "cx_Freeze>=8.3.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "drill"
+version = "0.0.1"
+description = "Search files without indexing"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "PyQt6>=6.9.0",
+    "sortedcontainers>=2.4.0",
+]
+
+[tool.setuptools]
+packages = ["src"]
+
+[tool.setuptools.package-dir]
+"" = "."

@@ -1,8 +1,15 @@
-from cx_Freeze import setup, Executable  # type: ignore
 from setuptools import find_packages
 import sys
 import os
-from PyQt6.QtCore import QLibraryInfo
+
+# Try to import cx_Freeze, but don't fail if it's not present
+try:
+    from cx_Freeze import setup, Executable
+    HAS_CX_FREEZE = True
+except ImportError:
+    from setuptools import setup
+    Executable = None
+    HAS_CX_FREEZE = False
 
 # Build options for all platforms
 build_exe_options = {
@@ -16,7 +23,7 @@ build_exe_options = {
         "sys",
         "threading",
         "sortedcontainers"
-    ] + list(find_packages("src")),
+    ] + list(find_packages(where=".")),
     "excludes": [
         "unittest", 
         "pydoc", 
@@ -40,7 +47,7 @@ build_exe_options = {
 
 # Platform-specific options
 if sys.platform == "win32":
-    base = "Win32GUI"
+    base = "gui"
     build_exe_options.update(
         {
             "include_msvcr": True,
@@ -51,24 +58,29 @@ else:
     base = None
     target_name = "Drill"
 
-executables = [
-    Executable(
-        script="src/main.py",
-        target_name=target_name,
-        base=base,
-        icon="src/assets/drill.icns" if sys.platform != "win32" else "src/assets/drill.ico"
-    ),
-]
+executables = []
+if HAS_CX_FREEZE and Executable is not None:
+    executables = [
+        Executable(
+            script="src/main.py",
+            target_name=target_name,
+            base=base,
+            icon="src/assets/drill.icns" if sys.platform != "win32" else "src/assets/drill.ico"
+        ),
+    ]
 
-build_options = {
-    "packages": list(find_packages("src")),
-    "excludes": ["unittest", "pydoc", "test"],
-}
+# If we are building a wheel, we don't want cx_Freeze to interfere
+if "bdist_wheel" in sys.argv or "sdist" in sys.argv:
+    from setuptools import setup
+    setup_kwargs = {}
+else:
+    setup_kwargs = {"executables": executables}
 
 setup(
     name="drill",
     version="0.0.1",
     description="Search files without indexing",
+    packages=find_packages(where=".", exclude=["tests", "tests.*"]),
     options={
         "build_exe": build_exe_options,
         "bdist_mac": {
@@ -81,5 +93,5 @@ setup(
             "background": "builtin-arrow"
         },
     },
-    executables=executables,
+    **setup_kwargs
 )
