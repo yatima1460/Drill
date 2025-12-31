@@ -37,46 +37,68 @@ def get_root_directories():
     
     if sys.platform == 'win32':
         # Windows: all drives
-        drives = [f"{d}:\\" for d in 'ABCDEFGHIJKLMNOPQRSTUVWXYZ' if os.path.exists(f"{d}:\\")]
+        import ctypes
+        bitmask = ctypes.windll.kernel32.GetLogicalDrives()
+        drives = []
+        for i in range(26):
+            if bitmask & (1 << i):
+                drive_letter = chr(65 + i)
+                drive_path = f"{drive_letter}:\\"
+                # Skip A: and B: to avoid potential hangs on floppy drives
+                if drive_letter in ('A', 'B'):
+                    continue
+                
+                # Check drive type to avoid hanging on empty CD-ROM drives
+                drive_type = ctypes.windll.kernel32.GetDriveTypeW(drive_path)
+                # DRIVE_REMOVABLE = 2, DRIVE_FIXED = 3, DRIVE_REMOTE = 4, DRIVE_CDROM = 5
+                if drive_type in (2, 3, 4): # Skip CD-ROMs and unknown types
+                    drives.append(drive_path)
+        
         roots.update(set(drives))
+        
         # Add important folders
-        userprofile = os.environ['USERPROFILE']
-        important_folders = [
-            os.path.join(userprofile),
-            os.path.join(userprofile, 'Desktop'),
-            os.path.join(userprofile, 'Documents'),
-            os.path.join(userprofile, 'Downloads'),
-            os.path.join(userprofile, 'Pictures'),
-            os.path.join(userprofile, 'Videos'),
-            os.path.join(userprofile, 'Music')
-            # TODO: Recent files folder
-            
-        ]
-        # Add programs
-        important_folders.append(os.path.join(userprofile, 'AppData', 'Local', 'Programs'))
-        # add programs x86 and program files in C:
-        important_folders.append(os.path.join('C:\\', 'Program Files (x86)'))
-        important_folders.append(os.path.join('C:\\', 'Program Files'))
+        userprofile = os.environ.get('USERPROFILE')
+        important_folders = []
+        if userprofile:
+            important_folders.extend([
+                userprofile,
+                os.path.join(userprofile, 'Desktop'),
+                os.path.join(userprofile, 'Documents'),
+                os.path.join(userprofile, 'Downloads'),
+                os.path.join(userprofile, 'Pictures'),
+                os.path.join(userprofile, 'Videos'),
+                os.path.join(userprofile, 'Music')
+            ])
+            # Add programs
+            important_folders.append(os.path.join(userprofile, 'AppData', 'Local', 'Programs'))
+        
+        # add programs x86 and program files for all detected drives
+        for drive in drives:
+            important_folders.append(os.path.join(drive, 'Program Files (x86)'))
+            important_folders.append(os.path.join(drive, 'Program Files'))
 
         # Add common game paths and their subfolders
         game_library_roots = [
-            os.path.join('C:\\', 'Program Files (x86)', 'Steam', 'steamapps', 'common'),
-            os.path.join('C:\\', 'Program Files', 'Epic Games'),
             os.path.join('C:\\', 'GOG Games')
         ]
 
-        # Check other drives for Steam libraries
+        # Check all drives for Steam and Epic libraries
         for drive in drives:
+            game_library_roots.append(os.path.join(drive, 'Program Files (x86)', 'Steam', 'steamapps', 'common'))
+            game_library_roots.append(os.path.join(drive, 'Program Files', 'Epic Games'))
             game_library_roots.append(os.path.join(drive, 'SteamLibrary', 'steamapps', 'common'))
 
 
         for game_root in game_library_roots:
             if os.path.exists(game_root):
                 important_folders.append(game_root)
-                for subfolder in os.listdir(game_root):
-                    full_path = os.path.join(game_root, subfolder)
-                    if os.path.isdir(full_path):
-                        important_folders.append(full_path)
+                try:
+                    for subfolder in os.listdir(game_root):
+                        full_path = os.path.join(game_root, subfolder)
+                        if os.path.isdir(full_path):
+                            important_folders.append(full_path)
+                except PermissionError:
+                    pass
                         
         # Add important folders to roots (only if they exist)
         roots.update(set([folder for folder in important_folders if os.path.exists(folder)]))
@@ -114,7 +136,7 @@ def get_root_directories():
     else:
         # Linux/Other: just the home directory
         home = os.path.expanduser('~')
-        roots.update(home)
+        roots.add(home)
     return roots
 
 def system_directories():

@@ -12,8 +12,6 @@ import threading
 from os import DirEntry
 from drillentry import DrillEntry
 
-import ctypes
-
 def can_access_directory(path):
     #FIXME: not working on Windows
     return os.access(path, os.R_OK | os.X_OK)
