@@ -34,7 +34,7 @@ class DrillEntry:
         self.formatted_time = "?"
         self.id = os.path.normcase(os.path.abspath(fullpath))
         self.size = "?"
-        self.modified_time = "?"
+        self.modified_time = 0.0
         try:
             stat = os.stat(fullpath)
             
