@@ -51,7 +51,7 @@ def get_root_directories():
                 # Check drive type to avoid hanging on empty CD-ROM drives
                 drive_type = ctypes.windll.kernel32.GetDriveTypeW(drive_path)
                 # DRIVE_REMOVABLE = 2, DRIVE_FIXED = 3, DRIVE_REMOTE = 4, DRIVE_CDROM = 5
-                if drive_type in (2, 3, 4): # Skip CD-ROMs and unknown types
+                if drive_type in (2, 3, 4):  # Skip CD-ROMs and unknown types
                     drives.append(drive_path)
         
         roots.update(set(drives))
