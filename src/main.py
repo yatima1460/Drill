@@ -143,6 +143,7 @@ class SearchWindow(QWidget):
         elif os.name == 'posix':
             reveal_action_name = "Reveal in File Manager"
         open_folder_action = QAction(folder_icon, reveal_action_name, self)
+        open_folder_action.setIconVisibleInMenu(True)
         copy_path_action = QAction("Copy Full Path", self)
         copy_date_action = QAction("Copy Date", self)
         copy_size_action = QAction("Copy Size", self)
