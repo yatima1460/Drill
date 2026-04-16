@@ -89,9 +89,9 @@ jobs:
           $expectedFragment = "exe.win-amd64-3.12\\drill.exe"
           $env:DRILL_EXPECT_RESULT_CONTAINS = $expectedFragment
           $env:DRILL_CLI_MAX_SECONDS = "120"
-          & $exePath --cli "Drill.exe"
-          if ($LASTEXITCODE -ne 0) {
-            throw "Windows CLI smoke test failed with exit code $LASTEXITCODE"
+          $proc = Start-Process -FilePath $exePath -ArgumentList '--cli', 'Drill.exe' -Wait -PassThru
+          if ($proc.ExitCode -ne 0) {
+            throw "Windows CLI smoke test failed with exit code $($proc.ExitCode)"
           }
 
       - name: Zip Windows build
