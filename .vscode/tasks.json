@@ -84,6 +84,21 @@
                 "focus": false,
                 "panel": "shared"
             }
+        },
+        {
+            "label": "[Build macOS app+dmg]",
+            "type": "shell",
+            "command": "${workspaceFolder}/scripts/build_mac.sh",
+            "group": {
+                "kind": "build",
+                "isDefault": false
+            },
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            }
         }
     ]
 }
