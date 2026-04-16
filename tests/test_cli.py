@@ -1,5 +1,9 @@
 import os
 import sys
+import threading
+import time
+import uuid
+from pathlib import Path
 
 import pytest
 
@@ -75,3 +79,41 @@ def test_interrupt_handler_stops_search():
 
     assert app.search.stopped is True
     assert exc_info.value.code == 0
+
+
+def test_cli_finds_random_file_within_20_seconds(capsys):
+    temp_dir = Path.cwd()
+    random_name = f"drill_cli_{uuid.uuid4().hex}.txt"
+    random_file = temp_dir / random_name
+    random_file.write_text("drill cli test file", encoding="utf-8")
+    original_argv = sys.argv[:]
+    app = cli.CLI()
+    output = ""
+    try:
+        sys.argv = ["cli.py", random_name]
+        thread = threading.Thread(target=app.main, daemon=True)
+        thread.start()
+
+        deadline = time.monotonic() + 20
+        found = False
+        while time.monotonic() < deadline:
+            time.sleep(0.1)
+            chunk = capsys.readouterr().out
+            if chunk:
+                output += chunk
+            if str(random_file) in output:
+                found = True
+                break
+
+        if not found:
+            if hasattr(app, "search") and app.search is not None:
+                app.search.stop()
+            thread.join(timeout=5)
+            pytest.fail(f"Drill did not find {random_file} within 20 seconds.\nOutput:\n{output}")
+
+        if hasattr(app, "search") and app.search is not None:
+            app.search.stop()
+        thread.join(timeout=5)
+    finally:
+        sys.argv = original_argv
+        random_file.unlink(missing_ok=True)
