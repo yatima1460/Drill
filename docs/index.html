@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Drill is a very fast desktop file searcher without indexing. Multithreaded, heuristic-first, and built for modern SSD-era hardware."
+    />
+    <title>Drill | Very Fast File Searcher</title>
+    <link rel="icon" type="image/svg+xml" href="drill.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="page-backdrop" aria-hidden="true"></div>
+
+    <header class="hero" id="top">
+      <nav class="nav-wrap">
+        <a class="brand" href="#top" aria-label="Drill home">
+          <img class="brand-mark" src="drill.svg" alt="" aria-hidden="true" />
+          <span class="brand-text">Drill</span>
+        </a>
+      </nav>
+
+      <section class="hero-content">
+        <h1>Drill</h1>
+        <p class="hero-copy">Search files without indexing, but fast crawling</p>
+        <div class="hero-actions" id="release-actions"></div>
+        <noscript>
+          <div class="hero-actions">
+            <a
+              class="btn btn-primary"
+              href="https://github.com/yatima1460/Drill/releases/latest"
+              target="_blank"
+              rel="noopener noreferrer"
+              >Download Latest Release</a
+            >
+            <a
+              class="btn btn-secondary"
+              href="https://github.com/yatima1460/Drill"
+              target="_blank"
+              rel="noopener noreferrer"
+              >GitHub</a
+            >
+          </div>
+        </noscript>
+      </section>
+
+      <figure class="app-shot">
+        <img src="screenshot.png" alt="Drill app window showing search results" />
+      </figure>
+    </header>
+
+    <footer class="footer">
+      <p>Drill</p>
+      <a href="https://github.com/yatima1460/Drill" target="_blank" rel="noopener noreferrer"
+        >github.com/yatima1460/Drill</a
+      >
+    </footer>
+    <script>
+      (function () {
+        const repo = "yatima1460/Drill";
+        const actionsRoot = document.getElementById("release-actions");
+        if (!actionsRoot) return;
+
+        const createButton = (label, href, className, withGithubIcon) => {
+          const link = document.createElement("a");
+          link.className = className;
+          link.href = href;
+          link.target = "_blank";
+          link.rel = "noopener noreferrer";
+          if (withGithubIcon) {
+            link.innerHTML =
+              '<svg class="btn-icon" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M8 .198a8 8 0 0 0-2.53 15.59c.4.073.546-.174.546-.386 0-.19-.007-.693-.01-1.36-2.22.483-2.69-1.07-2.69-1.07-.364-.924-.89-1.17-.89-1.17-.727-.497.055-.487.055-.487.804.056 1.227.825 1.227.825.714 1.222 1.872.869 2.328.665.072-.517.28-.87.508-1.07-1.773-.202-3.638-.886-3.638-3.944 0-.872.312-1.586.824-2.145-.083-.202-.357-1.016.078-2.117 0 0 .672-.215 2.2.82a7.62 7.62 0 0 1 4.004 0c1.527-1.035 2.198-.82 2.198-.82.437 1.101.163 1.915.08 2.117.513.559.823 1.273.823 2.145 0 3.066-1.868 3.74-3.648 3.938.287.246.543.732.543 1.476 0 1.065-.01 1.923-.01 2.185 0 .214.145.463.55.384A8 8 0 0 0 8 .198Z"></path></svg><span>' +
+              label +
+              "</span>";
+          } else {
+            link.textContent = label;
+          }
+          return link;
+        };
+
+        const renderButtons = (release) => {
+          actionsRoot.innerHTML = "";
+          const assets = Array.isArray(release && release.assets) ? release.assets : [];
+
+          if (assets.length > 0) {
+            assets.forEach((asset) => {
+              if (!asset || !asset.browser_download_url) return;
+              const label = asset.name ? "Download " + asset.name : "Download File";
+              actionsRoot.appendChild(
+                createButton(label, asset.browser_download_url, "btn btn-primary", false)
+              );
+            });
+          } else {
+            const fallbackUrl =
+              release && release.html_url
+                ? release.html_url
+                : "https://github.com/" + repo + "/releases/latest";
+            actionsRoot.appendChild(
+              createButton("Download Latest Release", fallbackUrl, "btn btn-primary", false)
+            );
+          }
+
+          actionsRoot.appendChild(
+            createButton("GitHub", "https://github.com/" + repo, "btn btn-secondary btn-with-icon", true)
+          );
+        };
+
+        fetch("https://api.github.com/repos/" + repo + "/releases/latest")
+          .then((res) => (res.ok ? res.json() : Promise.reject(new Error("release request failed"))))
+          .then((release) => {
+            renderButtons(release);
+          })
+          .catch(() => {
+            renderButtons({ html_url: "https://github.com/" + repo + "/releases/latest", assets: [] });
+          });
+      })();
+    </script>
+  </body>
+</html>

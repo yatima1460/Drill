@@ -1,0 +1,313 @@
+:root {
+  --bg: #f7f7f5;
+  --ink: #151515;
+  --ink-muted: #575757;
+  --line: #ddddda;
+  --card: #ffffff;
+  --brand: #1e1e1e;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+}
+
+body {
+  font-family: "Space Grotesk", sans-serif;
+  color: var(--ink);
+  background: var(--bg);
+  line-height: 1.5;
+}
+
+.page-backdrop {
+  display: none;
+}
+
+.hero,
+.section,
+.footer {
+  width: min(1080px, 92vw);
+  margin: 0 auto;
+  position: relative;
+  z-index: 1;
+}
+
+.hero {
+  padding: 0.8rem 0 1rem;
+}
+
+.nav-wrap {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 0.6rem;
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  text-decoration: none;
+  color: var(--ink);
+  font-weight: 700;
+  font-size: 1.1rem;
+}
+
+.brand-mark {
+  width: 1.55rem;
+  height: 1.55rem;
+  border-radius: 6px;
+  object-fit: contain;
+  background: #fff;
+  border: 1px solid var(--line);
+}
+
+.hero-content h1 {
+  font-size: clamp(2rem, 5.8vw, 3rem);
+  line-height: 1.1;
+  max-width: 14ch;
+  margin: 0.1rem 0 0.5rem;
+}
+
+.eyebrow {
+  color: var(--ink-muted);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-size: 0.78rem;
+  margin: 0;
+  font-weight: 500;
+}
+
+.hero-copy {
+  max-width: 42ch;
+  color: var(--ink-muted);
+  font-size: 1rem;
+  margin: 0;
+}
+
+.hero-actions {
+  display: flex;
+  gap: 0.9rem;
+  flex-wrap: wrap;
+  margin: 0.9rem 0 1rem;
+}
+
+.btn {
+  display: inline-block;
+  padding: 0.72rem 1.1rem;
+  border-radius: 8px;
+  text-decoration: none;
+  font-weight: 700;
+  font-size: 0.95rem;
+  border: 1px solid var(--line);
+}
+
+.btn-primary {
+  color: #fff;
+  background: var(--brand);
+}
+
+.btn-secondary {
+  color: var(--ink);
+  background: #fff;
+}
+
+.btn-with-icon {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.btn-icon {
+  width: 1rem;
+  height: 1rem;
+  flex-shrink: 0;
+}
+
+.app-shot {
+  margin: 0;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  overflow: hidden;
+  background: #101010;
+}
+
+.app-shot img {
+  display: block;
+  width: 100%;
+  max-height: 44vh;
+  object-fit: contain;
+}
+
+.section {
+  padding: 1rem 0;
+}
+
+.section h2 {
+  font-size: clamp(1.35rem, 4vw, 2rem);
+  margin: 0 0 0.9rem;
+}
+
+.feature-grid,
+.link-grid,
+.install-grid {
+  display: grid;
+  gap: 1rem;
+}
+
+.feature-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.install-grid {
+  grid-template-columns: 1fr;
+}
+
+.link-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.card,
+.link-card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 0.85rem;
+}
+
+.card h3 {
+  margin: 0 0 0.4rem;
+}
+
+.card p {
+  margin: 0;
+  color: var(--ink-muted);
+}
+
+.card-accent {
+  background: #f1f1ef;
+}
+
+.compact-run h2 {
+  margin-bottom: 0.5rem;
+}
+
+pre {
+  margin: 0.8rem 0 0;
+  padding: 0.9rem;
+  border-radius: 8px;
+  background: #151515;
+  overflow-x: auto;
+}
+
+code {
+  font-family: "IBM Plex Mono", monospace;
+  color: #ffdd8c;
+  font-size: 0.87rem;
+}
+
+.story-text {
+  max-width: 72ch;
+  color: var(--ink-muted);
+}
+
+.pill-row {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-top: 1rem;
+}
+
+.pill {
+  border: 1px solid var(--line);
+  padding: 0.38rem 0.7rem;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  background: #fff;
+}
+
+.link-card {
+  text-decoration: none;
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.link-card:hover {
+  background: #f4f4f2;
+}
+
+.footer {
+  padding: 0.8rem 0 1.2rem;
+  border-top: 1px solid var(--line);
+}
+
+.footer p {
+  margin: 0;
+}
+
+.footer a {
+  color: var(--ink-muted);
+  text-decoration: none;
+  font-size: 0.9rem;
+}
+
+@media (max-width: 980px) {
+  .feature-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .link-grid,
+  .install-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 620px) {
+  .hero {
+    padding-top: 1rem;
+  }
+
+  .nav-wrap {
+    align-items: flex-start;
+    flex-direction: column;
+    margin-bottom: 1rem;
+  }
+
+  .hero-copy {
+    font-size: 1rem;
+  }
+}
+
+@media (orientation: landscape) and (max-height: 560px) {
+  html,
+  body {
+    overflow-x: hidden;
+  }
+
+  .hero,
+  .section,
+  .footer {
+    width: min(1080px, 96vw);
+  }
+
+  .nav-wrap {
+    gap: 0.6rem;
+  }
+
+  .hero-actions {
+    margin-bottom: 0.8rem;
+  }
+
+  .app-shot img {
+    max-height: 38vh;
+  }
+}
