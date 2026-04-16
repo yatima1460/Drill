@@ -94,6 +94,12 @@ body {
   margin: 0;
 }
 
+.release-date {
+  margin: 0.45rem 0 0;
+  color: var(--ink-muted);
+  font-size: 0.9rem;
+}
+
 .hero-actions {
   display: flex;
   gap: 0.9rem;

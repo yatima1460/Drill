@@ -31,6 +31,7 @@
       <section class="hero-content">
         <h1>Drill</h1>
         <p class="hero-copy">Search files without indexing, but fast crawling</p>
+        <p class="release-date" id="release-date">Latest release: loading...</p>
         <div class="hero-actions" id="release-actions"></div>
         <noscript>
           <div class="hero-actions">
@@ -67,6 +68,7 @@
       (function () {
         const repo = "yatima1460/Drill";
         const actionsRoot = document.getElementById("release-actions");
+        const releaseDateNode = document.getElementById("release-date");
         if (!actionsRoot) return;
 
         const createButton = (label, href, className, withGithubIcon) => {
@@ -89,6 +91,11 @@
         const renderButtons = (release) => {
           actionsRoot.innerHTML = "";
           const assets = Array.isArray(release && release.assets) ? release.assets : [];
+          const publishedAt = release && (release.published_at || release.created_at);
+          if (releaseDateNode && publishedAt) {
+            const date = new Date(publishedAt);
+            releaseDateNode.textContent = "Latest release: " + date.toLocaleDateString();
+          }
 
           if (assets.length > 0) {
             assets.forEach((asset) => {
@@ -119,6 +126,9 @@
             renderButtons(release);
           })
           .catch(() => {
+            if (releaseDateNode) {
+              releaseDateNode.textContent = "Latest release date unavailable";
+            }
             actionsRoot.innerHTML = "";
             actionsRoot.appendChild(
               createButton(
