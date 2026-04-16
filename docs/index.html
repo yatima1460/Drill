@@ -119,7 +119,15 @@
             renderButtons(release);
           })
           .catch(() => {
-            renderButtons({ html_url: "https://github.com/" + repo + "/releases/latest", assets: [] });
+            actionsRoot.innerHTML = "";
+            actionsRoot.appendChild(
+              createButton(
+                "Open Latest Release",
+                "https://github.com/" + repo + "/releases/latest",
+                "btn btn-primary",
+                false
+              )
+            );
           });
       })();
     </script>

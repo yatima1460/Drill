@@ -138,7 +138,7 @@ body {
   border: 1px solid var(--line);
   border-radius: 10px;
   overflow: hidden;
-  background: #101010;
+  background: #fff;
 }
 
 .app-shot img {
