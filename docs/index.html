@@ -5,9 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta
       name="description"
-      content="Drill is a very fast desktop file searcher without indexing. Multithreaded, heuristic-first, and built for modern SSD-era hardware."
+      content="Drill is a very fast desktop file searcher without indexing. Multithreaded, heuristic-first, and built for modern NVMe-era hardware."
     />
-    <title>Drill | Very Fast File Searcher</title>
+    <title>Drill | Search files without indexing, but fast crawling</title>
     <link rel="icon" type="image/svg+xml" href="drill.svg" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -21,15 +21,11 @@
     <div class="page-backdrop" aria-hidden="true"></div>
 
     <header class="hero" id="top">
-      <nav class="nav-wrap">
-        <a class="brand" href="#top" aria-label="Drill home">
-          <img class="brand-mark" src="drill.svg" alt="" aria-hidden="true" />
-          <span class="brand-text">Drill</span>
-        </a>
-      </nav>
-
       <section class="hero-content">
-        <h1>Drill</h1>
+        <div class="title-row">
+          <img class="brand-mark" src="drill.svg" alt="" aria-hidden="true" />
+          <h1>Drill</h1>
+        </div>
         <p class="hero-copy">Search files without indexing, but fast crawling</p>
         <p class="release-date" id="release-date">Latest release: loading...</p>
         <div class="hero-actions" id="release-actions"></div>
@@ -42,13 +38,6 @@
               rel="noopener noreferrer"
               >Download Latest Release</a
             >
-            <a
-              class="btn btn-secondary"
-              href="https://github.com/yatima1460/Drill"
-              target="_blank"
-              rel="noopener noreferrer"
-              >GitHub</a
-            >
           </div>
         </noscript>
       </section>
@@ -59,10 +48,20 @@
     </header>
 
     <footer class="footer">
-      <p>Drill</p>
-      <a href="https://github.com/yatima1460/Drill" target="_blank" rel="noopener noreferrer"
-        >github.com/yatima1460/Drill</a
-      >
+      <div class="footer-links">
+        <a
+          class="btn btn-secondary btn-with-icon"
+          href="https://github.com/yatima1460/Drill"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          <svg class="btn-icon" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M8 .198a8 8 0 0 0-2.53 15.59c.4.073.546-.174.546-.386 0-.19-.007-.693-.01-1.36-2.22.483-2.69-1.07-2.69-1.07-.364-.924-.89-1.17-.89-1.17-.727-.497.055-.487.055-.487.804.056 1.227.825 1.227.825.714 1.222 1.872.869 2.328.665.072-.517.28-.87.508-1.07-1.773-.202-3.638-.886-3.638-3.944 0-.872.312-1.586.824-2.145-.083-.202-.357-1.016.078-2.117 0 0 .672-.215 2.2.82a7.62 7.62 0 0 1 4.004 0c1.527-1.035 2.198-.82 2.198-.82.437 1.101.163 1.915.08 2.117.513.559.823 1.273.823 2.145 0 3.066-1.868 3.74-3.648 3.938.287.246.543.732.543 1.476 0 1.065-.01 1.923-.01 2.185 0 .214.145.463.55.384A8 8 0 0 0 8 .198Z"></path></svg>
+          <span>GitHub</span>
+        </a>
+        <a href="https://github.com/yatima1460/Drill" target="_blank" rel="noopener noreferrer"
+          >github.com/yatima1460/Drill</a
+        >
+      </div>
     </footer>
     <script>
       (function () {
@@ -71,7 +70,21 @@
         const releaseDateNode = document.getElementById("release-date");
         if (!actionsRoot) return;
 
-        const createButton = (label, href, className, withGithubIcon) => {
+        const getOsIcon = (text) => {
+          const name = String(text || "").toLowerCase();
+          if (name.includes("windows")) {
+            return "&#x1FA9F;";
+          }
+          if (name.includes("macos")) {
+            return "&#x1F34E;";
+          }
+          if (name.includes("linux")) {
+            return "&#x1F427;";
+          }
+          return "";
+        };
+
+        const createButton = (label, href, className, withGithubIcon, osIcon) => {
           const link = document.createElement("a");
           link.className = className;
           link.href = href;
@@ -85,6 +98,10 @@
           } else {
             link.textContent = label;
           }
+          if (osIcon) {
+            link.classList.add("btn-with-icon");
+            link.innerHTML = '<span class="os-icon" aria-hidden="true">' + osIcon + "</span><span>" + label + "</span>";
+          }
           return link;
         };
 
@@ -94,15 +111,19 @@
           const publishedAt = release && (release.published_at || release.created_at);
           if (releaseDateNode && publishedAt) {
             const date = new Date(publishedAt);
-            releaseDateNode.textContent = "Latest release: " + date.toLocaleDateString();
+            const yyyy = date.getFullYear();
+            const mm = String(date.getMonth() + 1).padStart(2, "0");
+            const dd = String(date.getDate()).padStart(2, "0");
+            releaseDateNode.textContent = "Latest release: " + yyyy + "/" + mm + "/" + dd;
           }
 
           if (assets.length > 0) {
             assets.forEach((asset) => {
               if (!asset || !asset.browser_download_url) return;
               const label = asset.name ? "Download " + asset.name : "Download File";
+              const osIcon = getOsIcon(asset.name);
               actionsRoot.appendChild(
-                createButton(label, asset.browser_download_url, "btn btn-primary", false)
+                createButton(label, asset.browser_download_url, "btn btn-primary", false, osIcon)
               );
             });
           } else {
@@ -115,9 +136,6 @@
             );
           }
 
-          actionsRoot.appendChild(
-            createButton("GitHub", "https://github.com/" + repo, "btn btn-secondary btn-with-icon", true)
-          );
         };
 
         fetch("https://api.github.com/repos/" + repo + "/releases/latest")

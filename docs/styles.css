@@ -42,26 +42,6 @@ body {
   padding: 0.8rem 0 1rem;
 }
 
-.nav-wrap {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 1rem;
-  margin-bottom: 1rem;
-  border-bottom: 1px solid var(--line);
-  padding-bottom: 0.6rem;
-}
-
-.brand {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.6rem;
-  text-decoration: none;
-  color: var(--ink);
-  font-weight: 700;
-  font-size: 1.1rem;
-}
-
 .brand-mark {
   width: 1.55rem;
   height: 1.55rem;
@@ -69,6 +49,12 @@ body {
   object-fit: contain;
   background: #fff;
   border: 1px solid var(--line);
+}
+
+.title-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
 }
 
 .hero-content h1 {
@@ -97,7 +83,7 @@ body {
 .release-date {
   margin: 0.45rem 0 0;
   color: var(--ink-muted);
-  font-size: 0.9rem;
+  font-size: 1rem;
 }
 
 .hero-actions {
@@ -118,8 +104,8 @@ body {
 }
 
 .btn-primary {
-  color: #fff;
-  background: var(--brand);
+  color: #000;
+  background: #fff;
 }
 
 .btn-secondary {
@@ -137,6 +123,10 @@ body {
   width: 1rem;
   height: 1rem;
   flex-shrink: 0;
+}
+
+.os-icon {
+  line-height: 1;
 }
 
 .app-shot {
@@ -254,10 +244,21 @@ code {
 .footer {
   padding: 0.8rem 0 1.2rem;
   border-top: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
 }
 
 .footer p {
   margin: 0;
+}
+
+.footer-links {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.65rem;
+  flex-wrap: wrap;
 }
 
 .footer a {
@@ -282,12 +283,6 @@ code {
     padding-top: 1rem;
   }
 
-  .nav-wrap {
-    align-items: flex-start;
-    flex-direction: column;
-    margin-bottom: 1rem;
-  }
-
   .hero-copy {
     font-size: 1rem;
   }
@@ -303,10 +298,6 @@ code {
   .section,
   .footer {
     width: min(1080px, 96vw);
-  }
-
-  .nav-wrap {
-    gap: 0.6rem;
   }
 
   .hero-actions {
