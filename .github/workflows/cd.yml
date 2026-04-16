@@ -2,17 +2,23 @@ name: CD
 
 on:
   push:
-    branches: [ "main" ]
+    branches: ["main"]
     paths:
-      - '**.py'
-      - 'src/assets/**'
-      - '.github/workflows/**'
+      - "**.py"
+      - "src/assets/**"
+      - "scripts/build_mac.sh"
+      - "requirements-cd.txt"
+      - "setup.py"
+      - ".github/workflows/**"
   pull_request:
-    branches: [ "main" ]
+    branches: ["main"]
     paths:
-      - '**.py'
-      - 'src/assets/**'
-      - '.github/workflows/**'
+      - "**.py"
+      - "src/assets/**"
+      - "scripts/build_mac.sh"
+      - "requirements-cd.txt"
+      - "setup.py"
+      - ".github/workflows/**"
   workflow_dispatch:
 
 permissions:
@@ -22,140 +28,128 @@ env:
   QT_QPA_PLATFORM: offscreen
 
 jobs:
-
-  
-
-  # tests:
-  #   runs-on: ubuntu-latest
-  #   env:
-  #       DISPLAY: ':99.0'
-  #   steps:
-  #       - uses: actions/checkout@v4.2.2
-  #       - name: Set up Python 3.12
-  #         uses: actions/setup-python@v5.6.0
-  #         with:
-  #           python-version: "3.12"
-  #       - name: Install Python dependencies
-  #         run:  |
-  #           python -m pip install --upgrade pip
-  #           pip install -r requirements.txt
-  #           pip install flake8 pytest pytest-qt
-  #       - name: Lint tests with flake8
-  #         run: flake8 ./tests --count --show-source --statistics
-  #       - name: Run tests
-  #         run: pytest tests/
-
-  # linux-cd:
-  #   name: Linux CD
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - uses: actions/checkout@v4.2.2
-  #     - name: Set up Python 3.12
-  #       uses: actions/setup-python@v5.6.0
-  #       with:
-  #         python-version: "3.12"
-  #     - name: Install dependencies
-  #       run: |
-  #         sudo apt-get update
-  #         sudo apt-get install -y freeglut3-dev
-  #         python -m pip install --upgrade pip
-  #         pip install -r requirements-cd.txt
-  #     - name: Lint with flake8
-  #       run: python -m flake8 ./src ./tests --count --show-source --statistics
-  #     - name: Run tests
-  #       run: python -m pytest tests/
-      # - name: Run cx_freeze
-      #   run: python setup.py bdist_appimage
-      # - name: Upload cx_freeze appimage
-      #   uses: actions/upload-artifact@v4.6.2
-      #   with:
-      #     name: Drill-linux.appimage
-      #     path: build/*.appimage
-      #     if-no-files-found: error
-      #     retention-days: 7
-      #     compression-level: 9
-
-  # macos:
-
-  #   runs-on: macos-latest
-  #   steps:
-  #   - uses: actions/checkout@v4.2.2
-  #   - name: Set up Python 3.12
-  #     uses: actions/setup-python@v5.6.0
-  #     with:
-  #       python-version: "3.12"
-  #   - name: Install dependencies
-  #     run: |
-  #       python -m pip install --upgrade pip
-  #       pip install -r requirements.txt
-  #       pip install cx_Freeze dmgbuild
-  #   - name: Run cx_freeze dmg
-  #     run: python setup.py bdist_dmg
-  #   - name: Upload cx_freeze app
-  #     uses: actions/upload-artifact@v4.6.2
-  #     with:
-  #       name: Drill-macos.app
-  #       path: build/dist/*.app
-  #       if-no-files-found: error
-  #   - name: Upload cx_freeze dmg
-  #     uses: actions/upload-artifact@v4.6.2
-  #     with:
-  #       name: Drill-macos.dmg
-  #       path: build/*.dmg
-  #       if-no-files-found: error
-        
-
   windows:
-
     name: Windows CD
     runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4.2.2
+
+      - name: Set up Python
+        uses: actions/setup-python@v5.6.0
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-cd.txt
+
+      - name: Lint with flake8
+        run: python -m flake8 ./src ./tests --count --show-source --statistics
+
+      - name: Run tests
+        run: python -m pytest tests/
+
+      - name: Build Windows executable
+        run: python setup.py build_exe
+
+      - name: Zip Windows build
+        shell: pwsh
+        run: |
+          $zipFile = "build/Drill-v${{ github.run_number }}-windows.zip"
+          Compress-Archive -Path "build/exe.win-amd64-3.12/*" -DestinationPath $zipFile
+          Write-Host "Zipped files to $zipFile"
+
+      - name: Upload Windows zip artifact
+        uses: actions/upload-artifact@v4.6.2
+        with:
+          name: Drill-windows-zip
+          path: build/Drill-v${{ github.run_number }}-windows.zip
+          if-no-files-found: error
+          retention-days: 7
+          compression-level: 0
+
+  macos:
+    name: macOS CD
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4.2.2
+
+      - name: Set up Python
+        uses: actions/setup-python@v5.6.0
+        with:
+          python-version: "3.12"
+
+      - name: Build macOS app and dmg
+        run: ./scripts/build_mac.sh
+
+      - name: Zip macOS app
+        run: |
+          APP_PATH=""
+          if [ -d "build/dist/Drill.app" ]; then
+            APP_PATH="build/dist/Drill.app"
+          elif [ -d "build/Drill.app" ]; then
+            APP_PATH="build/Drill.app"
+          else
+            echo "No Drill.app found"
+            exit 1
+          fi
+          APP_ZIP="build/Drill-v${{ github.run_number }}-macos-app.zip"
+          ditto -c -k --sequesterRsrc --keepParent "$APP_PATH" "$APP_ZIP"
+          echo "Created $APP_ZIP"
+
+      - name: Rename macOS dmg for release
+        run: |
+          DMG_PATH="$(ls -1 build/*.dmg | head -n 1)"
+          if [ -z "$DMG_PATH" ]; then
+            echo "No DMG found"
+            exit 1
+          fi
+          cp "$DMG_PATH" "build/Drill-v${{ github.run_number }}-macos.dmg"
+
+      - name: Upload macOS artifacts
+        uses: actions/upload-artifact@v4.6.2
+        with:
+          name: Drill-macos-bundles
+          path: |
+            build/Drill-v${{ github.run_number }}-macos-app.zip
+            build/Drill-v${{ github.run_number }}-macos.dmg
+          if-no-files-found: error
+          retention-days: 7
+          compression-level: 0
+
+  release:
+    name: Create Unified Release
+    if: github.event_name != 'pull_request'
+    needs: [windows, macos]
+    runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
-    - uses: actions/checkout@v4.2.2
-    - name: Set up Python
-      uses: actions/setup-python@v5.6.0
-      with:
-        python-version: "3.12" # msi not available for 3.13
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements-cd.txt
-    - name: Lint with flake8
-      run: python -m flake8 ./src ./tests --count --show-source --statistics
-    - name: Run tests
-      run: python -m pytest tests/
-    - name: Run cx_freeze
-      run: python setup.py build_exe
-    - name: Upload exe
-      uses: actions/upload-artifact@v4.6.2
-      with:
-        name: Drill-windows
-        path: build/exe.win-amd64-3.12
-        if-no-files-found: error
-        retention-days: 7
-        compression-level: 9
-    - name: Zip exe
-      run: |
-        $zipFile = "build/Drill-v${{ github.run_number }}-windows.zip"
-        Compress-Archive -Path "build/exe.win-amd64-3.12/*" -DestinationPath $zipFile
-        Write-Host "Zipped files to $zipFile"
-    - name: Create GitHub Release
-      if: github.event_name != 'pull_request'
-      uses: softprops/action-gh-release@v2.2.2
-      with:
-        tag_name: release-${{ github.run_number }}
-        name: Release ${{ github.run_number }}
-        generate_release_notes: true
-        files: build/Drill-v${{ github.run_number }}-windows.zip
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Download Windows artifact
+        uses: actions/download-artifact@v4.3.0
+        with:
+          name: Drill-windows-zip
+          path: dist/windows
 
+      - name: Download macOS artifacts
+        uses: actions/download-artifact@v4.3.0
+        with:
+          name: Drill-macos-bundles
+          path: dist/macos
 
+      - name: Show bundled files
+        run: find dist -type f | sort
 
-    # - name: Upload msi
-    #   uses: actions/upload-artifact@v4.6.2
-    #   with:
-    #     name: Drill-windows.msi
-    #     path: build/*.msi
-    #     if-no-files-found: error
+      - name: Create GitHub Release with all artifacts
+        uses: softprops/action-gh-release@v2.2.2
+        with:
+          tag_name: release-${{ github.run_number }}
+          name: Release ${{ github.run_number }}
+          generate_release_notes: true
+          files: |
+            dist/windows/*.zip
+            dist/macos/*.zip
+            dist/macos/*.dmg
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
