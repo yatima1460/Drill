@@ -57,8 +57,8 @@ def test_main_prints_results_headless(monkeypatch, capsys):
     out = capsys.readouterr().out
     assert "Search results for: 'notes'" in out
     assert "-" * 40 in out
-    assert "/tmp/notes.txt" in out
-    assert "/var/todo.md" in out
+    assert os.path.join("/tmp", "notes.txt") in out
+    assert os.path.join("/var", "todo.md") in out
     assert FakeSearch.last_instance.query == "notes"
     assert FakeSearch.last_instance.started is True
 
