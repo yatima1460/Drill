@@ -119,6 +119,30 @@
                 "focus": false,
                 "panel": "shared"
             }
+        },
+        {
+            "label": "[Open docs/index.html]",
+            "type": "shell",
+            "command": "open",
+            "args": ["${workspaceFolder}/docs/index.html"],
+            "linux": {
+                "command": "xdg-open",
+                "args": ["${workspaceFolder}/docs/index.html"]
+            },
+            "windows": {
+                "command": "cmd",
+                "args": ["/c", "start", "", "${workspaceFolder}\\docs\\index.html"]
+            },
+            "group": {
+                "kind": "build",
+                "isDefault": false
+            },
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            }
         }
     ]
 }
