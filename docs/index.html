@@ -107,6 +107,12 @@
 
         const getOsIcon = (text) => {
           const name = String(text || "").toLowerCase();
+          if (name.includes("arch") || name.includes(".pkg.tar")) {
+            return "arch-linux-logo.svg";
+          }
+          if (name.endsWith(".deb")) {
+            return "debian-logo.svg";
+          }
           if (name.endsWith(".rpm")) {
             return "redhat-logo.svg";
           }
