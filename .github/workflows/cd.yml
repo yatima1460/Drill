@@ -7,6 +7,8 @@ on:
       - "**.py"
       - "src/assets/**"
       - "scripts/build_mac.sh"
+      - "scripts/build_linux_deb.sh"
+      - "scripts/test_linux_installed_cli.sh"
       - "requirements-cd.txt"
       - "setup.py"
       - ".github/workflows/**"
@@ -16,10 +18,16 @@ on:
       - "**.py"
       - "src/assets/**"
       - "scripts/build_mac.sh"
+      - "scripts/build_linux_deb.sh"
+      - "scripts/test_linux_installed_cli.sh"
       - "requirements-cd.txt"
       - "setup.py"
       - ".github/workflows/**"
   workflow_dispatch:
+
+concurrency:
+  group: cd-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
@@ -31,6 +39,7 @@ jobs:
   linux-tests:
     name: Linux Tests
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v6.0.2
 
@@ -38,6 +47,8 @@ jobs:
         uses: actions/setup-python@v6.2.0
         with:
           python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements-cd.txt
 
       - name: Install Linux Qt runtime deps
         run: |
@@ -66,6 +77,7 @@ jobs:
     if: github.event_name != 'pull_request'
     needs: [linux-tests]
     runs-on: windows-latest
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v6.0.2
 
@@ -73,6 +85,8 @@ jobs:
         uses: actions/setup-python@v6.2.0
         with:
           python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements-cd.txt
 
       - name: Install dependencies
         run: |
@@ -122,6 +136,7 @@ jobs:
     if: github.event_name != 'pull_request'
     needs: [linux-tests]
     runs-on: macos-latest
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v6.0.2
 
@@ -129,6 +144,8 @@ jobs:
         uses: actions/setup-python@v6.2.0
         with:
           python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements-cd.txt
 
       - name: Build macOS app and dmg
         run: ./scripts/build_mac.sh
@@ -149,9 +166,14 @@ jobs:
             echo "CLI binary not executable: $APP_BIN"
             exit 1
           fi
-          export DRILL_EXPECT_RESULT_CONTAINS="/drill.app/contents/macos/drill"
+          MARKER_NAME="drill-smoke-marker-${{ github.run_number }}.txt"
+          mkdir -p "$HOME/Desktop"
+          MARKER_PATH="$HOME/Desktop/$MARKER_NAME"
+          touch "$MARKER_PATH"
+          trap 'rm -f "$MARKER_PATH"' EXIT
+          export DRILL_EXPECT_RESULT_CONTAINS="$(echo "$MARKER_PATH" | tr '[:upper:]' '[:lower:]')"
           export DRILL_CLI_MAX_SECONDS="120"
-          "$APP_BIN" --cli "Drill"
+          "$APP_BIN" --cli "$MARKER_NAME"
 
       - name: Zip macOS app
         run: |
@@ -193,6 +215,7 @@ jobs:
     if: github.event_name != 'pull_request'
     needs: [linux-tests]
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v6.0.2
 
@@ -200,6 +223,8 @@ jobs:
         uses: actions/setup-python@v6.2.0
         with:
           python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements-cd.txt
 
       - name: Install Linux Qt runtime deps
         run: |
@@ -242,6 +267,7 @@ jobs:
     if: github.event_name != 'pull_request'
     needs: [windows, macos, linux]
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     permissions:
       contents: write
     steps:
