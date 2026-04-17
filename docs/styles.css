@@ -108,11 +108,13 @@ body {
   background: #fff;
 }
 
+.btn:hover {
+  background: #fffbe8;
+}
+
 .btn-current-os {
-  background: #1e1e1e;
-  color: #fff;
-  border-color: #1e1e1e;
-  box-shadow: 0 0 0 2px rgba(30, 30, 30, 0.18);
+  border: 2px solid #1e1e1e;
+  box-shadow: 0 0 0 2px rgba(30, 30, 30, 0.12);
 }
 
 .btn-secondary {
@@ -134,6 +136,13 @@ body {
 
 .os-icon {
   line-height: 1;
+}
+
+.os-icon-img {
+  width: 1rem;
+  height: 1rem;
+  object-fit: contain;
+  flex-shrink: 0;
 }
 
 .app-shot {
@@ -251,9 +260,9 @@ code {
 .footer {
   padding: 0.8rem 0 1.2rem;
   border-top: 1px solid var(--line);
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
   align-items: center;
-  justify-content: space-between;
   gap: 1rem;
 }
 
@@ -266,6 +275,26 @@ code {
   align-items: center;
   gap: 0.65rem;
   flex-wrap: wrap;
+  justify-self: start;
+}
+
+.footer-tagline {
+  justify-self: center;
+  text-align: center;
+}
+
+.footer-tagline a {
+  color: var(--ink-muted);
+  text-decoration: none;
+  font-size: 0.9rem;
+}
+
+.footer-tagline a:hover {
+  color: var(--ink);
+}
+
+.footer-badge {
+  justify-self: end;
 }
 
 .footer a {
@@ -297,6 +326,18 @@ code {
 
   .hero-copy {
     font-size: 1rem;
+  }
+
+  .footer {
+    grid-template-columns: 1fr;
+    justify-items: start;
+  }
+
+  .footer-links,
+  .footer-tagline,
+  .footer-badge {
+    justify-self: start;
+    text-align: left;
   }
 }
 

@@ -62,6 +62,9 @@
           >github.com/yatima1460/Drill</a
         >
       </div>
+      <div class="footer-tagline">
+        <a href="https://yatima.me" target="_blank" rel="noopener noreferrer">Made with ♥ by yatima</a>
+      </div>
       <div class="footer-badge">
         <a
           href="https://github.com/yatima1460/Drill/actions/workflows/cd.yml"
@@ -105,13 +108,13 @@
         const getOsIcon = (text) => {
           const osType = getOsType(text);
           if (osType === "windows") {
-            return "&#x1FA9F;";
+            return "windows-logo.svg";
           }
           if (osType === "macos") {
-            return "&#x1F34E;";
+            return "apple-logo.svg";
           }
           if (osType === "linux") {
-            return "&#x1F427;";
+            return "linux-tux.svg";
           }
           return "";
         };
@@ -144,7 +147,7 @@
           }
           if (osIcon) {
             link.classList.add("btn-with-icon");
-            link.innerHTML = '<span class="os-icon" aria-hidden="true">' + osIcon + "</span><span>" + label + "</span>";
+            link.innerHTML = '<img class="os-icon-img" src="' + osIcon + '" alt="" aria-hidden="true" /><span>' + label + "</span>";
           }
           if (osType && currentOs && osType === currentOs) {
             link.classList.add("btn-current-os");
