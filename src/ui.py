@@ -14,7 +14,12 @@ class FilenameMatchBoldDelegate(QStyledItemDelegate):
     def _to_highlighted_html(self, text: str, query: str) -> str:
         if not query:
             return escape(text)
-        pattern = re.compile(re.escape(query), flags=re.IGNORECASE)
+        tokens = [t for t in query.split() if t]
+        if not tokens:
+            return escape(text)
+        # Prefer longer tokens first to avoid partial overlap wins.
+        unique_tokens = sorted(set(tokens), key=len, reverse=True)
+        pattern = re.compile("|".join(re.escape(token) for token in unique_tokens), flags=re.IGNORECASE)
         parts = []
         start = 0
         for match in pattern.finditer(text):
