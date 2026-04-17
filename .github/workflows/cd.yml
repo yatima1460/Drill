@@ -226,7 +226,7 @@ jobs:
             "https://api.github.com/repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/cancel"
 
   linux:
-    name: Linux CD
+    name: Linux .deb CD
     if: github.event_name != 'pull_request'
     needs: [linux-tests]
     runs-on: ubuntu-latest
@@ -286,7 +286,7 @@ jobs:
             "https://api.github.com/repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/cancel"
 
   arch:
-    name: Arch CD
+    name: Linux Arch CD
     if: github.event_name != 'pull_request'
     needs: [linux-tests]
     runs-on: ubuntu-latest
@@ -347,7 +347,7 @@ jobs:
             "https://api.github.com/repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/cancel"
 
   rpm:
-    name: RPM CD
+    name: Linux .rpm CD
     if: github.event_name != 'pull_request'
     needs: [linux-tests]
     runs-on: ubuntu-latest
@@ -359,9 +359,9 @@ jobs:
 
       - name: Install RPM build/runtime dependencies
         run: |
-          dnf -y update
           dnf -y install \
             python3 \
+            python3-devel \
             python3-pip \
             python3-setuptools \
             python3-wheel \
