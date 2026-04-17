@@ -99,6 +99,26 @@
                 "focus": false,
                 "panel": "shared"
             }
+        },
+        {
+            "label": "[Build+Run macOS app]",
+            "type": "shell",
+            "dependsOn": "[Build macOS app+dmg]",
+            "command": "bash",
+            "args": [
+                "-lc",
+                "APP_PATH=\"\"; if [ -d \"${workspaceFolder}/build/dist/Drill.app\" ]; then APP_PATH=\"${workspaceFolder}/build/dist/Drill.app\"; elif [ -d \"${workspaceFolder}/build/Drill.app\" ]; then APP_PATH=\"${workspaceFolder}/build/Drill.app\"; else echo \"No Drill.app found after build\"; exit 1; fi; open \"$APP_PATH\""
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": false
+            },
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            }
         }
     ]
 }
