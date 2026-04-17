@@ -62,6 +62,19 @@
           >github.com/yatima1460/Drill</a
         >
       </div>
+      <div class="footer-badge">
+        <a
+          href="https://github.com/yatima1460/Drill/actions/workflows/cd.yml"
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label="CD workflow status"
+        >
+          <img
+            src="https://github.com/yatima1460/Drill/actions/workflows/cd.yml/badge.svg"
+            alt="CD workflow status"
+          />
+        </a>
+      </div>
     </footer>
     <script>
       (function () {
@@ -78,7 +91,7 @@
           if (name.includes("macos")) {
             return "&#x1F34E;";
           }
-          if (name.includes("linux")) {
+          if (name.includes("linux") || name.endsWith(".deb")) {
             return "&#x1F427;";
           }
           return "";
