@@ -10,8 +10,6 @@
   "ignore": [
     "legacy/"
   ],
-  "venvPath": ".",
-  "venv": ".venv",
   "executionEnvironments": [
     {
       "root": ".",
