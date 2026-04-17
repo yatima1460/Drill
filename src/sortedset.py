@@ -1,9 +1,14 @@
 from __future__ import annotations
 
 import heapq
-from typing import Generic, Iterable, Iterator, TypeVar
+from typing import Generic, Iterable, Iterator, Protocol, TypeVar
 
-T = TypeVar("T")
+
+class SupportsHeapItem(Protocol):
+    def __hash__(self) -> int: ...
+    def __lt__(self, other: object, /) -> bool: ...
+
+T = TypeVar("T", bound=SupportsHeapItem)
 
 
 class SortedSet(Generic[T]):
@@ -56,7 +61,7 @@ class SortedSet(Generic[T]):
 
         # Compatibility path for pop() / pop(-1): remove current max.
         if index in (-1, len(self._heap) - 1):
-            max_idx = max(range(len(self._heap)), key=self._heap.__getitem__)
+            max_idx = max(range(len(self._heap)), key=lambda i: self._heap[i])
             value = self._heap[max_idx]
             last = self._heap.pop()
             if max_idx < len(self._heap):
