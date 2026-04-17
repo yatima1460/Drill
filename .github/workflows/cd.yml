@@ -409,6 +409,17 @@ jobs:
       - name: Build Linux AppImage
         run: ./scripts/build_linux_appimage.sh "${{ github.run_number }}"
 
+      - name: Install Linux Qt runtime libs (AppImage smoke test)
+        if: ${{ github.event_name != 'pull_request' }}
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libegl1 \
+            libgl1 \
+            libdbus-1-3 \
+            libxkbcommon-x11-0 \
+            libxcb-cursor0
+
       - name: Smoke test Linux AppImage (Qt headless)
         if: ${{ github.event_name != 'pull_request' }}
         env:
