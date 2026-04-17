@@ -131,5 +131,5 @@ def report_search_start_error(error: BaseException) -> None:
         if QApplication.instance() is not None:
             QMessageBox.critical(None, "Search Error", message)
     except BaseException:
-        # CLI/headless mode or missing Qt: logging is enough.
+        # Headless mode or missing Qt: logging is enough.
         pass

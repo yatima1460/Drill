@@ -20,7 +20,6 @@ from PyQt6.QtWidgets import QStyle
 import logging
 import multiprocessing
 from typing import Optional, cast
-import signal
 
 
 from PyQt6.QtGui import QPixmap
@@ -360,14 +359,6 @@ class SearchWindow(QWidget):
         event.accept()
 
 if __name__ == "__main__":
-    if len(sys.argv) > 2 and sys.argv[1] == "--cli":
-        from cli import CLI
-
-        sys.argv = [sys.argv[0]] + sys.argv[2:]
-        cli = CLI()
-        signal.signal(signal.SIGINT, cli.interrupt_handler)
-        sys.exit(cli.main())
-
     # Attach to console on Windows if frozen to see logs in terminal
     if sys.platform == 'win32' and getattr(sys, 'frozen', False):
         import ctypes
