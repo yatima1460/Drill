@@ -5,8 +5,11 @@ from typing import Generic, Iterable, Iterator, Protocol, TypeVar
 
 
 class SupportsHeapItem(Protocol):
-    def __hash__(self) -> int: ...
-    def __lt__(self, other: object, /) -> bool: ...
+    def __hash__(self) -> int:
+        ...
+
+    def __lt__(self, other: object, /) -> bool:
+        ...
 
 T = TypeVar("T", bound=SupportsHeapItem)
 

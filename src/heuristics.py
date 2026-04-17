@@ -30,7 +30,6 @@ def is_any_token_in_english_dictionary(text: str) -> bool:
     """
     Checks if any token in the given text is in the English dictionary.
     """
-    global WORDS_ALPHA
     if WORDS_ALPHA is None:
         preload_english_dictionary()
     words_alpha = WORDS_ALPHA
@@ -43,7 +42,6 @@ def is_in_english_dictionary(word: str) -> bool:
     """
     Checks if the given word is in the English dictionary.
     """
-    global WORDS_ALPHA
     if WORDS_ALPHA is None:
         preload_english_dictionary()
     words_alpha = WORDS_ALPHA
