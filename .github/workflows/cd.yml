@@ -86,12 +86,19 @@ jobs:
         shell: pwsh
         run: |
           $exePath = (Resolve-Path "build/exe.win-amd64-3.12/Drill.exe").Path
-          $expectedFragment = "exe.win-amd64-3.12\\drill.exe"
+          $markerName = "drill-smoke-marker-$env:GITHUB_RUN_ID.txt"
+          $markerPath = Join-Path $env:USERPROFILE "Desktop\$markerName"
+          New-Item -Path $markerPath -ItemType File -Force | Out-Null
+          $expectedFragment = $markerPath.ToLowerInvariant()
           $env:DRILL_EXPECT_RESULT_CONTAINS = $expectedFragment
           $env:DRILL_CLI_MAX_SECONDS = "120"
-          $proc = Start-Process -FilePath $exePath -ArgumentList '--cli', 'Drill.exe' -Wait -PassThru
-          if ($proc.ExitCode -ne 0) {
-            throw "Windows CLI smoke test failed with exit code $($proc.ExitCode)"
+          try {
+            $proc = Start-Process -FilePath $exePath -ArgumentList '--cli', $markerName -Wait -PassThru
+            if ($proc.ExitCode -ne 0) {
+              throw "Windows CLI smoke test failed with exit code $($proc.ExitCode)"
+            }
+          } finally {
+            Remove-Item -Path $markerPath -Force -ErrorAction SilentlyContinue
           }
 
       - name: Zip Windows build
