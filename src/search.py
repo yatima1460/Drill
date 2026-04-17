@@ -49,7 +49,8 @@ def token_search(filename, search_text, fuzzy):
 import datetime
 from queue import PriorityQueue, Queue
 import time
-from sortedcontainers import SortedSet, SortedList
+from sortedset import SortedSet
+
             
 def worker(my_queue: SortedSet, visited: set, result_queue: Queue, running: threading.Event, search_text: str, roots: set[str], fuzzy: bool, maximum_depth, visited_lock: threading.Lock, all_queues: List[SortedSet], queue_locks: List[threading.Lock], my_index: int):
     
