@@ -79,6 +79,7 @@
     <script>
       (function () {
         const repo = "yatima1460/Drill";
+        const aurUrl = "https://aur.archlinux.org/packages/drill-search";
         const actionsRoot = document.getElementById("release-actions");
         const releaseDateNode = document.getElementById("release-date");
         if (!actionsRoot) return;
@@ -118,6 +119,17 @@
           return link;
         };
 
+        const createAurButton = () => {
+          const link = document.createElement("a");
+          link.className = "btn btn-primary btn-with-icon";
+          link.href = aurUrl;
+          link.target = "_blank";
+          link.rel = "noopener noreferrer";
+          link.innerHTML =
+            '<svg class="btn-icon arch-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2 2.4 19.5h4.3l2.1-4.2h6l2.1 4.2h4.8L12 2zm0 5.1 2.2 4.4h-4.4L12 7.1z"/></svg><span>AUR</span>';
+          return link;
+        };
+
         const renderButtons = (release) => {
           actionsRoot.innerHTML = "";
           const assets = Array.isArray(release && release.assets) ? release.assets : [];
@@ -148,7 +160,7 @@
               createButton("Download Latest Release", fallbackUrl, "btn btn-primary", false)
             );
           }
-
+          actionsRoot.appendChild(createAurButton());
         };
 
         fetch("https://api.github.com/repos/" + repo + "/releases/latest")
@@ -169,6 +181,7 @@
                 false
               )
             );
+            actionsRoot.appendChild(createAurButton());
           });
       })();
     </script>

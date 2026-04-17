@@ -1,0 +1,21 @@
+pkgname=drill-bin
+pkgver=0.0.1
+pkgrel=__PKGREL__
+pkgdesc="Drill fast file searcher without indexing"
+arch=('x86_64')
+url='https://github.com/yatima1460/Drill'
+license=('MIT')
+depends=('glibc' 'gcc-libs')
+source=('drill-linux.tar.gz')
+sha256sums=('SKIP')
+
+package() {
+  install -d "${pkgdir}/opt/drill" "${pkgdir}/usr/bin"
+  cp -a "${srcdir}/drill-linux/." "${pkgdir}/opt/drill/"
+  cat > "${pkgdir}/usr/bin/drill" <<'WRAP'
+#!/usr/bin/env bash
+exec /opt/drill/Drill "$@"
+WRAP
+  chmod 755 "${pkgdir}/usr/bin/drill"
+  chmod 755 "${pkgdir}/opt/drill/Drill"
+}
