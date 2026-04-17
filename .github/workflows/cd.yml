@@ -83,7 +83,7 @@ jobs:
     if: github.event_name != 'pull_request'
     needs: [linux-tests]
     runs-on: windows-latest
-    timeout-minutes: 5
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v6.0.2
 
