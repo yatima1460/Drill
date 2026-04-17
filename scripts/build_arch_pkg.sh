@@ -16,6 +16,27 @@ if [ -z "${BUILD_DIR}" ]; then
   exit 1
 fi
 
+# Work around intermittent cx_Freeze/stdlib `re` packaging issues observed on
+# Python 3.14 in Arch CI: ensure re helper modules are present in frozen lib.
+RE_DEST_DIR="${BUILD_DIR}/lib/re"
+RE_SRC_DIR="$("${PYTHON_BIN}" - <<'PY'
+import os
+import re
+print(os.path.dirname(re.__file__))
+PY
+)"
+
+if [ -n "${RE_SRC_DIR}" ] && [ -d "${RE_SRC_DIR}" ]; then
+  mkdir -p "${RE_DEST_DIR}"
+  for mod in _casefix _compiler _constants _parser; do
+    if [ ! -f "${RE_DEST_DIR}/${mod}.pyc" ] && [ ! -f "${RE_DEST_DIR}/${mod}.py" ]; then
+      if [ -f "${RE_SRC_DIR}/${mod}.py" ]; then
+        cp -f "${RE_SRC_DIR}/${mod}.py" "${RE_DEST_DIR}/${mod}.py"
+      fi
+    fi
+  done
+fi
+
 ARCH_ROOT="build/arch"
 PKGBUILD_DIR="${ARCH_ROOT}/pkgbuild"
 rm -rf "${PKGBUILD_DIR}"

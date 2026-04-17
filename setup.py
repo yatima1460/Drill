@@ -14,18 +14,22 @@ except ImportError:
     HAS_CX_FREEZE = False
 
 # Build options for all platforms
+# NOTE: Keep stdlib `re` fully present in frozen builds. On Python 3.14 + Arch,
+# incomplete `re` packaging can break startup with:
+# "ImportError: cannot import name '_compiler' ... /opt/drill/lib/re/__init__.pyc".
 build_exe_options = {
     "packages": [
-        "PyQt6.QtCore",
-        "PyQt6.QtGui",
-        "PyQt6.QtWidgets",
-        "multiprocessing",
-        "logging",
-        "os",
-        "sys",
-        "threading",
+        "PyQt6",
         "sortedcontainers"
-    ] + list(find_packages(where=".")),
+    ],
+    "includes": [
+        "src",
+        "re",
+        "re._casefix",
+        "re._compiler",
+        "re._constants",
+        "re._parser",
+    ],
     "excludes": [
         "unittest", 
         "pydoc", 

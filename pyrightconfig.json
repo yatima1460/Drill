@@ -11,7 +11,7 @@
     "legacy/"
   ],
   "venvPath": ".",
-  "venv": "venv",
+  "venv": ".venv",
   "reportMissingImports": true,
   "reportMissingTypeStubs": true,
   "typeCheckingMode": "basic",

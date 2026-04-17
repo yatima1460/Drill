@@ -66,6 +66,9 @@ jobs:
       - name: Lint with flake8
         run: python -m flake8 ./src ./tests --count --show-source --statistics
 
+      - name: Type check with pyright
+        run: pyright
+
       - name: Run tests
         run: xvfb-run -a python -m pytest tests/
 
