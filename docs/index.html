@@ -195,7 +195,34 @@
             const mm = String(date.getMonth() + 1).padStart(2, "0");
             const dd = String(date.getDate()).padStart(2, "0");
             const age = formatRelativeAge(date, new Date());
-            releaseDateNode.textContent = "Latest release: " + yyyy + "/" + mm + "/" + dd + " (" + age + ")";
+            const tagOrName = String((release && (release.tag_name || release.name)) || "");
+            const runMatch = tagOrName.match(/(\d+)\s*$/);
+            const runNumber = runMatch ? runMatch[1] : "";
+            if (runNumber) {
+              releaseDateNode.innerHTML =
+                "Latest release <strong>v" +
+                runNumber +
+                "</strong>: " +
+                yyyy +
+                "/" +
+                mm +
+                "/" +
+                dd +
+                " (<strong>" +
+                age +
+                "</strong>)";
+            } else {
+              releaseDateNode.innerHTML =
+                "Latest release: " +
+                yyyy +
+                "/" +
+                mm +
+                "/" +
+                dd +
+                " (<strong>" +
+                age +
+                "</strong>)";
+            }
           }
 
           if (assets.length > 0) {
