@@ -47,7 +47,6 @@ def token_search(filename, search_text, fuzzy):
         return True
     
 import datetime
-import multiprocessing
 from queue import PriorityQueue, Queue
 import time
 from sortedcontainers import SortedSet, SortedList
@@ -152,7 +151,6 @@ class Search:
         self.processes: List[Future] = []
         self.visited = set()
         logging.info("Search init %s", self.search_text)
-        multiprocessing.current_process().name = "UI"
         if search_text.startswith("fuzzy:"):
             self.search_text = search_text[6:]
             logging.info("Fuzzy search %s", self.search_text)

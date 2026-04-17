@@ -19,7 +19,6 @@ from PyQt6.QtGui import QFontDatabase
 from PyQt6.QtGui import QIcon
 from PyQt6.QtWidgets import QStyle
 import logging
-import multiprocessing
 from typing import Optional, cast
 
 
@@ -376,7 +375,6 @@ if __name__ == "__main__":
                 pass
 
     logging.basicConfig(level=logging.INFO, format='[%(processName)s][%(levelname)s]: %(message)s')
-    multiprocessing.freeze_support()
     app = QApplication(sys.argv)
     app.setFont(QFontDatabase.systemFont(QFontDatabase.SystemFont.GeneralFont))
     window = SearchWindow()
