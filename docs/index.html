@@ -116,6 +116,9 @@
           if (name.endsWith(".rpm")) {
             return "redhat-logo.svg";
           }
+          if (name.endsWith(".appimage")) {
+            return "appimage-logo.svg";
+          }
           const osType = getOsType(text);
           if (osType === "windows") {
             return "windows-logo.svg";
