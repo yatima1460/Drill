@@ -19,11 +19,13 @@ except ImportError:
 # "ImportError: cannot import name '_compiler' ... /opt/drill/lib/re/__init__.pyc".
 build_exe_options = {
     "packages": [
-        "PyQt6",
         "sortedcontainers"
     ],
     "includes": [
         "src",
+        "PyQt6.QtCore",
+        "PyQt6.QtGui",
+        "PyQt6.QtWidgets",
         "re",
         "re._casefix",
         "re._compiler",
@@ -34,10 +36,25 @@ build_exe_options = {
         "unittest", 
         "pydoc", 
         "test", 
+        # Exclude heavy/unused Qt modules to keep frozen bundles lean.
+        "PyQt6.QtBluetooth",
+        "PyQt6.QtMultimedia",
+        "PyQt6.QtMultimediaWidgets",
+        "PyQt6.QtNetworkAuth",
+        "PyQt6.QtNfc",
+        "PyQt6.QtPdf",
+        "PyQt6.QtPdfWidgets",
+        "PyQt6.QtPositioning",
+        "PyQt6.QtSql",
+        "PyQt6.QtSensors",
         "PyQt6.QtQml", 
         "PyQt6.QtQuick",
         "PyQt6.QtQuick3D",
         "PyQt6.QtQuickWidgets",
+        "PyQt6.QtTextToSpeech",
+        "PyQt6.QtWebChannel",
+        "PyQt6.QtWebEngineCore",
+        "PyQt6.QtWebEngineWidgets",
         "ai",
         "mlx",
         "mlx_lm",
@@ -46,6 +63,16 @@ build_exe_options = {
     ],
     "include_files": [
         ("src/assets", "assets")
+    ],
+    "bin_excludes": [
+        # Drop SQL/multimedia plugin binaries not required by Drill.
+        "libqsqlodbc.dylib",
+        "libqsqlite.dylib",
+        "libiodbc.2.dylib",
+        "libqtaudio_coreaudio.dylib",
+        "libqtmedia_audioengine.dylib",
+        "libqtmedia_ffmpeg.dylib",
+        "libqtmedia_wmfengine.dll",
     ],
     "include_msvcr": True,
     "path": ["src"] + sys.path
