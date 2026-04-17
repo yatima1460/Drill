@@ -1,2 +1,2 @@
-PyQt6==6.9.0
+PyQt6==6.11.0
 sortedcontainers==2.4.0
