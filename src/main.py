@@ -274,7 +274,9 @@ class SearchWindow(QWidget):
 
         # Search bar
         self.search_bar = QLineEdit()
-        self.search_bar.setFont(QFont("Arial", 24))
+        search_font = QFontDatabase.systemFont(QFontDatabase.SystemFont.GeneralFont)
+        search_font.setPointSize(24)
+        self.search_bar.setFont(search_font)
         self.search_bar.setPlaceholderText("Search...")
         self.search_bar.textChanged.connect(self.search_bar_keystroke)
         self.search_bar.installEventFilter(self)
@@ -376,6 +378,7 @@ if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO, format='[%(processName)s][%(levelname)s]: %(message)s')
     multiprocessing.freeze_support()
     app = QApplication(sys.argv)
+    app.setFont(QFontDatabase.systemFont(QFontDatabase.SystemFont.GeneralFont))
     window = SearchWindow()
     window.show()
     sys.exit(app.exec())
