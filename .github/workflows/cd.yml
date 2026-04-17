@@ -386,6 +386,79 @@ jobs:
             -H "Accept: application/vnd.github+json" \
             "https://api.github.com/repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/cancel"
 
+  linux-appimage:
+    name: Linux AppImage CD
+    needs: [linux-tests]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6.0.2
+
+      - name: Set up Python
+        uses: actions/setup-python@v6.2.0
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements-cd.txt
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements-cd.txt
+
+      - name: Build Linux AppImage
+        run: ./scripts/build_linux_appimage.sh "${{ github.run_number }}"
+
+      - name: Smoke test Linux AppImage (Qt headless)
+        if: ${{ github.event_name != 'pull_request' }}
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: |
+          APPIMAGE_PATH="build/Drill-v${{ github.run_number }}-linux.AppImage"
+          if [ ! -x "$APPIMAGE_PATH" ]; then
+            echo "AppImage not found or not executable: $APPIMAGE_PATH"
+            exit 1
+          fi
+
+          set +e
+          python - "$APPIMAGE_PATH" <<'PY'
+          import subprocess
+          import sys
+
+          appimage = sys.argv[1]
+          env = dict(**__import__("os").environ)
+          env["APPIMAGE_EXTRACT_AND_RUN"] = "1"
+          try:
+            completed = subprocess.run([appimage], env=env, timeout=10, check=False)
+            raise SystemExit(completed.returncode)
+          except subprocess.TimeoutExpired:
+            raise SystemExit(124)
+          PY
+          status=$?
+          set -e
+          if [ "$status" -ne 124 ] && [ "$status" -ne 0 ]; then
+            echo "Linux AppImage smoke test failed with status $status"
+            exit "$status"
+          fi
+
+      - name: Upload Linux AppImage artifact
+        if: ${{ github.event_name != 'pull_request' }}
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: Drill-linux-appimage
+          path: build/Drill-v${{ github.run_number }}-linux.AppImage
+          if-no-files-found: error
+          retention-days: 7
+          compression-level: 0
+
+      - name: Cancel workflow on failure
+        if: ${{ failure() && github.event_name != 'pull_request' }}
+        run: |
+          curl -sS -X POST \
+            -H "Authorization: Bearer ${{ github.token }}" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/cancel"
+
   # rpm:
   #   name: Linux .rpm CD
   #   if: github.event_name != 'pull_request'
@@ -454,7 +527,7 @@ jobs:
   release:
     name: Create Unified Release
     if: github.event_name != 'pull_request'
-    needs: [windows, macos, linux, arch]
+    needs: [windows, macos, linux, arch, linux-appimage]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
@@ -484,6 +557,12 @@ jobs:
           name: Drill-arch-pkg
           path: dist/arch
 
+      - name: Download Linux AppImage artifact
+        uses: actions/download-artifact@v8.0.1
+        with:
+          name: Drill-linux-appimage
+          path: dist/linux-appimage
+
       # - name: Download RPM artifact
       #   uses: actions/download-artifact@v8.0.1
       #   with:
@@ -504,6 +583,7 @@ jobs:
             # dist/macos/*.zip
             dist/macos/*.dmg
             dist/linux/*.deb
+            dist/linux-appimage/*.AppImage
             dist/arch/*.pkg.tar.*
             dist/rpm/*.rpm
         env:
