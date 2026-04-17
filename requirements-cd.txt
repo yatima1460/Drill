@@ -1,7 +1,5 @@
 cx_Freeze==8.6.4
-flake8==7.2.0
+flake8==7.3.0
 pyright==1.1.408
 PyQt6==6.11.0
 pytest-qt==4.5.0
-sortedcontainers==2.4.0
-sortedcontainers-stubs==2.4.3

@@ -10,7 +10,6 @@ readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
     "PyQt6>=6.9.0",
-    "sortedcontainers>=2.4.0",
 ]
 
 [tool.setuptools]

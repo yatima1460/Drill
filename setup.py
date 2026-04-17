@@ -18,9 +18,6 @@ except ImportError:
 # incomplete `re` packaging can break startup with:
 # "ImportError: cannot import name '_compiler' ... /opt/drill/lib/re/__init__.pyc".
 build_exe_options = {
-    "packages": [
-        "sortedcontainers"
-    ],
     "includes": [
         "src",
         "PyQt6.QtCore",

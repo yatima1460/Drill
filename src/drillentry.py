@@ -21,6 +21,7 @@ class DrillEntry:
         self._is_hidden = None
         self._is_dir = None
         self._is_file = None
+        self._sort_key = None
         
         # Icon loading is deferred to qicon property - must happen on UI thread
         self._qicon = None
@@ -124,39 +125,22 @@ class DrillEntry:
         '''
         Returns True if this entry is more important than the other entry.
         '''
+        return self.sort_key < other.sort_key
 
-        self_dict = is_in_english_dictionary(self.name.lower())
-        other_dict = is_in_english_dictionary(other.name.lower())
-        if self_dict and not other_dict:
-            return True
-        if not self_dict and other_dict:
-            return False
-           
-        # Regular folders should come first
-        if self.is_hidden and not other.is_hidden:
-            return False
-        if not self.is_hidden and other.is_hidden:
-            return True
-
-        # Less importance to folders deep in the hierarchy
-        self_slashes = self.path.count(os.sep)
-        other_slashes = other.path.count(os.sep)
-        if self_slashes != other_slashes:
-            return self_slashes < other_slashes
-     
-        # Less importance to folders with an overall longer path
-        self_length = len(self.path)
-        other_length = len(other.path)
-        if self_length != other_length:
-            return self_length < other_length
-        
-        # NOTE: using the date is very bad heuristics,
-        # Drill will get lost into a sea of recent folders created often automatically by applications.
-        # So this should be one of the last heuristics
-        # Only useful to break ties as a last resort
-        #
-        # Between two regular folders most recently modified folders should come first
-        if self.modified_time != other.modified_time:
-            return self.modified_time > other.modified_time
-
-        return False
+    @property
+    def sort_key(self):
+        if self._sort_key is None:
+            # Memoized ordering key used by search queue sorting.
+            # Lower values mean higher priority.
+            self_dict = is_in_english_dictionary(self.name.lower())
+            self_slashes = self.path.count(os.sep)
+            self_length = len(self.path)
+            self._sort_key = (
+                0 if self_dict else 1,
+                0 if not self.is_hidden else 1,
+                self_slashes,
+                self_length,
+                -self.modified_time,
+                self.path,
+            )
+        return self._sort_key
