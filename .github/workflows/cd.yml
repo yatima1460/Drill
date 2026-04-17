@@ -388,7 +388,6 @@ jobs:
 
   linux-appimage:
     name: Linux AppImage CD
-    if: github.event_name != 'pull_request'
     needs: [linux-tests]
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -411,6 +410,7 @@ jobs:
         run: ./scripts/build_linux_appimage.sh "${{ github.run_number }}"
 
       - name: Smoke test Linux AppImage (Qt headless)
+        if: ${{ github.event_name != 'pull_request' }}
         env:
           QT_QPA_PLATFORM: offscreen
         run: |
@@ -442,6 +442,7 @@ jobs:
           fi
 
       - name: Upload Linux AppImage artifact
+        if: ${{ github.event_name != 'pull_request' }}
         uses: actions/upload-artifact@v7.0.1
         with:
           name: Drill-linux-appimage
@@ -451,7 +452,7 @@ jobs:
           compression-level: 0
 
       - name: Cancel workflow on failure
-        if: ${{ failure() }}
+        if: ${{ failure() && github.event_name != 'pull_request' }}
         run: |
           curl -sS -X POST \
             -H "Authorization: Bearer ${{ github.token }}" \
