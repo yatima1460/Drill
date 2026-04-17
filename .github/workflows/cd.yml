@@ -474,11 +474,11 @@ jobs:
           name: Drill-arch-pkg
           path: dist/arch
 
-      - name: Download RPM artifact
-        uses: actions/download-artifact@v8.0.1
-        with:
-          name: Drill-linux-rpm
-          path: dist/rpm
+      # - name: Download RPM artifact
+      #   uses: actions/download-artifact@v8.0.1
+      #   with:
+      #     name: Drill-linux-rpm
+      #     path: dist/rpm
 
       - name: Show bundled files
         run: find dist -type f | sort
