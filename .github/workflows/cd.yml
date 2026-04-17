@@ -64,7 +64,7 @@ jobs:
         run: python -m flake8 ./src ./tests --count --show-source --statistics
 
       - name: Type check with pyright
-        run: pyright
+        run: pyright --pythonpath python
 
       - name: Run tests
         env:

@@ -1,4 +1,5 @@
 import importlib.util
+import importlib
 import os
 import random
 import sys
@@ -112,7 +113,7 @@ def test_sortedset_custom_comparable_generated_data():
     reason="sortedcontainers not installed in this environment",
 )
 def test_sortedset_behavior_matches_sortedcontainers_on_generated_ops():
-    from sortedcontainers import SortedSet as LibSortedSet
+    LibSortedSet = importlib.import_module("sortedcontainers").SortedSet
 
     rng = random.Random(4242)
     local = SortedSet()
