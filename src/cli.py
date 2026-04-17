@@ -4,8 +4,11 @@ from search import Search
 import os
 import signal
 import time
+from typing import Any
 
 class CLI:
+    def __init__(self):
+        self.search: Any = None
 
     def interrupt_handler(self, signum, frame):
         if hasattr(self, "search") and self.search is not None:
@@ -14,14 +17,18 @@ class CLI:
         sys.exit(0)
 
     def _is_running(self):
-        if hasattr(self.search, "is_running"):
-            return self.search.is_running()
-        if hasattr(self.search, "is_done"):
-            return not self.search.is_done()
+        is_running = getattr(self.search, "is_running", None)
+        if callable(is_running):
+            return bool(is_running())
+        is_done = getattr(self.search, "is_done", None)
+        if callable(is_done):
+            return not bool(is_done())
         return False
 
     def _pop_result(self):
-        pop_result = self.search.pop_result
+        pop_result = getattr(self.search, "pop_result", None)
+        if not callable(pop_result):
+            return None
         try:
             return pop_result(block=True)
         except TypeError:

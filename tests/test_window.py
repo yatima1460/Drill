@@ -79,7 +79,7 @@ def _create_file_search_test(file_path, file_name):
         def check_for_file():
             for i in range(window.tree.topLevelItemCount()):
                 item = window.tree.topLevelItem(i)
-                if item.text(0).lower() == file_name.lower():
+                if item is not None and item.text(0).lower() == file_name.lower():
                     return True
             return False
 

@@ -28,7 +28,7 @@ def test_main_requires_query(monkeypatch, capsys):
 
 def test_main_prints_results_headless(monkeypatch, capsys):
     class FakeSearch:
-        last_instance = None
+        last_instance: "FakeSearch | None" = None
 
         def __init__(self, query):
             self.query = query
@@ -59,6 +59,7 @@ def test_main_prints_results_headless(monkeypatch, capsys):
     assert "-" * 40 in out
     assert os.path.join("/tmp", "notes.txt") in out
     assert os.path.join("/var", "todo.md") in out
+    assert FakeSearch.last_instance is not None
     assert FakeSearch.last_instance.query == "notes"
     assert FakeSearch.last_instance.started is True
 

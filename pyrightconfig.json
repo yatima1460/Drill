@@ -12,6 +12,14 @@
   ],
   "venvPath": ".",
   "venv": ".venv",
+  "executionEnvironments": [
+    {
+      "root": ".",
+      "extraPaths": [
+        "src"
+      ]
+    }
+  ],
   "reportMissingImports": true,
   "reportMissingTypeStubs": true,
   "typeCheckingMode": "basic",

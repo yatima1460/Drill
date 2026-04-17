@@ -16,8 +16,9 @@ from functools import lru_cache
 def get_resource_path(relative_path: str) -> str:
     """ Get absolute path to resource, works for dev and for bundled apps """
     # 1. Check PyInstaller
-    if hasattr(sys, '_MEIPASS'):
-        return os.path.join(sys._MEIPASS, relative_path)
+    meipass = getattr(sys, "_MEIPASS", None)
+    if isinstance(meipass, str):
+        return os.path.join(meipass, relative_path)
     
     # 2. Check cx_Freeze / frozen apps
     if getattr(sys, 'frozen', False):

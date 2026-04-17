@@ -19,7 +19,7 @@ from PyQt6.QtGui import QIcon
 from PyQt6.QtWidgets import QStyle
 import logging
 import multiprocessing
-from typing import Optional
+from typing import Optional, cast
 import signal
 
 
@@ -95,7 +95,8 @@ class SearchWindow(QWidget):
             item.setToolTip(3, result.formatted_time) 
             item.setTextAlignment(2, Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)  # Size column is index 2
             self.tree.addTopLevelItem(item)
-            item.setIcon(0, result.qicon)
+            if result.qicon is not None:
+                item.setIcon(0, result.qicon)
             # Apply monospace to Size (column 2) and Date (column 3)
             
             item.setFont(2, self.monospace_font)  # Size column
@@ -133,6 +134,8 @@ class SearchWindow(QWidget):
 
         # Icons
         style = self.style()
+        if style is None:
+            return
         #self.default_icon = self.style.standardIcon(QStyle.SP_MessageBoxQuestion)
         folder_icon = style.standardIcon(QStyle.StandardPixmap.SP_DirOpenIcon)
 
@@ -208,10 +211,10 @@ class SearchWindow(QWidget):
                 if app:
                     pixmap = QPixmap(get_resource_path(os.path.join("assets", "drill.icns")))
                     if not pixmap.isNull():
-                        app.setWindowIcon(icon)
+                        cast(QApplication, app).setWindowIcon(icon)
                     # For Dock icon, use NSApplication API via PyObjC
                     try:
-                        from AppKit import NSImage, NSApp
+                        from AppKit import NSImage, NSApp  # type: ignore[reportMissingImports]
                         nsimage = NSImage.alloc().initByReferencingFile_(get_resource_path(os.path.join("assets", "drill.icns")))
                         if nsimage:
                             NSApp.setApplicationIconImage_(nsimage)
@@ -233,11 +236,16 @@ class SearchWindow(QWidget):
             logging.info(f"Root directory: {folder}")
         
         # Get screen size and set window size to half
-        screen = QGuiApplication.primaryScreen().geometry()
-        width = screen.width() // 2
-        height = screen.height() // 2
-        self.resize(width, height)
-        self.move((screen.width() - width) // 2, (screen.height() - height) // 2)
+        screen_obj = QGuiApplication.primaryScreen()
+        if screen_obj is not None:
+            screen = screen_obj.geometry()
+            width = screen.width() // 2
+            height = screen.height() // 2
+            self.resize(width, height)
+            self.move((screen.width() - width) // 2, (screen.height() - height) // 2)
+        else:
+            self.resize(800, 600)
+            self.move(100, 100)
 
         # FIXME: ugly hack
         self.dirty_columns = True
