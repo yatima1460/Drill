@@ -3,38 +3,17 @@ import os
 import queue
 from heuristics import get_root_directories
 import unicodedata
-from PyQt6.QtWidgets import QFileIconProvider, QMessageBox
-from PyQt6.QtCore import QFileInfo
 import logging
 from typing import Optional, Tuple, List
 from concurrent.futures import ThreadPoolExecutor, Future
 import threading
 from os import DirEntry
 from drillentry import DrillEntry
+from utils import report_search_start_error
 
 def can_access_directory(path):
     #FIXME: not working on Windows
     return os.access(path, os.R_OK | os.X_OK)
-
-def get_icon_for_path(file_path: str):
-    """Returns the system-native icon for a file/directory path."""
-    try:
-        
-        file_info = QFileInfo(file_path)
-        
-        icon_provider = QFileIconProvider()
-        
-        # Handle .app bundles (macOS applications)
-        
-        if file_path.endswith(".app") and file_info.isDir():
-            logging.debug(f"Detected macOS application bundle: {file_path}")
-            return None
-        
-        # Fallback for other files/directories
-        return icon_provider.icon(file_info)
-    except BaseException as e:
-        logging.error(f"Error getting icon for {file_path}: {e}")
-        return None
 
 def normalize_text(text):
     # Normalize to NFD and remove diacritics (accents)
@@ -213,7 +192,7 @@ class Search:
                 logging.debug("Created worker %s",p)
                 self.processes.append(p)
         except Exception as e:
-            QMessageBox.critical(None, "Search Error", f"Failed to start search: {e}")
+            report_search_start_error(e)
             self.running.clear()
 
     def poll_results(self):

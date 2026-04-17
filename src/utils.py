@@ -1,17 +1,21 @@
 
-
-
-from PyQt6.QtGui import QIcon
-from PyQt6.QtCore import QTimer, QFileInfo
-from PyQt6.QtWidgets import (
-    QFileIconProvider
-)
-
 import os
 import sys
 import logging
-from typing import Optional, Tuple, List
+from typing import Optional, Any, TYPE_CHECKING
 from functools import lru_cache
+
+if TYPE_CHECKING:
+    from PyQt6.QtGui import QIcon
+
+try:
+    from PyQt6.QtCore import QFileInfo
+    from PyQt6.QtWidgets import QFileIconProvider
+    _QT_ICON_AVAILABLE = True
+except BaseException:
+    QFileInfo = None  # type: ignore[assignment]
+    QFileIconProvider = None  # type: ignore[assignment]
+    _QT_ICON_AVAILABLE = False
 
 def get_resource_path(relative_path: str) -> str:
     """ Get absolute path to resource, works for dev and for bundled apps """
@@ -59,19 +63,26 @@ def get_resource_path(relative_path: str) -> str:
 _ICON_PROVIDER = None
 
 def get_icon_provider():
+    if not _QT_ICON_AVAILABLE or QFileIconProvider is None:
+        return None
     global _ICON_PROVIDER
     if _ICON_PROVIDER is None:
         _ICON_PROVIDER = QFileIconProvider()
     return _ICON_PROVIDER
 
 @lru_cache(maxsize=100000)
-def get_file_icon(path: str) -> Optional[QIcon]:
+def get_file_icon(path: str) -> Optional["QIcon"]:
     """
     Get the file icon for a given path or None, with memoization.
     """
+    if not _QT_ICON_AVAILABLE or QFileInfo is None:
+        return None
     try:
         file_info = QFileInfo(path)
-        file_icon = get_icon_provider().icon(file_info)
+        provider = get_icon_provider()
+        if provider is None:
+            return None
+        file_icon = provider.icon(file_info)
         return file_icon
     except BaseException as e:
         logging.error(f"Error getting file icon: {e}")
@@ -84,11 +95,7 @@ def get_file_modified_time(path: str) -> Optional[float]:
     Returns None if the file does not exist or an error occurs.
     """
     try:
-        file_info = QFileInfo(path)
-        if file_info.exists():
-            return file_info.lastModified().toSecsSinceEpoch()
-        else:
-            return None
+        return os.path.getmtime(path) if os.path.exists(path) else None
     except BaseException as e:
         logging.error(f"Error getting file modified time: {e}")
         return None
@@ -108,3 +115,21 @@ def human_readable(size, suffix='B'):
             return f"{size:3.0f} {unit}{suffix}"
         size /= 1024.0
     return f"{size:.1f} Y{suffix}"
+
+
+def report_search_start_error(error: BaseException) -> None:
+    """
+    Always log search startup failures.
+    If a Qt GUI app is active, also show a QMessageBox.
+    """
+    message = f"Failed to start search: {error}"
+    logging.exception(message)
+
+    try:
+        from PyQt6.QtWidgets import QApplication, QMessageBox
+
+        if QApplication.instance() is not None:
+            QMessageBox.critical(None, "Search Error", message)
+    except BaseException:
+        # CLI/headless mode or missing Qt: logging is enough.
+        pass
