@@ -370,6 +370,7 @@ jobs:
             gcc \
             gcc-c++ \
             make \
+            patchelf \
             which \
             findutils \
             tar
