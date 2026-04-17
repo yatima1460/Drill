@@ -28,6 +28,7 @@ from PyQt6.QtCore import QEvent
 
 from utils import get_file_icon, get_resource_path
 from drillentry import DrillEntry
+from ui import FilenameMatchBoldDelegate
 
 class SearchWindow(QWidget):
 
@@ -123,6 +124,9 @@ class SearchWindow(QWidget):
     def search_bar_keystroke(self, new_text):
         """Called on every keystroke, restarts the delay timer"""
         self.pending_search_text = new_text
+        viewport = self.tree.viewport()
+        if viewport is not None:
+            viewport.update()
         self.search_delay_timer.start(250)  # 500ms = 0.5 seconds
 
     def show_context_menu(self, pos):
@@ -289,6 +293,8 @@ class SearchWindow(QWidget):
         self.tree.setAccessibleName("Search results")
         self.tree.setIconSize(QSize(32, 32))
         self.tree.installEventFilter(self)
+        self.filename_delegate = FilenameMatchBoldDelegate(lambda: self.search_bar.text(), self.tree)
+        self.tree.setItemDelegateForColumn(0, self.filename_delegate)
         
         # Smooth scrolling of the results list
         self.tree.setVerticalScrollMode(QTreeWidget.ScrollMode.ScrollPerPixel)
