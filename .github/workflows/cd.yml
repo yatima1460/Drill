@@ -91,7 +91,10 @@ jobs:
           pip install -r requirements-cd.txt
 
       - name: Build Windows executable
-        run: DRILL_VERSION=1.0.${{ github.run_number }} python setup.py build_exe
+        shell: pwsh
+        run: |
+          $env:DRILL_VERSION = "1.0.${{ github.run_number }}"
+          python setup.py build_exe
 
       - name: Smoke test Windows executable in CLI mode
         shell: pwsh
