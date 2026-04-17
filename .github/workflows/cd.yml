@@ -183,7 +183,17 @@ jobs:
           fi
           export QT_QPA_PLATFORM=offscreen
           set +e
-          timeout 10s "$APP_BIN"
+          python - "$APP_BIN" <<'PY'
+          import subprocess
+          import sys
+
+          app_bin = sys.argv[1]
+          try:
+              completed = subprocess.run([app_bin], timeout=10, check=False)
+              raise SystemExit(completed.returncode)
+          except subprocess.TimeoutExpired:
+              raise SystemExit(124)
+          PY
           status=$?
           set -e
           if [ "$status" -ne 124 ] && [ "$status" -ne 0 ]; then
