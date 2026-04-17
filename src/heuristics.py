@@ -1,12 +1,29 @@
 import os
 import sys
 import logging
-from typing import List
+from typing import List, Optional, Set
 from functools import lru_cache
 from utils import get_resource_path
 
 
-WORDS_ALPHA = None
+WORDS_ALPHA: Optional[Set[str]] = None
+
+
+def preload_english_dictionary() -> None:
+    """
+    Preload the English dictionary into memory.
+    Safe to call multiple times.
+    """
+    global WORDS_ALPHA
+    if WORDS_ALPHA is not None:
+        return
+    try:
+        with open(get_resource_path(os.path.join('assets', 'wordsalpha.txt')), 'r') as f:
+            WORDS_ALPHA = set(line.strip() for line in f)
+    except Exception as e:
+        print(f"Error loading dictionary: {e}")
+        WORDS_ALPHA = set()
+
 
 @lru_cache(maxsize=10240)
 def is_any_token_in_english_dictionary(text: str) -> bool:
@@ -15,13 +32,11 @@ def is_any_token_in_english_dictionary(text: str) -> bool:
     """
     global WORDS_ALPHA
     if WORDS_ALPHA is None:
-        try:
-            with open(get_resource_path(os.path.join('assets', 'wordsalpha.txt')), 'r') as f:
-                WORDS_ALPHA = set(line.strip() for line in f)
-        except Exception as e:
-            print(f"Error loading dictionary: {e}")
-            WORDS_ALPHA = set()
-    return any(token.lower() in WORDS_ALPHA for token in text.split())
+        preload_english_dictionary()
+    words_alpha = WORDS_ALPHA
+    if words_alpha is None:
+        return False
+    return any(token.lower() in words_alpha for token in text.split())
 
 @lru_cache(maxsize=512)
 def is_in_english_dictionary(word: str) -> bool:
@@ -30,13 +45,11 @@ def is_in_english_dictionary(word: str) -> bool:
     """
     global WORDS_ALPHA
     if WORDS_ALPHA is None:
-        try:
-            with open(get_resource_path(os.path.join('assets', 'wordsalpha.txt')), 'r') as f:
-                WORDS_ALPHA = set(line.strip() for line in f)
-        except Exception as e:
-            print(f"Error loading dictionary: {e}")
-            WORDS_ALPHA = set()
-    return word in WORDS_ALPHA  
+        preload_english_dictionary()
+    words_alpha = WORDS_ALPHA
+    if words_alpha is None:
+        return False
+    return word in words_alpha  
     
 
 @lru_cache(maxsize=512)
