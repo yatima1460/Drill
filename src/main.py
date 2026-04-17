@@ -28,6 +28,7 @@ from PyQt6.QtCore import QEvent
 from utils import get_file_icon, get_resource_path
 from drillentry import DrillEntry
 from ui import FilenameMatchBoldDelegate
+from heuristics import preload_english_dictionary
 
 class SearchWindow(QWidget):
 
@@ -232,6 +233,7 @@ class SearchWindow(QWidget):
         super().__init__()
         self.setWindowTitle("Drill")
         self.__set_window_icon()
+        preload_english_dictionary()
         
         from heuristics import get_root_directories
         logging.info("Root directories:")
