@@ -15,6 +15,7 @@ from PyQt6.QtWidgets import QMenu
 from PyQt6.QtCore import QMimeData, QSize
 from PyQt6.QtGui import QClipboard
 from PyQt6.QtGui import QFont  # Add this to your existing imports
+from PyQt6.QtGui import QFontDatabase
 from PyQt6.QtGui import QIcon
 from PyQt6.QtWidgets import QStyle
 import logging
@@ -254,8 +255,7 @@ class SearchWindow(QWidget):
         self.dirty_columns = True
         
         # Load monospace font used for some columns
-        self.monospace_font = QFont("Monospace")  # or "Courier", "Consolas", etc.
-        self.monospace_font.setStyleHint(QFont.StyleHint.Monospace)  # Ensures monospace fallback
+        self.monospace_font = QFontDatabase.systemFont(QFontDatabase.SystemFont.FixedFont)
         
         # UI Tick
         self.ui_update_timer = QTimer(self)
