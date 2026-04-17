@@ -23,6 +23,7 @@ mkdir -p "${APPDIR}/usr/lib/drill"
 mkdir -p "${APPDIR}/usr/bin"
 mkdir -p "${APPDIR}/usr/share/applications"
 mkdir -p "${APPDIR}/usr/share/icons/hicolor/scalable/apps"
+mkdir -p "${APPDIR}/usr/share/metainfo"
 
 cp -a "${BUILD_DIR}/." "${APPDIR}/usr/lib/drill/"
 chmod 755 "${APPDIR}/usr/lib/drill/Drill"
@@ -42,6 +43,25 @@ Exec=AppRun
 Icon=drill
 Categories=Utility;
 Terminal=false
+EOF
+
+cat > "${APPDIR}/usr/share/metainfo/Drill.appdata.xml" <<'EOF'
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>Drill.desktop</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-2.0-only</project_license>
+  <name>Drill</name>
+  <summary>Fast file search without indexing</summary>
+  <description>
+    <p>Drill is a fast desktop file search app that works without building a background index.</p>
+  </description>
+  <launchable type="desktop-id">Drill.desktop</launchable>
+  <provides>
+    <binary>drill</binary>
+  </provides>
+  <url type="homepage">https://github.com/yatima1460/Drill</url>
+</component>
 EOF
 
 cp -f "${APPDIR}/Drill.desktop" "${APPDIR}/usr/share/applications/Drill.desktop"
