@@ -84,21 +84,39 @@
         const releaseDateNode = document.getElementById("release-date");
         if (!actionsRoot) return;
 
-        const getOsIcon = (text) => {
+        const detectCurrentOs = () => {
+          const platform = String(navigator.platform || "").toLowerCase();
+          const ua = String(navigator.userAgent || "").toLowerCase();
+          if (platform.includes("win") || ua.includes("windows")) return "windows";
+          if (platform.includes("mac") || ua.includes("mac os")) return "macos";
+          if (platform.includes("linux") || ua.includes("linux")) return "linux";
+          return "";
+        };
+        const currentOs = detectCurrentOs();
+
+        const getOsType = (text) => {
           const name = String(text || "").toLowerCase();
-          if (name.includes("windows")) {
+          if (name.includes("windows")) return "windows";
+          if (name.includes("macos")) return "macos";
+          if (name.includes("linux") || name.endsWith(".deb") || name.includes("arch")) return "linux";
+          return "";
+        };
+
+        const getOsIcon = (text) => {
+          const osType = getOsType(text);
+          if (osType === "windows") {
             return "&#x1FA9F;";
           }
-          if (name.includes("macos")) {
+          if (osType === "macos") {
             return "&#x1F34E;";
           }
-          if (name.includes("linux") || name.endsWith(".deb")) {
+          if (osType === "linux") {
             return "&#x1F427;";
           }
           return "";
         };
 
-        const createButton = (label, href, className, withGithubIcon, osIcon) => {
+        const createButton = (label, href, className, withGithubIcon, osIcon, osType) => {
           const link = document.createElement("a");
           link.className = className;
           link.href = href;
@@ -115,6 +133,9 @@
           if (osIcon) {
             link.classList.add("btn-with-icon");
             link.innerHTML = '<span class="os-icon" aria-hidden="true">' + osIcon + "</span><span>" + label + "</span>";
+          }
+          if (osType && currentOs && osType === currentOs) {
+            link.classList.add("btn-current-os");
           }
           return link;
         };
@@ -146,9 +167,10 @@
             assets.forEach((asset) => {
               if (!asset || !asset.browser_download_url) return;
               const label = asset.name ? "Download " + asset.name : "Download File";
+              const osType = getOsType(asset.name);
               const osIcon = getOsIcon(asset.name);
               actionsRoot.appendChild(
-                createButton(label, asset.browser_download_url, "btn btn-primary", false, osIcon)
+                createButton(label, asset.browser_download_url, "btn btn-primary", false, osIcon, osType)
               );
             });
           } else {
@@ -157,7 +179,7 @@
                 ? release.html_url
                 : "https://github.com/" + repo + "/releases/latest";
             actionsRoot.appendChild(
-              createButton("Download Latest Release", fallbackUrl, "btn btn-primary", false)
+              createButton("Download Latest Release", fallbackUrl, "btn btn-primary", false, "", "")
             );
           }
           actionsRoot.appendChild(createAurButton());

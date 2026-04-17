@@ -108,6 +108,13 @@ body {
   background: #fff;
 }
 
+.btn-current-os {
+  background: #1e1e1e;
+  color: #fff;
+  border-color: #1e1e1e;
+  box-shadow: 0 0 0 2px rgba(30, 30, 30, 0.18);
+}
+
 .btn-secondary {
   color: var(--ink);
   background: #fff;
