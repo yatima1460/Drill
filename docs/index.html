@@ -116,6 +116,18 @@
           return "";
         };
 
+        const getFriendlyAssetLabel = (assetName) => {
+          const name = String(assetName || "").toLowerCase();
+          if (!name) return "Download";
+          if (name.includes("windows")) return "Windows x64";
+          if (name.includes("macos") && name.endsWith(".dmg")) return "macOS .dmg";
+          if (name.includes("macos") && name.endsWith(".zip")) return "macOS .app.zip";
+          if (name.includes("linux") && name.endsWith(".deb")) return "Linux .deb";
+          if (name.includes("arch") || name.includes(".pkg.tar")) return "Arch Linux pkg";
+          if (name.includes("linux")) return "Linux x64";
+          return String(assetName || "Download");
+        };
+
         const createButton = (label, href, className, withGithubIcon, osIcon, osType) => {
           const link = document.createElement("a");
           link.className = className;
@@ -147,8 +159,22 @@
           link.target = "_blank";
           link.rel = "noopener noreferrer";
           link.innerHTML =
-            '<svg class="btn-icon arch-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2 2.4 19.5h4.3l2.1-4.2h6l2.1 4.2h4.8L12 2zm0 5.1 2.2 4.4h-4.4L12 7.1z"/></svg><span>AUR</span>';
+            '<img class="btn-icon arch-icon" src="arch-linux-logo.svg" alt="" aria-hidden="true" /><span>AUR</span>';
           return link;
+        };
+
+        const formatRelativeAge = (fromDate, toDate) => {
+          const ms = Math.max(0, toDate.getTime() - fromDate.getTime());
+          const dayMs = 24 * 60 * 60 * 1000;
+          const days = Math.floor(ms / dayMs);
+          if (days < 1) return "today";
+          if (days < 30) return days === 1 ? "1 day ago" : days + " days ago";
+          if (days < 365) {
+            const months = Math.floor(days / 30);
+            return months === 1 ? "1 month ago" : months + " months ago";
+          }
+          const years = Math.floor(days / 365);
+          return years === 1 ? "1 year ago" : years + " years ago";
         };
 
         const renderButtons = (release) => {
@@ -160,13 +186,14 @@
             const yyyy = date.getFullYear();
             const mm = String(date.getMonth() + 1).padStart(2, "0");
             const dd = String(date.getDate()).padStart(2, "0");
-            releaseDateNode.textContent = "Latest release: " + yyyy + "/" + mm + "/" + dd;
+            const age = formatRelativeAge(date, new Date());
+            releaseDateNode.textContent = "Latest release: " + yyyy + "/" + mm + "/" + dd + " (" + age + ")";
           }
 
           if (assets.length > 0) {
             assets.forEach((asset) => {
               if (!asset || !asset.browser_download_url) return;
-              const label = asset.name ? "Download " + asset.name : "Download File";
+              const label = getFriendlyAssetLabel(asset.name);
               const osType = getOsType(asset.name);
               const osIcon = getOsIcon(asset.name);
               actionsRoot.appendChild(
