@@ -67,7 +67,13 @@ jobs:
         run: pyright
 
       - name: Run tests
-        run: xvfb-run -a python -m pytest tests/
+        env:
+          QT_QPA_PLATFORM: offscreen
+          XDG_RUNTIME_DIR: /tmp/qt-runtime
+        run: |
+          mkdir -p "$XDG_RUNTIME_DIR"
+          chmod 700 "$XDG_RUNTIME_DIR"
+          xvfb-run -a python -m pytest tests/
 
   windows:
     name: Windows CD
