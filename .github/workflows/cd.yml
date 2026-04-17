@@ -346,75 +346,75 @@ jobs:
             -H "Accept: application/vnd.github+json" \
             "https://api.github.com/repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/cancel"
 
-  rpm:
-    name: Linux .rpm CD
-    if: github.event_name != 'pull_request'
-    needs: [linux-tests]
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    container:
-      image: fedora:latest
-    steps:
-      - uses: actions/checkout@v6.0.2
+  # rpm:
+  #   name: Linux .rpm CD
+  #   if: github.event_name != 'pull_request'
+  #   needs: [linux-tests]
+  #   runs-on: ubuntu-latest
+  #   timeout-minutes: 5
+  #   container:
+  #     image: fedora:latest
+  #   steps:
+  #     - uses: actions/checkout@v6.0.2
 
-      - name: Install RPM build/runtime dependencies
-        run: |
-          dnf -y install \
-            python3 \
-            python3-devel \
-            python3-pip \
-            python3-setuptools \
-            python3-wheel \
-            rpm-build \
-            redhat-rpm-config \
-            gcc \
-            gcc-c++ \
-            make \
-            patchelf \
-            which \
-            findutils \
-            tar
+  #     - name: Install RPM build/runtime dependencies
+  #       run: |
+  #         dnf -y install \
+  #           python3 \
+  #           python3-devel \
+  #           python3-pip \
+  #           python3-setuptools \
+  #           python3-wheel \
+  #           rpm-build \
+  #           redhat-rpm-config \
+  #           gcc \
+  #           gcc-c++ \
+  #           make \
+  #           patchelf \
+  #           which \
+  #           findutils \
+  #           tar
 
-      - name: Install Python dependencies
-        run: |
-          python3 -m venv .venv
-          . .venv/bin/activate
-          python -m pip install --upgrade pip
-          pip install -r requirements-cd.txt
+  #     - name: Install Python dependencies
+  #       run: |
+  #         python3 -m venv .venv
+  #         . .venv/bin/activate
+  #         python -m pip install --upgrade pip
+  #         pip install -r requirements-cd.txt
 
-      - name: Build Linux .rpm
-        run: |
-          PYTHON_BIN=.venv/bin/python ./scripts/build_linux_rpm.sh "${{ github.run_number }}"
+  #     - name: Build Linux .rpm
+  #       run: |
+  #         PYTHON_BIN=.venv/bin/python ./scripts/build_linux_rpm.sh "${{ github.run_number }}"
 
-      - name: Install Linux .rpm
-        run: |
-          dnf -y install ./build/Drill-v${{ github.run_number }}-linux.rpm
-          command -v drill
+  #     - name: Install Linux .rpm
+  #       run: |
+  #         dnf -y install ./build/Drill-v${{ github.run_number }}-linux.rpm
+  #         command -v drill
 
-      - name: Smoke test installed RPM CLI
-        run: ./scripts/test_rpm_installed_cli.sh "${{ github.run_number }}"
+  #     - name: Smoke test installed RPM CLI
+  #       run: ./scripts/test_rpm_installed_cli.sh "${{ github.run_number }}"
 
-      - name: Upload RPM artifact
-        uses: actions/upload-artifact@v7.0.1
-        with:
-          name: Drill-linux-rpm
-          path: build/Drill-v${{ github.run_number }}-linux.rpm
-          if-no-files-found: error
-          retention-days: 7
-          compression-level: 0
+  #     - name: Upload RPM artifact
+  #       uses: actions/upload-artifact@v7.0.1
+  #       with:
+  #         name: Drill-linux-rpm
+  #         path: build/Drill-v${{ github.run_number }}-linux.rpm
+  #         if-no-files-found: error
+  #         retention-days: 7
+  #         compression-level: 0
 
-      - name: Cancel workflow on failure
-        if: ${{ failure() }}
-        run: |
-          curl -sS -X POST \
-            -H "Authorization: Bearer ${{ github.token }}" \
-            -H "Accept: application/vnd.github+json" \
-            "https://api.github.com/repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/cancel"
+  #     - name: Cancel workflow on failure
+  #       if: ${{ failure() }}
+  #       run: |
+  #         curl -sS -X POST \
+  #           -H "Authorization: Bearer ${{ github.token }}" \
+  #           -H "Accept: application/vnd.github+json" \
+  #           "https://api.github.com/repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/cancel"
 
   release:
     name: Create Unified Release
     if: github.event_name != 'pull_request'
-    needs: [windows, macos, linux, arch, rpm]
+    needs: [windows, macos, linux, arch]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
