@@ -5,7 +5,7 @@ pkgdesc="Drill fast file searcher without indexing"
 arch=('x86_64')
 url='https://github.com/yatima1460/Drill'
 license=('MIT')
-depends=('glibc' 'gcc-libs')
+depends=('glibc' 'gcc-libs' 'mesa')
 source=('drill-linux.tar.gz')
 sha256sums=('SKIP')
 

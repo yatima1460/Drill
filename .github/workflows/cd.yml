@@ -236,7 +236,6 @@ jobs:
 
   linux:
     name: Linux .deb CD
-    if: github.event_name != 'pull_request'
     needs: [linux-tests]
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -285,7 +284,6 @@ jobs:
 
   arch:
     name: Linux Arch CD
-    if: github.event_name != 'pull_request'
     needs: [linux-tests]
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -303,7 +301,8 @@ jobs:
             python-pip \
             python-setuptools \
             python-wheel \
-            git
+            git \
+            mesa
 
       - name: Build Arch package
         run: |
