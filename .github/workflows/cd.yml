@@ -274,48 +274,41 @@ jobs:
     needs: [linux-tests]
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    container:
+      image: archlinux:latest
     steps:
       - uses: actions/checkout@v6.0.2
 
-      - name: Build and test Arch package in Docker
+      - name: Install Arch build/runtime dependencies
         run: |
-          docker run --rm \
-            -e GITHUB_RUN_NUMBER="${{ github.run_number }}" \
-            -v "$PWD:/work" \
-            -w /work \
-            archlinux:latest \
-            bash -lc '
-              set -euo pipefail
-              pacman -Syu --noconfirm --needed base-devel sudo python python-pip python-setuptools python-wheel git
+          pacman -Syu --noconfirm --needed base-devel sudo python python-pip python-setuptools python-wheel git
 
-              useradd -m builder
-              rm -rf /home/builder/work
-              cp -a /work /home/builder/work
-              chown -R builder:builder /home/builder/work
+      - name: Build Arch package
+        run: |
+          id -u builder >/dev/null 2>&1 || useradd -m builder
+          chown -R builder:builder "$GITHUB_WORKSPACE"
+          runuser -u builder -- bash -lc "
+            cd \"$GITHUB_WORKSPACE\"
+            python -m pip install --upgrade pip
+            pip install -r requirements-cd.txt
+            ./scripts/build_arch_pkg.sh \"${{ github.run_number }}\"
+          "
 
-              runuser -u builder -- bash -lc "
-                cd /home/builder/work
-                python -m pip install --upgrade pip
-                pip install -r requirements-cd.txt
-                ./scripts/build_arch_pkg.sh \"\$GITHUB_RUN_NUMBER\"
-              "
+      - name: Install Arch package
+        run: |
+          PKG_FILE="$(find build/arch -maxdepth 1 -type f -name 'drill-bin-0.0.1-${{ github.run_number }}-x86_64.pkg.tar.*' | head -n 1)"
+          if [ -z "$PKG_FILE" ]; then
+            echo "Built Arch package not found in build/arch"
+            exit 1
+          fi
+          pacman -U --noconfirm "$PKG_FILE"
 
-              mkdir -p /work/build/arch
-              cp -a /home/builder/work/build/arch/. /work/build/arch/
-
-              PKG_FILE=\$(find /work/build/arch -maxdepth 1 -type f -name \"drill-bin-0.0.1-\${GITHUB_RUN_NUMBER}-x86_64.pkg.tar.*\" | head -n 1)
-              if [ -z \"\${PKG_FILE}\" ]; then
-                echo \"Built Arch package not found in /work/build/arch\"
-                exit 1
-              fi
-
-              pacman -U --noconfirm \"\${PKG_FILE}\"
-
-              runuser -u builder -- bash -lc "
-                cd /work
-                ./scripts/test_arch_installed_cli.sh \"\$GITHUB_RUN_NUMBER\"
-              "
-            '
+      - name: Smoke test installed Arch CLI
+        run: |
+          runuser -u builder -- bash -lc "
+            cd \"$GITHUB_WORKSPACE\"
+            ./scripts/test_arch_installed_cli.sh \"${{ github.run_number }}\"
+          "
 
       - name: Upload Arch package artifact
         uses: actions/upload-artifact@v7.0.1
