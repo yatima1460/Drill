@@ -16,6 +16,7 @@ fi
 APPDIR="build/AppDir"
 APPIMAGE_PATH="build/Drill-v${RUN_NUMBER}-linux.AppImage"
 APPIMAGETOOL="build/appimagetool-x86_64.AppImage"
+DESKTOP_ID="software.drill.Drill.desktop"
 
 echo "Preparing AppDir at ${APPDIR}..."
 rm -rf "${APPDIR}"
@@ -35,7 +36,7 @@ exec "${HERE}/usr/lib/drill/Drill" "$@"
 EOF
 chmod 755 "${APPDIR}/AppRun"
 
-cat > "${APPDIR}/Drill.desktop" <<'EOF'
+cat > "${APPDIR}/${DESKTOP_ID}" <<'EOF'
 [Desktop Entry]
 Type=Application
 Name=Drill
@@ -48,7 +49,7 @@ EOF
 cat > "${APPDIR}/usr/share/metainfo/Drill.appdata.xml" <<'EOF'
 <?xml version="1.0" encoding="UTF-8"?>
 <component type="desktop-application">
-  <id>Drill.desktop</id>
+  <id>software.drill.Drill.desktop</id>
   <metadata_license>CC0-1.0</metadata_license>
   <project_license>GPL-2.0-only</project_license>
   <name>Drill</name>
@@ -56,15 +57,15 @@ cat > "${APPDIR}/usr/share/metainfo/Drill.appdata.xml" <<'EOF'
   <description>
     <p>Drill is a fast desktop file search app that works without building a background index.</p>
   </description>
-  <launchable type="desktop-id">Drill.desktop</launchable>
+  <launchable type="desktop-id">software.drill.Drill.desktop</launchable>
   <provides>
     <binary>drill</binary>
   </provides>
-  <url type="homepage">https://github.com/yatima1460/Drill</url>
+  <url type="homepage">https://drill.software</url>
 </component>
 EOF
 
-cp -f "${APPDIR}/Drill.desktop" "${APPDIR}/usr/share/applications/Drill.desktop"
+cp -f "${APPDIR}/${DESKTOP_ID}" "${APPDIR}/usr/share/applications/${DESKTOP_ID}"
 cp -f "src/assets/drill.svg" "${APPDIR}/drill.svg"
 cp -f "src/assets/drill.svg" "${APPDIR}/usr/share/icons/hicolor/scalable/apps/drill.svg"
 ln -sf drill.svg "${APPDIR}/.DirIcon"
