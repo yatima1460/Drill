@@ -2,12 +2,13 @@
 set -euo pipefail
 
 RUN_NUMBER="${1:-${GITHUB_RUN_NUMBER:-1}}"
-PKGREL="${RUN_NUMBER}"
+PKGVER="1.0.${RUN_NUMBER}"
+PKGREL="1"
 PKGNAME="drill-bin"
-PKGVER="0.0.1"
+PYTHON_BIN="${PYTHON_BIN:-python3}"
 
 echo "Building Linux executable for Arch package..."
-python setup.py build_exe
+DRILL_VERSION="${PKGVER}" "${PYTHON_BIN}" setup.py build_exe
 
 BUILD_DIR="$(find build -maxdepth 1 -type d -name 'exe.linux-*' | head -n 1)"
 if [ -z "${BUILD_DIR}" ]; then
@@ -29,7 +30,7 @@ if [ ! -f "${TEMPLATE_PATH}" ]; then
   exit 1
 fi
 
-sed "s/__PKGREL__/${PKGREL}/g" "${TEMPLATE_PATH}" > "${PKGBUILD_DIR}/PKGBUILD"
+sed -e "s/__PKGVER__/${PKGVER}/g" -e "s/__PKGREL__/${PKGREL}/g" "${TEMPLATE_PATH}" > "${PKGBUILD_DIR}/PKGBUILD"
 
 (
   cd "${PKGBUILD_DIR}"

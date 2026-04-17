@@ -2,6 +2,8 @@ from setuptools import find_packages
 import sys
 import os
 
+APP_VERSION = os.environ.get("DRILL_VERSION", "1.0.0")
+
 # Try to import cx_Freeze, but don't fail if it's not present
 try:
     from cx_Freeze import setup, Executable
@@ -78,7 +80,7 @@ else:
 
 setup(
     name="drill",
-    version="0.0.1",
+    version=APP_VERSION,
     description="Search files without indexing",
     packages=find_packages(where=".", exclude=["tests", "tests.*"]),
     options={

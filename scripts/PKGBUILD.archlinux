@@ -1,5 +1,5 @@
 pkgname=drill-bin
-pkgver=0.0.1
+pkgver=__PKGVER__
 pkgrel=__PKGREL__
 pkgdesc="Drill fast file searcher without indexing"
 arch=('x86_64')

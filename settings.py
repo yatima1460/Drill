@@ -1,5 +1,9 @@
-filename = 'build/drill-0.0.1.dmg'
-volume_label = 'drill-0.0.1'
+import os
+
+_version = os.environ.get("DRILL_VERSION", "1.0.0")
+
+filename = f'build/drill-{_version}.dmg'
+volume_label = f'drill-{_version}'
 format = 'UDZO'
 filesystem = 'HFS+'
 size = None

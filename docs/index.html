@@ -106,6 +106,10 @@
         };
 
         const getOsIcon = (text) => {
+          const name = String(text || "").toLowerCase();
+          if (name.endsWith(".rpm")) {
+            return "redhat-logo.svg";
+          }
           const osType = getOsType(text);
           if (osType === "windows") {
             return "windows-logo.svg";
@@ -126,6 +130,7 @@
           if (name.includes("macos") && name.endsWith(".dmg")) return "macOS .dmg";
           if (name.includes("macos") && name.endsWith(".zip")) return "macOS .app.zip";
           if (name.includes("linux") && name.endsWith(".deb")) return "Linux .deb";
+          if (name.includes("linux") && name.endsWith(".rpm")) return "Linux .rpm";
           if (name.includes("arch") || name.includes(".pkg.tar")) return "Arch Linux pkg";
           if (name.includes("linux")) return "Linux x64";
           return String(assetName || "Download");

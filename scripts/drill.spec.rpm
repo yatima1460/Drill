@@ -1,0 +1,37 @@
+Name:           drill
+Version:        __VERSION__
+Release:        __RELEASE__%{?dist}
+Summary:        Drill fast file searcher without indexing
+License:        MIT
+URL:            https://github.com/yatima1460/Drill
+BuildArch:      x86_64
+Source0:        drill-linux.tar.gz
+
+Requires:       bash
+
+%description
+Drill is a fast desktop file searcher without indexing.
+
+%prep
+%autosetup -n drill-linux
+
+%build
+# No compile step, binaries are prebuilt by cx_Freeze before rpmbuild.
+
+%install
+mkdir -p %{buildroot}/opt/drill %{buildroot}/usr/bin
+cp -a . %{buildroot}/opt/drill/
+cat > %{buildroot}/usr/bin/drill <<'WRAP'
+#!/usr/bin/env bash
+exec /opt/drill/Drill "$@"
+WRAP
+chmod 0755 %{buildroot}/usr/bin/drill
+chmod 0755 %{buildroot}/opt/drill/Drill
+
+%files
+/opt/drill
+/usr/bin/drill
+
+%changelog
+* Thu Jan 01 1970 Drill CI <noreply@github.com> - __VERSION__-__RELEASE__
+- Automated RPM package build

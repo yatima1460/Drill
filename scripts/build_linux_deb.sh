@@ -2,9 +2,10 @@
 set -euo pipefail
 
 RUN_NUMBER="${1:-${GITHUB_RUN_NUMBER:-0}}"
+VERSION="1.0.${RUN_NUMBER}"
 
 echo "Building Linux executable..."
-python setup.py build_exe
+DRILL_VERSION="${VERSION}" python setup.py build_exe
 
 BUILD_DIR="$(find build -maxdepth 1 -type d -name 'exe.linux-*' | head -n 1)"
 if [ -z "${BUILD_DIR}" ]; then
@@ -22,7 +23,7 @@ cp -a "${BUILD_DIR}"/. "${PKG_ROOT}/opt/drill/"
 
 printf '%s\n' \
   "Package: drill" \
-  "Version: 0.0.${RUN_NUMBER}" \
+  "Version: ${VERSION}" \
   "Section: utils" \
   "Priority: optional" \
   "Architecture: amd64" \
