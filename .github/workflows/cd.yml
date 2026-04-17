@@ -273,6 +273,16 @@ jobs:
           sudo dpkg -i "build/Drill-v${{ github.run_number }}-linux.deb"
           command -v drill
 
+      - name: Install Linux Qt runtime libs (deb smoke test)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libegl1 \
+            libgl1 \
+            libdbus-1-3 \
+            libxkbcommon-x11-0 \
+            libxcb-cursor0
+
       - name: Smoke test installed Linux Qt app
         run: ./scripts/test_linux_installed_qt.sh "${{ github.run_number }}"
 
