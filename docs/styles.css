@@ -87,10 +87,27 @@ body {
 }
 
 .hero-actions {
-  display: flex;
-  gap: 0.9rem;
-  flex-wrap: wrap;
+  display: grid;
+  gap: 0.75rem;
   margin: 0.9rem 0 1rem;
+}
+
+.download-group {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fff;
+  padding: 0.65rem;
+}
+
+.download-group-title {
+  font-size: 0.95rem;
+  margin: 0 0 0.45rem;
+}
+
+.download-group-actions {
+  display: flex;
+  gap: 0.65rem;
+  flex-wrap: wrap;
 }
 
 .btn {

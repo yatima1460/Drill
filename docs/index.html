@@ -199,6 +199,19 @@
           return years === 1 ? "1 year ago" : years + " years ago";
         };
 
+        const createOsSection = (title) => {
+          const section = document.createElement("section");
+          section.className = "download-group";
+          const heading = document.createElement("h3");
+          heading.className = "download-group-title";
+          heading.textContent = title;
+          const actions = document.createElement("div");
+          actions.className = "download-group-actions";
+          section.appendChild(heading);
+          section.appendChild(actions);
+          return { section, actions };
+        };
+
         const renderButtons = (release) => {
           actionsRoot.innerHTML = "";
           const assets = Array.isArray(release && release.assets) ? release.assets : [];
@@ -240,14 +253,26 @@
           }
 
           if (assets.length > 0) {
+            const sections = {
+              windows: createOsSection("Windows"),
+              linux: createOsSection("Linux"),
+              macos: createOsSection("macOS"),
+            };
             assets.forEach((asset) => {
               if (!asset || !asset.browser_download_url) return;
               const label = getFriendlyAssetLabel(asset.name);
               const osType = getOsType(asset.name);
+              if (!sections[osType]) return;
               const osIcon = getOsIcon(asset.name);
-              actionsRoot.appendChild(
+              sections[osType].actions.appendChild(
                 createButton(label, asset.browser_download_url, "btn btn-primary", false, osIcon, osType)
               );
+            });
+            sections.linux.actions.appendChild(createAurButton());
+            ["windows", "linux", "macos"].forEach((osKey) => {
+              if (sections[osKey].actions.children.length > 0) {
+                actionsRoot.appendChild(sections[osKey].section);
+              }
             });
           } else {
             const fallbackUrl =
@@ -257,8 +282,8 @@
             actionsRoot.appendChild(
               createButton("Download Latest Release", fallbackUrl, "btn btn-primary", false, "", "")
             );
+            actionsRoot.appendChild(createAurButton());
           }
-          actionsRoot.appendChild(createAurButton());
         };
 
         fetch("https://api.github.com/repos/" + repo + "/releases/latest")
