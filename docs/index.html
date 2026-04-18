@@ -136,8 +136,20 @@
           const name = String(assetName || "").toLowerCase();
           if (!name) return "Download";
           if (name.includes("windows")) return "Windows x64";
-          if (name.includes("macos") && name.endsWith(".dmg")) return "macOS .dmg";
-          if (name.includes("macos") && name.endsWith(".zip")) return "macOS .app.zip";
+          if (name.includes("macos") && name.includes("-apple") && name.endsWith(".dmg")) {
+            return "macOS Apple Silicon (.dmg)";
+          }
+          if (name.includes("macos") && name.includes("-intel") && name.endsWith(".dmg")) {
+            return "macOS Intel (.dmg)";
+          }
+          if (name.includes("macos") && name.includes("-apple") && name.endsWith(".zip")) {
+            return "macOS Apple Silicon (.app.zip)";
+          }
+          if (name.includes("macos") && name.includes("-intel") && name.endsWith(".zip")) {
+            return "macOS Intel (.app.zip)";
+          }
+          if (name.includes("macos") && name.endsWith(".dmg")) return "macOS (.dmg)";
+          if (name.includes("macos") && name.endsWith(".zip")) return "macOS (.app.zip)";
           if (name.includes("linux") && name.endsWith(".deb")) return "Linux .deb";
           if (name.includes("linux") && name.endsWith(".rpm")) return "Linux .rpm";
           if (name.endsWith(".appimage")) return "Linux AppImage x64";

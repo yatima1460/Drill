@@ -149,10 +149,20 @@ jobs:
             -Headers @{Authorization = "Bearer $env:GITHUB_TOKEN"; Accept = "application/vnd.github+json"}
 
   macos:
-    name: macOS CD
+    name: macOS CD (${{ matrix.target.name }})
     needs: [linux-tests]
-    runs-on: macos-latest
-    timeout-minutes: 5
+    runs-on: ${{ matrix.target.runner }}
+    timeout-minutes: 8
+    strategy:
+      fail-fast: false
+      matrix:
+        target:
+          - name: Intel
+            runner: macos-13
+            suffix: intel
+          - name: Apple Silicon
+            runner: macos-latest
+            suffix: apple
     steps:
       - uses: actions/checkout@v6.0.2
 
@@ -215,7 +225,7 @@ jobs:
             echo "No Drill.app found"
             exit 1
           fi
-          APP_ZIP="build/Drill-v${{ github.run_number }}-macos-app.zip"
+          APP_ZIP="build/Drill-v${{ github.run_number }}-macos-${{ matrix.target.suffix }}-app.zip"
           ditto -c -k --sequesterRsrc --keepParent "$APP_PATH" "$APP_ZIP"
           echo "Created $APP_ZIP"
 
@@ -227,16 +237,16 @@ jobs:
             echo "No DMG found"
             exit 1
           fi
-          cp "$DMG_PATH" "build/Drill-v${{ github.run_number }}-macos.dmg"
+          cp "$DMG_PATH" "build/Drill-v${{ github.run_number }}-macos-${{ matrix.target.suffix }}.dmg"
 
       - name: Upload macOS artifacts
         if: ${{ github.event_name != 'pull_request' }}
         uses: actions/upload-artifact@v7.0.1
         with:
-          name: Drill-macos-bundles
+          name: Drill-macos-bundles-${{ matrix.target.suffix }}
           path: |
             # build/Drill-v${{ github.run_number }}-macos-app.zip
-            build/Drill-v${{ github.run_number }}-macos.dmg
+            build/Drill-v${{ github.run_number }}-macos-${{ matrix.target.suffix }}.dmg
           if-no-files-found: error
           retention-days: 7
           compression-level: 0
@@ -550,11 +560,17 @@ jobs:
           name: Drill-windows-zip
           path: dist/windows
 
-      - name: Download macOS artifacts
+      - name: Download macOS Intel artifacts
         uses: actions/download-artifact@v8.0.1
         with:
-          name: Drill-macos-bundles
-          path: dist/macos
+          name: Drill-macos-bundles-intel
+          path: dist/macos-intel
+
+      - name: Download macOS Apple Silicon artifacts
+        uses: actions/download-artifact@v8.0.1
+        with:
+          name: Drill-macos-bundles-apple
+          path: dist/macos-apple
 
       - name: Download Linux artifact
         uses: actions/download-artifact@v8.0.1
@@ -591,8 +607,10 @@ jobs:
           generate_release_notes: true
           files: |
             dist/windows/*.zip
-            # dist/macos/*.zip
-            dist/macos/*.dmg
+            # dist/macos-intel/*.zip
+            # dist/macos-apple/*.zip
+            dist/macos-intel/*.dmg
+            dist/macos-apple/*.dmg
             dist/linux/*.deb
             dist/linux-appimage/*.AppImage
             dist/arch/*.pkg.tar.*
