@@ -321,7 +321,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     container:
-      image: archlinux:base-devel
+      image: archlinux:base-devel-20260308.0.497099
     steps:
       - uses: actions/checkout@v6.0.2
 
