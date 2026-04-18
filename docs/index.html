@@ -140,6 +140,7 @@
           if (name.includes("macos") && name.endsWith(".zip")) return "macOS .app.zip";
           if (name.includes("linux") && name.endsWith(".deb")) return "Linux .deb";
           if (name.includes("linux") && name.endsWith(".rpm")) return "Linux .rpm";
+          if (name.endsWith(".appimage")) return "Linux AppImage x64";
           if (name.includes("arch") || name.includes(".pkg.tar")) return "Arch Linux pkg";
           if (name.includes("linux")) return "Linux x64";
           return String(assetName || "Download");
