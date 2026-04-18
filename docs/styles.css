@@ -99,6 +99,19 @@ body {
   padding: 0.65rem;
 }
 
+.download-group-secondary {
+  padding: 0.55rem;
+}
+
+.download-group-secondary .download-group-title {
+  font-size: 0.9rem;
+}
+
+.download-group-secondary .btn {
+  font-size: 0.9rem;
+  padding: 0.64rem 1rem;
+}
+
 .download-group-title {
   font-size: 0.95rem;
   margin: 0 0 0.45rem;
