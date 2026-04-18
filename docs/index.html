@@ -269,8 +269,16 @@
               );
             });
             sections.linux.actions.appendChild(createAurButton());
-            ["windows", "linux", "macos"].forEach((osKey) => {
+            const defaultOrder = ["windows", "linux", "macos"];
+            const osOrder =
+              currentOs && defaultOrder.includes(currentOs)
+                ? [currentOs].concat(defaultOrder.filter((osKey) => osKey !== currentOs))
+                : defaultOrder;
+            osOrder.forEach((osKey) => {
               if (sections[osKey].actions.children.length > 0) {
+                if (currentOs && osKey !== currentOs) {
+                  sections[osKey].section.classList.add("download-group-secondary");
+                }
                 actionsRoot.appendChild(sections[osKey].section);
               }
             });
