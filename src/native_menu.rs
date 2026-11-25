@@ -8,6 +8,8 @@ pub struct NativeMenu {
     _menu: Menu,
     stop: MenuItem,
     requested: Arc<AtomicBool>,
+    #[cfg(target_os = "macos")]
+    permissions_requested: Arc<AtomicBool>,
 }
 
 impl NativeMenu {
@@ -15,6 +17,11 @@ impl NativeMenu {
     pub fn new(creation: &eframe::CreationContext<'_>) -> Result<Self, String> {
         let stop = MenuItem::new("Stop", false, None);
         let search = Submenu::with_items("Search", true, &[&stop]).map_err(|e| e.to_string())?;
+        #[cfg(target_os = "macos")]
+        let permissions = MenuItem::new("Permissions…", true, None);
+        #[cfg(target_os = "macos")]
+        let settings =
+            Submenu::with_items("Settings", true, &[&permissions]).map_err(|e| e.to_string())?;
         let menu = Menu::new();
         #[cfg(target_os = "macos")]
         {
@@ -39,6 +46,8 @@ impl NativeMenu {
         }
         menu.append(&search).map_err(|e| e.to_string())?;
         #[cfg(target_os = "macos")]
+        menu.append(&settings).map_err(|e| e.to_string())?;
+        #[cfg(target_os = "macos")]
         menu.init_for_nsapp();
         #[cfg(target_os = "windows")]
         {
@@ -53,10 +62,21 @@ impl NativeMenu {
         let requested = Arc::new(AtomicBool::new(false));
         let target = requested.clone();
         let id = stop.id().clone();
+        #[cfg(target_os = "macos")]
+        let permissions_requested = Arc::new(AtomicBool::new(false));
+        #[cfg(target_os = "macos")]
+        let permissions_target = permissions_requested.clone();
+        #[cfg(target_os = "macos")]
+        let permissions_id = permissions.id().clone();
         let context = creation.egui_ctx.clone();
         MenuEvent::set_event_handler(Some(move |event: MenuEvent| {
             if event.id == id {
                 target.store(true, Ordering::Relaxed);
+                context.request_repaint();
+            }
+            #[cfg(target_os = "macos")]
+            if event.id == permissions_id {
+                permissions_target.store(true, Ordering::Relaxed);
                 context.request_repaint();
             }
         }));
@@ -64,6 +84,8 @@ impl NativeMenu {
             _menu: menu,
             stop,
             requested,
+            #[cfg(target_os = "macos")]
+            permissions_requested,
         })
     }
     pub fn set_enabled(&self, enabled: bool) {
@@ -73,5 +95,9 @@ impl NativeMenu {
     }
     pub fn take_stop(&self) -> bool {
         self.requested.swap(false, Ordering::Relaxed)
+    }
+    #[cfg(target_os = "macos")]
+    pub fn take_permissions(&self) -> bool {
+        self.permissions_requested.swap(false, Ordering::Relaxed)
     }
 }
