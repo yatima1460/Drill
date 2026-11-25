@@ -39,9 +39,12 @@ struct App {
     sort: Option<(SortColumn, bool)>,
     action_error: Option<String>,
     action_result: Option<std::sync::mpsc::Receiver<Result<(), String>>>,
+    terminal_sender: std::sync::mpsc::Sender<String>,
+    terminal_errors: std::sync::mpsc::Receiver<String>,
 }
 impl Default for App {
     fn default() -> Self {
+        let (terminal_sender, terminal_errors) = std::sync::mpsc::channel();
         Self {
             query: String::new(),
             changed: None,
@@ -57,6 +60,8 @@ impl Default for App {
             sort: None,
             action_error: None,
             action_result: None,
+            terminal_sender,
+            terminal_errors,
         }
     }
 }
@@ -130,7 +135,7 @@ fn terminal_directory(entry: &Entry) -> &Path {
     }
 }
 
-fn open_terminal(directory: &Path) -> Result<(), String> {
+fn open_terminal(directory: &Path) -> Result<std::process::Child, String> {
     if !directory.is_dir() {
         return Err(format!("Folder is unavailable: {}", directory.display()));
     }
@@ -159,7 +164,7 @@ fn open_terminal(directory: &Path) -> Result<(), String> {
             command.creation_flags(0x0000_0010); // CREATE_NEW_CONSOLE
         }
         match command.spawn() {
-            Ok(_) => return Ok(()),
+            Ok(child) => return Ok(child),
             Err(error) if error.kind() == std::io::ErrorKind::NotFound => continue,
             Err(error) => return Err(format!("Cannot start terminal: {error}")),
         }
@@ -312,6 +317,9 @@ fn icon_menu_button(ui: &mut egui::Ui, text: &str, icon: MenuIcon) -> bool {
 }
 impl App {
     fn update_ui(&mut self, ctx: &egui::Context) {
+        if let Ok(error) = self.terminal_errors.try_recv() {
+            self.action_error = Some(error);
+        }
         if let Some(result) = self.action_result.as_ref().map(|rx| rx.try_recv()) {
             match result {
                 Ok(result) => {
@@ -719,8 +727,27 @@ impl App {
                             ui.close_menu();
                         }
                         if icon_menu_button(ui, "Open terminal here", MenuIcon::Terminal) {
-                            if let Err(error) = open_terminal(terminal_directory(entry)) {
-                                self.action_error = Some(error);
+                            match open_terminal(terminal_directory(entry)) {
+                                Ok(mut child) => {
+                                    let sender = self.terminal_sender.clone();
+                                    let context = ui.ctx().clone();
+                                    std::thread::spawn(move || {
+                                        let error = match child.wait() {
+                                            Ok(status) if status.success() => None,
+                                            Ok(status) => {
+                                                Some(format!("Terminal exited with {status}"))
+                                            }
+                                            Err(error) => {
+                                                Some(format!("Cannot wait for terminal: {error}"))
+                                            }
+                                        };
+                                        if let Some(error) = error {
+                                            let _ = sender.send(error);
+                                            context.request_repaint();
+                                        }
+                                    });
+                                }
+                                Err(error) => self.action_error = Some(error),
                             }
                             ui.close_menu();
                         }
@@ -852,6 +879,44 @@ mod ui_tests {
             hovered.shapes.len() > idle.shapes.len(),
             "hover should paint the row background"
         );
+    }
+
+    #[test]
+    fn icon_menu_row_clicks_work_on_icon_and_right_edge() {
+        for x in [15.0, 185.0] {
+            let ctx = egui::Context::default();
+            let point = egui::pos2(x, 15.0);
+            let mut clicked = false;
+            let _ = ctx.run(egui::RawInput::default(), |ctx| {
+                egui::CentralPanel::default().show(ctx, |ui| {
+                    icon_menu_button(ui, "Open terminal here", MenuIcon::Terminal);
+                });
+            });
+            for pressed in [true, false] {
+                let events = vec![
+                    egui::Event::PointerMoved(point),
+                    egui::Event::PointerButton {
+                        pos: point,
+                        button: egui::PointerButton::Primary,
+                        pressed,
+                        modifiers: egui::Modifiers::NONE,
+                    },
+                ];
+                let _ = ctx.run(
+                    egui::RawInput {
+                        events,
+                        ..Default::default()
+                    },
+                    |ctx| {
+                        egui::CentralPanel::default().show(ctx, |ui| {
+                            clicked |=
+                                icon_menu_button(ui, "Open terminal here", MenuIcon::Terminal);
+                        });
+                    },
+                );
+            }
+            assert!(clicked, "row was not clickable at x={x}");
+        }
     }
 
     fn frame(ctx: &egui::Context, app: &mut App, events: Vec<egui::Event>) -> egui::FullOutput {
