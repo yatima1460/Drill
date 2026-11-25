@@ -6,7 +6,7 @@ Very fast file searcher without indexing
 
 
 
-[![CD](https://github.com/yatima1460/Drill/actions/workflows/cd.yml/badge.svg)](https://github.com/yatima1460/Drill/actions/workflows/cd.yml)
+[![Rust](https://github.com/yatima1460/Drill/actions/workflows/rust.yml/badge.svg)](https://github.com/yatima1460/Drill/actions/workflows/rust.yml)
 [![Financial Contributors on Open Collective](https://opencollective.com/Drill/all/badge.svg?label=financial+contributors)](https://opencollective.com/Drill) [![GitHub issues](https://img.shields.io/github/issues/yatima1460/Drill.svg)](https://github.com/yatima1460/Drill/issues)
 [![GitHub forks](https://img.shields.io/github/forks/yatima1460/Drill.svg)](https://github.com/yatima1460/Drill/network)
 [![GitHub stars](https://img.shields.io/github/stars/yatima1460/Drill.svg)](https://github.com/yatima1460/Drill/stargazers)
@@ -31,22 +31,22 @@ Very fast file searcher without indexing
 
 ## Run
 
-### Precompiled one
-
-Just grab the latest version and run the executable
-
 ### From source
 
+Install Rust using [rustup](https://rustup.rs/), then run:
+
 ```bash
-pip3 install -r requirements-run.txt
-python3 src/main.py
+cargo run --release
 ```
 
+On macOS, double-click `Start Drill.command` to build and start Drill. The first build downloads Rust dependencies. Search results appear while the filesystem is scanned; prefix a query with `fuzzy:` for approximate matching. Drill follows your system light or dark appearance and displays native file icons when available.
+
+See [Rust migration notes](docs/rust-migration.md) for development checks and platform status. Existing downloadable releases predate this Rust version.
 
 ## What happened to the old code?
 
 The old D code and other experimental versions are available in the other branches
-This `main` branch started as an orphan branch to make a clean cut with the old Drill
+The former Python implementation remains available in Git history.
 
 ## What is this in detail
 

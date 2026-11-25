@@ -161,3 +161,8 @@ cython_debug/
 
 
 .DS_Store
+# Rust build output
+/target/
+
+# Finder metadata preserved when moving the checkout
+.DS_Store.previous-checkout
