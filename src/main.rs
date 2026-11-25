@@ -1149,14 +1149,18 @@ fn main() -> eframe::Result {
         options,
         Box::new(|creation| {
             creation.egui_ctx.set_theme(egui::ThemePreference::System);
+            let embedded_exe_icons = embedded_icons_setting(creation.storage);
             #[cfg(any(target_os = "macos", target_os = "windows"))]
-            let mut app = App {
+            let app = App {
                 native_menu: Some(native_menu::NativeMenu::new(creation)?),
+                embedded_exe_icons,
                 ..Default::default()
             };
             #[cfg(not(any(target_os = "macos", target_os = "windows")))]
-            let mut app = App::default();
-            app.embedded_exe_icons = embedded_icons_setting(creation.storage);
+            let app = App {
+                embedded_exe_icons,
+                ..Default::default()
+            };
             Ok(Box::new(app))
         }),
     )
