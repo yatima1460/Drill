@@ -39,7 +39,7 @@ Install Rust using [rustup](https://rustup.rs/), then run:
 cargo run --release
 ```
 
-On macOS, double-click `Start Drill.command` to build and start Drill. The first build downloads Rust dependencies. Search results appear while the filesystem is scanned; prefix a query with `fuzzy:` for approximate matching.
+On macOS, double-click `Start Drill.command` to build and start Drill. The first build downloads Rust dependencies. Search results appear while the filesystem is scanned; prefix a query with `fuzzy:` for approximate matching. Drill follows your system light or dark appearance and displays native file icons when available.
 
 See [Rust migration notes](docs/rust-migration.md) for development checks and platform status. Existing downloadable releases predate this Rust version.
 

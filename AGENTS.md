@@ -2,11 +2,15 @@
 
 Build a small, understandable Rust project with fast feedback, explicit boundaries, and independently checkable behavior. The motivating application is a portable 2D game, but the engineering rules also apply to other Rust projects.
 
-**Project status:** Drill is a desktop file search application. The Rust migration uses one Cargo package with the search core in `src/search.rs` and the desktop UI in `src/main.rs`. Legacy Python releases remain in Git history; Rust release packaging is not yet implemented. See `docs/rust-migration.md` for current commands and platform limitations. Game-specific examples below are general guidance, not requirements for Drill.
+**Project status:** Drill is a desktop file search application. The Rust migration uses a Cargo workspace with the headless search core in `crates/drill-core` and the desktop UI in `src/main.rs`. Legacy Python releases remain in Git history; Rust release packaging is not yet implemented. See `docs/rust-migration.md` for current commands and platform limitations. Game-specific examples below are general guidance, not requirements for Drill.
 
 ## Required collaboration and delivery workflow
 
 For every user request involving repository work, ask an Astra agent with Ultra reasoning to prepare a plan before implementation. The coordinating agent implements the work, runs the appropriate checks, and opens a pull request. Ask Astra Ultra to review the actual pull request and resolve its substantive findings; merge only after the review is satisfactory and required checks pass. Follow the user's instructions on scope and delivery, and do not merge when the user asks for a draft or otherwise says not to merge. If Astra Ultra or a required GitHub operation is unavailable, report the blocker rather than claiming the review or merge happened. Read-only answers do not require a pull request.
+
+## Functional design preference
+
+Prefer a functional core and explicit data flow: write deterministic, side-effect-free transformations where practical, use immutable inputs and values, and isolate filesystem, platform, and UI effects at narrow boundaries. Favor designs that are easy to parallelize and verify. Use mutation or synchronization when useful, with clear ownership, bounded work, and documented invariants; do not sacrifice clarity or necessary performance for purity.
 
 ## 1. Operating contract — read for every task
 
