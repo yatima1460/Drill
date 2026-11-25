@@ -1,0 +1,296 @@
+use std::collections::{HashSet, VecDeque};
+use std::fs;
+use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{mpsc, Arc, Condvar, Mutex};
+use std::thread::{self, JoinHandle};
+use std::time::SystemTime;
+use unicode_normalization::{char::is_combining_mark, UnicodeNormalization};
+
+#[derive(Clone, Debug)]
+pub struct Entry {
+    pub path: PathBuf,
+    pub name: String,
+    pub size: Option<u64>,
+    pub modified: Option<SystemTime>,
+    pub is_dir: bool,
+}
+
+fn normalized(text: &str) -> String {
+    text.to_lowercase()
+        .nfd()
+        .filter(|c| !is_combining_mark(*c))
+        .collect()
+}
+
+// Ratcliff/Obershelp matching, as used by Python's difflib.SequenceMatcher.
+fn matching_chars(a: &[char], b: &[char]) -> usize {
+    let mut best = (0, 0, 0);
+    for i in 0..a.len() {
+        for j in 0..b.len() {
+            let mut n = 0;
+            while i + n < a.len() && j + n < b.len() && a[i + n] == b[j + n] {
+                n += 1;
+            }
+            if n > best.2 {
+                best = (i, j, n);
+            }
+        }
+    }
+    if best.2 == 0 {
+        0
+    } else {
+        best.2
+            + matching_chars(&a[..best.0], &b[..best.1])
+            + matching_chars(&a[best.0 + best.2..], &b[best.1 + best.2..])
+    }
+}
+
+pub fn matches(name: &str, query: &str) -> bool {
+    let (fuzzy, query) = query
+        .strip_prefix("fuzzy:")
+        .map_or((false, query), |q| (true, q));
+    let name = normalized(name);
+    let query = normalized(query);
+    if fuzzy {
+        query.split(' ').all(|token| {
+            name.split_whitespace().any(|word| {
+                let a: Vec<char> = token.chars().collect();
+                let b: Vec<char> = word.chars().collect();
+                !a.is_empty() && 4 * matching_chars(&a, &b) >= a.len() + b.len()
+            })
+        })
+    } else {
+        query.split(' ').all(|token| name.contains(token))
+    }
+}
+
+// The platform root files are embedded, so running a binary from another directory works.
+pub fn default_roots() -> Vec<PathBuf> {
+    let config = if cfg!(target_os = "windows") {
+        include_str!("assets/roots_windows.txt")
+    } else if cfg!(target_os = "macos") {
+        include_str!("assets/roots_mac.txt")
+    } else {
+        include_str!("assets/roots_linux.txt")
+    };
+    let home = std::env::var_os(if cfg!(windows) { "USERPROFILE" } else { "HOME" })
+        .map(PathBuf::from)
+        .unwrap_or_else(|| PathBuf::from("."));
+    let mut roots = Vec::new();
+    for line in config
+        .lines()
+        .map(str::trim)
+        .filter(|line| !line.is_empty() && !line.starts_with('#'))
+    {
+        let mut expanded = line.to_string();
+        if expanded.starts_with('~') {
+            expanded = format!("{}{}", home.to_string_lossy(), &expanded[1..]);
+        }
+        for (key, value) in std::env::vars_os() {
+            if let (Some(key), Some(value)) = (key.to_str(), value.to_str()) {
+                expanded = expanded.replace(&format!("%{key}%"), value);
+            }
+        }
+        let candidates: Vec<PathBuf> = if let Some(suffix) = expanded.strip_prefix("*:") {
+            ('C'..='Z')
+                .map(|drive| PathBuf::from(format!("{drive}:{suffix}")))
+                .collect()
+        } else {
+            vec![PathBuf::from(expanded)]
+        };
+        for path in candidates {
+            let path_text = path.to_string_lossy();
+            if let Some(prefix) = path_text.strip_suffix('*') {
+                let directory_wildcard = prefix.ends_with('/') || prefix.ends_with('\\');
+                let parent = if directory_wildcard {
+                    Path::new(prefix)
+                } else {
+                    Path::new(prefix).parent().unwrap_or(Path::new(prefix))
+                };
+                let name_prefix = if directory_wildcard {
+                    "".into()
+                } else {
+                    Path::new(prefix)
+                        .file_name()
+                        .unwrap_or_default()
+                        .to_string_lossy()
+                };
+                if let Ok(entries) = fs::read_dir(parent) {
+                    roots.extend(
+                        entries
+                            .flatten()
+                            .filter(|e| {
+                                e.file_name()
+                                    .to_string_lossy()
+                                    .starts_with(name_prefix.as_ref())
+                                    && e.path().is_dir()
+                            })
+                            .map(|e| e.path()),
+                    );
+                }
+            } else if path.is_dir() {
+                roots.push(path);
+            }
+        }
+    }
+    if roots.is_empty() {
+        roots.push(home);
+    }
+    roots.sort();
+    roots.dedup();
+    roots
+}
+
+struct Work {
+    queue: VecDeque<PathBuf>,
+    outstanding: usize,
+    visited: HashSet<PathBuf>,
+}
+pub struct Search {
+    receiver: mpsc::Receiver<Entry>,
+    cancel: Arc<AtomicBool>,
+    work: Arc<(Mutex<Work>, Condvar)>,
+    workers: Vec<JoinHandle<()>>,
+}
+impl Search {
+    pub fn start(query: String, roots: Vec<PathBuf>) -> Self {
+        let (tx, receiver) = mpsc::channel();
+        let cancel = Arc::new(AtomicBool::new(false));
+        let roots: HashSet<PathBuf> = roots
+            .into_iter()
+            .filter_map(|p| fs::canonicalize(p).ok())
+            .collect();
+        let work = Arc::new((
+            Mutex::new(Work {
+                queue: roots.iter().cloned().collect(),
+                outstanding: roots.len(),
+                visited: roots,
+            }),
+            Condvar::new(),
+        ));
+        let count = thread::available_parallelism()
+            .map_or(4, |v| v.get())
+            .clamp(1, 16);
+        let mut workers = Vec::new();
+        for _ in 0..count {
+            let (tx, cancel, work, query) =
+                (tx.clone(), cancel.clone(), work.clone(), query.clone());
+            workers.push(thread::spawn(move || loop {
+                let dir = {
+                    let (lock, cv) = &*work;
+                    let mut state = lock.lock().unwrap();
+                    loop {
+                        if cancel.load(Ordering::Relaxed) || state.outstanding == 0 {
+                            return;
+                        }
+                        if let Some(dir) = state.queue.pop_front() {
+                            break dir;
+                        }
+                        state = cv.wait(state).unwrap();
+                    }
+                };
+                if let Ok(entries) = fs::read_dir(dir) {
+                    for item in entries.flatten() {
+                        if cancel.load(Ordering::Relaxed) {
+                            break;
+                        }
+                        let path = item.path();
+                        let Ok(kind) = item.file_type() else { continue };
+                        if kind.is_dir() && !kind.is_symlink() {
+                            let canonical =
+                                fs::canonicalize(&path).unwrap_or_else(|_| path.clone());
+                            let (lock, cv) = &*work;
+                            let mut state = lock.lock().unwrap();
+                            if state.visited.insert(canonical) {
+                                state.queue.push_back(path.clone());
+                                state.outstanding += 1;
+                                cv.notify_one();
+                            }
+                        }
+                        let name = item.file_name().to_string_lossy().into_owned();
+                        if matches(&name, &query) {
+                            let metadata = item.metadata().ok();
+                            if tx
+                                .send(Entry {
+                                    path,
+                                    name,
+                                    size: metadata.as_ref().map(|m| m.len()),
+                                    modified: metadata.and_then(|m| m.modified().ok()),
+                                    is_dir: kind.is_dir(),
+                                })
+                                .is_err()
+                            {
+                                return;
+                            }
+                        }
+                    }
+                }
+                let (lock, cv) = &*work;
+                let mut state = lock.lock().unwrap();
+                state.outstanding -= 1;
+                if state.outstanding == 0 {
+                    cv.notify_all();
+                }
+            }));
+        }
+        Self {
+            receiver,
+            cancel,
+            work,
+            workers,
+        }
+    }
+    pub fn try_recv(&self) -> Result<Entry, mpsc::TryRecvError> {
+        self.receiver.try_recv()
+    }
+    pub fn pending(&self) -> usize {
+        self.work.0.lock().unwrap().outstanding
+    }
+    pub fn done(&self) -> bool {
+        self.workers.iter().all(JoinHandle::is_finished)
+    }
+    pub fn stop(&self) {
+        let _guard = self.work.0.lock().unwrap();
+        self.cancel.store(true, Ordering::Relaxed);
+        self.work.1.notify_all();
+    }
+}
+impl Drop for Search {
+    fn drop(&mut self) {
+        self.stop();
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn matching() {
+        assert!(matches("Project Nôtés.txt", "project notes"));
+        assert!(!matches("Project Notes.txt", "projecx notes"));
+        assert!(matches("Project Notes.txt", "fuzzy:projecx notes"));
+        assert!(!matches("Project Notes.txt", "fuzzy:unrelated"));
+    }
+    #[test]
+    fn scan_finishes_and_finds_files_and_directories() {
+        let root = std::env::temp_dir().join(format!("drill-test-{}", std::process::id()));
+        fs::create_dir_all(root.join("needle-folder")).unwrap();
+        fs::write(root.join("needle-file.txt"), "x").unwrap();
+        let search = Search::start(
+            "needle".into(),
+            vec![root.clone(), root.join("needle-folder")],
+        );
+        let mut names = Vec::new();
+        while let Ok(e) = search
+            .receiver
+            .recv_timeout(std::time::Duration::from_secs(5))
+        {
+            names.push(e.name);
+        }
+        assert!(search.done());
+        assert!(names.contains(&"needle-file.txt".to_string()));
+        assert!(names.contains(&"needle-folder".to_string()));
+        fs::remove_dir_all(root).unwrap();
+    }
+}
