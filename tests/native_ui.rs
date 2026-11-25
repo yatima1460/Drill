@@ -1,7 +1,9 @@
 //! Drives an actual desktop window and real operating-system input. Run only in
 //! an isolated display or with the user's explicit permission (it moves the cursor).
 #![cfg(feature = "ui-test-driver")]
-use enigo::{Button, Coordinate, Direction, Enigo, Key, Keyboard, Mouse, Settings};
+#[cfg(not(target_os = "linux"))]
+use enigo::Coordinate;
+use enigo::{Button, Direction, Enigo, Key, Keyboard, Mouse, Settings};
 use std::fs;
 use std::process::{Child, Command, Stdio};
 use std::time::{Duration, Instant};
@@ -48,18 +50,8 @@ fn native_typing_selection_and_escape() {
         .unwrap();
     let mut child = AppProcess(child);
     let initial = wait_for(&status, |s| s.contains("query=") && s.contains("x="));
-    let field = |name: &str| {
-        initial
-            .lines()
-            .find_map(|line| line.strip_prefix(name))
-            .unwrap()
-            .parse::<f32>()
-            .unwrap() as i32
-    };
     #[cfg(target_os = "linux")]
-    let origin = {
-        // Xvfb has no automatic focus. Ask the isolated window manager to focus
-        // the exact child window and query its client coordinates.
+    let window_id = {
         let pid = child.0.id().to_string();
         let found = Command::new("xdotool")
             .args([
@@ -75,38 +67,46 @@ fn native_typing_selection_and_escape() {
             .expect("xdotool is required for native UI tests on X11");
         assert!(found.status.success(), "could not find the test window");
         let ids = String::from_utf8(found.stdout).unwrap();
-        let id = ids.lines().next().expect("missing X11 window id");
-        let focused = Command::new("xdotool")
-            .args(["windowactivate", "--sync", id])
+        let id = ids
+            .lines()
+            .next()
+            .expect("missing X11 window id")
+            .to_string();
+        let focused = Command::new("timeout")
+            .args(["10s", "xdotool", "windowactivate", "--sync", &id])
             .status()
             .unwrap();
-        assert!(focused.success(), "could not focus the test window");
-        let geometry = Command::new("xdotool")
-            .args(["getwindowgeometry", "--shell", id])
-            .output()
-            .unwrap();
         assert!(
-            geometry.status.success(),
-            "could not inspect window geometry"
+            focused.success(),
+            "could not focus the test window within 10 seconds"
         );
-        let geometry = String::from_utf8(geometry.stdout).unwrap();
-        let coordinate = |prefix: &str| {
-            geometry
-                .lines()
-                .find_map(|line| line.strip_prefix(prefix))
-                .unwrap()
-                .parse::<i32>()
-                .unwrap()
-        };
-        (coordinate("X="), coordinate("Y="))
+        id
     };
     #[cfg(not(target_os = "linux"))]
-    let origin = (field("x="), field("y="));
+    let origin = {
+        let field = |name: &str| {
+            initial
+                .lines()
+                .find_map(|line| line.strip_prefix(name))
+                .unwrap()
+                .parse::<f32>()
+                .unwrap() as i32
+        };
+        (field("x="), field("y="))
+    };
     #[cfg(target_os = "linux")]
-    let _ = field;
-    let (x, y) = (origin.0 + 90, origin.1 + 25);
+    let _ = initial;
     let mut input = Enigo::new(&Settings::default()).expect("Cannot create OS input driver; on macOS enable Accessibility permission for the app running this test");
-    input.move_mouse(x, y, Coordinate::Abs).unwrap();
+    #[cfg(target_os = "linux")]
+    assert!(Command::new("xdotool")
+        .args(["mousemove", "--window", &window_id, "90", "25"])
+        .status()
+        .unwrap()
+        .success());
+    #[cfg(not(target_os = "linux"))]
+    input
+        .move_mouse(origin.0 + 90, origin.1 + 25, Coordinate::Abs)
+        .unwrap();
     input.button(Button::Left, Direction::Click).unwrap();
     input
         .text("drill_native_unique_test")
@@ -114,6 +114,13 @@ fn native_typing_selection_and_escape() {
     wait_for(&status, |s| {
         s.contains("query=drill_native_unique_test") && s.contains("drill_native_unique_test.txt")
     });
+    #[cfg(target_os = "linux")]
+    assert!(Command::new("xdotool")
+        .args(["mousemove", "--window", &window_id, "30", "66"])
+        .status()
+        .unwrap()
+        .success());
+    #[cfg(not(target_os = "linux"))]
     input
         .move_mouse(origin.0 + 30, origin.1 + 66, Coordinate::Abs)
         .unwrap();
