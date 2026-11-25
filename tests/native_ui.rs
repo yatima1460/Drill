@@ -36,7 +36,16 @@ fn wait_for(path: &std::path::Path, predicate: impl Fn(&str) -> bool) -> String 
 #[test]
 #[ignore = "moves the real mouse and types in a native window; run explicitly on a controlled desktop"]
 fn native_typing_selection_and_escape() {
-    let directory = tempfile::tempdir().unwrap();
+    #[cfg(unix)]
+    let mut builder = tempfile::Builder::new();
+    #[cfg(not(unix))]
+    let builder = tempfile::Builder::new();
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        builder.permissions(fs::Permissions::from_mode(0o700));
+    }
+    let directory = builder.tempdir().unwrap();
     let root = directory.path();
     fs::write(root.join("drill_native_unique_test.txt"), "fixture").unwrap();
     fs::write(root.join("drill_native_unique_test-b.txt"), "fixture").unwrap();
