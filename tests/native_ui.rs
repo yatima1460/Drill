@@ -53,19 +53,23 @@ fn native_typing_selection_and_escape() {
     #[cfg(target_os = "linux")]
     let window_id = {
         let pid = child.0.id().to_string();
-        let found = Command::new("xdotool")
+        let found = Command::new("timeout")
             .args([
+                "15s",
+                "xdotool",
                 "search",
-                "--all",
+                "--sync",
                 "--onlyvisible",
                 "--pid",
                 &pid,
-                "--name",
-                "^Drill$",
             ])
             .output()
             .expect("xdotool is required for native UI tests on X11");
-        assert!(found.status.success(), "could not find the test window");
+        assert!(
+            found.status.success(),
+            "could not find the test window within 15 seconds: {}",
+            String::from_utf8_lossy(&found.stderr)
+        );
         let ids = String::from_utf8(found.stdout).unwrap();
         let id = ids
             .lines()
