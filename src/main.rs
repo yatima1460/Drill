@@ -12,6 +12,12 @@ mod native_menu;
 mod permissions;
 
 const LIMIT: usize = 10_000;
+fn embedded_icons_setting(storage: Option<&dyn eframe::Storage>) -> bool {
+    storage
+        .and_then(|storage| storage.get_string("embedded_exe_icons"))
+        .and_then(|value| value.parse().ok())
+        .unwrap_or(true)
+}
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 enum SortColumn {
     Name,
@@ -614,7 +620,8 @@ impl App {
         #[cfg(not(any(target_os = "macos", target_os = "windows")))]
         in_window_search_menu(ctx, self);
         #[cfg(target_os = "macos")]
-        let background_input_allowed = !permissions_were_open && !interface_was_open && !self.interface_open;
+        let background_input_allowed =
+            !permissions_were_open && !interface_was_open && !self.interface_open;
         #[cfg(not(target_os = "macos"))]
         let background_input_allowed = !interface_was_open && !self.interface_open;
         let mut icon_budget = 4;
@@ -809,10 +816,14 @@ impl App {
                                     entry.path.clone(),
                                     ctx.clone(),
                                 ) {
-                                    exe_icon::RequestState::Queued => { self.pending_icons.insert(entry.path.clone()); }
+                                    exe_icon::RequestState::Queued => {
+                                        self.pending_icons.insert(entry.path.clone());
+                                    }
                                     exe_icon::RequestState::Full => icons_pending = true,
                                     exe_icon::RequestState::Closed => {
-                                        for path in self.pending_icons.drain() { self.icons.insert(path, None); }
+                                        for path in self.pending_icons.drain() {
+                                            self.icons.insert(path, None);
+                                        }
                                         self.icons.insert(entry.path.clone(), None);
                                     }
                                 }
@@ -1087,11 +1098,7 @@ fn main() -> eframe::Result {
             };
             #[cfg(not(any(target_os = "macos", target_os = "windows")))]
             let mut app = App::default();
-            app.embedded_exe_icons = creation
-                .storage
-                .and_then(|storage| storage.get_string("embedded_exe_icons"))
-                .and_then(|value| value.parse().ok())
-                .unwrap_or(true);
+            app.embedded_exe_icons = embedded_icons_setting(creation.storage);
             Ok(Box::new(app))
         }),
     )
@@ -1101,6 +1108,29 @@ fn main() -> eframe::Result {
 mod ui_tests {
     use super::*;
     use std::path::PathBuf;
+
+    #[test]
+    fn executable_icon_preference_defaults_on_and_round_trips() {
+        use eframe::App as _;
+        struct Memory(Option<String>);
+        impl eframe::Storage for Memory {
+            fn get_string(&self, _: &str) -> Option<String> {
+                self.0.clone()
+            }
+            fn set_string(&mut self, _: &str, value: String) {
+                self.0 = Some(value);
+            }
+            fn flush(&mut self) {}
+        }
+        let mut storage = Memory(None);
+        assert!(embedded_icons_setting(Some(&storage)));
+        let mut app = App {
+            embedded_exe_icons: false,
+            ..Default::default()
+        };
+        app.save(&mut storage);
+        assert!(!embedded_icons_setting(Some(&storage)));
+    }
 
     #[test]
     fn terminal_uses_folder_itself_or_file_parent_even_if_missing() {

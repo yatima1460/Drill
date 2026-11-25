@@ -128,6 +128,11 @@ pub struct Worker {
     pub receiver: mpsc::Receiver<Response>,
     generation: Arc<AtomicU64>,
 }
+pub enum RequestState {
+    Queued,
+    Full,
+    Closed,
+}
 
 #[cfg(target_os = "macos")]
 #[allow(unsafe_code)]
@@ -189,14 +194,16 @@ impl Worker {
     pub fn invalidate(&self, generation: u64) {
         self.generation.store(generation, Ordering::Relaxed);
     }
-    pub fn request(&self, generation: u64, path: PathBuf, context: egui::Context) -> bool {
-        self.sender
-            .try_send(Request {
-                generation,
-                path,
-                context,
-            })
-            .is_ok()
+    pub fn request(&self, generation: u64, path: PathBuf, context: egui::Context) -> RequestState {
+        match self.sender.try_send(Request {
+            generation,
+            path,
+            context,
+        }) {
+            Ok(()) => RequestState::Queued,
+            Err(mpsc::TrySendError::Full(_)) => RequestState::Full,
+            Err(mpsc::TrySendError::Disconnected(_)) => RequestState::Closed,
+        }
     }
 }
 #[cfg(test)]
