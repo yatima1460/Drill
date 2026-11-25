@@ -69,6 +69,11 @@ pub fn matches(name: &str, query: &str) -> bool {
 
 // The platform root files are embedded, so running a binary from another directory works.
 pub fn default_roots() -> Vec<PathBuf> {
+    default_roots_with_cancel(&AtomicBool::new(false))
+}
+
+/// Discovers platform roots, checking cancellation between filesystem operations.
+pub fn default_roots_with_cancel(cancel: &AtomicBool) -> Vec<PathBuf> {
     let config = if cfg!(target_os = "windows") {
         include_str!("../../../src/assets/roots_windows.txt")
     } else if cfg!(target_os = "macos") {
@@ -85,6 +90,9 @@ pub fn default_roots() -> Vec<PathBuf> {
         .map(str::trim)
         .filter(|line| !line.is_empty() && !line.starts_with('#'))
     {
+        if cancel.load(Ordering::Relaxed) {
+            break;
+        }
         let mut expanded = line.to_string();
         if expanded.starts_with('~') {
             expanded = format!("{}{}", home.to_string_lossy(), &expanded[1..]);
@@ -102,6 +110,9 @@ pub fn default_roots() -> Vec<PathBuf> {
             vec![PathBuf::from(expanded)]
         };
         for path in candidates {
+            if cancel.load(Ordering::Relaxed) {
+                break;
+            }
             let path_text = path.to_string_lossy();
             if let Some(prefix) = path_text.strip_suffix('*') {
                 let directory_wildcard = prefix.ends_with('/') || prefix.ends_with('\\');
@@ -122,6 +133,7 @@ pub fn default_roots() -> Vec<PathBuf> {
                     roots.extend(
                         entries
                             .flatten()
+                            .take_while(|_| !cancel.load(Ordering::Relaxed))
                             .filter(|e| {
                                 e.file_name()
                                     .to_string_lossy()
@@ -136,7 +148,7 @@ pub fn default_roots() -> Vec<PathBuf> {
             }
         }
     }
-    if roots.is_empty() {
+    if roots.is_empty() && !cancel.load(Ordering::Relaxed) {
         roots.push(home);
     }
     roots.sort();
@@ -214,21 +226,39 @@ pub struct Search {
 }
 impl Search {
     pub fn start(query: String, roots: Vec<PathBuf>) -> Self {
+        Self::start_with_cancel(query, roots, Arc::new(AtomicBool::new(false)))
+    }
+
+    /// Cancels startup when the token is set. After startup, call `stop` instead.
+    /// An in-flight filesystem call may finish before startup stops.
+    pub fn start_with_cancel(
+        query: String,
+        roots: Vec<PathBuf>,
+        startup_cancel: Arc<AtomicBool>,
+    ) -> Self {
         let (tx, receiver) = mpsc::sync_channel(512);
         let cancel = Arc::new(AtomicBool::new(false));
         let mut visited = HashSet::new();
         let roots: Vec<PathBuf> = roots
             .into_iter()
             .filter(|p| {
-                fs::canonicalize(p)
-                    .ok()
-                    .is_some_and(|canonical| visited.insert(canonical))
+                !startup_cancel.load(Ordering::Relaxed)
+                    && fs::canonicalize(p)
+                        .ok()
+                        .is_some_and(|canonical| visited.insert(canonical))
             })
             .collect();
+        let queue: BinaryHeap<Priority> = roots
+            .iter()
+            .take_while(|_| !startup_cancel.load(Ordering::Relaxed))
+            .cloned()
+            .map(priority)
+            .collect();
+        let outstanding = queue.len();
         let work = Arc::new((
             Mutex::new(Work {
-                queue: roots.iter().cloned().map(priority).collect(),
-                outstanding: roots.len(),
+                queue,
+                outstanding,
                 visited,
             }),
             Condvar::new(),
@@ -238,6 +268,9 @@ impl Search {
             .clamp(1, 16);
         let mut workers = Vec::new();
         for _ in 0..count {
+            if startup_cancel.load(Ordering::Relaxed) {
+                break;
+            }
             let (tx, cancel, work, query) =
                 (tx.clone(), cancel.clone(), work.clone(), query.clone());
             workers.push(thread::spawn(move || loop {
@@ -307,12 +340,16 @@ impl Search {
                 }
             }));
         }
-        Self {
+        let search = Self {
             receiver,
             cancel,
             work,
             workers,
+        };
+        if startup_cancel.load(Ordering::Relaxed) {
+            search.stop();
         }
+        search
     }
     pub fn try_recv(&self) -> Result<Entry, mpsc::TryRecvError> {
         self.receiver.try_recv()
