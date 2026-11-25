@@ -5,6 +5,8 @@ use drill_core::{default_roots, Entry, Search};
 use eframe::egui::{self, Key, RichText};
 use std::path::Path;
 use std::time::{Duration, Instant};
+#[cfg(any(target_os = "macos", target_os = "windows"))]
+mod native_menu;
 
 const LIMIT: usize = 10_000;
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -29,10 +31,12 @@ struct App {
     changed: Option<Instant>,
     search: Option<Search>,
     starting: Option<std::sync::mpsc::Receiver<Search>>,
+    starting_cancel: Option<std::sync::Arc<std::sync::atomic::AtomicBool>>,
     completed: bool,
     results: Vec<Entry>,
     selected: Option<usize>,
     limited: bool,
+    stopped: bool,
     focus_search: bool,
     scroll_offset: f32,
     icons: std::collections::HashMap<std::path::PathBuf, Option<egui::TextureHandle>>,
@@ -41,6 +45,8 @@ struct App {
     action_result: Option<std::sync::mpsc::Receiver<Result<(), String>>>,
     terminal_sender: std::sync::mpsc::Sender<String>,
     terminal_errors: std::sync::mpsc::Receiver<String>,
+    #[cfg(any(target_os = "macos", target_os = "windows"))]
+    native_menu: Option<native_menu::NativeMenu>,
 }
 impl Default for App {
     fn default() -> Self {
@@ -50,10 +56,12 @@ impl Default for App {
             changed: None,
             search: None,
             starting: None,
+            starting_cancel: None,
             completed: false,
             results: Vec::new(),
             selected: None,
             limited: false,
+            stopped: false,
             focus_search: true,
             scroll_offset: 0.0,
             icons: std::collections::HashMap::new(),
@@ -62,6 +70,8 @@ impl Default for App {
             action_result: None,
             terminal_sender,
             terminal_errors,
+            #[cfg(any(target_os = "macos", target_os = "windows"))]
+            native_menu: None,
         }
     }
 }
@@ -316,7 +326,35 @@ fn icon_menu_button(ui: &mut egui::Ui, text: &str, icon: MenuIcon) -> bool {
     response.clicked()
 }
 impl App {
+    fn can_stop(&self) -> bool {
+        self.changed.is_some()
+            || self.starting.is_some()
+            || (self.search.is_some() && !self.completed && !self.limited)
+    }
+
+    fn stop_search(&mut self) {
+        if !self.can_stop() {
+            return;
+        }
+        self.changed = None;
+        if let Some(cancel) = self.starting_cancel.take() {
+            cancel.store(true, std::sync::atomic::Ordering::Relaxed);
+        }
+        self.starting = None;
+        self.search = None;
+        self.completed = false;
+        self.stopped = true;
+    }
+
     fn update_ui(&mut self, ctx: &egui::Context) {
+        #[cfg(any(target_os = "macos", target_os = "windows"))]
+        if self
+            .native_menu
+            .as_ref()
+            .is_some_and(|menu| menu.take_stop())
+        {
+            self.stop_search();
+        }
         if let Ok(error) = self.terminal_errors.try_recv() {
             self.action_error = Some(error);
         }
@@ -359,15 +397,21 @@ impl App {
         {
             self.changed = None;
             self.search = None;
+            if let Some(cancel) = self.starting_cancel.take() {
+                cancel.store(true, std::sync::atomic::Ordering::Relaxed);
+            }
             self.starting = None;
             self.completed = false;
             self.results.clear();
             self.icons.clear();
             self.selected = None;
             self.limited = false;
+            self.stopped = false;
             if !self.query.trim().is_empty() {
                 let query = self.query.clone();
                 let (tx, rx) = std::sync::mpsc::sync_channel(1);
+                let cancel = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
+                self.starting_cancel = Some(cancel.clone());
                 self.starting = Some(rx);
                 std::thread::spawn(move || {
                     #[cfg(feature = "ui-test-driver")]
@@ -376,7 +420,7 @@ impl App {
                         .unwrap_or_else(default_roots);
                     #[cfg(not(feature = "ui-test-driver"))]
                     let roots = default_roots();
-                    let _ = tx.send(Search::start(query, roots));
+                    let _ = tx.send(Search::start_with_cancel(query, roots, cancel));
                 });
             }
         }
@@ -384,6 +428,7 @@ impl App {
             if let Ok(search) = starting.try_recv() {
                 self.search = Some(search);
                 self.starting = None;
+                self.starting_cancel = None;
             }
         }
         let mut results_changed = false;
@@ -410,7 +455,9 @@ impl App {
         if self.limited {
             self.search = None;
         }
-        let title = if self.limited {
+        let title = if self.stopped {
+            format!("Drill - {} items found - stopped", self.results.len())
+        } else if self.limited {
             format!("Drill - {}+ items found, search stopped", LIMIT)
         } else if let Some(search) = &self.search {
             if self.completed {
@@ -428,6 +475,24 @@ impl App {
             "Drill".into()
         };
         ctx.send_viewport_cmd(egui::ViewportCommand::Title(title));
+        #[cfg(any(target_os = "macos", target_os = "windows"))]
+        if let Some(menu) = &self.native_menu {
+            menu.set_enabled(self.can_stop());
+        }
+        #[cfg(not(any(target_os = "macos", target_os = "windows")))]
+        egui::TopBottomPanel::top("menu_bar").show(ctx, |ui| {
+            egui::menu::bar(ui, |ui| {
+                ui.menu_button("Search", |ui| {
+                    if ui
+                        .add_enabled(self.can_stop(), egui::Button::new("Stop"))
+                        .clicked()
+                    {
+                        self.stop_search();
+                        ui.close_menu();
+                    }
+                });
+            });
+        });
         let mut icon_budget = 4;
         let mut icons_pending = false;
         egui::CentralPanel::default().show(ctx, |ui| {
@@ -443,12 +508,16 @@ impl App {
             }
             if response.changed() {
                 self.search = None;
+                if let Some(cancel) = self.starting_cancel.take() {
+                    cancel.store(true, std::sync::atomic::Ordering::Relaxed);
+                }
                 self.starting = None;
                 self.completed = false;
                 self.results.clear();
                 self.icons.clear();
                 self.selected = None;
                 self.limited = false;
+                self.stopped = false;
                 self.changed = if self.query.trim().is_empty() {
                     None
                 } else {
@@ -837,7 +906,14 @@ fn main() -> eframe::Result {
         options,
         Box::new(|creation| {
             creation.egui_ctx.set_theme(egui::ThemePreference::System);
-            Ok(Box::<App>::default())
+            #[cfg(any(target_os = "macos", target_os = "windows"))]
+            let app = App {
+                native_menu: Some(native_menu::NativeMenu::new(creation)?),
+                ..Default::default()
+            };
+            #[cfg(not(any(target_os = "macos", target_os = "windows")))]
+            let app = App::default();
+            Ok(Box::new(app))
         }),
     )
 }
@@ -855,6 +931,46 @@ mod ui_tests {
         item.is_dir = true;
         assert_eq!(terminal_directory(&item), item.path);
         assert!(open_terminal(terminal_directory(&item)).is_err());
+    }
+
+    #[test]
+    fn stop_revokes_pending_start_and_preserves_results() {
+        use std::sync::{
+            atomic::{AtomicBool, Ordering},
+            Arc,
+        };
+        let (tx, rx) = std::sync::mpsc::sync_channel(1);
+        let cancel = Arc::new(AtomicBool::new(false));
+        let mut app = App {
+            query: "kept".into(),
+            results: vec![entry("kept", 1)],
+            selected: Some(0),
+            starting: Some(rx),
+            starting_cancel: Some(cancel.clone()),
+            ..Default::default()
+        };
+        app.stop_search();
+        assert!(cancel.load(Ordering::Relaxed));
+        assert!(app.stopped && !app.can_stop());
+        assert_eq!(app.results[0].name, "kept");
+        assert_eq!(app.selected, Some(0));
+        let stale = Search::start_with_cancel("stale".into(), vec![], cancel);
+        assert!(tx.send(stale).is_err());
+        assert!(app.search.is_none());
+    }
+
+    #[test]
+    fn stop_cancels_typing_delay() {
+        let mut app = App {
+            query: "test".into(),
+            changed: Some(Instant::now()),
+            ..Default::default()
+        };
+        assert!(app.can_stop());
+        app.stop_search();
+        assert!(!app.can_stop());
+        assert!(app.stopped);
+        assert_eq!(app.query, "test");
     }
 
     #[test]
@@ -998,7 +1114,10 @@ mod ui_tests {
             ..Default::default()
         };
         let _ = frame(&ctx, &mut app, vec![]);
-        let point = egui::pos2(20.0, 66.0);
+        let point = egui::pos2(
+            20.0,
+            66.0 + if cfg!(target_os = "linux") { 22.0 } else { 0.0 },
+        );
         let click = |pressed| egui::Event::PointerButton {
             pos: point,
             button: egui::PointerButton::Primary,
