@@ -300,8 +300,12 @@ impl App {
                             order.reverse()
                         }
                     });
+                    let previous = self.selected;
                     self.selected = selected_path
                         .and_then(|path| self.results.iter().position(|entry| entry.path == path));
+                    if self.selected != previous {
+                        keyboard_selection_changed = true;
+                    }
                 }
             }
             ui.separator();
@@ -309,7 +313,8 @@ impl App {
             if keyboard_selection_changed {
                 if let Some(selected) = self.selected {
                     let height = ui.available_height();
-                    let top = selected as f32 * 25.0;
+                    let stride = 25.0 + ui.spacing().item_spacing.y;
+                    let top = selected as f32 * stride;
                     let offset = if top < self.scroll_offset {
                         top
                     } else if top + 25.0 > self.scroll_offset + height {
@@ -526,7 +531,7 @@ fn set_dock_icon() {
     use objc2_app_kit::{NSApplication, NSImage};
     use objc2_foundation::NSData;
     let marker = MainThreadMarker::new().expect("desktop application runs on the main thread");
-    let data = NSData::with_bytes(include_bytes!("assets/drill.png"));
+    let data = NSData::with_bytes(include_bytes!("assets/drill-macos.png"));
     if let Some(image) = NSImage::initWithData(NSImage::alloc(), &data) {
         // SAFETY: the marker establishes the main thread, and Some(&image) supplies a live, non-null NSImage.
         unsafe {
@@ -635,7 +640,9 @@ mod ui_tests {
         };
         let _ = frame(&ctx, &mut app, vec![key(Key::ArrowDown)]);
         assert_eq!(app.selected, Some(61));
-        assert!(app.scroll_offset > 0.0);
+        // A row this far down must use egui's height plus item spacing;
+        // a 25 px-only stride leaves it well below the viewport.
+        assert!(app.scroll_offset > 1200.0);
         app.selected = Some(0);
         let _ = frame(&ctx, &mut app, vec![key(Key::ArrowUp)]);
         assert_eq!(app.selected, None);

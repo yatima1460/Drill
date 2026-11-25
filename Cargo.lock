@@ -579,7 +579,7 @@ checksum = "d8b14ccef22fc6f5a8f4d7d768562a182c04ce9a3b3157b91390b52ddfdf1a76"
 
 [[package]]
 name = "drill"
-version = "1.0.0"
+version = "2.0.0"
 dependencies = [
  "chrono",
  "drill-core",
@@ -594,7 +594,7 @@ dependencies = [
 
 [[package]]
 name = "drill-core"
-version = "1.0.0"
+version = "2.0.0"
 dependencies = [
  "unicode-normalization",
 ]

@@ -99,4 +99,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
           RUN_NUMBER: ${{ github.run_number }}
-        run: gh release create "release-${RUN_NUMBER}" dist/* --title "Release ${RUN_NUMBER}" --generate-notes
+          RUN_ID: ${{ github.run_id }}
+          RUN_ATTEMPT: ${{ github.run_attempt }}
+          COMMIT_SHA: ${{ github.sha }}
+        run: gh release create "rust-release-${RUN_ID}-${RUN_ATTEMPT}" dist/* --target "$COMMIT_SHA" --title "Rust release ${RUN_NUMBER}" --generate-notes

@@ -2,7 +2,7 @@
 
 Build a small, understandable Rust project with fast feedback, explicit boundaries, and independently checkable behavior. The motivating application is a portable 2D game, but the engineering rules also apply to other Rust projects.
 
-**Project status:** Drill is a desktop file search application. The Rust migration uses a Cargo workspace with the headless search core in `crates/drill-core` and the desktop UI in `src/main.rs`. Legacy Python releases remain in Git history; Rust release packaging is not yet implemented. See `docs/rust-migration.md` for current commands and platform limitations. Game-specific examples below are general guidance, not requirements for Drill.
+**Project status:** Drill is a desktop file search application. The Rust migration uses a Cargo workspace with the headless search core in `crates/drill-core` and the desktop UI in `src/main.rs`. Legacy Python releases remain in Git history. Rust release packaging is defined in CI; verify its current platform checks before claiming release readiness. See `docs/rust-migration.md` for current commands and platform limitations. Game-specific examples below are general guidance, not requirements for Drill.
 
 ## Required collaboration and delivery workflow
 
