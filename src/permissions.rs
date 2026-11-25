@@ -128,7 +128,7 @@ impl Permissions {
         let mut open = self.open;
         let mut chosen = None;
         let mut settings = None;
-        egui::Window::new("Permissions").open(&mut open).default_width(480.0).show(ctx, |ui| {
+        egui::Window::new("Permissions").open(&mut open).default_width(480.0).vscroll(true).show(ctx, |ui| {
             ui.label("Choose a folder to let macOS request access for Drill and include it in searches during this session.");
             ui.label("macOS controls access. A successful check only confirms that the selected folder can be listed.");
             ui.add_space(8.0);
