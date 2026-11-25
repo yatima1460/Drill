@@ -77,7 +77,7 @@ impl Permissions {
     pub fn roots(&self) -> Vec<PathBuf> {
         self.roots.clone()
     }
-    fn choose(&mut self, starting_folder: Option<PathBuf>, ctx: &egui::Context) {
+    fn choose(&mut self, starting_folder: Option<PathBuf>, ctx: &egui::Context) -> bool {
         let mut dialog = rfd::FileDialog::new().set_title("Choose a folder for Drill to search");
         if let Some(path) = starting_folder {
             dialog = dialog.set_directory(path);
@@ -87,13 +87,13 @@ impl Permissions {
                 self.roots.push(path.clone());
             }
             if self.pending.contains(&path) {
-                return;
+                return true;
             }
             if self.pending.len() >= 4 {
                 self.checks.retain(|(p, _)| p != &path);
                 self.checks
                     .push((path, "Not checked: wait for other checks to finish".into()));
-                return;
+                return true;
             }
             self.pending.insert(path.clone());
             self.checks.retain(|(p, _)| p != &path);
@@ -105,9 +105,11 @@ impl Permissions {
                 let _ = tx.send(Completion::Folder(path, status));
                 ctx.request_repaint();
             });
+            return true;
         }
+        false
     }
-    pub fn show(&mut self, ctx: &egui::Context) {
+    pub fn show(&mut self, ctx: &egui::Context) -> bool {
         while let Ok(completion) = self.receiver.try_recv() {
             match completion {
                 Completion::Folder(path, status) => {
@@ -123,7 +125,7 @@ impl Permissions {
             }
         }
         if !self.open {
-            return;
+            return false;
         }
         let mut open = self.open;
         let mut chosen = None;
@@ -157,8 +159,9 @@ impl Permissions {
             });
         }
         if let Some(path) = chosen {
-            self.choose(path, ctx);
+            return self.choose(path, ctx);
         }
+        false
     }
 }
 #[cfg(test)]
