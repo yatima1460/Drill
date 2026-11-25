@@ -1,5 +1,5 @@
 #![cfg_attr(target_os = "windows", windows_subsystem = "windows")]
-#![deny(unsafe_code)]
+#![forbid(unsafe_code)]
 use chrono::{DateTime, Local};
 use drill_core::{default_roots, Entry, Search};
 use eframe::egui::{self, Key, RichText};
@@ -524,27 +524,16 @@ impl eframe::App for App {
     }
 }
 
-#[cfg(target_os = "macos")]
-#[allow(unsafe_code)]
-fn set_dock_icon() {
-    use objc2::{AnyThread, MainThreadMarker};
-    use objc2_app_kit::{NSApplication, NSImage};
-    use objc2_foundation::NSData;
-    let marker = MainThreadMarker::new().expect("desktop application runs on the main thread");
-    let data = NSData::with_bytes(include_bytes!("assets/drill-macos.png"));
-    if let Some(image) = NSImage::initWithData(NSImage::alloc(), &data) {
-        // SAFETY: the marker establishes the main thread, and Some(&image) supplies a live, non-null NSImage.
-        unsafe {
-            NSApplication::sharedApplication(marker).setApplicationIconImage(Some(&image));
-        }
-    }
-}
 fn main() -> eframe::Result {
     if std::env::args().any(|arg| arg == "--version") {
         println!("Drill {}", env!("CARGO_PKG_VERSION"));
         return Ok(());
     }
-    let icon = image::load_from_memory(include_bytes!("assets/drill.png"))
+    #[cfg(target_os = "macos")]
+    let icon_bytes: &[u8] = include_bytes!("assets/drill-macos.png");
+    #[cfg(not(target_os = "macos"))]
+    let icon_bytes: &[u8] = include_bytes!("assets/drill.png");
+    let icon = image::load_from_memory(icon_bytes)
         .expect("embedded Drill icon must be valid PNG")
         .into_rgba8();
     let (width, height) = icon.dimensions();
@@ -564,8 +553,6 @@ fn main() -> eframe::Result {
         options,
         Box::new(|creation| {
             creation.egui_ctx.set_theme(egui::ThemePreference::System);
-            #[cfg(target_os = "macos")]
-            set_dock_icon();
             Ok(Box::<App>::default())
         }),
     )
