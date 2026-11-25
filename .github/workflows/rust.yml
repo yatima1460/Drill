@@ -15,6 +15,7 @@ jobs:
         with:
           toolchain: 1.100.0
           components: rustfmt, clippy
+          targets: wasm32-unknown-unknown
       - name: Install build and packaging dependencies
         run: |
           sudo apt-get update
@@ -23,6 +24,19 @@ jobs:
         run: |
           shellcheck scripts/*.sh 'Start Drill.command' 'Run UI Tests.command' 'Run Core Tests.command'
           for script in scripts/*.sh 'Start Drill.command' 'Run UI Tests.command' 'Run Core Tests.command'; do bash -n "$script"; done
+      - name: Verify isolated icon decoder
+        run: |
+          cargo fmt --manifest-path tools/exe-icon-wasm/Cargo.toml -- --check
+          export RUSTFLAGS="--remap-path-prefix=${CARGO_HOME:-$HOME/.cargo}/registry/src=/cargo/registry/src --remap-path-prefix=$PWD=/workspace"
+          cargo build --manifest-path tools/exe-icon-wasm/Cargo.toml --target wasm32-unknown-unknown --release --locked
+          cmp src/assets/exe-icon.wasm tools/exe-icon-wasm/target/wasm32-unknown-unknown/release/drill_exe_icon_wasm.wasm
+      - name: Preserve decoder rebuild on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: decoder-rebuild
+          path: tools/exe-icon-wasm/target/wasm32-unknown-unknown/release/drill_exe_icon_wasm.wasm
+          if-no-files-found: ignore
       - run: cargo fmt --all -- --check
       - run: cargo check --locked --workspace --all-targets
       - run: cargo clippy --locked --workspace --all-targets --all-features -- -D warnings -D clippy::undocumented_unsafe_blocks

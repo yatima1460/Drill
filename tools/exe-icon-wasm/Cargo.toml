@@ -1,0 +1,20 @@
+[package]
+name = "drill-exe-icon-wasm"
+version = "0.1.0"
+edition = "2021"
+
+[workspace]
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+icoextract_rs = "0.1.2"
+image = { version = "0.25.10", default-features = false, features = ["ico", "png"] }
+
+[profile.release]
+opt-level = "s"
+lto = true
+codegen-units = 1
+strip = true
+panic = "abort"
