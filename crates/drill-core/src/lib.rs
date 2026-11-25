@@ -1,3 +1,4 @@
+#![forbid(unsafe_code)]
 use std::cmp::Reverse;
 use std::collections::{BinaryHeap, HashSet};
 use std::fs;
@@ -69,11 +70,11 @@ pub fn matches(name: &str, query: &str) -> bool {
 // The platform root files are embedded, so running a binary from another directory works.
 pub fn default_roots() -> Vec<PathBuf> {
     let config = if cfg!(target_os = "windows") {
-        include_str!("assets/roots_windows.txt")
+        include_str!("../../../src/assets/roots_windows.txt")
     } else if cfg!(target_os = "macos") {
-        include_str!("assets/roots_mac.txt")
+        include_str!("../../../src/assets/roots_mac.txt")
     } else {
-        include_str!("assets/roots_linux.txt")
+        include_str!("../../../src/assets/roots_linux.txt")
     };
     let home = std::env::var_os(if cfg!(windows) { "USERPROFILE" } else { "HOME" })
         .map(PathBuf::from)
@@ -147,7 +148,11 @@ type Priority = Reverse<(bool, bool, usize, usize, Reverse<u64>, PathBuf)>;
 
 fn priority(path: PathBuf) -> Priority {
     static DICTIONARY: OnceLock<HashSet<&'static str>> = OnceLock::new();
-    let words = DICTIONARY.get_or_init(|| include_str!("assets/wordsalpha.txt").lines().collect());
+    let words = DICTIONARY.get_or_init(|| {
+        include_str!("../../../src/assets/wordsalpha.txt")
+            .lines()
+            .collect()
+    });
     let name = path
         .file_name()
         .unwrap_or_default()
@@ -349,6 +354,23 @@ mod tests {
         let visible = priority(PathBuf::from("/home/user/zzzzqxyz"));
         let hidden = priority(PathBuf::from("/home/user/.zzzzqxyz"));
         assert!(visible > hidden);
+    }
+    #[test]
+    fn cancellation_completes_even_when_results_are_not_consumed() {
+        let root = std::env::temp_dir().join(format!("drill-cancel-test-{}", std::process::id()));
+        fs::create_dir_all(&root).unwrap();
+        for n in 0..700 {
+            fs::write(root.join(format!("match-{n}")), "x").unwrap();
+        }
+        let search = Search::start("match".into(), vec![root.clone()]);
+        std::thread::sleep(std::time::Duration::from_millis(300));
+        search.stop();
+        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(5);
+        while !search.done() && std::time::Instant::now() < deadline {
+            std::thread::yield_now();
+        }
+        assert!(search.done(), "cancelled search did not stop");
+        fs::remove_dir_all(root).unwrap();
     }
     #[test]
     fn scan_finishes_and_finds_files_and_directories() {
