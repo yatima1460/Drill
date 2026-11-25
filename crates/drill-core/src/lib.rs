@@ -214,15 +214,20 @@ pub struct Search {
 }
 impl Search {
     pub fn start(query: String, roots: Vec<PathBuf>) -> Self {
+        Self::start_with_cancel(query, roots, Arc::new(AtomicBool::new(false)))
+    }
+
+    /// Starts a search whose cancellation token may already be set during startup.
+    pub fn start_with_cancel(query: String, roots: Vec<PathBuf>, cancel: Arc<AtomicBool>) -> Self {
         let (tx, receiver) = mpsc::sync_channel(512);
-        let cancel = Arc::new(AtomicBool::new(false));
         let mut visited = HashSet::new();
         let roots: Vec<PathBuf> = roots
             .into_iter()
             .filter(|p| {
-                fs::canonicalize(p)
-                    .ok()
-                    .is_some_and(|canonical| visited.insert(canonical))
+                !cancel.load(Ordering::Relaxed)
+                    && fs::canonicalize(p)
+                        .ok()
+                        .is_some_and(|canonical| visited.insert(canonical))
             })
             .collect();
         let work = Arc::new((
@@ -238,6 +243,9 @@ impl Search {
             .clamp(1, 16);
         let mut workers = Vec::new();
         for _ in 0..count {
+            if cancel.load(Ordering::Relaxed) {
+                break;
+            }
             let (tx, cancel, work, query) =
                 (tx.clone(), cancel.clone(), work.clone(), query.clone());
             workers.push(thread::spawn(move || loop {
