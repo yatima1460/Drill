@@ -258,6 +258,27 @@ mod tests {
             assert_eq!(&pixels[..4], &[0, 255, 0, 255]);
         }
     }
+
+    #[test]
+    fn worker_reads_and_decodes_resident_executable() {
+        use std::io::Write;
+        let mut file = tempfile::Builder::new().suffix(".exe").tempfile().unwrap();
+        file.write_all(include_bytes!("../tests/fixtures/icon-pe32.exe"))
+            .unwrap();
+        let worker = Worker::new();
+        let path = file.path().to_path_buf();
+        assert!(matches!(
+            worker.request(0, path.clone(), egui::Context::default()),
+            RequestState::Queued
+        ));
+        let result = worker
+            .receiver
+            .recv_timeout(std::time::Duration::from_secs(10))
+            .expect("icon worker did not respond");
+        assert_eq!(result.path, path);
+        let pixels = result.pixels.expect("worker did not extract icon");
+        assert_eq!(&pixels[..4], &[0, 255, 0, 255]);
+    }
     #[test]
     fn malformed_resource_headers_do_not_escape_or_crash_decoder() {
         let decoder = Decoder::new().expect("decoder must instantiate");
