@@ -5,6 +5,7 @@ use drill_core::{default_roots_with_cancel, Entry, Search};
 use eframe::egui::{self, Key, RichText};
 use std::path::Path;
 use std::time::{Duration, Instant};
+mod exe_icon;
 #[cfg(any(target_os = "macos", target_os = "windows"))]
 mod native_menu;
 #[cfg(target_os = "macos")]
@@ -42,6 +43,11 @@ struct App {
     focus_search: bool,
     scroll_offset: f32,
     icons: std::collections::HashMap<std::path::PathBuf, Option<egui::TextureHandle>>,
+    icon_worker: Option<exe_icon::Worker>,
+    pending_icons: std::collections::HashSet<std::path::PathBuf>,
+    icon_generation: u64,
+    embedded_exe_icons: bool,
+    interface_open: bool,
     sort: Option<(SortColumn, bool)>,
     action_error: Option<String>,
     action_result: Option<std::sync::mpsc::Receiver<Result<(), String>>>,
@@ -69,6 +75,11 @@ impl Default for App {
             focus_search: true,
             scroll_offset: 0.0,
             icons: std::collections::HashMap::new(),
+            icon_worker: None,
+            pending_icons: Default::default(),
+            icon_generation: 0,
+            embedded_exe_icons: true,
+            interface_open: false,
             sort: None,
             action_error: None,
             action_result: None,
@@ -348,6 +359,12 @@ fn in_window_search_menu(ctx: &egui::Context, app: &mut App) {
                     ui.close_menu();
                 }
             });
+            ui.menu_button("Settings", |ui| {
+                if ui.button("Interface…").clicked() {
+                    app.interface_open = true;
+                    ui.close_menu();
+                }
+            });
         });
     });
 }
@@ -373,6 +390,54 @@ impl App {
     }
 
     fn update_ui(&mut self, ctx: &egui::Context) {
+        #[cfg(any(target_os = "macos", target_os = "windows"))]
+        if self
+            .native_menu
+            .as_ref()
+            .is_some_and(|menu| menu.take_interface())
+        {
+            self.interface_open = true;
+        }
+        if self.interface_open && ctx.input(|i| i.key_pressed(Key::Escape)) {
+            self.interface_open = false;
+            return;
+        }
+        let interface_was_open = self.interface_open;
+        if self.interface_open {
+            let mut open = self.interface_open;
+            let mut enabled = self.embedded_exe_icons;
+            egui::Window::new("Interface")
+                .open(&mut open)
+                .show(ctx, |ui| {
+                    ui.checkbox(&mut enabled, "Use embedded icons for Windows executables");
+                });
+            self.interface_open = open;
+            if enabled != self.embedded_exe_icons {
+                self.embedded_exe_icons = enabled;
+                self.icons.retain(|path, _| !exe_icon::is_exe(path));
+                self.pending_icons.clear();
+                self.icon_generation = self.icon_generation.wrapping_add(1);
+                if let Some(worker) = &self.icon_worker {
+                    worker.invalidate(self.icon_generation);
+                }
+            }
+        }
+        if let Some(worker) = &self.icon_worker {
+            while let Ok(response) = worker.receiver.try_recv() {
+                if response.generation != self.icon_generation {
+                    continue;
+                }
+                self.pending_icons.remove(&response.path);
+                let icon = response.pixels.map(|pixels| {
+                    ctx.load_texture(
+                        response.path.to_string_lossy(),
+                        egui::ColorImage::from_rgba_unmultiplied([32, 32], &pixels),
+                        egui::TextureOptions::LINEAR,
+                    )
+                });
+                self.icons.insert(response.path, icon);
+            }
+        }
         #[cfg(target_os = "macos")]
         {
             if self
@@ -445,6 +510,11 @@ impl App {
             self.completed = false;
             self.results.clear();
             self.icons.clear();
+            self.pending_icons.clear();
+            self.icon_generation = self.icon_generation.wrapping_add(1);
+            if let Some(worker) = &self.icon_worker {
+                worker.invalidate(self.icon_generation);
+            }
             self.selected = None;
             self.limited = false;
             self.stopped = false;
@@ -540,9 +610,9 @@ impl App {
         #[cfg(not(any(target_os = "macos", target_os = "windows")))]
         in_window_search_menu(ctx, self);
         #[cfg(target_os = "macos")]
-        let background_input_allowed = !self.permissions.open;
+        let background_input_allowed = !self.permissions.open && !interface_was_open;
         #[cfg(not(target_os = "macos"))]
-        let background_input_allowed = true;
+        let background_input_allowed = !interface_was_open;
         let mut icon_budget = 4;
         let mut icons_pending = false;
         egui::CentralPanel::default().show(ctx, |ui| {
@@ -568,6 +638,11 @@ impl App {
                 self.completed = false;
                 self.results.clear();
                 self.icons.clear();
+                self.pending_icons.clear();
+                self.icon_generation = self.icon_generation.wrapping_add(1);
+                if let Some(worker) = &self.icon_worker {
+                    worker.invalidate(self.icon_generation);
+                }
                 self.selected = None;
                 self.limited = false;
                 self.stopped = false;
@@ -716,7 +791,26 @@ impl App {
                     ];
                     let icon_pos = egui::pos2(rect.left() + 3.0, rect.center().y - 10.0);
                     if !self.icons.contains_key(&entry.path) {
-                        if icon_budget > 0 {
+                        if !entry.is_dir && exe_icon::is_exe(&entry.path) {
+                            if !self.embedded_exe_icons {
+                                self.icons.insert(entry.path.clone(), None);
+                            } else if !self.pending_icons.contains(&entry.path) {
+                                let worker = self.icon_worker.get_or_insert_with(|| {
+                                    let worker = exe_icon::Worker::new();
+                                    worker.invalidate(self.icon_generation);
+                                    worker
+                                });
+                                if worker.request(
+                                    self.icon_generation,
+                                    entry.path.clone(),
+                                    ctx.clone(),
+                                ) {
+                                    self.pending_icons.insert(entry.path.clone());
+                                } else {
+                                    icons_pending = true;
+                                }
+                            }
+                        } else if icon_budget > 0 {
                             icon_budget -= 1;
                             let icon = file_icon_provider::get_file_icon(&entry.path, 24)
                                 .ok()
@@ -931,6 +1025,12 @@ impl eframe::App for App {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         self.update_ui(ctx);
     }
+    fn save(&mut self, storage: &mut dyn eframe::Storage) {
+        storage.set_string("embedded_exe_icons", self.embedded_exe_icons.to_string());
+    }
+    fn persist_egui_memory(&self) -> bool {
+        false
+    }
 }
 
 fn main() -> eframe::Result {
@@ -963,12 +1063,17 @@ fn main() -> eframe::Result {
         Box::new(|creation| {
             creation.egui_ctx.set_theme(egui::ThemePreference::System);
             #[cfg(any(target_os = "macos", target_os = "windows"))]
-            let app = App {
+            let mut app = App {
                 native_menu: Some(native_menu::NativeMenu::new(creation)?),
                 ..Default::default()
             };
             #[cfg(not(any(target_os = "macos", target_os = "windows")))]
-            let app = App::default();
+            let mut app = App::default();
+            app.embedded_exe_icons = creation
+                .storage
+                .and_then(|storage| storage.get_string("embedded_exe_icons"))
+                .and_then(|value| value.parse().ok())
+                .unwrap_or(true);
             Ok(Box::new(app))
         }),
     )
