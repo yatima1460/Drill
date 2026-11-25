@@ -6,6 +6,8 @@ Run `cargo run --release` or open `Start Drill.command` on macOS. The launcher r
 
 The Rust search code runs off the UI thread, scans the existing platform root lists without indexing, and skips directory symlinks. Queries are case and accent insensitive; prefix a query with `fuzzy:` for approximate word matching. Results can be opened or revealed from the context menu. Search → Stop cancels an active or starting search and retains the results already shown. macOS and Windows use native application menus; Linux shows the menu inside the window.
 
+On macOS, Settings → Permissions lets the user choose folders using the system picker and open the Files and Folders or Full Disk Access settings. Chosen folders are included in searches for the current session. A folder check only reports whether Drill could list that folder at the time; macOS manages access and a successful check does not prove Full Disk Access. The released app is not sandboxed. If the app is started through a terminal, macOS may attribute access to that terminal instead of the packaged app.
+
 Development checks: `cargo fmt --check`, `cargo check --locked`, `cargo clippy --locked --all-targets -- -D warnings`, and `cargo test --locked`.
 
 CI builds a macOS DMG, Windows x86-64 ZIP, and Linux Debian, Arch, and AppImage packages. Windows is cross-compiled on Linux; the archive is inspected there but still requires a native Windows runtime check. macOS bundles are unsigned and not notarized. The AppImage relies on compatible system graphics libraries. Publishing runs only after all platform build jobs succeed on a push to main.

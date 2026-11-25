@@ -7,6 +7,8 @@ use std::path::Path;
 use std::time::{Duration, Instant};
 #[cfg(any(target_os = "macos", target_os = "windows"))]
 mod native_menu;
+#[cfg(target_os = "macos")]
+mod permissions;
 
 const LIMIT: usize = 10_000;
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -47,6 +49,8 @@ struct App {
     terminal_errors: std::sync::mpsc::Receiver<String>,
     #[cfg(any(target_os = "macos", target_os = "windows"))]
     native_menu: Option<native_menu::NativeMenu>,
+    #[cfg(target_os = "macos")]
+    permissions: permissions::Permissions,
 }
 impl Default for App {
     fn default() -> Self {
@@ -72,6 +76,8 @@ impl Default for App {
             terminal_errors,
             #[cfg(any(target_os = "macos", target_os = "windows"))]
             native_menu: None,
+            #[cfg(target_os = "macos")]
+            permissions: permissions::Permissions::default(),
         }
     }
 }
@@ -367,6 +373,25 @@ impl App {
     }
 
     fn update_ui(&mut self, ctx: &egui::Context) {
+        #[cfg(target_os = "macos")]
+        let permissions_were_open = {
+            if self
+                .native_menu
+                .as_ref()
+                .is_some_and(|menu| menu.take_permissions())
+            {
+                self.permissions.open = true;
+            }
+            if self.permissions.open && ctx.input(|i| i.key_pressed(Key::Escape)) {
+                self.permissions.open = false;
+                return;
+            }
+            let was_open = self.permissions.open;
+            if self.permissions.show(ctx) {
+                self.refresh_after_permission_selection();
+            }
+            was_open
+        };
         #[cfg(any(target_os = "macos", target_os = "windows"))]
         if self
             .native_menu
@@ -429,6 +454,8 @@ impl App {
             self.stopped = false;
             if !self.query.trim().is_empty() {
                 let query = self.query.clone();
+                #[cfg(target_os = "macos")]
+                let additional_roots = self.permissions.roots();
                 let (tx, rx) = std::sync::mpsc::sync_channel(1);
                 let cancel = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
                 self.starting_cancel = Some(cancel.clone());
@@ -440,6 +467,12 @@ impl App {
                         .unwrap_or_else(|| default_roots_with_cancel(&cancel));
                     #[cfg(not(feature = "ui-test-driver"))]
                     let roots = default_roots_with_cancel(&cancel);
+                    #[cfg(target_os = "macos")]
+                    let roots = {
+                        let mut roots = roots;
+                        roots.extend(additional_roots);
+                        roots
+                    };
                     let _ = tx.send(Search::start_with_cancel(query, roots, cancel));
                 });
             }
@@ -510,9 +543,16 @@ impl App {
         }
         #[cfg(not(any(target_os = "macos", target_os = "windows")))]
         in_window_search_menu(ctx, self);
+        #[cfg(target_os = "macos")]
+        let background_input_allowed = !permissions_were_open;
+        #[cfg(not(target_os = "macos"))]
+        let background_input_allowed = true;
         let mut icon_budget = 4;
         let mut icons_pending = false;
         egui::CentralPanel::default().show(ctx, |ui| {
+            if !background_input_allowed {
+                ui.disable();
+            }
             let response = ui.add_sized(
                 [ui.available_width(), 38.0],
                 egui::TextEdit::singleline(&mut self.query)
@@ -542,7 +582,10 @@ impl App {
                 };
             }
             let mut keyboard_selection_changed = false;
-            if ctx.input(|i| i.key_pressed(Key::ArrowDown)) && !self.results.is_empty() {
+            if background_input_allowed
+                && ctx.input(|i| i.key_pressed(Key::ArrowDown))
+                && !self.results.is_empty()
+            {
                 keyboard_selection_changed = true;
                 self.selected = Some(
                     self.selected
@@ -550,7 +593,7 @@ impl App {
                 );
                 response.surrender_focus();
             }
-            if ctx.input(|i| i.key_pressed(Key::ArrowUp)) {
+            if background_input_allowed && ctx.input(|i| i.key_pressed(Key::ArrowUp)) {
                 keyboard_selection_changed = true;
                 if let Some(n) = self.selected {
                     if n == 0 {
@@ -561,7 +604,7 @@ impl App {
                     }
                 }
             }
-            if ctx.input(|i| i.key_pressed(Key::Enter)) {
+            if background_input_allowed && ctx.input(|i| i.key_pressed(Key::Enter)) {
                 if let Some(entry) = self.selected.and_then(|n| self.results.get(n)) {
                     open(&entry.path, false);
                 }
@@ -887,6 +930,13 @@ impl App {
             ctx.request_repaint_after(Duration::from_millis(30));
         }
     }
+
+    #[cfg(target_os = "macos")]
+    fn refresh_after_permission_selection(&mut self) {
+        if !self.query.trim().is_empty() && !self.stopped {
+            self.changed = Some(Instant::now() - Duration::from_millis(250));
+        }
+    }
 }
 impl eframe::App for App {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
@@ -988,6 +1038,40 @@ mod ui_tests {
         assert!(!app.can_stop());
         assert!(app.stopped);
         assert_eq!(app.query, "test");
+    }
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn permissions_window_blocks_background_search_input() {
+        let ctx = egui::Context::default();
+        let mut app = App {
+            results: vec![entry("first", 1), entry("second", 2)],
+            selected: Some(0),
+            ..Default::default()
+        };
+        app.permissions.open = true;
+        let _ = frame(
+            &ctx,
+            &mut app,
+            vec![key(Key::ArrowDown), egui::Event::Text("unexpected".into())],
+        );
+        assert_eq!(app.selected, Some(0));
+        assert!(app.query.is_empty());
+    }
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn selecting_folder_refreshes_query_but_respects_stop() {
+        let mut app = App {
+            query: "report".into(),
+            ..Default::default()
+        };
+        app.refresh_after_permission_selection();
+        assert!(app.changed.is_some());
+        app.changed = None;
+        app.stopped = true;
+        app.refresh_after_permission_selection();
+        assert!(app.changed.is_none());
     }
 
     #[test]
