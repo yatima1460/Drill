@@ -866,8 +866,13 @@ impl App {
                     ];
                     let icon_pos = egui::pos2(rect.left() + 3.0, rect.center().y - 10.0);
                     if !self.icons.contains_key(&entry.path) {
-                        if !entry.is_dir && exe_icon::is_exe(&entry.path) {
-                            if !self.embedded_exe_icons {
+                        let route = exe_icon::icon_route(
+                            &entry.path,
+                            entry.is_dir,
+                            self.embedded_exe_icons,
+                        );
+                        if route != exe_icon::IconRoute::Platform {
+                            if route != exe_icon::IconRoute::Decode {
                                 self.icons.insert(entry.path.clone(), None);
                             } else if !self.pending_icons.contains(&entry.path) {
                                 let worker = self.icon_worker.get_or_insert_with(|| {

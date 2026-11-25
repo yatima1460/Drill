@@ -18,6 +18,24 @@ pub fn is_exe(path: &Path) -> bool {
     path.extension()
         .is_some_and(|ext| ext.eq_ignore_ascii_case("exe"))
 }
+#[derive(Debug, PartialEq, Eq)]
+pub enum IconRoute {
+    Platform,
+    Folder,
+    TypeIcon,
+    Decode,
+}
+pub fn icon_route(path: &Path, is_dir: bool, enabled: bool) -> IconRoute {
+    if !is_exe(path) {
+        IconRoute::Platform
+    } else if is_dir {
+        IconRoute::Folder
+    } else if enabled {
+        IconRoute::Decode
+    } else {
+        IconRoute::TypeIcon
+    }
+}
 fn snapshot(path: &Path) -> Option<Vec<u8>> {
     let mut options = std::fs::OpenOptions::new();
     options.read(true);
@@ -215,6 +233,18 @@ mod tests {
         assert!(decoder.decode(b"MZ not an executable").is_none());
         assert!(is_exe(Path::new("APP.EXE")));
         assert!(!is_exe(Path::new("APP.EXE.txt")));
+        assert_eq!(
+            icon_route(Path::new("folder.exe"), true, true),
+            IconRoute::Folder
+        );
+        assert_eq!(
+            icon_route(Path::new("file.exe"), false, true),
+            IconRoute::Decode
+        );
+        assert_eq!(
+            icon_route(Path::new("file.exe"), false, false),
+            IconRoute::TypeIcon
+        );
     }
     #[test]
     fn extracts_pe32_and_pe64_icons_inside_the_guest() {

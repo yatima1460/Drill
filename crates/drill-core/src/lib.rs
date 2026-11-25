@@ -375,6 +375,18 @@ impl Drop for Search {
 #[cfg(test)]
 mod tests {
     use super::*;
+    fn private_temp_dir() -> tempfile::TempDir {
+        #[cfg(unix)]
+        let mut builder = tempfile::Builder::new();
+        #[cfg(not(unix))]
+        let builder = tempfile::Builder::new();
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            builder.permissions(std::fs::Permissions::from_mode(0o700));
+        }
+        builder.tempdir().unwrap()
+    }
     #[test]
     fn matching() {
         assert!(matches("Project Nôtés.txt", "project notes"));
@@ -394,7 +406,7 @@ mod tests {
     }
     #[test]
     fn cancellation_completes_even_when_results_are_not_consumed() {
-        let directory = tempfile::tempdir().unwrap();
+        let directory = private_temp_dir();
         let root = directory.path();
         for n in 0..700 {
             fs::write(root.join(format!("match-{n}")), "x").unwrap();
@@ -410,7 +422,7 @@ mod tests {
     }
     #[test]
     fn scan_finishes_and_finds_files_and_directories() {
-        let directory = tempfile::tempdir().unwrap();
+        let directory = private_temp_dir();
         let root = directory.path();
         fs::create_dir_all(root.join("needle-folder")).unwrap();
         fs::write(root.join("needle-file.txt"), "x").unwrap();
