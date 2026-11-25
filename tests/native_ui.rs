@@ -103,7 +103,7 @@ fn native_typing_selection_and_escape() {
     let mut input = Enigo::new(&Settings::default()).expect("Cannot create OS input driver; on macOS enable Accessibility permission for the app running this test");
     #[cfg(target_os = "linux")]
     assert!(Command::new("xdotool")
-        .args(["mousemove", "--window", &window_id, "90", "25"])
+        .args(["mousemove", "--window", &window_id, "90", "47"])
         .status()
         .unwrap()
         .success());
@@ -120,7 +120,7 @@ fn native_typing_selection_and_escape() {
     });
     #[cfg(target_os = "linux")]
     assert!(Command::new("xdotool")
-        .args(["mousemove", "--window", &window_id, "30", "66"])
+        .args(["mousemove", "--window", &window_id, "30", "88"])
         .status()
         .unwrap()
         .success());
