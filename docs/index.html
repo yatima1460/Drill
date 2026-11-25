@@ -222,7 +222,7 @@
             const mm = String(date.getMonth() + 1).padStart(2, "0");
             const dd = String(date.getDate()).padStart(2, "0");
             const age = formatRelativeAge(date, new Date());
-            const tagOrName = String((release && (release.tag_name || release.name)) || "");
+            const tagOrName = String((release && (release.name || release.tag_name)) || "");
             const runMatch = tagOrName.match(/(\d+)\s*$/);
             const runNumber = runMatch ? runMatch[1] : "";
             if (runNumber) {
