@@ -974,7 +974,7 @@ impl App {
                         && matches!(self.icons.get(&entry.path), Some(None))
                     {
                         result.clone().on_hover_text(
-                            "Embedded icon unavailable. Cloud-only files must be downloaded before their icons can be read.",
+                            "Embedded icon unavailable. For cloud-only files, download the file, then edit the search to retry.",
                         );
                     }
                     let mut x = rect.left();
@@ -1454,9 +1454,20 @@ mod ui_tests {
         };
         let deadline = Instant::now() + Duration::from_secs(10);
         loop {
-            let _ = frame(&ctx, &mut app, vec![]);
+            let output = frame(&ctx, &mut app, vec![]);
             if let Some(icon) = app.icons.get(&path) {
-                assert!(icon.is_some(), "the row used the fallback icon");
+                let icon = icon.as_ref().expect("the row used the fallback icon");
+                let uploaded = output
+                    .textures_delta
+                    .set
+                    .iter()
+                    .find(|(id, _)| *id == icon.id())
+                    .expect("embedded icon texture was not uploaded");
+                let egui::ImageData::Color(image) = &uploaded.1.image else {
+                    panic!("unexpected icon texture format")
+                };
+                assert_eq!(image.pixels[0], egui::Color32::from_rgb(0, 255, 0));
+                assert!(output.shapes.iter().any(|shape| matches!(&shape.shape, egui::Shape::Mesh(mesh) if mesh.texture_id == icon.id())), "row did not draw the embedded icon");
                 return;
             }
             assert!(Instant::now() < deadline, "icon did not arrive");
