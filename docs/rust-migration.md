@@ -6,7 +6,7 @@ Run `cargo run --release` or open `Start Drill.command` on macOS. The launcher r
 
 The Rust search code runs off the UI thread, scans the existing platform root lists without indexing, and skips directory symlinks. Queries are case and accent insensitive; prefix a query with `fuzzy:` for approximate word matching. Results can be opened or revealed from the context menu. Search → Stop cancels an active or starting search and retains the results already shown. macOS and Windows use native application menus; Linux shows the menu inside the window.
 
-On macOS, Search → Permissions lets the user choose folders using the system picker and open the Files and Folders or Full Disk Access settings. Chosen folders are included in searches for the current session. A folder check only reports whether Drill could list that folder at the time; macOS manages access and a successful check does not prove Full Disk Access. The released app is not sandboxed. If the app is started through a terminal, macOS may attribute access to that terminal instead of the packaged app.
+On macOS, Settings → Permissions lets the user choose folders using the system picker and open the Files and Folders or Full Disk Access settings. Chosen folders are included in searches for the current session. A folder check only reports whether Drill could list that folder at the time; macOS manages access and a successful check does not prove Full Disk Access. The released app is not sandboxed. If the app is started through a terminal, macOS may attribute access to that terminal instead of the packaged app.
 
 Development checks: `cargo fmt --check`, `cargo check --locked`, `cargo clippy --locked --all-targets -- -D warnings`, and `cargo test --locked`.
 

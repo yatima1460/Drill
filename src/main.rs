@@ -539,9 +539,16 @@ impl App {
         }
         #[cfg(not(any(target_os = "macos", target_os = "windows")))]
         in_window_search_menu(ctx, self);
+        #[cfg(target_os = "macos")]
+        let background_input_allowed = !self.permissions.open;
+        #[cfg(not(target_os = "macos"))]
+        let background_input_allowed = true;
         let mut icon_budget = 4;
         let mut icons_pending = false;
         egui::CentralPanel::default().show(ctx, |ui| {
+            if !background_input_allowed {
+                ui.disable();
+            }
             let response = ui.add_sized(
                 [ui.available_width(), 38.0],
                 egui::TextEdit::singleline(&mut self.query)
@@ -571,7 +578,10 @@ impl App {
                 };
             }
             let mut keyboard_selection_changed = false;
-            if ctx.input(|i| i.key_pressed(Key::ArrowDown)) && !self.results.is_empty() {
+            if background_input_allowed
+                && ctx.input(|i| i.key_pressed(Key::ArrowDown))
+                && !self.results.is_empty()
+            {
                 keyboard_selection_changed = true;
                 self.selected = Some(
                     self.selected
@@ -579,7 +589,7 @@ impl App {
                 );
                 response.surrender_focus();
             }
-            if ctx.input(|i| i.key_pressed(Key::ArrowUp)) {
+            if background_input_allowed && ctx.input(|i| i.key_pressed(Key::ArrowUp)) {
                 keyboard_selection_changed = true;
                 if let Some(n) = self.selected {
                     if n == 0 {
@@ -590,7 +600,7 @@ impl App {
                     }
                 }
             }
-            if ctx.input(|i| i.key_pressed(Key::Enter)) {
+            if background_input_allowed && ctx.input(|i| i.key_pressed(Key::Enter)) {
                 if let Some(entry) = self.selected.and_then(|n| self.results.get(n)) {
                     open(&entry.path, false);
                 }
@@ -1017,6 +1027,25 @@ mod ui_tests {
         assert!(!app.can_stop());
         assert!(app.stopped);
         assert_eq!(app.query, "test");
+    }
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn permissions_window_blocks_background_search_input() {
+        let ctx = egui::Context::default();
+        let mut app = App {
+            results: vec![entry("first", 1), entry("second", 2)],
+            selected: Some(0),
+            ..Default::default()
+        };
+        app.permissions.open = true;
+        let _ = frame(
+            &ctx,
+            &mut app,
+            vec![key(Key::ArrowDown), egui::Event::Text("unexpected".into())],
+        );
+        assert_eq!(app.selected, Some(0));
+        assert!(app.query.is_empty());
     }
 
     #[test]

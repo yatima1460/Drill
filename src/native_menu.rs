@@ -18,11 +18,10 @@ impl NativeMenu {
         let stop = MenuItem::new("Stop", false, None);
         let search = Submenu::with_items("Search", true, &[&stop]).map_err(|e| e.to_string())?;
         #[cfg(target_os = "macos")]
-        let permissions = {
-            let item = MenuItem::new("Permissions…", true, None);
-            search.append(&item).map_err(|e| e.to_string())?;
-            item
-        };
+        let permissions = MenuItem::new("Permissions…", true, None);
+        #[cfg(target_os = "macos")]
+        let settings =
+            Submenu::with_items("Settings", true, &[&permissions]).map_err(|e| e.to_string())?;
         let menu = Menu::new();
         #[cfg(target_os = "macos")]
         {
@@ -46,6 +45,8 @@ impl NativeMenu {
             menu.append(&app).map_err(|e| e.to_string())?;
         }
         menu.append(&search).map_err(|e| e.to_string())?;
+        #[cfg(target_os = "macos")]
+        menu.append(&settings).map_err(|e| e.to_string())?;
         #[cfg(target_os = "macos")]
         menu.init_for_nsapp();
         #[cfg(target_os = "windows")]
