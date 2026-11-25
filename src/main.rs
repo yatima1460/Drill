@@ -10,6 +10,8 @@ struct App {
     query: String,
     changed: Option<Instant>,
     search: Option<Search>,
+    starting: Option<std::sync::mpsc::Receiver<Search>>,
+    completed: bool,
     results: Vec<Entry>,
     selected: Option<usize>,
     limited: bool,
@@ -21,6 +23,8 @@ impl Default for App {
             query: String::new(),
             changed: None,
             search: None,
+            starting: None,
+            completed: false,
             results: Vec::new(),
             selected: None,
             limited: false,
@@ -101,11 +105,24 @@ impl eframe::App for App {
         {
             self.changed = None;
             self.search = None;
+            self.starting = None;
+            self.completed = false;
             self.results.clear();
             self.selected = None;
             self.limited = false;
             if !self.query.trim().is_empty() {
-                self.search = Some(Search::start(self.query.clone(), default_roots()));
+                let query = self.query.clone();
+                let (tx, rx) = std::sync::mpsc::sync_channel(1);
+                self.starting = Some(rx);
+                std::thread::spawn(move || {
+                    let _ = tx.send(Search::start(query, default_roots()));
+                });
+            }
+        }
+        if let Some(starting) = &self.starting {
+            if let Ok(search) = starting.try_recv() {
+                self.search = Some(search);
+                self.starting = None;
             }
         }
         if let Some(search) = &self.search {
@@ -119,14 +136,21 @@ impl eframe::App for App {
                             break;
                         }
                     }
-                    Err(_) => break,
+                    Err(std::sync::mpsc::TryRecvError::Disconnected) => {
+                        self.completed = true;
+                        break;
+                    }
+                    Err(std::sync::mpsc::TryRecvError::Empty) => break,
                 }
             }
+        }
+        if self.limited {
+            self.search = None;
         }
         let title = if self.limited {
             format!("Drill - {}+ items found, search stopped", LIMIT)
         } else if let Some(search) = &self.search {
-            if search.done() {
+            if self.completed {
                 format!("Drill - {} items found - done", self.results.len())
             } else {
                 format!(
@@ -135,6 +159,8 @@ impl eframe::App for App {
                     search.pending()
                 )
             }
+        } else if self.starting.is_some() {
+            "Drill - starting search".into()
         } else {
             "Drill".into()
         };
@@ -152,6 +178,8 @@ impl eframe::App for App {
             }
             if response.changed() {
                 self.search = None;
+                self.starting = None;
+                self.completed = false;
                 self.results.clear();
                 self.selected = None;
                 self.limited = false;
@@ -258,7 +286,10 @@ impl eframe::App for App {
                     }
                 });
         });
-        if self.search.is_some() || self.changed.is_some() {
+        if (self.search.is_some() && !self.completed)
+            || self.starting.is_some()
+            || self.changed.is_some()
+        {
             ctx.request_repaint_after(Duration::from_millis(30));
         }
     }
