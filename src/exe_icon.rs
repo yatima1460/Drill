@@ -245,14 +245,8 @@ mod tests {
     #[test]
     fn rejects_directory_and_large_file() {
         assert!(snapshot(&std::env::temp_dir()).is_none());
-        let path = std::env::temp_dir().join(format!("drill-exe-limit-{}", std::process::id()));
-        let file = std::fs::OpenOptions::new()
-            .write(true)
-            .create_new(true)
-            .open(&path)
-            .unwrap();
-        file.set_len(MAX_FILE + 1).unwrap();
-        assert!(snapshot(&path).is_none());
-        std::fs::remove_file(path).unwrap();
+        let file = tempfile::NamedTempFile::new().unwrap();
+        file.as_file().set_len(MAX_FILE + 1).unwrap();
+        assert!(snapshot(file.path()).is_none());
     }
 }

@@ -394,12 +394,12 @@ mod tests {
     }
     #[test]
     fn cancellation_completes_even_when_results_are_not_consumed() {
-        let root = std::env::temp_dir().join(format!("drill-cancel-test-{}", std::process::id()));
-        fs::create_dir_all(&root).unwrap();
+        let directory = tempfile::tempdir().unwrap();
+        let root = directory.path();
         for n in 0..700 {
             fs::write(root.join(format!("match-{n}")), "x").unwrap();
         }
-        let search = Search::start("match".into(), vec![root.clone()]);
+        let search = Search::start("match".into(), vec![root.to_path_buf()]);
         std::thread::sleep(std::time::Duration::from_millis(300));
         search.stop();
         let deadline = std::time::Instant::now() + std::time::Duration::from_secs(5);
@@ -407,16 +407,16 @@ mod tests {
             std::thread::yield_now();
         }
         assert!(search.done(), "cancelled search did not stop");
-        fs::remove_dir_all(root).unwrap();
     }
     #[test]
     fn scan_finishes_and_finds_files_and_directories() {
-        let root = std::env::temp_dir().join(format!("drill-test-{}", std::process::id()));
+        let directory = tempfile::tempdir().unwrap();
+        let root = directory.path();
         fs::create_dir_all(root.join("needle-folder")).unwrap();
         fs::write(root.join("needle-file.txt"), "x").unwrap();
         let search = Search::start(
             "needle".into(),
-            vec![root.clone(), root.join("needle-folder")],
+            vec![root.to_path_buf(), root.join("needle-folder")],
         );
         let mut names = Vec::new();
         loop {
@@ -433,6 +433,5 @@ mod tests {
         }
         assert!(names.contains(&"needle-file.txt".to_string()));
         assert!(names.contains(&"needle-folder".to_string()));
-        fs::remove_dir_all(root).unwrap();
     }
 }
