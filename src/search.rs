@@ -154,7 +154,17 @@ fn priority(path: PathBuf) -> Priority {
         .to_string_lossy()
         .to_lowercase();
     let text = path.to_string_lossy();
-    let hidden = name.starts_with('.')
+    #[cfg(windows)]
+    let system_attribute = {
+        use std::os::windows::fs::MetadataExt;
+        fs::metadata(&path)
+            .map(|m| m.file_attributes() & 0x6 != 0)
+            .unwrap_or(false)
+    };
+    #[cfg(not(windows))]
+    let system_attribute = false;
+    let hidden = system_attribute
+        || name.starts_with('.')
         || name.ends_with('~')
         || name.ends_with(".app")
         || [
@@ -201,15 +211,20 @@ impl Search {
     pub fn start(query: String, roots: Vec<PathBuf>) -> Self {
         let (tx, receiver) = mpsc::sync_channel(512);
         let cancel = Arc::new(AtomicBool::new(false));
-        let roots: HashSet<PathBuf> = roots
+        let mut visited = HashSet::new();
+        let roots: Vec<PathBuf> = roots
             .into_iter()
-            .filter_map(|p| fs::canonicalize(p).ok())
+            .filter(|p| {
+                fs::canonicalize(p)
+                    .ok()
+                    .is_some_and(|canonical| visited.insert(canonical))
+            })
             .collect();
         let work = Arc::new((
             Mutex::new(Work {
                 queue: roots.iter().cloned().map(priority).collect(),
                 outstanding: roots.len(),
-                visited: roots,
+                visited,
             }),
             Condvar::new(),
         ));
@@ -345,14 +360,17 @@ mod tests {
             vec![root.clone(), root.join("needle-folder")],
         );
         let mut names = Vec::new();
-        while let Ok(e) = search
-            .receiver
-            .recv_timeout(std::time::Duration::from_secs(5))
-        {
-            names.push(e.name);
-        }
-        while !search.done() {
-            std::thread::yield_now();
+        loop {
+            match search
+                .receiver
+                .recv_timeout(std::time::Duration::from_secs(5))
+            {
+                Ok(e) => names.push(e.name),
+                Err(mpsc::RecvTimeoutError::Disconnected) => break,
+                Err(mpsc::RecvTimeoutError::Timeout) => {
+                    panic!("search did not complete within five seconds")
+                }
+            }
         }
         assert!(names.contains(&"needle-file.txt".to_string()));
         assert!(names.contains(&"needle-folder".to_string()));
