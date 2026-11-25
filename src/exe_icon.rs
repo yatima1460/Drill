@@ -229,6 +229,20 @@ mod tests {
         }
     }
     #[test]
+    fn malformed_resource_headers_do_not_escape_or_crash_decoder() {
+        let decoder = Decoder::new().expect("decoder must instantiate");
+        let fixture = include_bytes!("../tests/fixtures/icon-pe32.exe");
+        for offset in [0x3c, 0x80, 0x100, 0x200, 0x400, 0x800] {
+            let mut input = fixture.to_vec();
+            for byte in &mut input[offset..offset + 4] {
+                *byte = 0xff;
+            }
+            if let Some(pixels) = decoder.decode(&input) {
+                assert_eq!(pixels.len(), PIXELS);
+            }
+        }
+    }
+    #[test]
     fn rejects_directory_and_large_file() {
         assert!(snapshot(&std::env::temp_dir()).is_none());
         let path = std::env::temp_dir().join(format!("drill-exe-limit-{}", std::process::id()));
