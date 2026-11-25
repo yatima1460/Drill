@@ -16,6 +16,12 @@ cat > 'build/dmg-root/Drill.app/Contents/Info.plist' <<'PLIST'
 <key>CFBundleShortVersionString</key><string>2.0.0</string>
 <key>CFBundleVersion</key><string>1</string>
 <key>NSHighResolutionCapable</key><true/>
+<key>NSDesktopFolderUsageDescription</key><string>Drill searches your Desktop for filenames.</string>
+<key>NSDocumentsFolderUsageDescription</key><string>Drill searches your Documents for filenames.</string>
+<key>NSDownloadsFolderUsageDescription</key><string>Drill searches your Downloads for filenames.</string>
+<key>NSNetworkVolumesUsageDescription</key><string>Drill searches network volumes for filenames.</string>
+<key>NSRemovableVolumesUsageDescription</key><string>Drill searches removable volumes for filenames.</string>
+<key>NSFileProviderDomainUsageDescription</key><string>Drill searches cloud folders for filenames.</string>
 </dict></plist>
 PLIST
 /usr/bin/plutil -lint 'build/dmg-root/Drill.app/Contents/Info.plist'

@@ -7,6 +7,8 @@ use std::path::Path;
 use std::time::{Duration, Instant};
 #[cfg(any(target_os = "macos", target_os = "windows"))]
 mod native_menu;
+#[cfg(target_os = "macos")]
+mod permissions;
 
 const LIMIT: usize = 10_000;
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -47,6 +49,8 @@ struct App {
     terminal_errors: std::sync::mpsc::Receiver<String>,
     #[cfg(any(target_os = "macos", target_os = "windows"))]
     native_menu: Option<native_menu::NativeMenu>,
+    #[cfg(target_os = "macos")]
+    permissions: permissions::Permissions,
 }
 impl Default for App {
     fn default() -> Self {
@@ -72,6 +76,8 @@ impl Default for App {
             terminal_errors,
             #[cfg(any(target_os = "macos", target_os = "windows"))]
             native_menu: None,
+            #[cfg(target_os = "macos")]
+            permissions: permissions::Permissions::default(),
         }
     }
 }
@@ -364,6 +370,21 @@ impl App {
     }
 
     fn update_ui(&mut self, ctx: &egui::Context) {
+        #[cfg(target_os = "macos")]
+        {
+            if self
+                .native_menu
+                .as_ref()
+                .is_some_and(|menu| menu.take_permissions())
+            {
+                self.permissions.open = true;
+            }
+            if self.permissions.open && ctx.input(|i| i.key_pressed(Key::Escape)) {
+                self.permissions.open = false;
+                return;
+            }
+            self.permissions.show(ctx);
+        }
         #[cfg(any(target_os = "macos", target_os = "windows"))]
         if self
             .native_menu
@@ -426,6 +447,8 @@ impl App {
             self.stopped = false;
             if !self.query.trim().is_empty() {
                 let query = self.query.clone();
+                #[cfg(target_os = "macos")]
+                let additional_roots = self.permissions.roots();
                 let (tx, rx) = std::sync::mpsc::sync_channel(1);
                 let cancel = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
                 self.starting_cancel = Some(cancel.clone());
@@ -437,6 +460,12 @@ impl App {
                         .unwrap_or_else(|| default_roots_with_cancel(&cancel));
                     #[cfg(not(feature = "ui-test-driver"))]
                     let roots = default_roots_with_cancel(&cancel);
+                    #[cfg(target_os = "macos")]
+                    let roots = {
+                        let mut roots = roots;
+                        roots.extend(additional_roots);
+                        roots
+                    };
                     let _ = tx.send(Search::start_with_cancel(query, roots, cancel));
                 });
             }
