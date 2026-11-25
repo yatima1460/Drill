@@ -220,6 +220,7 @@ fn open_with(path: &Path) -> Result<(), String> {
 }
 
 #[cfg(target_os = "linux")]
+#[allow(unsafe_code)]
 fn open_with(path: &Path) -> Result<(), String> {
     use gtk::prelude::*;
     gtk::init().map_err(|e| e.to_string())?;
@@ -236,7 +237,9 @@ fn open_with(path: &Path) -> Result<(), String> {
     } else {
         Ok(())
     };
-    dialog.close();
+    dialog.hide();
+    // SAFETY: the dialog has returned from its modal loop and is not queried or reused after destruction.
+    unsafe { dialog.destroy() };
     result
 }
 
