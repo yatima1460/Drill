@@ -586,7 +586,9 @@ dependencies = [
  "eframe",
  "enigo",
  "file_icon_provider",
+ "gtk",
  "image",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
