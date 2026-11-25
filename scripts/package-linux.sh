@@ -20,7 +20,7 @@ Package: drill
 Version: ${version}-${revision}
 Architecture: amd64
 Maintainer: Drill contributors
-Depends: libc6, libx11-6, libxkbcommon0, libwayland-client0, libgl1, libgtk-3-0
+Depends: libc6, libx11-6, libx11-xcb1, libxkbcommon0, libxkbcommon-x11-0, libwayland-client0, libgl1, libegl1, libgtk-3-0, xdg-utils
 Description: Desktop file search without indexing
 CONTROL
 dpkg-deb --build --root-owner-group build/package "dist/Drill-linux-amd64.deb"
@@ -59,6 +59,8 @@ license = GPL-2.0-only
 depend = glibc
 depend = libx11
 depend = libxkbcommon
+depend = libxkbcommon-x11
+depend = xdg-utils
 depend = wayland
 depend = libglvnd
 depend = gtk3
