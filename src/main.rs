@@ -1,5 +1,5 @@
 #![cfg_attr(target_os = "windows", windows_subsystem = "windows")]
-#![forbid(unsafe_code)]
+#![deny(unsafe_code)]
 use chrono::{DateTime, Local};
 use drill_core::{default_roots, Entry, Search};
 use eframe::egui::{self, Key, RichText};
@@ -37,6 +37,8 @@ struct App {
     scroll_offset: f32,
     icons: std::collections::HashMap<std::path::PathBuf, Option<egui::TextureHandle>>,
     sort: Option<(SortColumn, bool)>,
+    action_error: Option<String>,
+    action_result: Option<std::sync::mpsc::Receiver<Result<(), String>>>,
 }
 impl Default for App {
     fn default() -> Self {
@@ -53,6 +55,8 @@ impl Default for App {
             scroll_offset: 0.0,
             icons: std::collections::HashMap::new(),
             sort: None,
+            action_error: None,
+            action_result: None,
         }
     }
 }
@@ -117,8 +121,216 @@ fn open(path: &Path, reveal: bool) {
         eprintln!("Cannot open {}: {error}", path.display());
     }
 }
+
+fn terminal_directory(entry: &Entry) -> &Path {
+    if entry.is_dir || entry.path.is_dir() {
+        &entry.path
+    } else {
+        entry.path.parent().unwrap_or(&entry.path)
+    }
+}
+
+fn open_terminal(directory: &Path) -> Result<(), String> {
+    if !directory.is_dir() {
+        return Err(format!("Folder is unavailable: {}", directory.display()));
+    }
+    #[cfg(target_os = "macos")]
+    let candidates: &[(&str, &[&str])] = &[("/usr/bin/open", &["-b", "com.apple.Terminal"])];
+    #[cfg(target_os = "windows")]
+    let candidates: &[(&str, &[&str])] =
+        &[("wt.exe", &["new-tab", "-d", "."]), ("powershell.exe", &[])];
+    #[cfg(not(any(target_os = "macos", target_os = "windows")))]
+    let candidates: &[(&str, &[&str])] = &[
+        ("xdg-terminal-exec", &[]),
+        ("x-terminal-emulator", &[]),
+        ("gnome-terminal", &[]),
+        ("konsole", &[]),
+        ("xfce4-terminal", &[]),
+        ("xterm", &[]),
+    ];
+    for (program, args) in candidates {
+        let mut command = std::process::Command::new(program);
+        command.args(*args).current_dir(directory);
+        #[cfg(target_os = "macos")]
+        command.arg(directory);
+        #[cfg(target_os = "windows")]
+        {
+            use std::os::windows::process::CommandExt;
+            command.creation_flags(0x0000_0010); // CREATE_NEW_CONSOLE
+        }
+        match command.spawn() {
+            Ok(_) => return Ok(()),
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => continue,
+            Err(error) => return Err(format!("Cannot start terminal: {error}")),
+        }
+    }
+    Err("No supported terminal application was found".into())
+}
+
+#[cfg(target_os = "macos")]
+fn open_with(path: &Path) -> Result<(), String> {
+    let script = "try\nset chosenApp to choose application with prompt \"Open with:\" as alias\nreturn POSIX path of chosenApp\non error number -128\nreturn \"\"\nend try";
+    let output = std::process::Command::new("/usr/bin/osascript")
+        .args(["-e", script])
+        .output()
+        .map_err(|e| e.to_string())?;
+    if !output.status.success() {
+        return Err(String::from_utf8_lossy(&output.stderr).trim().to_owned());
+    }
+    let app = String::from_utf8_lossy(&output.stdout);
+    let app = app.trim();
+    if app.is_empty() {
+        return Ok(());
+    }
+    let status = std::process::Command::new("/usr/bin/open")
+        .arg("-a")
+        .arg(app)
+        .arg(path)
+        .status()
+        .map_err(|e| e.to_string())?;
+    if status.success() {
+        Ok(())
+    } else {
+        Err(format!(
+            "Could not open {} with the selected application",
+            path.display()
+        ))
+    }
+}
+
+#[cfg(target_os = "linux")]
+fn open_with(path: &Path) -> Result<(), String> {
+    use gtk::prelude::*;
+    gtk::init().map_err(|e| e.to_string())?;
+    let file = gtk::gio::File::for_path(path);
+    let dialog = gtk::AppChooserDialog::new(None::<&gtk::Window>, gtk::DialogFlags::MODAL, &file);
+    let response = dialog.run();
+    let result = if response == gtk::ResponseType::Ok || response == gtk::ResponseType::Accept {
+        match dialog.app_info() {
+            Some(app) => app
+                .launch(&[file], None::<&gtk::gio::AppLaunchContext>)
+                .map_err(|e| e.to_string()),
+            None => Err("No application was selected".into()),
+        }
+    } else {
+        Ok(())
+    };
+    dialog.close();
+    result
+}
+
+#[cfg(target_os = "windows")]
+#[allow(unsafe_code)]
+fn open_with(path: &Path) -> Result<(), String> {
+    use std::os::windows::ffi::OsStrExt;
+    use windows_sys::Win32::System::Com::{
+        CoInitializeEx, CoUninitialize, COINIT_APARTMENTTHREADED,
+    };
+    use windows_sys::Win32::UI::Shell::{SHOpenWithDialog, OAIF_EXEC, OPENASINFO};
+    let wide: Vec<u16> = path.as_os_str().encode_wide().chain(Some(0)).collect();
+    let info = OPENASINFO {
+        pcszFile: wide.as_ptr(),
+        pcszClass: std::ptr::null(),
+        oaifInFlags: OAIF_EXEC,
+    };
+    // SAFETY: this fresh thread initializes COM as a single-threaded apartment.
+    let initialized = unsafe { CoInitializeEx(std::ptr::null(), COINIT_APARTMENTTHREADED as u32) };
+    if initialized < 0 {
+        return Err(format!(
+            "Cannot initialize application chooser (0x{:08x})",
+            initialized as u32
+        ));
+    }
+    // SAFETY: the NUL-terminated filename and OPENASINFO remain alive throughout the call.
+    let result = unsafe { SHOpenWithDialog(std::ptr::null_mut(), &info) };
+    // SAFETY: CoInitializeEx succeeded on this thread and is balanced exactly once.
+    unsafe { CoUninitialize() };
+    if result >= 0 || result as u32 == 0x8007_04c7 {
+        Ok(())
+    } else {
+        Err(format!("Open with failed (0x{:08x})", result as u32))
+    }
+}
+
+#[cfg(not(any(target_os = "macos", target_os = "windows", target_os = "linux")))]
+fn open_with(_path: &Path) -> Result<(), String> {
+    Err("Open with is unavailable on this platform".into())
+}
+
+enum MenuIcon {
+    Folder,
+    Terminal,
+}
+fn icon_menu_button(ui: &mut egui::Ui, text: &str, icon: MenuIcon) -> bool {
+    let row = ui.horizontal(|ui| {
+        let (rect, _) = ui.allocate_exact_size(egui::vec2(16.0, 16.0), egui::Sense::hover());
+        let stroke = egui::Stroke::new(1.2_f32, ui.visuals().text_color());
+        let p = ui.painter();
+        let at = |x, y| rect.min + egui::vec2(x, y);
+        match icon {
+            MenuIcon::Terminal => {
+                p.rect_stroke(rect.shrink(1.0), 2.0, stroke, egui::StrokeKind::Inside);
+                p.line_segment([at(4.0, 5.0), at(7.0, 8.0)], stroke);
+                p.line_segment([at(7.0, 8.0), at(4.0, 11.0)], stroke);
+                p.line_segment([at(9.0, 11.0), at(12.0, 11.0)], stroke);
+            }
+            MenuIcon::Folder => {
+                p.line(
+                    vec![
+                        at(1.0, 13.0),
+                        at(1.0, 3.0),
+                        at(6.0, 3.0),
+                        at(8.0, 5.0),
+                        at(15.0, 5.0),
+                        at(15.0, 13.0),
+                        at(1.0, 13.0),
+                    ],
+                    stroke,
+                );
+            }
+        }
+        ui.button(text).clicked()
+    });
+    row.inner
+        || ui
+            .interact(
+                row.response.rect,
+                row.response.id.with("icon-row"),
+                egui::Sense::click(),
+            )
+            .clicked()
+}
 impl App {
     fn update_ui(&mut self, ctx: &egui::Context) {
+        if let Some(result) = self.action_result.as_ref().map(|rx| rx.try_recv()) {
+            match result {
+                Ok(result) => {
+                    self.action_result = None;
+                    if let Err(error) = result {
+                        self.action_error = Some(error);
+                    }
+                }
+                Err(std::sync::mpsc::TryRecvError::Disconnected) => {
+                    self.action_result = None;
+                    self.action_error = Some("Application chooser stopped unexpectedly".into());
+                }
+                Err(std::sync::mpsc::TryRecvError::Empty) => {}
+            }
+        }
+        if self.action_error.is_some() {
+            let mut dismiss = false;
+            egui::Window::new("Unable to complete action")
+                .collapsible(false)
+                .show(ctx, |ui| {
+                    ui.label(self.action_error.as_deref().unwrap_or_default());
+                    if ui.button("OK").clicked() {
+                        dismiss = true;
+                    }
+                });
+            if dismiss {
+                self.action_error = None;
+            }
+        }
         if ctx.input(|i| i.key_pressed(Key::Escape)) {
             ctx.send_viewport_cmd(egui::ViewportCommand::Close);
             return;
@@ -263,22 +475,27 @@ impl App {
                 .into_iter()
                 .zip(widths)
                 {
-                    let suffix = match self.sort {
-                        Some((current, ascending)) if current == column => {
-                            if ascending {
-                                " ▲"
-                            } else {
-                                " ▼"
-                            }
-                        }
-                        _ => "",
-                    };
-                    let label = egui::Label::new(RichText::new(format!("{name}{suffix}")).strong())
-                        .sense(egui::Sense::click());
-                    if ui
-                        .add_sized([total * fraction - 8.0, 20.0], label)
-                        .clicked()
+                    let label =
+                        egui::Label::new(RichText::new(name).strong()).sense(egui::Sense::click());
+                    let response = ui.add_sized([total * fraction - 8.0, 20.0], label);
+                    if let Some((current, ascending)) =
+                        self.sort.filter(|(current, _)| *current == column)
                     {
+                        let _ = current;
+                        let center =
+                            egui::pos2(response.rect.right() - 9.0, response.rect.center().y);
+                        let direction = if ascending { -1.0 } else { 1.0 };
+                        ui.painter().add(egui::Shape::convex_polygon(
+                            vec![
+                                center + egui::vec2(0.0, direction * 3.0),
+                                center + egui::vec2(-4.0, -direction * 2.0),
+                                center + egui::vec2(4.0, -direction * 2.0),
+                            ],
+                            ui.visuals().text_color(),
+                            egui::Stroke::NONE,
+                        ));
+                    }
+                    if response.clicked() {
                         let ascending =
                             !matches!(self.sort, Some((current, true)) if current == column);
                         self.sort = Some((column, ascending));
@@ -446,7 +663,7 @@ impl App {
                             egui::pos2(x + column_width - 4.0, rect.bottom()),
                         );
                         ui.painter().with_clip_rect(clip).text(
-                            egui::pos2(x + if column == 0 { 24.0 } else { 4.0 }, rect.center().y),
+                            egui::pos2(x + if column == 0 { 29.0 } else { 4.0 }, rect.center().y),
                             egui::Align2::LEFT_CENTER,
                             value,
                             egui::TextStyle::Body.resolve(ui.style()),
@@ -463,8 +680,38 @@ impl App {
                             open(&entry.path, false);
                             ui.close_menu();
                         }
-                        if ui.button("Reveal in file manager").clicked() {
+                        if ui
+                            .add_enabled(
+                                self.action_result.is_none(),
+                                egui::Button::new("Open with…"),
+                            )
+                            .clicked()
+                        {
+                            let path = entry.path.clone();
+                            #[cfg(target_os = "linux")]
+                            if let Err(error) = open_with(&path) {
+                                self.action_error = Some(error);
+                            }
+                            #[cfg(not(target_os = "linux"))]
+                            {
+                                let (sender, receiver) = std::sync::mpsc::channel();
+                                let context = ui.ctx().clone();
+                                std::thread::spawn(move || {
+                                    let _ = sender.send(open_with(&path));
+                                    context.request_repaint();
+                                });
+                                self.action_result = Some(receiver);
+                            }
+                            ui.close_menu();
+                        }
+                        if icon_menu_button(ui, "Reveal in file manager", MenuIcon::Folder) {
                             open(&entry.path, true);
+                            ui.close_menu();
+                        }
+                        if icon_menu_button(ui, "Open terminal here", MenuIcon::Terminal) {
+                            if let Err(error) = open_terminal(terminal_directory(entry)) {
+                                self.action_error = Some(error);
+                            }
                             ui.close_menu();
                         }
                         if ui.button("Copy Full Path").clicked() {
@@ -562,6 +809,16 @@ fn main() -> eframe::Result {
 mod ui_tests {
     use super::*;
     use std::path::PathBuf;
+
+    #[test]
+    fn terminal_uses_folder_itself_or_file_parent_even_if_missing() {
+        let mut item = entry("report ' spaces.txt", 1);
+        item.path = PathBuf::from("/missing project/report ' spaces.txt");
+        assert_eq!(terminal_directory(&item), Path::new("/missing project"));
+        item.is_dir = true;
+        assert_eq!(terminal_directory(&item), item.path);
+        assert!(open_terminal(terminal_directory(&item)).is_err());
+    }
 
     fn frame(ctx: &egui::Context, app: &mut App, events: Vec<egui::Event>) -> egui::FullOutput {
         let input = egui::RawInput {
