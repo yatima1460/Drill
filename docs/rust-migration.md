@@ -8,6 +8,8 @@ The Rust search code runs off the UI thread, scans the existing platform root li
 
 On macOS, Settings → Permissions lets the user choose folders using the system picker and open the Files and Folders or Full Disk Access settings. Chosen folders are included in searches for the current session. A folder check only reports whether Drill could list that folder at the time; macOS manages access and a successful check does not prove Full Disk Access. The released app is not sandboxed. If the app is started through a terminal, macOS may attribute access to that terminal instead of the packaged app.
 
+Settings → Interface controls embedded icons for Windows executables. The default is enabled. Executables are read as bounded snapshots and decoded in a bundled WebAssembly module with no host imports, bounded memory and fuel; they are never run. Oversized, unreadable or invalid files use a generic file icon, as do executables when the setting is disabled. On macOS the icon worker avoids materializing cloud-only files. Other file types continue to use platform icon providers. The decoder is built from `tools/exe-icon-wasm`; Linux CI rebuilds it and compares the result with the shipped module.
+
 Development checks: `cargo fmt --check`, `cargo check --locked`, `cargo clippy --locked --all-targets -- -D warnings`, and `cargo test --locked`.
 
 CI builds a macOS DMG, Windows x86-64 ZIP, and Linux Debian, Arch, and AppImage packages. Windows is cross-compiled on Linux; the archive is inspected there but still requires a native Windows runtime check. macOS bundles are unsigned and not notarized. The AppImage relies on compatible system graphics libraries. Publishing runs only after all platform build jobs succeed on a push to main.
