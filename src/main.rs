@@ -439,7 +439,7 @@ impl App {
             }
         }
         #[cfg(target_os = "macos")]
-        {
+        let permissions_were_open = {
             if self
                 .native_menu
                 .as_ref()
@@ -451,8 +451,12 @@ impl App {
                 self.permissions.open = false;
                 return;
             }
-            self.permissions.show(ctx);
-        }
+            let was_open = self.permissions.open;
+            if self.permissions.show(ctx) {
+                self.refresh_after_permission_selection();
+            }
+            was_open
+        };
         #[cfg(any(target_os = "macos", target_os = "windows"))]
         if self
             .native_menu
@@ -610,9 +614,9 @@ impl App {
         #[cfg(not(any(target_os = "macos", target_os = "windows")))]
         in_window_search_menu(ctx, self);
         #[cfg(target_os = "macos")]
-        let background_input_allowed = !self.permissions.open && !interface_was_open;
+        let background_input_allowed = !permissions_were_open && !interface_was_open && !self.interface_open;
         #[cfg(not(target_os = "macos"))]
-        let background_input_allowed = !interface_was_open;
+        let background_input_allowed = !interface_was_open && !self.interface_open;
         let mut icon_budget = 4;
         let mut icons_pending = false;
         egui::CentralPanel::default().show(ctx, |ui| {
@@ -800,14 +804,17 @@ impl App {
                                     worker.invalidate(self.icon_generation);
                                     worker
                                 });
-                                if worker.request(
+                                match worker.request(
                                     self.icon_generation,
                                     entry.path.clone(),
                                     ctx.clone(),
                                 ) {
-                                    self.pending_icons.insert(entry.path.clone());
-                                } else {
-                                    icons_pending = true;
+                                    exe_icon::RequestState::Queued => { self.pending_icons.insert(entry.path.clone()); }
+                                    exe_icon::RequestState::Full => icons_pending = true,
+                                    exe_icon::RequestState::Closed => {
+                                        for path in self.pending_icons.drain() { self.icons.insert(path, None); }
+                                        self.icons.insert(entry.path.clone(), None);
+                                    }
                                 }
                             }
                         } else if icon_budget > 0 {
@@ -1020,6 +1027,13 @@ impl App {
             ctx.request_repaint_after(Duration::from_millis(30));
         }
     }
+
+    #[cfg(target_os = "macos")]
+    fn refresh_after_permission_selection(&mut self) {
+        if !self.query.trim().is_empty() && !self.stopped {
+            self.changed = Some(Instant::now() - Duration::from_millis(250));
+        }
+    }
 }
 impl eframe::App for App {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
@@ -1052,6 +1066,10 @@ fn main() -> eframe::Result {
         height,
     };
     let options = eframe::NativeOptions {
+        #[cfg(feature = "ui-test-driver")]
+        persistence_path: std::env::var_os("DRILL_UI_TEST_STATUS")
+            .map(std::path::PathBuf::from)
+            .and_then(|path| path.parent().map(|parent| parent.join("ui-settings.ron"))),
         viewport: egui::ViewportBuilder::default()
             .with_inner_size([960.0, 600.0])
             .with_icon(icon),
@@ -1151,6 +1169,21 @@ mod ui_tests {
         );
         assert_eq!(app.selected, Some(0));
         assert!(app.query.is_empty());
+    }
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn selecting_folder_refreshes_query_but_respects_stop() {
+        let mut app = App {
+            query: "report".into(),
+            ..Default::default()
+        };
+        app.refresh_after_permission_selection();
+        assert!(app.changed.is_some());
+        app.changed = None;
+        app.stopped = true;
+        app.refresh_after_permission_selection();
+        assert!(app.changed.is_none());
     }
 
     #[test]
