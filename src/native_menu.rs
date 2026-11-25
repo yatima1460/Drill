@@ -67,7 +67,9 @@ impl NativeMenu {
         })
     }
     pub fn set_enabled(&self, enabled: bool) {
-        self.stop.set_enabled(enabled);
+        if self.stop.is_enabled() != enabled {
+            self.stop.set_enabled(enabled);
+        }
     }
     pub fn take_stop(&self) -> bool {
         self.requested.swap(false, Ordering::Relaxed)

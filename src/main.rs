@@ -1,7 +1,7 @@
 #![cfg_attr(target_os = "windows", windows_subsystem = "windows")]
 #![deny(unsafe_code)]
 use chrono::{DateTime, Local};
-use drill_core::{default_roots, Entry, Search};
+use drill_core::{default_roots_with_cancel, Entry, Search};
 use eframe::egui::{self, Key, RichText};
 use std::path::Path;
 use std::time::{Duration, Instant};
@@ -325,6 +325,23 @@ fn icon_menu_button(ui: &mut egui::Ui, text: &str, icon: MenuIcon) -> bool {
     );
     response.clicked()
 }
+
+#[cfg(any(test, not(any(target_os = "macos", target_os = "windows"))))]
+fn in_window_search_menu(ctx: &egui::Context, app: &mut App) {
+    egui::TopBottomPanel::top("menu_bar").show(ctx, |ui| {
+        egui::menu::bar(ui, |ui| {
+            ui.menu_button("Search", |ui| {
+                if ui
+                    .add_enabled(app.can_stop(), egui::Button::new("Stop"))
+                    .clicked()
+                {
+                    app.stop_search();
+                    ui.close_menu();
+                }
+            });
+        });
+    });
+}
 impl App {
     fn can_stop(&self) -> bool {
         self.changed.is_some()
@@ -417,18 +434,27 @@ impl App {
                     #[cfg(feature = "ui-test-driver")]
                     let roots = std::env::var_os("DRILL_UI_TEST_ROOT")
                         .map(|p| vec![p.into()])
-                        .unwrap_or_else(default_roots);
+                        .unwrap_or_else(|| default_roots_with_cancel(&cancel));
                     #[cfg(not(feature = "ui-test-driver"))]
-                    let roots = default_roots();
+                    let roots = default_roots_with_cancel(&cancel);
                     let _ = tx.send(Search::start_with_cancel(query, roots, cancel));
                 });
             }
         }
-        if let Some(starting) = &self.starting {
-            if let Ok(search) = starting.try_recv() {
-                self.search = Some(search);
-                self.starting = None;
-                self.starting_cancel = None;
+        if let Some(result) = self.starting.as_ref().map(|starting| starting.try_recv()) {
+            match result {
+                Ok(search) => {
+                    self.search = Some(search);
+                    self.starting = None;
+                    self.starting_cancel = None;
+                }
+                Err(std::sync::mpsc::TryRecvError::Disconnected) => {
+                    self.starting = None;
+                    self.starting_cancel = None;
+                    self.action_error = Some("Search could not start".into());
+                    ctx.request_repaint();
+                }
+                Err(std::sync::mpsc::TryRecvError::Empty) => {}
             }
         }
         let mut results_changed = false;
@@ -480,19 +506,7 @@ impl App {
             menu.set_enabled(self.can_stop());
         }
         #[cfg(not(any(target_os = "macos", target_os = "windows")))]
-        egui::TopBottomPanel::top("menu_bar").show(ctx, |ui| {
-            egui::menu::bar(ui, |ui| {
-                ui.menu_button("Search", |ui| {
-                    if ui
-                        .add_enabled(self.can_stop(), egui::Button::new("Stop"))
-                        .clicked()
-                    {
-                        self.stop_search();
-                        ui.close_menu();
-                    }
-                });
-            });
-        });
+        in_window_search_menu(ctx, self);
         let mut icon_budget = 4;
         let mut icons_pending = false;
         egui::CentralPanel::default().show(ctx, |ui| {
@@ -971,6 +985,72 @@ mod ui_tests {
         assert!(!app.can_stop());
         assert!(app.stopped);
         assert_eq!(app.query, "test");
+    }
+
+    #[test]
+    fn stop_discards_active_search_without_clearing_results() {
+        let search = Search::start("kept".into(), vec![std::env::temp_dir()]);
+        let mut app = App {
+            query: "kept".into(),
+            results: vec![entry("kept", 1)],
+            selected: Some(0),
+            search: Some(search),
+            ..Default::default()
+        };
+        app.stop_search();
+        assert!(app.search.is_none());
+        assert_eq!(app.results.len(), 1);
+        assert_eq!(app.selected, Some(0));
+        let ctx = egui::Context::default();
+        let _ = frame(&ctx, &mut app, vec![]);
+        assert_eq!(app.results.len(), 1);
+        app.changed = Some(Instant::now());
+        assert!(app.can_stop(), "a subsequent query can be started");
+    }
+
+    #[test]
+    fn search_menu_stop_cancels_pending_search() {
+        let ctx = egui::Context::default();
+        let mut app = App {
+            query: "kept".into(),
+            changed: Some(Instant::now()),
+            results: vec![entry("kept", 1)],
+            ..Default::default()
+        };
+        let render = |app: &mut App, events| {
+            let _ = ctx.run(
+                egui::RawInput {
+                    screen_rect: Some(egui::Rect::from_min_size(
+                        egui::Pos2::ZERO,
+                        egui::vec2(800.0, 600.0),
+                    )),
+                    events,
+                    ..Default::default()
+                },
+                |ctx| in_window_search_menu(ctx, app),
+            );
+        };
+        render(&mut app, vec![]);
+        for point in [egui::pos2(20.0, 10.0), egui::pos2(20.0, 38.0)] {
+            for pressed in [true, false] {
+                render(
+                    &mut app,
+                    vec![
+                        egui::Event::PointerMoved(point),
+                        egui::Event::PointerButton {
+                            pos: point,
+                            button: egui::PointerButton::Primary,
+                            pressed,
+                            modifiers: egui::Modifiers::NONE,
+                        },
+                    ],
+                );
+            }
+            render(&mut app, vec![]);
+        }
+        assert!(app.stopped);
+        assert_eq!(app.results[0].name, "kept");
+        assert!(!app.can_stop());
     }
 
     #[test]
