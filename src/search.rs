@@ -1,8 +1,9 @@
-use std::collections::{HashSet, VecDeque};
+use std::cmp::Reverse;
+use std::collections::{BinaryHeap, HashSet};
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{mpsc, Arc, Condvar, Mutex};
+use std::sync::{mpsc, Arc, Condvar, Mutex, OnceLock};
 use std::thread::{self, JoinHandle};
 use std::time::SystemTime;
 use unicode_normalization::{char::is_combining_mark, UnicodeNormalization};
@@ -57,7 +58,7 @@ pub fn matches(name: &str, query: &str) -> bool {
             name.split_whitespace().any(|word| {
                 let a: Vec<char> = token.chars().collect();
                 let b: Vec<char> = word.chars().collect();
-                !a.is_empty() && 4 * matching_chars(&a, &b) >= a.len() + b.len()
+                !a.is_empty() && 4 * matching_chars(&b, &a) >= a.len() + b.len()
             })
         })
     } else {
@@ -142,8 +143,51 @@ pub fn default_roots() -> Vec<PathBuf> {
     roots
 }
 
+type Priority = Reverse<(bool, bool, usize, usize, Reverse<u64>, PathBuf)>;
+
+fn priority(path: PathBuf) -> Priority {
+    static DICTIONARY: OnceLock<HashSet<&'static str>> = OnceLock::new();
+    let words = DICTIONARY.get_or_init(|| include_str!("assets/wordsalpha.txt").lines().collect());
+    let name = path
+        .file_name()
+        .unwrap_or_default()
+        .to_string_lossy()
+        .to_lowercase();
+    let text = path.to_string_lossy();
+    let hidden = name.starts_with('.')
+        || name.ends_with('~')
+        || name.ends_with(".app")
+        || [
+            "/System",
+            "/Library",
+            "/private",
+            "/usr",
+            "/bin",
+            "/sbin",
+            "C:\\Windows",
+            "C:\\ProgramData",
+        ]
+        .iter()
+        .any(|p| text.starts_with(p));
+    let depth = path.components().count();
+    let len = text.len();
+    let modified = fs::metadata(&path)
+        .and_then(|m| m.modified())
+        .ok()
+        .and_then(|t| t.duration_since(SystemTime::UNIX_EPOCH).ok())
+        .map_or(0, |d| d.as_secs());
+    Reverse((
+        !words.contains(name.as_str()),
+        hidden,
+        depth,
+        len,
+        Reverse(modified),
+        path,
+    ))
+}
+
 struct Work {
-    queue: VecDeque<PathBuf>,
+    queue: BinaryHeap<Priority>,
     outstanding: usize,
     visited: HashSet<PathBuf>,
 }
@@ -155,7 +199,7 @@ pub struct Search {
 }
 impl Search {
     pub fn start(query: String, roots: Vec<PathBuf>) -> Self {
-        let (tx, receiver) = mpsc::channel();
+        let (tx, receiver) = mpsc::sync_channel(512);
         let cancel = Arc::new(AtomicBool::new(false));
         let roots: HashSet<PathBuf> = roots
             .into_iter()
@@ -163,7 +207,7 @@ impl Search {
             .collect();
         let work = Arc::new((
             Mutex::new(Work {
-                queue: roots.iter().cloned().collect(),
+                queue: roots.iter().cloned().map(priority).collect(),
                 outstanding: roots.len(),
                 visited: roots,
             }),
@@ -184,7 +228,7 @@ impl Search {
                         if cancel.load(Ordering::Relaxed) || state.outstanding == 0 {
                             return;
                         }
-                        if let Some(dir) = state.queue.pop_front() {
+                        if let Some(Reverse((_, _, _, _, _, dir))) = state.queue.pop() {
                             break dir;
                         }
                         state = cv.wait(state).unwrap();
@@ -200,10 +244,11 @@ impl Search {
                         if kind.is_dir() && !kind.is_symlink() {
                             let canonical =
                                 fs::canonicalize(&path).unwrap_or_else(|_| path.clone());
+                            let ranked = priority(path.clone());
                             let (lock, cv) = &*work;
                             let mut state = lock.lock().unwrap();
                             if state.visited.insert(canonical) {
-                                state.queue.push_back(path.clone());
+                                state.queue.push(ranked);
                                 state.outstanding += 1;
                                 cv.notify_one();
                             }
@@ -211,17 +256,25 @@ impl Search {
                         let name = item.file_name().to_string_lossy().into_owned();
                         if matches(&name, &query) {
                             let metadata = item.metadata().ok();
-                            if tx
-                                .send(Entry {
-                                    path,
-                                    name,
-                                    size: metadata.as_ref().map(|m| m.len()),
-                                    modified: metadata.and_then(|m| m.modified().ok()),
-                                    is_dir: kind.is_dir(),
-                                })
-                                .is_err()
-                            {
-                                return;
+                            let mut entry = Entry {
+                                path,
+                                name,
+                                size: metadata.as_ref().map(|m| m.len()),
+                                modified: metadata.and_then(|m| m.modified().ok()),
+                                is_dir: kind.is_dir(),
+                            };
+                            loop {
+                                if cancel.load(Ordering::Relaxed) {
+                                    return;
+                                }
+                                match tx.try_send(entry) {
+                                    Ok(()) => break,
+                                    Err(mpsc::TrySendError::Full(returned)) => {
+                                        entry = returned;
+                                        thread::sleep(std::time::Duration::from_millis(5));
+                                    }
+                                    Err(mpsc::TrySendError::Disconnected(_)) => return,
+                                }
                             }
                         }
                     }
@@ -271,6 +324,16 @@ mod tests {
         assert!(!matches("Project Notes.txt", "projecx notes"));
         assert!(matches("Project Notes.txt", "fuzzy:projecx notes"));
         assert!(!matches("Project Notes.txt", "fuzzy:unrelated"));
+        assert!(matches("diet", "fuzzy:tide"));
+    }
+    #[test]
+    fn priorities_favor_dictionary_and_visible_directories() {
+        let dictionary = priority(PathBuf::from("/home/user/music"));
+        let nondictionary = priority(PathBuf::from("/home/user/zzzzqxyz"));
+        assert!(dictionary > nondictionary);
+        let visible = priority(PathBuf::from("/home/user/zzzzqxyz"));
+        let hidden = priority(PathBuf::from("/home/user/.zzzzqxyz"));
+        assert!(visible > hidden);
     }
     #[test]
     fn scan_finishes_and_finds_files_and_directories() {
@@ -288,7 +351,9 @@ mod tests {
         {
             names.push(e.name);
         }
-        assert!(search.done());
+        while !search.done() {
+            std::thread::yield_now();
+        }
         assert!(names.contains(&"needle-file.txt".to_string()));
         assert!(names.contains(&"needle-folder".to_string()));
         fs::remove_dir_all(root).unwrap();
