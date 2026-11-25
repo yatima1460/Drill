@@ -228,60 +228,70 @@ impl eframe::App for App {
                 .show_rows(ui, 25.0, self.results.len(), |ui, range| {
                     for index in range {
                         let entry = &self.results[index];
-                        ui.horizontal(|ui| {
-                            let result = ui.add_sized(
-                                [total * widths[0] - 8.0, 22.0],
-                                egui::Button::new(&entry.name)
-                                    .selected(self.selected == Some(index))
-                                    .frame(false),
+                        let (rect, result) =
+                            ui.allocate_exact_size(egui::vec2(total, 25.0), egui::Sense::click());
+                        if result.clicked() || result.secondary_clicked() {
+                            self.selected = Some(index);
+                        }
+                        if result.double_clicked() {
+                            open(&entry.path, false);
+                        }
+                        if self.selected == Some(index) {
+                            ui.painter()
+                                .rect_filled(rect, 0.0, ui.visuals().selection.bg_fill);
+                        } else if index % 2 == 1 {
+                            ui.painter()
+                                .rect_filled(rect, 0.0, ui.visuals().faint_bg_color);
+                        }
+                        let values = [
+                            entry.name.clone(),
+                            entry
+                                .path
+                                .parent()
+                                .unwrap_or(Path::new(""))
+                                .to_string_lossy()
+                                .into_owned(),
+                            size(entry),
+                            date(entry),
+                        ];
+                        let mut x = rect.left();
+                        for (value, fraction) in values.into_iter().zip(widths) {
+                            let column_width = total * fraction;
+                            let clip = egui::Rect::from_min_max(
+                                egui::pos2(x, rect.top()),
+                                egui::pos2(x + column_width - 4.0, rect.bottom()),
                             );
-                            if result.clicked() {
-                                self.selected = Some(index);
-                            }
-                            if result.double_clicked() {
+                            ui.painter().with_clip_rect(clip).text(
+                                egui::pos2(x + 4.0, rect.center().y),
+                                egui::Align2::LEFT_CENTER,
+                                value,
+                                egui::TextStyle::Body.resolve(ui.style()),
+                                ui.visuals().text_color(),
+                            );
+                            x += column_width;
+                        }
+                        result.context_menu(|ui| {
+                            if ui.button("Open").clicked() {
                                 open(&entry.path, false);
+                                ui.close_menu();
                             }
-                            result.context_menu(|ui| {
-                                if ui.button("Open").clicked() {
-                                    open(&entry.path, false);
-                                    ui.close_menu();
-                                }
-                                if ui.button("Reveal in file manager").clicked() {
-                                    open(&entry.path, true);
-                                    ui.close_menu();
-                                }
-                                if ui.button("Copy Full Path").clicked() {
-                                    ui.ctx()
-                                        .copy_text(entry.path.to_string_lossy().into_owned());
-                                    ui.close_menu();
-                                }
-                                if ui.button("Copy Date").clicked() {
-                                    ui.ctx().copy_text(date(entry));
-                                    ui.close_menu();
-                                }
-                                if ui.button("Copy Size").clicked() {
-                                    ui.ctx().copy_text(size(entry));
-                                    ui.close_menu();
-                                }
-                            });
-                            ui.add_sized(
-                                [total * widths[1] - 8.0, 22.0],
-                                egui::Label::new(
-                                    entry
-                                        .path
-                                        .parent()
-                                        .unwrap_or(Path::new(""))
-                                        .to_string_lossy(),
-                                ),
-                            );
-                            ui.add_sized(
-                                [total * widths[2] - 8.0, 22.0],
-                                egui::Label::new(size(entry)),
-                            );
-                            ui.add_sized(
-                                [total * widths[3] - 8.0, 22.0],
-                                egui::Label::new(date(entry)),
-                            );
+                            if ui.button("Reveal in file manager").clicked() {
+                                open(&entry.path, true);
+                                ui.close_menu();
+                            }
+                            if ui.button("Copy Full Path").clicked() {
+                                ui.ctx()
+                                    .copy_text(entry.path.to_string_lossy().into_owned());
+                                ui.close_menu();
+                            }
+                            if ui.button("Copy Date").clicked() {
+                                ui.ctx().copy_text(date(entry));
+                                ui.close_menu();
+                            }
+                            if ui.button("Copy Size").clicked() {
+                                ui.ctx().copy_text(size(entry));
+                                ui.close_menu();
+                            }
                         });
                     }
                 });
@@ -295,8 +305,19 @@ impl eframe::App for App {
     }
 }
 fn main() -> eframe::Result {
+    let icon = image::load_from_memory(include_bytes!("assets/drill.png"))
+        .expect("embedded Drill icon must be valid PNG")
+        .into_rgba8();
+    let (width, height) = icon.dimensions();
+    let icon = egui::IconData {
+        rgba: icon.into_raw(),
+        width,
+        height,
+    };
     let options = eframe::NativeOptions {
-        viewport: egui::ViewportBuilder::default().with_inner_size([960.0, 600.0]),
+        viewport: egui::ViewportBuilder::default()
+            .with_inner_size([960.0, 600.0])
+            .with_icon(icon),
         ..Default::default()
     };
     eframe::run_native("Drill", options, Box::new(|_| Ok(Box::<App>::default())))

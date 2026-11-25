@@ -9,3 +9,4 @@ license-file = "LICENSE"
 eframe = { version = "0.31.1", default-features = false, features = ["default_fonts", "wgpu", "x11", "wayland"] }
 unicode-normalization = "0.1.25"
 chrono = "0.4.45"
+image = { version = "0.25.10", default-features = false, features = ["png"] }
