@@ -36,13 +36,13 @@ fn wait_for(path: &std::path::Path, predicate: impl Fn(&str) -> bool) -> String 
 #[test]
 #[ignore = "moves the real mouse and types in a native window; run explicitly on a controlled desktop"]
 fn native_typing_selection_and_escape() {
-    let root = std::env::temp_dir().join(format!("drill-native-ui-{}", std::process::id()));
-    fs::create_dir_all(&root).unwrap();
+    let directory = tempfile::tempdir().unwrap();
+    let root = directory.path();
     fs::write(root.join("drill_native_unique_test.txt"), "fixture").unwrap();
     fs::write(root.join("drill_native_unique_test-b.txt"), "fixture").unwrap();
     let status = root.join("ui-status.txt");
     let child = Command::new(env!("CARGO_BIN_EXE_drill"))
-        .env("DRILL_UI_TEST_ROOT", &root)
+        .env("DRILL_UI_TEST_ROOT", root)
         .env("DRILL_UI_TEST_STATUS", &status)
         .stdout(Stdio::null())
         .stderr(Stdio::inherit())
@@ -148,5 +148,4 @@ fn native_typing_selection_and_escape() {
         );
         std::thread::sleep(Duration::from_millis(50));
     }
-    fs::remove_dir_all(root).unwrap();
 }

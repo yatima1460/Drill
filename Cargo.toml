@@ -22,6 +22,7 @@ chrono = "0.4.45"
 file_icon_provider = "1.0.2"
 image = { version = "0.25.10", default-features = false, features = ["png"] }
 wasmi = { version = "0.51.3", default-features = false, features = ["std", "extra-checks"] }
+tempfile = "3.23.0"
 
 [target.'cfg(unix)'.dependencies]
 libc = "0.2"

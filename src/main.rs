@@ -51,6 +51,7 @@ struct App {
     icons: std::collections::HashMap<std::path::PathBuf, Option<egui::TextureHandle>>,
     icon_worker: Option<exe_icon::Worker>,
     pending_icons: std::collections::HashSet<std::path::PathBuf>,
+    exe_type_icon: Option<Option<egui::TextureHandle>>,
     icon_generation: u64,
     embedded_exe_icons: bool,
     interface_open: bool,
@@ -83,6 +84,7 @@ impl Default for App {
             icons: std::collections::HashMap::new(),
             icon_worker: None,
             pending_icons: Default::default(),
+            exe_type_icon: None,
             icon_generation: 0,
             embedded_exe_icons: true,
             interface_open: false,
@@ -129,6 +131,68 @@ fn date(entry: &Entry) -> String {
                 .to_string()
         })
         .unwrap_or_else(|| "?".into())
+}
+fn platform_icon_texture(
+    ctx: &egui::Context,
+    icon: file_icon_provider::Icon,
+    name: &str,
+) -> Option<egui::TextureHandle> {
+    let pixels = (icon.width as usize).checked_mul(icon.height as usize)?;
+    let rgba = if icon.pixels.len() == pixels.checked_mul(4)? {
+        icon.pixels
+    } else if icon.pixels.len() == pixels.checked_mul(3)? {
+        icon.pixels
+            .as_chunks::<3>()
+            .0
+            .iter()
+            .flat_map(|rgb| [rgb[0], rgb[1], rgb[2], 255])
+            .collect()
+    } else {
+        return None;
+    };
+    let dimensions = [icon.width as usize, icon.height as usize];
+    #[cfg(any(target_os = "macos", target_os = "windows"))]
+    let image = egui::ColorImage::from_rgba_premultiplied(dimensions, &rgba);
+    #[cfg(not(any(target_os = "macos", target_os = "windows")))]
+    let image = egui::ColorImage::from_rgba_unmultiplied(dimensions, &rgba);
+    Some(ctx.load_texture(name, image, egui::TextureOptions::LINEAR))
+}
+#[cfg(not(target_os = "linux"))]
+fn executable_type_icon(ctx: &egui::Context) -> Option<egui::TextureHandle> {
+    // Ask the OS about a private, empty sample; never pass it the untrusted executable.
+    let sample = tempfile::Builder::new().suffix(".exe").tempfile().ok()?;
+    let icon = file_icon_provider::get_file_icon(sample.path(), 24).ok()?;
+    platform_icon_texture(ctx, icon, "exe-type-icon")
+}
+#[cfg(target_os = "linux")]
+fn executable_type_icon(ctx: &egui::Context) -> Option<egui::TextureHandle> {
+    use gtk::prelude::*;
+    if !gtk::is_initialized() {
+        gtk::init().ok()?;
+    }
+    let (content_type, _) = gtk::gio::content_type_guess(Some(Path::new("application.exe")), &[]);
+    let icon = gtk::gio::content_type_get_icon(&content_type);
+    let themed = icon.dynamic_cast_ref::<gtk::gio::ThemedIcon>()?;
+    let theme = gtk::IconTheme::default()?;
+    for name in themed.names() {
+        if let Some(pixbuf) = theme
+            .load_icon(&name, 24, gtk::IconLookupFlags::empty())
+            .ok()
+            .flatten()
+        {
+            let width = u32::try_from(pixbuf.width()).ok()?;
+            let height = u32::try_from(pixbuf.height()).ok()?;
+            let icon = file_icon_provider::Icon {
+                width,
+                height,
+                pixels: pixbuf.read_pixel_bytes().to_vec(),
+            };
+            if let Some(texture) = platform_icon_texture(ctx, icon, "exe-type-icon") {
+                return Some(texture);
+            }
+        }
+    }
+    None
 }
 fn open(path: &Path, reveal: bool) {
     #[cfg(target_os = "macos")]
@@ -833,35 +897,7 @@ impl App {
                             let icon = file_icon_provider::get_file_icon(&entry.path, 24)
                                 .ok()
                                 .and_then(|icon| {
-                                    let pixels =
-                                        (icon.width as usize).checked_mul(icon.height as usize)?;
-                                    let rgba = if icon.pixels.len() == pixels * 4 {
-                                        icon.pixels
-                                    } else if icon.pixels.len() == pixels * 3 {
-                                        icon.pixels
-                                            .as_chunks::<3>()
-                                            .0
-                                            .iter()
-                                            .flat_map(|rgb| [rgb[0], rgb[1], rgb[2], 255])
-                                            .collect()
-                                    } else {
-                                        return None;
-                                    };
-                                    let dimensions = [icon.width as usize, icon.height as usize];
-                                    // AppKit and Windows shell bitmaps use premultiplied alpha;
-                                    // GTK pixbufs use straight alpha.
-                                    #[cfg(any(target_os = "macos", target_os = "windows"))]
-                                    let image = egui::ColorImage::from_rgba_premultiplied(
-                                        dimensions, &rgba,
-                                    );
-                                    #[cfg(not(any(target_os = "macos", target_os = "windows")))]
-                                    let image =
-                                        egui::ColorImage::from_rgba_unmultiplied(dimensions, &rgba);
-                                    Some(ctx.load_texture(
-                                        entry.path.to_string_lossy(),
-                                        image,
-                                        egui::TextureOptions::LINEAR,
-                                    ))
+                                    platform_icon_texture(ctx, icon, &entry.path.to_string_lossy())
                                 });
                             self.icons.insert(entry.path.clone(), icon);
                         } else {
@@ -879,7 +915,24 @@ impl App {
                             );
                         }
                         Some(None) => {
-                            if entry.is_dir {
+                            let type_icon = if !entry.is_dir && exe_icon::is_exe(&entry.path) {
+                                self.exe_type_icon
+                                    .get_or_insert_with(|| executable_type_icon(ctx))
+                                    .as_ref()
+                            } else {
+                                None
+                            };
+                            if let Some(texture) = type_icon {
+                                painter.image(
+                                    texture.id(),
+                                    egui::Rect::from_min_size(icon_pos, egui::vec2(20.0, 20.0)),
+                                    egui::Rect::from_min_max(
+                                        egui::Pos2::ZERO,
+                                        egui::pos2(1.0, 1.0),
+                                    ),
+                                    egui::Color32::WHITE,
+                                );
+                            } else if entry.is_dir {
                                 let color = egui::Color32::from_rgb(224, 174, 78);
                                 painter.rect_filled(
                                     egui::Rect::from_min_size(
