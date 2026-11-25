@@ -5,12 +5,19 @@ use drill_core::{default_roots_with_cancel, Entry, Search};
 use eframe::egui::{self, Key, RichText};
 use std::path::Path;
 use std::time::{Duration, Instant};
+mod exe_icon;
 #[cfg(any(target_os = "macos", target_os = "windows"))]
 mod native_menu;
 #[cfg(target_os = "macos")]
 mod permissions;
 
 const LIMIT: usize = 10_000;
+fn embedded_icons_setting(storage: Option<&dyn eframe::Storage>) -> bool {
+    storage
+        .and_then(|storage| storage.get_string("embedded_exe_icons"))
+        .and_then(|value| value.parse().ok())
+        .unwrap_or(true)
+}
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 enum SortColumn {
     Name,
@@ -42,6 +49,12 @@ struct App {
     focus_search: bool,
     scroll_offset: f32,
     icons: std::collections::HashMap<std::path::PathBuf, Option<egui::TextureHandle>>,
+    icon_worker: Option<exe_icon::Worker>,
+    pending_icons: std::collections::HashSet<std::path::PathBuf>,
+    exe_type_icon: Option<Option<egui::TextureHandle>>,
+    icon_generation: u64,
+    embedded_exe_icons: bool,
+    interface_open: bool,
     sort: Option<(SortColumn, bool)>,
     action_error: Option<String>,
     action_result: Option<std::sync::mpsc::Receiver<Result<(), String>>>,
@@ -69,6 +82,12 @@ impl Default for App {
             focus_search: true,
             scroll_offset: 0.0,
             icons: std::collections::HashMap::new(),
+            icon_worker: None,
+            pending_icons: Default::default(),
+            exe_type_icon: None,
+            icon_generation: 0,
+            embedded_exe_icons: true,
+            interface_open: false,
             sort: None,
             action_error: None,
             action_result: None,
@@ -112,6 +131,68 @@ fn date(entry: &Entry) -> String {
                 .to_string()
         })
         .unwrap_or_else(|| "?".into())
+}
+fn platform_icon_texture(
+    ctx: &egui::Context,
+    icon: file_icon_provider::Icon,
+    name: &str,
+) -> Option<egui::TextureHandle> {
+    let pixels = (icon.width as usize).checked_mul(icon.height as usize)?;
+    let rgba = if icon.pixels.len() == pixels.checked_mul(4)? {
+        icon.pixels
+    } else if icon.pixels.len() == pixels.checked_mul(3)? {
+        icon.pixels
+            .as_chunks::<3>()
+            .0
+            .iter()
+            .flat_map(|rgb| [rgb[0], rgb[1], rgb[2], 255])
+            .collect()
+    } else {
+        return None;
+    };
+    let dimensions = [icon.width as usize, icon.height as usize];
+    #[cfg(any(target_os = "macos", target_os = "windows"))]
+    let image = egui::ColorImage::from_rgba_premultiplied(dimensions, &rgba);
+    #[cfg(not(any(target_os = "macos", target_os = "windows")))]
+    let image = egui::ColorImage::from_rgba_unmultiplied(dimensions, &rgba);
+    Some(ctx.load_texture(name, image, egui::TextureOptions::LINEAR))
+}
+#[cfg(not(target_os = "linux"))]
+fn executable_type_icon(ctx: &egui::Context) -> Option<egui::TextureHandle> {
+    // Ask the OS about a private, empty sample; never pass it the untrusted executable.
+    let sample = tempfile::Builder::new().suffix(".exe").tempfile().ok()?;
+    let icon = file_icon_provider::get_file_icon(sample.path(), 24).ok()?;
+    platform_icon_texture(ctx, icon, "exe-type-icon")
+}
+#[cfg(target_os = "linux")]
+fn executable_type_icon(ctx: &egui::Context) -> Option<egui::TextureHandle> {
+    use gtk::prelude::*;
+    if !gtk::is_initialized() {
+        gtk::init().ok()?;
+    }
+    let (content_type, _) = gtk::gio::content_type_guess(Some(Path::new("application.exe")), &[]);
+    let icon = gtk::gio::content_type_get_icon(&content_type);
+    let themed = icon.dynamic_cast_ref::<gtk::gio::ThemedIcon>()?;
+    let theme = gtk::IconTheme::default()?;
+    for name in themed.names() {
+        if let Some(pixbuf) = theme
+            .load_icon(&name, 24, gtk::IconLookupFlags::empty())
+            .ok()
+            .flatten()
+        {
+            let width = u32::try_from(pixbuf.width()).ok()?;
+            let height = u32::try_from(pixbuf.height()).ok()?;
+            let icon = file_icon_provider::Icon {
+                width,
+                height,
+                pixels: pixbuf.read_pixel_bytes().to_vec(),
+            };
+            if let Some(texture) = platform_icon_texture(ctx, icon, "exe-type-icon") {
+                return Some(texture);
+            }
+        }
+    }
+    None
 }
 fn open(path: &Path, reveal: bool) {
     #[cfg(target_os = "macos")]
@@ -348,6 +429,12 @@ fn in_window_search_menu(ctx: &egui::Context, app: &mut App) {
                     ui.close_menu();
                 }
             });
+            ui.menu_button("Settings", |ui| {
+                if ui.button("Interface…").clicked() {
+                    app.interface_open = true;
+                    ui.close_menu();
+                }
+            });
         });
     });
 }
@@ -373,6 +460,54 @@ impl App {
     }
 
     fn update_ui(&mut self, ctx: &egui::Context) {
+        #[cfg(any(target_os = "macos", target_os = "windows"))]
+        if self
+            .native_menu
+            .as_ref()
+            .is_some_and(|menu| menu.take_interface())
+        {
+            self.interface_open = true;
+        }
+        if self.interface_open && ctx.input(|i| i.key_pressed(Key::Escape)) {
+            self.interface_open = false;
+            return;
+        }
+        let interface_was_open = self.interface_open;
+        if self.interface_open {
+            let mut open = self.interface_open;
+            let mut enabled = self.embedded_exe_icons;
+            egui::Window::new("Interface")
+                .open(&mut open)
+                .show(ctx, |ui| {
+                    ui.checkbox(&mut enabled, "Use embedded icons for Windows executables");
+                });
+            self.interface_open = open;
+            if enabled != self.embedded_exe_icons {
+                self.embedded_exe_icons = enabled;
+                self.icons.retain(|path, _| !exe_icon::is_exe(path));
+                self.pending_icons.clear();
+                self.icon_generation = self.icon_generation.wrapping_add(1);
+                if let Some(worker) = &self.icon_worker {
+                    worker.invalidate(self.icon_generation);
+                }
+            }
+        }
+        if let Some(worker) = &self.icon_worker {
+            while let Ok(response) = worker.receiver.try_recv() {
+                if response.generation != self.icon_generation {
+                    continue;
+                }
+                self.pending_icons.remove(&response.path);
+                let icon = response.pixels.map(|pixels| {
+                    ctx.load_texture(
+                        response.path.to_string_lossy(),
+                        egui::ColorImage::from_rgba_unmultiplied([32, 32], &pixels),
+                        egui::TextureOptions::LINEAR,
+                    )
+                });
+                self.icons.insert(response.path, icon);
+            }
+        }
         #[cfg(target_os = "macos")]
         let permissions_were_open = {
             if self
@@ -449,6 +584,11 @@ impl App {
             self.completed = false;
             self.results.clear();
             self.icons.clear();
+            self.pending_icons.clear();
+            self.icon_generation = self.icon_generation.wrapping_add(1);
+            if let Some(worker) = &self.icon_worker {
+                worker.invalidate(self.icon_generation);
+            }
             self.selected = None;
             self.limited = false;
             self.stopped = false;
@@ -544,9 +684,10 @@ impl App {
         #[cfg(not(any(target_os = "macos", target_os = "windows")))]
         in_window_search_menu(ctx, self);
         #[cfg(target_os = "macos")]
-        let background_input_allowed = !permissions_were_open;
+        let background_input_allowed =
+            !permissions_were_open && !interface_was_open && !self.interface_open;
         #[cfg(not(target_os = "macos"))]
-        let background_input_allowed = true;
+        let background_input_allowed = !interface_was_open && !self.interface_open;
         let mut icon_budget = 4;
         let mut icons_pending = false;
         egui::CentralPanel::default().show(ctx, |ui| {
@@ -572,6 +713,11 @@ impl App {
                 self.completed = false;
                 self.results.clear();
                 self.icons.clear();
+                self.pending_icons.clear();
+                self.icon_generation = self.icon_generation.wrapping_add(1);
+                if let Some(worker) = &self.icon_worker {
+                    worker.invalidate(self.icon_generation);
+                }
                 self.selected = None;
                 self.limited = false;
                 self.stopped = false;
@@ -720,40 +866,43 @@ impl App {
                     ];
                     let icon_pos = egui::pos2(rect.left() + 3.0, rect.center().y - 10.0);
                     if !self.icons.contains_key(&entry.path) {
-                        if icon_budget > 0 {
+                        let route = exe_icon::icon_route(
+                            &entry.path,
+                            entry.is_dir,
+                            self.embedded_exe_icons,
+                        );
+                        if route != exe_icon::IconRoute::Platform {
+                            if route != exe_icon::IconRoute::Decode {
+                                self.icons.insert(entry.path.clone(), None);
+                            } else if !self.pending_icons.contains(&entry.path) {
+                                let worker = self.icon_worker.get_or_insert_with(|| {
+                                    let worker = exe_icon::Worker::new();
+                                    worker.invalidate(self.icon_generation);
+                                    worker
+                                });
+                                match worker.request(
+                                    self.icon_generation,
+                                    entry.path.clone(),
+                                    ctx.clone(),
+                                ) {
+                                    exe_icon::RequestState::Queued => {
+                                        self.pending_icons.insert(entry.path.clone());
+                                    }
+                                    exe_icon::RequestState::Full => icons_pending = true,
+                                    exe_icon::RequestState::Closed => {
+                                        for path in self.pending_icons.drain() {
+                                            self.icons.insert(path, None);
+                                        }
+                                        self.icons.insert(entry.path.clone(), None);
+                                    }
+                                }
+                            }
+                        } else if icon_budget > 0 {
                             icon_budget -= 1;
                             let icon = file_icon_provider::get_file_icon(&entry.path, 24)
                                 .ok()
                                 .and_then(|icon| {
-                                    let pixels =
-                                        (icon.width as usize).checked_mul(icon.height as usize)?;
-                                    let rgba = if icon.pixels.len() == pixels * 4 {
-                                        icon.pixels
-                                    } else if icon.pixels.len() == pixels * 3 {
-                                        icon.pixels
-                                            .as_chunks::<3>()
-                                            .0
-                                            .iter()
-                                            .flat_map(|rgb| [rgb[0], rgb[1], rgb[2], 255])
-                                            .collect()
-                                    } else {
-                                        return None;
-                                    };
-                                    let dimensions = [icon.width as usize, icon.height as usize];
-                                    // AppKit and Windows shell bitmaps use premultiplied alpha;
-                                    // GTK pixbufs use straight alpha.
-                                    #[cfg(any(target_os = "macos", target_os = "windows"))]
-                                    let image = egui::ColorImage::from_rgba_premultiplied(
-                                        dimensions, &rgba,
-                                    );
-                                    #[cfg(not(any(target_os = "macos", target_os = "windows")))]
-                                    let image =
-                                        egui::ColorImage::from_rgba_unmultiplied(dimensions, &rgba);
-                                    Some(ctx.load_texture(
-                                        entry.path.to_string_lossy(),
-                                        image,
-                                        egui::TextureOptions::LINEAR,
-                                    ))
+                                    platform_icon_texture(ctx, icon, &entry.path.to_string_lossy())
                                 });
                             self.icons.insert(entry.path.clone(), icon);
                         } else {
@@ -771,7 +920,24 @@ impl App {
                             );
                         }
                         Some(None) => {
-                            if entry.is_dir {
+                            let type_icon = if !entry.is_dir && exe_icon::is_exe(&entry.path) {
+                                self.exe_type_icon
+                                    .get_or_insert_with(|| executable_type_icon(ctx))
+                                    .as_ref()
+                            } else {
+                                None
+                            };
+                            if let Some(texture) = type_icon {
+                                painter.image(
+                                    texture.id(),
+                                    egui::Rect::from_min_size(icon_pos, egui::vec2(20.0, 20.0)),
+                                    egui::Rect::from_min_max(
+                                        egui::Pos2::ZERO,
+                                        egui::pos2(1.0, 1.0),
+                                    ),
+                                    egui::Color32::WHITE,
+                                );
+                            } else if entry.is_dir {
                                 let color = egui::Color32::from_rgb(224, 174, 78);
                                 painter.rect_filled(
                                     egui::Rect::from_min_size(
@@ -942,6 +1108,12 @@ impl eframe::App for App {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         self.update_ui(ctx);
     }
+    fn save(&mut self, storage: &mut dyn eframe::Storage) {
+        storage.set_string("embedded_exe_icons", self.embedded_exe_icons.to_string());
+    }
+    fn persist_egui_memory(&self) -> bool {
+        false
+    }
 }
 
 fn main() -> eframe::Result {
@@ -963,6 +1135,10 @@ fn main() -> eframe::Result {
         height,
     };
     let options = eframe::NativeOptions {
+        #[cfg(feature = "ui-test-driver")]
+        persistence_path: std::env::var_os("DRILL_UI_TEST_STATUS")
+            .map(std::path::PathBuf::from)
+            .and_then(|path| path.parent().map(|parent| parent.join("ui-settings.ron"))),
         viewport: egui::ViewportBuilder::default()
             .with_inner_size([960.0, 600.0])
             .with_icon(icon),
@@ -973,13 +1149,18 @@ fn main() -> eframe::Result {
         options,
         Box::new(|creation| {
             creation.egui_ctx.set_theme(egui::ThemePreference::System);
+            let embedded_exe_icons = embedded_icons_setting(creation.storage);
             #[cfg(any(target_os = "macos", target_os = "windows"))]
             let app = App {
                 native_menu: Some(native_menu::NativeMenu::new(creation)?),
+                embedded_exe_icons,
                 ..Default::default()
             };
             #[cfg(not(any(target_os = "macos", target_os = "windows")))]
-            let app = App::default();
+            let app = App {
+                embedded_exe_icons,
+                ..Default::default()
+            };
             Ok(Box::new(app))
         }),
     )
@@ -989,6 +1170,29 @@ fn main() -> eframe::Result {
 mod ui_tests {
     use super::*;
     use std::path::PathBuf;
+
+    #[test]
+    fn executable_icon_preference_defaults_on_and_round_trips() {
+        use eframe::App as _;
+        struct Memory(Option<String>);
+        impl eframe::Storage for Memory {
+            fn get_string(&self, _: &str) -> Option<String> {
+                self.0.clone()
+            }
+            fn set_string(&mut self, _: &str, value: String) {
+                self.0 = Some(value);
+            }
+            fn flush(&mut self) {}
+        }
+        let mut storage = Memory(None);
+        assert!(embedded_icons_setting(Some(&storage)));
+        let mut app = App {
+            embedded_exe_icons: false,
+            ..Default::default()
+        };
+        app.save(&mut storage);
+        assert!(!embedded_icons_setting(Some(&storage)));
+    }
 
     #[test]
     fn terminal_uses_folder_itself_or_file_parent_even_if_missing() {
