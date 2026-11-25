@@ -56,7 +56,55 @@ fn native_typing_selection_and_escape() {
             .parse::<f32>()
             .unwrap() as i32
     };
-    let (x, y) = (field("x=") + 90, field("y=") + 25);
+    #[cfg(target_os = "linux")]
+    let origin = {
+        // Xvfb has no automatic focus. Ask the isolated window manager to focus
+        // the exact child window and query its client coordinates.
+        let pid = child.0.id().to_string();
+        let found = Command::new("xdotool")
+            .args([
+                "search",
+                "--all",
+                "--onlyvisible",
+                "--pid",
+                &pid,
+                "--name",
+                "^Drill$",
+            ])
+            .output()
+            .expect("xdotool is required for native UI tests on X11");
+        assert!(found.status.success(), "could not find the test window");
+        let ids = String::from_utf8(found.stdout).unwrap();
+        let id = ids.lines().next().expect("missing X11 window id");
+        let focused = Command::new("xdotool")
+            .args(["windowactivate", "--sync", id])
+            .status()
+            .unwrap();
+        assert!(focused.success(), "could not focus the test window");
+        let geometry = Command::new("xdotool")
+            .args(["getwindowgeometry", "--shell", id])
+            .output()
+            .unwrap();
+        assert!(
+            geometry.status.success(),
+            "could not inspect window geometry"
+        );
+        let geometry = String::from_utf8(geometry.stdout).unwrap();
+        let coordinate = |prefix: &str| {
+            geometry
+                .lines()
+                .find_map(|line| line.strip_prefix(prefix))
+                .unwrap()
+                .parse::<i32>()
+                .unwrap()
+        };
+        (coordinate("X="), coordinate("Y="))
+    };
+    #[cfg(not(target_os = "linux"))]
+    let origin = (field("x="), field("y="));
+    #[cfg(target_os = "linux")]
+    let _ = field;
+    let (x, y) = (origin.0 + 90, origin.1 + 25);
     let mut input = Enigo::new(&Settings::default()).expect("Cannot create OS input driver; on macOS enable Accessibility permission for the app running this test");
     input.move_mouse(x, y, Coordinate::Abs).unwrap();
     input.button(Button::Left, Direction::Click).unwrap();
@@ -67,7 +115,7 @@ fn native_typing_selection_and_escape() {
         s.contains("query=drill_native_unique_test") && s.contains("drill_native_unique_test.txt")
     });
     input
-        .move_mouse(field("x=") + 30, field("y=") + 66, Coordinate::Abs)
+        .move_mouse(origin.0 + 30, origin.1 + 66, Coordinate::Abs)
         .unwrap();
     input.button(Button::Left, Direction::Click).unwrap();
     wait_for(&status, |s| {
