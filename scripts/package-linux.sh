@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
-version="1.0.0"
+version="2.0.0"
+revision="${GITHUB_RUN_NUMBER:-1}"
 mkdir -p dist build/package/usr/bin build/package/usr/share/applications build/package/usr/share/icons/hicolor/256x256/apps build/package/DEBIAN
 install -m755 target/release/drill build/package/usr/bin/drill
 install -m644 src/assets/drill.png build/package/usr/share/icons/hicolor/256x256/apps/drill.png
@@ -16,7 +17,7 @@ Terminal=false
 DESKTOP
 cat > build/package/DEBIAN/control <<CONTROL
 Package: drill
-Version: ${version}
+Version: ${version}-${revision}
 Architecture: amd64
 Maintainer: Drill contributors
 Depends: libc6, libx11-6, libxkbcommon0, libwayland-client0, libgl1, libgtk-3-0
@@ -46,8 +47,8 @@ cp target/release/drill build/arch/usr/bin/drill
 cp build/package/usr/share/applications/drill.desktop build/arch/usr/share/applications/
 cp src/assets/drill.png build/arch/usr/share/icons/hicolor/256x256/apps/
 cat > build/arch/.PKGINFO <<PKGINFO
-pkgname = drill
-pkgver = ${version}-1
+pkgname = drill-bin
+pkgver = ${version}-${revision}
 pkgdesc = Desktop file search without indexing
 url = https://github.com/yatima1460/Drill
 builddate = $(date +%s)
