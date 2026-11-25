@@ -262,43 +262,53 @@ enum MenuIcon {
     Terminal,
 }
 fn icon_menu_button(ui: &mut egui::Ui, text: &str, icon: MenuIcon) -> bool {
-    let row = ui.horizontal(|ui| {
-        let (rect, _) = ui.allocate_exact_size(egui::vec2(16.0, 16.0), egui::Sense::hover());
-        let stroke = egui::Stroke::new(1.2_f32, ui.visuals().text_color());
-        let p = ui.painter();
-        let at = |x, y| rect.min + egui::vec2(x, y);
-        match icon {
-            MenuIcon::Terminal => {
-                p.rect_stroke(rect.shrink(1.0), 2.0, stroke, egui::StrokeKind::Inside);
-                p.line_segment([at(4.0, 5.0), at(7.0, 8.0)], stroke);
-                p.line_segment([at(7.0, 8.0), at(4.0, 11.0)], stroke);
-                p.line_segment([at(9.0, 11.0), at(12.0, 11.0)], stroke);
-            }
-            MenuIcon::Folder => {
-                p.line(
-                    vec![
-                        at(1.0, 13.0),
-                        at(1.0, 3.0),
-                        at(6.0, 3.0),
-                        at(8.0, 5.0),
-                        at(15.0, 5.0),
-                        at(15.0, 13.0),
-                        at(1.0, 13.0),
-                    ],
-                    stroke,
-                );
-            }
+    let width = ui.available_width().max(190.0);
+    let (row, response) = ui.allocate_exact_size(
+        egui::vec2(width, ui.spacing().interact_size.y),
+        egui::Sense::click(),
+    );
+    response.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Button, true, text));
+    let visuals = ui.style().interact(&response);
+    let p = ui.painter();
+    if response.hovered() || response.has_focus() {
+        p.rect_filled(row, visuals.corner_radius, visuals.bg_fill);
+    }
+    let rect = egui::Rect::from_min_size(
+        egui::pos2(row.left() + 4.0, row.center().y - 8.0),
+        egui::vec2(16.0, 16.0),
+    );
+    let stroke = egui::Stroke::new(1.2_f32, visuals.text_color());
+    let at = |x, y| rect.min + egui::vec2(x, y);
+    match icon {
+        MenuIcon::Terminal => {
+            p.rect_stroke(rect.shrink(1.0), 2.0, stroke, egui::StrokeKind::Inside);
+            p.line_segment([at(4.0, 5.0), at(7.0, 8.0)], stroke);
+            p.line_segment([at(7.0, 8.0), at(4.0, 11.0)], stroke);
+            p.line_segment([at(9.0, 11.0), at(12.0, 11.0)], stroke);
         }
-        ui.button(text).clicked()
-    });
-    row.inner
-        || ui
-            .interact(
-                row.response.rect,
-                row.response.id.with("icon-row"),
-                egui::Sense::click(),
-            )
-            .clicked()
+        MenuIcon::Folder => {
+            p.line(
+                vec![
+                    at(1.0, 13.0),
+                    at(1.0, 3.0),
+                    at(6.0, 3.0),
+                    at(8.0, 5.0),
+                    at(15.0, 5.0),
+                    at(15.0, 13.0),
+                    at(1.0, 13.0),
+                ],
+                stroke,
+            );
+        }
+    }
+    p.text(
+        egui::pos2(row.left() + 26.0, row.center().y),
+        egui::Align2::LEFT_CENTER,
+        text,
+        egui::TextStyle::Button.resolve(ui.style()),
+        visuals.text_color(),
+    );
+    response.clicked()
 }
 impl App {
     fn update_ui(&mut self, ctx: &egui::Context) {
@@ -818,6 +828,30 @@ mod ui_tests {
         item.is_dir = true;
         assert_eq!(terminal_directory(&item), item.path);
         assert!(open_terminal(terminal_directory(&item)).is_err());
+    }
+
+    #[test]
+    fn icon_menu_row_highlights_on_hover() {
+        let ctx = egui::Context::default();
+        let draw = |events| {
+            ctx.run(
+                egui::RawInput {
+                    events,
+                    ..Default::default()
+                },
+                |ctx| {
+                    egui::CentralPanel::default().show(ctx, |ui| {
+                        icon_menu_button(ui, "Open terminal here", MenuIcon::Terminal);
+                    });
+                },
+            )
+        };
+        let idle = draw(vec![]);
+        let hovered = draw(vec![egui::Event::PointerMoved(egui::pos2(15.0, 15.0))]);
+        assert!(
+            hovered.shapes.len() > idle.shapes.len(),
+            "hover should paint the row background"
+        );
     }
 
     fn frame(ctx: &egui::Context, app: &mut App, events: Vec<egui::Event>) -> egui::FullOutput {
