@@ -968,6 +968,15 @@ impl App {
                         }
                         None => {}
                     }
+                    if self.embedded_exe_icons
+                        && !entry.is_dir
+                        && exe_icon::is_exe(&entry.path)
+                        && matches!(self.icons.get(&entry.path), Some(None))
+                    {
+                        result.clone().on_hover_text(
+                            "Embedded icon unavailable. For cloud-only files, download the file, then edit the search to retry.",
+                        );
+                    }
                     let mut x = rect.left();
                     for (column, (value, fraction)) in values.into_iter().zip(widths).enumerate() {
                         let column_width = total * fraction;
@@ -1434,6 +1443,44 @@ mod ui_tests {
             modified: None,
             is_dir: false,
         }
+    }
+    fn assert_result_loads_embedded_icon(path: PathBuf) {
+        let ctx = egui::Context::default();
+        let mut result = entry("program.exe", 1);
+        result.path = path.clone();
+        let mut app = App {
+            results: vec![result],
+            ..Default::default()
+        };
+        let deadline = Instant::now() + Duration::from_secs(10);
+        loop {
+            let output = frame(&ctx, &mut app, vec![]);
+            if let Some(icon) = app.icons.get(&path) {
+                let icon = icon.as_ref().expect("the row used the fallback icon");
+                let uploaded = output
+                    .textures_delta
+                    .set
+                    .iter()
+                    .find(|(id, _)| *id == icon.id())
+                    .expect("embedded icon texture was not uploaded");
+                let egui::ImageData::Color(image) = &uploaded.1.image else {
+                    panic!("unexpected icon texture format")
+                };
+                assert_eq!(image.pixels[0], egui::Color32::from_rgb(0, 255, 0));
+                assert!(output.shapes.iter().any(|shape| matches!(&shape.shape, egui::Shape::Mesh(mesh) if mesh.texture_id == icon.id())), "row did not draw the embedded icon");
+                return;
+            }
+            assert!(Instant::now() < deadline, "icon did not arrive");
+            std::thread::sleep(Duration::from_millis(10));
+        }
+    }
+    #[test]
+    fn visible_executable_row_loads_embedded_icon() {
+        use std::io::Write;
+        let mut file = tempfile::Builder::new().suffix(".exe").tempfile().unwrap();
+        file.write_all(include_bytes!("../tests/fixtures/icon-pe32.exe"))
+            .unwrap();
+        assert_result_loads_embedded_icon(file.path().to_path_buf());
     }
     #[test]
     fn typing_starts_debounce_and_clearing_resets_the_window() {
