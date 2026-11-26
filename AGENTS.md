@@ -4,9 +4,9 @@ Drill is a Rust desktop file searcher for macOS, Windows and Linux. It streams r
 
 ## Collaboration and delivery
 
-For each request involving the repository, ask Astra with Ultra reasoning for a plan before implementation. The coordinator owns implementation, integration and validation. Give research and review agents read-only tasks by default. Delegate independent implementation in separate worktrees with explicit file ownership and stable interfaces.
+For each request involving the repository, assign planning to the strongest available model at its maximum supported reasoning effort. This planning coordinator prepares the plan before implementation. As of November 2026, the example is Astra at Ultra reasoning effort. The implementation coordinator owns delivery, integration and validation. Give research and review agents read-only tasks by default. Delegate independent implementation in separate worktrees with explicit file ownership and stable interfaces.
 
-Open a pull request and ask Astra Ultra to review the actual PR. Check GitHub review threads, including Codex comments, and resolve substantive findings. Merge after a satisfactory review and passing required checks. Respect requests for a draft or to leave a PR open. If a required review or GitHub operation is unavailable, report the blocker. Read-only questions can be answered directly.
+Open a pull request and ask an independent reviewer selected by the same model and effort rule to review the actual PR. Check GitHub review threads, including Codex comments, and resolve substantive findings. Merge after a satisfactory review and passing required checks. Respect requests for a draft or to leave a PR open. If a required review or GitHub operation is unavailable, report the blocker. Read-only questions can be answered directly.
 
 ## Design and behavior
 
