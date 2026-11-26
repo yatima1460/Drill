@@ -1,6 +1,10 @@
 [workspace]
 members = ["crates/drill-core"]
+exclude = ["vendor/eframe"]
 resolver = "2"
+
+[patch.crates-io]
+eframe = { path = "vendor/eframe" }
 
 [package]
 name = "drill"
