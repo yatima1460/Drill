@@ -1,0 +1,18 @@
+{
+  "minLines": 5,
+  "minTokens": 50,
+  "exitCode": 1,
+  "failOnEmpty": true,
+  "formatsExts": {
+    "bash": ["command", "env"],
+    "c": ["rc"]
+  },
+  "ignore": [
+    "vendor/**",
+    "**/Cargo.lock",
+    "src/assets/wordsalpha.txt",
+    "src/assets/drill.svg",
+    "src/assets/drill-macos.svg",
+    "docs/drill.svg"
+  ]
+}

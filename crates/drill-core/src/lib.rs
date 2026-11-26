@@ -444,20 +444,12 @@ impl Drop for Search {
 }
 
 #[cfg(test)]
+mod test_directory;
+
+#[cfg(test)]
 mod tests {
+    use super::test_directory::private_temp_dir;
     use super::*;
-    fn private_temp_dir() -> tempfile::TempDir {
-        #[cfg(unix)]
-        let mut builder = tempfile::Builder::new();
-        #[cfg(not(unix))]
-        let builder = tempfile::Builder::new();
-        #[cfg(unix)]
-        {
-            use std::os::unix::fs::PermissionsExt;
-            builder.permissions(std::fs::Permissions::from_mode(0o700));
-        }
-        builder.tempdir().unwrap()
-    }
     #[test]
     fn matching() {
         assert!(matches("Project Nôtés.txt", "project notes"));
