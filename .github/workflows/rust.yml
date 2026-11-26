@@ -10,7 +10,7 @@ jobs:
   linux:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: dtolnay/rust-toolchain@master
         with:
           toolchain: 1.100.0
@@ -32,7 +32,7 @@ jobs:
           cmp src/assets/exe-icon.wasm tools/exe-icon-wasm/target/wasm32-unknown-unknown/release/drill_exe_icon_wasm.wasm
       - name: Preserve decoder rebuild on failure
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: decoder-rebuild
           path: tools/exe-icon-wasm/target/wasm32-unknown-unknown/release/drill_exe_icon_wasm.wasm
@@ -46,7 +46,7 @@ jobs:
       - run: cargo build --release --locked
       - run: target/release/drill --version
       - run: scripts/package-linux.sh
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: drill-linux
           path: dist/*
@@ -54,7 +54,7 @@ jobs:
   windows-cross:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: dtolnay/rust-toolchain@master
         with:
           toolchain: 1.100.0
@@ -84,7 +84,7 @@ jobs:
           cp build/windows/embedded.ico build/windows/drill.ico
           icotool -x -o build/windows/embedded/ build/windows/drill.ico
           diff -r build/windows/original build/windows/embedded
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: drill-windows
           path: dist/*
@@ -95,7 +95,7 @@ jobs:
       executable-sha256: ${{ steps.digest.outputs.sha256 }}
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: dtolnay/rust-toolchain@master
         with:
           toolchain: 1.100.0
@@ -111,12 +111,12 @@ jobs:
       - name: Save tested executable for release signing
         id: executable
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: drill-macos-executable
           path: target/release/drill
           if-no-files-found: error
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: drill-macos-preview
           path: dist/*.dmg
@@ -159,10 +159,10 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           artifact-ids: ${{ needs.macos.outputs.executable-id }}
           merge-multiple: true
@@ -187,7 +187,7 @@ jobs:
           filename="Drill-macos-$(uname -m).dmg"
           echo "filename=$filename" >> "$GITHUB_OUTPUT"
           echo "sha256=$(shasum -a 256 "dist/$filename" | cut -d' ' -f1)" >> "$GITHUB_OUTPUT"
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         id: signed
         with:
           name: drill-macos-signed
@@ -201,21 +201,21 @@ jobs:
       contents: write
       actions: read
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Wait for all platform artifacts
         env:
           GH_TOKEN: ${{ github.token }}
         run: scripts/wait-release-artifacts.sh
-      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: drill-linux
           path: dist/linux
-      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           artifact-ids: ${{ needs.sign-macos.outputs.signed-id }}
           merge-multiple: true
           path: dist/macos
-      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: drill-windows
           path: dist/windows
