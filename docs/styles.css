@@ -430,3 +430,13 @@ code {
     padding-block: 0.55rem;
   }
 }
+
+@media (min-width: 52rem) and (max-width: 63rem) {
+  .hero {
+    grid-template-columns: minmax(0, 1.12fr) minmax(0, 0.88fr);
+    gap: 1.25rem;
+  }
+  .footer {
+    grid-template-columns: auto 1fr auto;
+  }
+}
