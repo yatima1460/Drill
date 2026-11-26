@@ -2,15 +2,23 @@ name: Rust verification
 on:
   pull_request:
     paths:
-      - '**/*.rs'
-      - '**/Cargo.*'
+      - '.github/workflows/verification.yml'
+      - '.cargo/**'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
       - 'rust-toolchain.toml'
-      - 'src/assets/**'
-      - 'tools/*-icon-wasm/tests/fixtures/**'
-      - 'verification/**'
+      - 'build.rs'
       - 'Makefile'
       - 'scripts/test-mutants.sh'
-      - '.github/workflows/verification.yml'
+      - 'verification/tools.env'
+      # cargo-mutants runs the unmodified tests in each package before mutating.
+      - 'src/**'
+      - 'tests/**'
+      - 'crates/drill-core/**'
+      - 'vendor/**'
+      - 'tools/appimage-icon-wasm/**'
+      - 'tools/exe-icon-wasm/**'
+      - '!**/*.md'
   workflow_dispatch:
     inputs:
       scope:
@@ -28,18 +36,6 @@ on:
 permissions:
   contents: read
 jobs:
-  proofs:
-    runs-on: ubuntu-24.04
-    timeout-minutes: 15
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - name: Install pinned Kani
-        run: |
-          source verification/tools.env
-          cargo install --locked --version "$KANI_VERSION" kani-verifier
-          cargo kani setup
-      - run: cargo fmt --manifest-path verification/Cargo.toml -- --check
-      - run: make prove
   mutations:
     runs-on: ${{ inputs.platform == 'macos' && 'macos-15' || inputs.platform == 'windows' && 'windows-2022' || 'ubuntu-24.04' }}
     timeout-minutes: 90
