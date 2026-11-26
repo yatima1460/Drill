@@ -776,11 +776,13 @@ impl App {
 
     fn update_ui_with_opener(&mut self, ctx: &egui::Context, open: &mut dyn FnMut(&Path, bool)) {
         #[cfg(any(target_os = "macos", target_os = "windows"))]
-        if self
+        let native_requests = self
             .native_menu
             .as_ref()
-            .is_some_and(|menu| menu.take_syntax())
-        {
+            .map(|menu| menu.take_requests())
+            .unwrap_or_default();
+        #[cfg(any(target_os = "macos", target_os = "windows"))]
+        if native_requests.syntax {
             self.syntax_open = true;
         }
         let syntax_was_open = self.syntax_open;
@@ -789,11 +791,7 @@ impl App {
             self.focus_search = true;
         }
         #[cfg(any(target_os = "macos", target_os = "windows"))]
-        if self
-            .native_menu
-            .as_ref()
-            .is_some_and(|menu| menu.take_interface())
-        {
+        if native_requests.interface {
             self.interface_open = true;
         }
         if self.interface_open && ctx.input(|i| i.key_pressed(Key::Escape)) {
@@ -850,11 +848,7 @@ impl App {
         }
         #[cfg(target_os = "macos")]
         let permissions_were_open = {
-            if self
-                .native_menu
-                .as_ref()
-                .is_some_and(|menu| menu.take_permissions())
-            {
+            if native_requests.permissions {
                 self.permissions.open = true;
             }
             if self.permissions.open && ctx.input(|i| i.key_pressed(Key::Escape)) {
@@ -868,11 +862,7 @@ impl App {
             was_open
         };
         #[cfg(any(target_os = "macos", target_os = "windows"))]
-        if self
-            .native_menu
-            .as_ref()
-            .is_some_and(|menu| menu.take_stop())
-        {
+        if native_requests.stop {
             self.stop_search();
         }
         if let Ok(error) = self.action_errors.try_recv() {
@@ -1034,6 +1024,9 @@ impl App {
         ctx.send_viewport_cmd(egui::ViewportCommand::Title(title));
         #[cfg(any(target_os = "macos", target_os = "windows"))]
         if let Some(menu) = &self.native_menu {
+            if syntax_was_open && !self.syntax_open {
+                menu.syntax_closed();
+            }
             menu.set_enabled(self.can_stop());
         }
         #[cfg(not(any(target_os = "macos", target_os = "windows")))]

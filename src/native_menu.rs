@@ -1,17 +1,66 @@
 use muda::{Menu, MenuEvent, MenuItem, Submenu};
-use std::sync::{
-    atomic::{AtomicBool, Ordering},
-    Arc,
-};
+use std::sync::{Arc, Mutex};
+
+#[derive(Default)]
+pub(super) struct Requests {
+    pub(super) stop: bool,
+    pub(super) interface: bool,
+    pub(super) syntax: bool,
+    #[cfg(target_os = "macos")]
+    pub(super) permissions: bool,
+}
+
+#[derive(Default)]
+struct MenuState {
+    pending: Requests,
+    reading_syntax: bool,
+}
+
+#[derive(Clone, Copy)]
+enum Command {
+    Stop,
+    Interface,
+    Syntax,
+    #[cfg(target_os = "macos")]
+    Permissions,
+}
+
+impl MenuState {
+    fn request(&mut self, command: Command) -> bool {
+        if self.reading_syntax {
+            return false;
+        }
+        match command {
+            Command::Syntax => {
+                // The native callback can run before egui gets a frame to disable the menus.
+                self.reading_syntax = true;
+                self.pending = Requests {
+                    syntax: true,
+                    ..Requests::default()
+                };
+            }
+            Command::Stop => self.pending.stop = true,
+            Command::Interface => self.pending.interface = true,
+            #[cfg(target_os = "macos")]
+            Command::Permissions => self.pending.permissions = true,
+        }
+        true
+    }
+
+    fn take_requests(&mut self) -> Requests {
+        std::mem::take(&mut self.pending)
+    }
+
+    fn syntax_closed(&mut self) {
+        self.reading_syntax = false;
+    }
+}
 
 pub struct NativeMenu {
     _menu: Menu,
     stop: MenuItem,
-    requested: Arc<AtomicBool>,
-    interface_requested: Arc<AtomicBool>,
-    syntax_requested: Arc<AtomicBool>,
-    #[cfg(target_os = "macos")]
-    permissions_requested: Arc<AtomicBool>,
+    settings: Submenu,
+    requests: Arc<Mutex<MenuState>>,
 }
 
 impl NativeMenu {
@@ -70,67 +119,78 @@ impl NativeMenu {
             // SAFETY: eframe owns this live window for the lifetime of the menu.
             unsafe { menu.init_for_hwnd(handle.hwnd.get()) }.map_err(|e| e.to_string())?;
         }
-        let requested = Arc::new(AtomicBool::new(false));
-        let target = requested.clone();
-        let id = stop.id().clone();
-        let interface_requested = Arc::new(AtomicBool::new(false));
-        let interface_target = interface_requested.clone();
-        let interface_id = interface.id().clone();
-        let syntax_requested = Arc::new(AtomicBool::new(false));
-        let syntax_target = syntax_requested.clone();
-        let syntax_id = syntax.id().clone();
-        #[cfg(target_os = "macos")]
-        let permissions_requested = Arc::new(AtomicBool::new(false));
-        #[cfg(target_os = "macos")]
-        let permissions_target = permissions_requested.clone();
-        #[cfg(target_os = "macos")]
-        let permissions_id = permissions.id().clone();
+        let requests = Arc::new(Mutex::new(MenuState::default()));
+        let target = Arc::clone(&requests);
+        let commands = [
+            (stop.id().clone(), Command::Stop),
+            (interface.id().clone(), Command::Interface),
+            (syntax.id().clone(), Command::Syntax),
+            #[cfg(target_os = "macos")]
+            (permissions.id().clone(), Command::Permissions),
+        ];
         let context = creation.egui_ctx.clone();
         MenuEvent::set_event_handler(Some(move |event: MenuEvent| {
-            if event.id == id {
-                target.store(true, Ordering::Relaxed);
-                context.request_repaint();
-            }
-            if event.id == interface_id {
-                interface_target.store(true, Ordering::Relaxed);
-                context.request_repaint();
-            }
-            if event.id == syntax_id {
-                syntax_target.store(true, Ordering::Relaxed);
-                context.request_repaint();
-            }
-            #[cfg(target_os = "macos")]
-            if event.id == permissions_id {
-                permissions_target.store(true, Ordering::Relaxed);
-                context.request_repaint();
+            if let Some((_, command)) = commands.iter().find(|(id, _)| *id == event.id) {
+                if target.lock().unwrap().request(*command) {
+                    context.request_repaint();
+                }
             }
         }));
         Ok(Self {
             _menu: menu,
             stop,
-            requested,
-            interface_requested,
-            syntax_requested,
-            #[cfg(target_os = "macos")]
-            permissions_requested,
+            settings,
+            requests,
         })
     }
-    pub fn set_enabled(&self, enabled: bool) {
-        if self.stop.is_enabled() != enabled {
-            self.stop.set_enabled(enabled);
+    pub fn set_enabled(&self, can_stop: bool) {
+        let background_enabled = !self.requests.lock().unwrap().reading_syntax;
+        let stop_enabled = can_stop && background_enabled;
+        if self.stop.is_enabled() != stop_enabled {
+            self.stop.set_enabled(stop_enabled);
+        }
+        if self.settings.is_enabled() != background_enabled {
+            self.settings.set_enabled(background_enabled);
         }
     }
-    pub fn take_stop(&self) -> bool {
-        self.requested.swap(false, Ordering::Relaxed)
+    pub fn take_requests(&self) -> Requests {
+        self.requests.lock().unwrap().take_requests()
     }
-    pub fn take_interface(&self) -> bool {
-        self.interface_requested.swap(false, Ordering::Relaxed)
+    pub fn syntax_closed(&self) {
+        self.requests.lock().unwrap().syntax_closed();
     }
-    pub fn take_syntax(&self) -> bool {
-        self.syntax_requested.swap(false, Ordering::Relaxed)
-    }
-    #[cfg(target_os = "macos")]
-    pub fn take_permissions(&self) -> bool {
-        self.permissions_requested.swap(false, Ordering::Relaxed)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn syntax_discards_competing_native_commands_until_dismissed() {
+        let mut state = MenuState::default();
+        let background = [
+            Command::Stop,
+            Command::Interface,
+            #[cfg(target_os = "macos")]
+            Command::Permissions,
+        ];
+        for command in background {
+            assert!(state.request(command));
+        }
+        assert!(state.request(Command::Syntax));
+        let opened = state.take_requests();
+        assert!(opened.syntax && !opened.stop && !opened.interface);
+        #[cfg(target_os = "macos")]
+        assert!(!opened.permissions);
+        for command in background {
+            assert!(!state.request(command));
+        }
+        assert!(!state.request(Command::Syntax));
+        state.syntax_closed();
+        let dismissed = state.take_requests();
+        assert!(!dismissed.stop && !dismissed.interface && !dismissed.syntax);
+        #[cfg(target_os = "macos")]
+        assert!(!dismissed.permissions);
+        assert!(state.request(Command::Stop) && state.take_requests().stop);
     }
 }
