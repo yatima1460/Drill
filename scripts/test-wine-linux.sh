@@ -32,7 +32,7 @@ if ! window_id=$(timeout 120s xdotool search --sync --onlyvisible --name '^Drill
 fi
 window_id=${window_id%%$'\n'*}
 xdotool getwindowname "$window_id"
-if ! timeout 15s xdotool windowclose "$window_id"; then
+if ! timeout 15s wmctrl -ic "$(printf '0x%x' "$window_id")"; then
     cat "$log_file" >&2
     echo 'Could not close the Wine window.' >&2
     exit 1

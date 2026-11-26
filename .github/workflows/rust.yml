@@ -66,7 +66,7 @@ jobs:
           RUSTFLAGS: -C target-feature=+crt-static
         run: cargo build --release --locked --target x86_64-pc-windows-gnu
       - name: Install Wine test dependencies
-        run: sudo apt-get install -y --no-install-recommends wine wine64 xvfb xauth openbox xdotool libgl1 libgl1-mesa-dri libglx-mesa0
+        run: sudo apt-get install -y --no-install-recommends wine wine64 xvfb xauth openbox xdotool wmctrl libgl1 libgl1-mesa-dri libglx-mesa0
       - name: Open the Windows app under Wine
         run: scripts/test-wine-linux.sh
       - name: Package and inspect Windows executable
