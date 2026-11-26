@@ -62,11 +62,8 @@ impl Drop for DesktopTheme {
 }
 
 fn theme(value: &glib::Variant) -> Option<Theme> {
-    match value.get::<u32>()? {
-        1 => Some(Theme::Dark),
-        0 | 2 => Some(Theme::Light),
-        _ => None,
-    }
+    // The portal treats unknown numbers as no preference. Drill uses light for that case.
+    Some(Theme::from_dark_mode(value.get::<u32>()? == 1))
 }
 
 fn read_all(reply: &glib::Variant) -> Option<Theme> {
@@ -172,7 +169,7 @@ mod tests {
             (0_u32, Some(Theme::Light)),
             (1, Some(Theme::Dark)),
             (2, Some(Theme::Light)),
-            (33, None),
+            (33, Some(Theme::Light)),
         ] {
             let value = raw.to_variant();
             let settings = HashMap::from([(APPEARANCE, HashMap::from([(KEY, value.clone())]))]);
