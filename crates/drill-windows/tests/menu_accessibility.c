@@ -72,11 +72,18 @@ static void check_names_at_points(HWND window) {
     }
 }
 
-static void check_accessible_names(HWND window) {
+// Only a successful reader returns one of these values to the fixture process.
+typedef enum { READ_BY_ENUMERATION = 40, READ_BY_HIT_TEST = 41 } ReadRoute;
+
+static ReadRoute check_accessible_names(HWND window, bool use_points) {
     MENUBARINFO bounds = {0};
     bounds.cbSize = sizeof(bounds);
     assert(GetMenuBarInfo(window, OBJID_MENU, 0, &bounds) && bounds.hMenu);
     assert(!IsRectEmpty(&bounds.rcBar) && MonitorFromRect(&bounds.rcBar, MONITOR_DEFAULTTONULL));
+    if (use_points) {
+        check_names_at_points(window);
+        return READ_BY_HIT_TEST;
+    }
     IAccessible *bar = NULL;
     HRESULT result = AccessibleObjectFromWindow(window, OBJID_MENU, &IID_IAccessible, (void **)&bar);
     if (result != S_OK) {
@@ -85,7 +92,7 @@ static void check_accessible_names(HWND window) {
     if (result == E_NOINTERFACE) {
         fputs("Reading the three native menu item roles and names through MSAA hit-testing.\n", stderr);
         check_names_at_points(window);
-        return;
+        return READ_BY_HIT_TEST;
     }
     assert(result == S_OK && bar);
     VARIANT items[ARRAYSIZE(titles)] = {0};
@@ -102,6 +109,7 @@ static void check_accessible_names(HWND window) {
         VariantClear(&items[i]);
     }
     IAccessible_Release(bar);
+    return READ_BY_ENUMERATION;
 }
 
 static void check_appearance(HWND window, bool owner_drawn) {
@@ -125,12 +133,12 @@ static void check_appearance(HWND window, bool owner_drawn) {
 }
 
 // The assistive client runs in its own process, while the owner dispatches WM_GETOBJECT.
-static void check_from_client(HWND window) {
+static ReadRoute check_from_client(HWND window, bool use_points) {
     WCHAR executable[MAX_PATH], args[80];
     DWORD length = GetModuleFileNameW(NULL, executable, ARRAYSIZE(executable));
     assert(length > 0 && length < ARRAYSIZE(executable));
-    swprintf(args, ARRAYSIZE(args), L"drill-menu-accessibility --read %llu",
-             (unsigned long long)(uintptr_t)window);
+    swprintf(args, ARRAYSIZE(args), L"drill-menu-accessibility %ls %llu",
+             use_points ? L"--read-points" : L"--read", (unsigned long long)(uintptr_t)window);
     STARTUPINFOW startup = {0};
     startup.cb = sizeof(startup);
     PROCESS_INFORMATION client = {0};
@@ -157,7 +165,8 @@ static void check_from_client(HWND window) {
     DWORD status;
     assert(GetExitCodeProcess(client.hProcess, &status));
     CloseHandle(client.hProcess);
-    assert(status == 0);
+    assert(status == READ_BY_ENUMERATION || status == READ_BY_HIT_TEST);
+    return (ReadRoute)status;
 }
 
 static HMENU stock_menu(void) {
@@ -172,13 +181,18 @@ static HMENU stock_menu(void) {
 }
 
 int main(int argc, char **argv) {
-    if (argc == 3 && strcmp(argv[1], "--read") == 0) {
+    // MSAA hit-tests use physical screen coordinates on scaled displays.
+    DPI_AWARENESS_CONTEXT scale = DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2;
+    assert(SetProcessDpiAwarenessContext(scale) ||
+           AreDpiAwarenessContextsEqual(GetThreadDpiAwarenessContext(), scale));
+    bool use_points = argc == 3 && strcmp(argv[1], "--read-points") == 0;
+    if (argc == 3 && (use_points || strcmp(argv[1], "--read") == 0)) {
         HWND target = (HWND)(uintptr_t)strtoull(argv[2], NULL, 10);
         assert(IsWindow(target));
         assert(SUCCEEDED(CoInitializeEx(NULL, COINIT_APARTMENTTHREADED)));
-        check_accessible_names(target);
+        ReadRoute route = check_accessible_names(target, use_points);
         CoUninitialize();
-        return 0;
+        return route;
     }
     // Wine lacks OBJID_MENU; the native Windows job always runs the external reader.
     bool metadata_only = argc == 2 && strcmp(argv[1], "--metadata-only") == 0;
@@ -194,9 +208,10 @@ int main(int argc, char **argv) {
     assert(window);
     ShowWindow(window, metadata_only ? SW_SHOWNOACTIVATE : SW_SHOW);
     UpdateWindow(window);
+    ReadRoute stock_route = READ_BY_ENUMERATION;
     if (!metadata_only) {
         fprintf(stderr, "Checking stock menu through the Windows accessibility provider.\n");
-        check_from_client(window);
+        stock_route = check_from_client(window, false);
     }
     void *menu = drill_windows_menu_install(window, unused_command, NULL);
     assert(menu && DrawMenuBar(window));
@@ -211,7 +226,8 @@ int main(int argc, char **argv) {
         drill_windows_menu_set_dark(menu, dark);
         check_appearance(window, dark && can_draw_dark);
         if (!metadata_only) {
-            check_from_client(window);
+            // Drill must expose names through the same route as a stock menu.
+            assert(check_from_client(window, stock_route == READ_BY_HIT_TEST) == stock_route);
         }
         if (dark && can_draw_dark) {
             LPARAM bar = (LPARAM)GetMenu(window);
