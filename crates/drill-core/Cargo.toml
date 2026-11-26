@@ -5,7 +5,9 @@ edition = "2021"
 license-file = "../../LICENSE"
 
 [dependencies]
+regex = "1"
 unicode-normalization = "0.1.25"
+wax = { version = "0.7", default-features = false }
 
 [dev-dependencies]
 tempfile = "3.23.0"
