@@ -19,3 +19,6 @@ desktop appearance change that happened during the override.
 The Linux integration uses egui-winit's browser launcher for the two HTTPS
 help links, including its handling of `$BROWSER` and desktop fallbacks. Drill
 uses native launchers on macOS and Windows. All three retain clipboard support.
+
+Desktop persistence uses the standard library to locate the Unix home directory.
+The optional `document-features` feature generates the feature list for docs.rs.

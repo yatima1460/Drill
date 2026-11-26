@@ -127,7 +127,7 @@
 //! ```
 //!
 //! ## Feature flags
-#![doc = document_features::document_features!()]
+#![cfg_attr(feature = "document-features", doc = document_features::document_features!())]
 //!
 //! ## Instrumentation
 //! This crate supports using the [profiling](https://crates.io/crates/profiling) crate for instrumentation.

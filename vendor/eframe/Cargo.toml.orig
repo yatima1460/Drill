@@ -64,7 +64,6 @@ glow = ["dep:egui_glow", "dep:glow", "dep:glutin-winit", "dep:glutin"]
 
 ## Enable saving app state to disk.
 persistence = [
-  "dep:home",
   "egui-winit/serde",
   "egui/persistence",
   "ron",
@@ -127,7 +126,7 @@ egui = { workspace = true, default-features = false, features = [
 ] }
 
 ahash.workspace = true
-document-features.workspace = true
+document-features = { workspace = true, optional = true }
 log.workspace = true
 parking_lot.workspace = true
 profiling.workspace = true
@@ -168,7 +167,6 @@ glutin-winit = { workspace = true, optional = true, default-features = false, fe
   "egl",
   "wgl",
 ] }
-home = { workspace = true, optional = true }
 wgpu = { workspace = true, optional = true, features = [
   # Let's enable some backends so that users can use `eframe` out-of-the-box
   # without having to explicitly opt-in to backends
