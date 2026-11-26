@@ -151,8 +151,9 @@ mod macos {
         pub fn at_window_origin(status: &str) -> Self {
             let origin = window_origin(status);
             // SAFETY: This call takes no arguments and requests event posting permission.
+            let permitted = unsafe { CGRequestPostEventAccess() };
             assert!(
-                unsafe { CGRequestPostEventAccess() },
+                permitted,
                 "Enable Accessibility permission for the app running this test"
             );
             // SAFETY: PRIVATE_SOURCE is the SDK's private event source state.

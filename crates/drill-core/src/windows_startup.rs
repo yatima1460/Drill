@@ -449,7 +449,7 @@ mod tests {
     #[cfg(windows)]
     #[test]
     fn literal_lookup_rejects_an_embedded_nul() {
-        let temp = tempfile::tempdir().unwrap();
+        let temp = crate::test_directory::private_temp_dir();
         let path = temp.path().join("tool.exe");
         fs::write(&path, b"").unwrap();
         let mut path_with_nul = path.into_os_string();
