@@ -6,6 +6,10 @@ use eframe::egui::{self, Key};
 use std::path::Path;
 use std::time::{Duration, Instant};
 mod exe_icon;
+mod search_mode;
+use search_mode::{Mode, Results};
+#[cfg(target_os = "linux")]
+mod linux_apps;
 #[cfg(any(target_os = "macos", target_os = "windows"))]
 mod native_menu;
 #[cfg(target_os = "macos")]
@@ -65,8 +69,14 @@ fn resize_columns(widths: &mut [f32; 4], divider: usize, delta: f32, total: f32)
 struct App {
     query: String,
     changed: Option<Instant>,
-    search: Option<Search>,
-    starting: Option<std::sync::mpsc::Receiver<Search>>,
+    mode: Mode,
+    selector_open: bool,
+    #[cfg(target_os = "linux")]
+    catalog: Option<std::sync::Arc<linux_apps::Catalog>>,
+    #[cfg(target_os = "linux")]
+    catalog_loading: Option<std::sync::mpsc::Receiver<linux_apps::Catalog>>,
+    search: Option<Results>,
+    starting: Option<std::sync::mpsc::Receiver<Results>>,
     starting_cancel: Option<std::sync::Arc<std::sync::atomic::AtomicBool>>,
     completed: bool,
     results: Vec<Entry>,
@@ -103,6 +113,12 @@ impl Default for App {
         Self {
             query: String::new(),
             changed: None,
+            mode: Mode::Files,
+            selector_open: false,
+            #[cfg(target_os = "linux")]
+            catalog: None,
+            #[cfg(target_os = "linux")]
+            catalog_loading: None,
             search: None,
             starting: None,
             starting_cancel: None,
@@ -210,10 +226,27 @@ fn executable_type_icon(ctx: &egui::Context) -> Option<egui::TextureHandle> {
     let (content_type, _) = gtk::gio::content_type_guess(Some(Path::new("application.exe")), &[]);
     let icon = gtk::gio::content_type_get_icon(&content_type);
     let themed = icon.dynamic_cast_ref::<gtk::gio::ThemedIcon>()?;
+    themed_icon_texture(
+        ctx,
+        themed.names().iter().map(|name| name.as_str()),
+        "exe-type-icon",
+    )
+}
+
+#[cfg(target_os = "linux")]
+fn themed_icon_texture<'a>(
+    ctx: &egui::Context,
+    names: impl Iterator<Item = &'a str>,
+    key: &str,
+) -> Option<egui::TextureHandle> {
+    use gtk::prelude::*;
+    if !gtk::is_initialized() {
+        gtk::init().ok()?;
+    }
     let theme = gtk::IconTheme::default()?;
-    for name in themed.names() {
+    for name in names {
         if let Some(pixbuf) = theme
-            .load_icon(&name, 24, gtk::IconLookupFlags::empty())
+            .load_icon(name, 24, gtk::IconLookupFlags::empty())
             .ok()
             .flatten()
         {
@@ -224,7 +257,7 @@ fn executable_type_icon(ctx: &egui::Context) -> Option<egui::TextureHandle> {
                 height,
                 pixels: pixbuf.read_pixel_bytes().to_vec(),
             };
-            if let Some(texture) = platform_icon_texture(ctx, icon, "exe-type-icon") {
+            if let Some(texture) = platform_icon_texture(ctx, icon, key) {
                 return Some(texture);
             }
         }
@@ -359,6 +392,31 @@ fn open_with(path: &Path) -> Result<(), String> {
     // SAFETY: the dialog has returned from its modal loop and is not queried or reused after destruction.
     unsafe { dialog.destroy() };
     result
+}
+
+#[cfg(windows)]
+#[allow(unsafe_code)]
+fn launch_windows_app(path: &Path) -> Result<(), String> {
+    use std::os::windows::ffi::OsStrExt;
+    use windows_sys::Win32::UI::{Shell::ShellExecuteW, WindowsAndMessaging::SW_SHOWNORMAL};
+    let wide: Vec<_> = path.as_os_str().encode_wide().chain(Some(0)).collect();
+    // SAFETY: the path and verb are terminated UTF-16 and live for the call.
+    // Null optional parameters ask the shell to open the app with its normal policy.
+    let result = unsafe {
+        ShellExecuteW(
+            std::ptr::null_mut(),
+            windows_sys::core::w!("open"),
+            wide.as_ptr(),
+            std::ptr::null(),
+            std::ptr::null(),
+            SW_SHOWNORMAL,
+        )
+    } as isize;
+    if result > 32 {
+        Ok(())
+    } else {
+        Err(format!("Windows shell error {result}"))
+    }
 }
 
 #[cfg(target_os = "windows")]
@@ -497,6 +555,25 @@ impl App {
         self.stopped = true;
     }
 
+    fn clear_search(&mut self) {
+        self.search = None;
+        if let Some(cancel) = self.starting_cancel.take() {
+            cancel.store(true, std::sync::atomic::Ordering::Relaxed);
+        }
+        self.starting = None;
+        self.completed = false;
+        self.results.clear();
+        self.icons.clear();
+        self.pending_icons.clear();
+        self.icon_generation = self.icon_generation.wrapping_add(1);
+        if let Some(worker) = &self.icon_worker {
+            worker.invalidate(self.icon_generation);
+        }
+        self.selected = None;
+        self.reset_result_page();
+        self.stopped = false;
+    }
+
     fn reset_result_page(&mut self) {
         self.last_clicked_file = None;
         self.exact_count = 0;
@@ -505,7 +582,7 @@ impl App {
     }
 
     fn receive_results(&mut self) -> bool {
-        let Some(search) = &self.search else {
+        let Some(search) = &mut self.search else {
             return false;
         };
         if self.next_hit.is_some() || self.completed {
@@ -564,7 +641,66 @@ impl App {
         }
     }
 
+    #[cfg(target_os = "linux")]
+    fn catalog_ready(&mut self) -> bool {
+        if self.catalog.is_some() {
+            return true;
+        }
+        let receiver = self.catalog_loading.get_or_insert_with(|| {
+            let (sender, receiver) = std::sync::mpsc::channel();
+            std::thread::spawn(move || {
+                let _ = sender.send(linux_apps::Catalog::load());
+            });
+            receiver
+        });
+        match receiver.try_recv() {
+            Ok(catalog) => {
+                self.catalog = Some(std::sync::Arc::new(catalog));
+                self.catalog_loading = None;
+                true
+            }
+            Err(std::sync::mpsc::TryRecvError::Disconnected) => {
+                self.catalog_loading = None;
+                self.changed = None;
+                self.action_error = Some("Could not load the desktop application list".into());
+                false
+            }
+            Err(std::sync::mpsc::TryRecvError::Empty) => false,
+        }
+    }
+
     fn update_ui(&mut self, ctx: &egui::Context) {
+        #[cfg(target_os = "linux")]
+        if self.mode == Mode::Apps {
+            let catalog = self.catalog.clone();
+            let mut error = None;
+            self.update_ui_with_opener(ctx, &mut |path, reveal| {
+                if reveal {
+                    open(path, true);
+                } else if let Some(catalog) = &catalog {
+                    error = catalog.launch(path).err();
+                }
+            });
+            if error.is_some() {
+                self.action_error = error;
+            }
+            return;
+        }
+        #[cfg(windows)]
+        if self.mode == Mode::Apps {
+            let mut error = None;
+            self.update_ui_with_opener(ctx, &mut |path, reveal| {
+                if reveal {
+                    open(path, true);
+                } else if let Err(err) = launch_windows_app(path) {
+                    error = Some(format!("Cannot launch {}: {err}", path.display()));
+                }
+            });
+            if error.is_some() {
+                self.action_error = error;
+            }
+            return;
+        }
         self.update_ui_with_opener(ctx, &mut open);
     }
 
@@ -662,7 +798,8 @@ impl App {
                 Err(std::sync::mpsc::TryRecvError::Empty) => {}
             }
         }
-        if self.action_error.is_some() {
+        let error_was_open = self.action_error.is_some();
+        if error_was_open {
             let mut dismiss = false;
             egui::Window::new("Unable to complete action")
                 .collapsible(false)
@@ -676,33 +813,23 @@ impl App {
                 self.action_error = None;
             }
         }
-        if ctx.input(|i| i.key_pressed(Key::Escape)) {
+        if !self.selector_open && ctx.input(|i| i.key_pressed(Key::Escape)) {
             ctx.send_viewport_cmd(egui::ViewportCommand::Close);
             return;
         }
-        if self
+        let ready = self
             .changed
-            .is_some_and(|t| t.elapsed() >= Duration::from_millis(250))
-        {
+            .is_some_and(|t| t.elapsed() >= Duration::from_millis(250));
+        #[cfg(target_os = "linux")]
+        let ready = ready && (self.mode != Mode::Apps || self.catalog_ready());
+        if ready {
             self.changed = None;
-            self.search = None;
-            if let Some(cancel) = self.starting_cancel.take() {
-                cancel.store(true, std::sync::atomic::Ordering::Relaxed);
-            }
-            self.starting = None;
-            self.completed = false;
-            self.results.clear();
-            self.icons.clear();
-            self.pending_icons.clear();
-            self.icon_generation = self.icon_generation.wrapping_add(1);
-            if let Some(worker) = &self.icon_worker {
-                worker.invalidate(self.icon_generation);
-            }
-            self.selected = None;
-            self.reset_result_page();
-            self.stopped = false;
+            self.clear_search();
             let query = SearchQuery::parse(&self.query);
-            if !query.is_empty() {
+            let mode = self.mode;
+            if !query.is_empty() || (mode == Mode::Apps && self.query.trim().is_empty()) {
+                #[cfg(target_os = "linux")]
+                let catalog = self.catalog.clone();
                 #[cfg(target_os = "macos")]
                 let additional_roots = self.permissions.roots();
                 let (tx, rx) = std::sync::mpsc::sync_channel(1);
@@ -710,6 +837,12 @@ impl App {
                 self.starting_cancel = Some(cancel.clone());
                 self.starting = Some(rx);
                 std::thread::spawn(move || {
+                    #[cfg(target_os = "linux")]
+                    if let Some(apps) = catalog.filter(|_| mode == Mode::Apps) {
+                        let hits = apps.search(&query, &cancel);
+                        let _ = tx.send(Results::Apps(hits.into_iter()));
+                        return;
+                    }
                     #[cfg(feature = "ui-test-driver")]
                     let roots = std::env::var_os("DRILL_UI_TEST_ROOT")
                         .map(|p| vec![p.into()])
@@ -722,7 +855,12 @@ impl App {
                         roots.extend(additional_roots);
                         roots
                     };
-                    let _ = tx.send(Search::start_prepared_with_cancel(query, roots, cancel));
+                    let _ = tx.send(Results::Walk(Search::start_filtered(
+                        query,
+                        roots,
+                        cancel,
+                        mode.file_filter(),
+                    )));
                 });
             }
         }
@@ -754,12 +892,14 @@ impl App {
         } else if let Some(search) = &self.search {
             if self.completed {
                 format!("Drill - {} items found - done", self.results.len())
-            } else {
+            } else if let Some(pending) = search.directories_pending() {
                 format!(
                     "Drill - {} items found - {} directories to scan",
                     self.results.len(),
-                    search.pending()
+                    pending
                 )
+            } else {
+                format!("Drill - {} apps found", self.results.len())
             }
         } else if self.starting.is_some() {
             "Drill - starting search".into()
@@ -781,41 +921,46 @@ impl App {
         let mut icon_budget = 4;
         let mut icons_pending = false;
         egui::CentralPanel::default().show(ctx, |ui| {
+            let background_input_allowed = background_input_allowed && !error_was_open;
             if !background_input_allowed {
                 ui.disable();
             }
-            let response = ui.add_sized(
-                [ui.available_width(), 38.0],
-                egui::TextEdit::singleline(&mut self.query)
-                    .font(egui::FontId::proportional(24.0))
-                    .hint_text("Search..."),
-            );
-            if self.focus_search {
+            let old_mode = self.mode;
+            let (response, selector) = ui.horizontal(|ui| {
+                let combo_width = 76.0;
+                let input_width = (ui.available_width() - combo_width - ui.spacing().item_spacing.x).max(1.0);
+                let response = ui.add_sized(
+                    [input_width, 38.0],
+                    egui::TextEdit::singleline(&mut self.query)
+                        .font(egui::FontId::proportional(24.0))
+                        .hint_text("Search..."),
+                );
+                let selector = egui::ComboBox::from_id_salt("search_mode")
+                    .width(combo_width)
+                    .selected_text(self.mode.label())
+                    .show_ui(ui, |ui| {
+                        for mode in [Mode::Files, Mode::Apps] {
+                            ui.selectable_value(&mut self.mode, mode, mode.label());
+                        }
+                    }).response;
+                (response, selector)
+            }).inner;
+            let mode_changed = old_mode != self.mode;
+            if self.focus_search || mode_changed {
                 response.request_focus();
                 self.focus_search = false;
             }
-            if response.changed() {
-                self.search = None;
-                if let Some(cancel) = self.starting_cancel.take() {
-                    cancel.store(true, std::sync::atomic::Ordering::Relaxed);
+            let was_open = self.selector_open;
+            self.selector_open = egui::ComboBox::is_open(ctx, selector.id);
+            let background_input_allowed = background_input_allowed
+                && !was_open && !self.selector_open && !selector.has_focus() && !mode_changed;
+            if response.changed() || mode_changed {
+                self.clear_search();
+                #[cfg(target_os = "linux")]
+                if mode_changed {
+                    self.catalog = None;
                 }
-                self.starting = None;
-                self.completed = false;
-                self.results.clear();
-                self.icons.clear();
-                self.pending_icons.clear();
-                self.icon_generation = self.icon_generation.wrapping_add(1);
-                if let Some(worker) = &self.icon_worker {
-                    worker.invalidate(self.icon_generation);
-                }
-                self.selected = None;
-                self.reset_result_page();
-                self.stopped = false;
-                self.changed = if self.query.trim().is_empty() {
-                    None
-                } else {
-                    Some(Instant::now())
-                };
+                self.changed = (self.mode == Mode::Apps || !self.query.trim().is_empty()).then(Instant::now);
             }
             let continued = self.next_hit.is_some() && ui.button("Continue searching").clicked();
             if continued {
@@ -847,11 +992,10 @@ impl App {
                     }
                 }
             }
-            if background_input_allowed && !continued && ctx.input(|i| i.key_pressed(Key::Enter)) {
-                if let Some(entry) = self.selected.and_then(|n| self.results.get(n)) {
-                    open(&entry.path, false);
-                }
-            }
+            let enter = background_input_allowed && !continued && ctx.input(|input| input.events.iter().any(|event|
+                matches!(event, egui::Event::Key { key: Key::Enter, pressed: true, repeat: false, .. })));
+            let mut result_focus = ctx.memory(|memory| memory.focused().is_none() || memory.has_focus(response.id));
+            let mut row_menu_open = false;
             ui.separator();
             let total = ui.available_width();
             let (header, _) = ui.allocate_exact_size(
@@ -998,6 +1142,8 @@ impl App {
                     let (_, rect) = ui.allocate_space(egui::vec2(total, 25.0));
                     // Keep open menus and pending clicks attached to the same file as rows move.
                     let result = ui.interact(rect, ui.id().with(("result", &entry.path)), egui::Sense::click());
+                    result_focus |= self.selected == Some(index) && result.has_focus();
+                    row_menu_open |= result.context_menu_opened();
                     if result.clicked() || result.secondary_clicked() {
                         self.selected = Some(index);
                     }
@@ -1060,11 +1206,17 @@ impl App {
                             }
                         } else if icon_budget > 0 {
                             icon_budget -= 1;
-                            let icon = file_icon_provider::get_file_icon(&entry.path, 24)
-                                .ok()
-                                .and_then(|icon| {
-                                    platform_icon_texture(ctx, icon, &entry.path.to_string_lossy())
-                                });
+                            let path_label = entry.path.to_string_lossy();
+                            let fallback = || file_icon_provider::get_file_icon(&entry.path, 24).ok()
+                                .and_then(|icon| platform_icon_texture(ctx, icon, &path_label));
+                            #[cfg(target_os = "linux")]
+                            let icon = if self.mode == Mode::Apps {
+                                self.catalog.as_ref().and_then(|catalog| themed_icon_texture(ctx,
+                                    catalog.icon_names(&entry.path).iter().map(String::as_str), &path_label))
+                                    .or_else(fallback)
+                            } else { fallback() };
+                            #[cfg(not(target_os = "linux"))]
+                            let icon = fallback();
                             self.icons.insert(entry.path.clone(), icon);
                         } else {
                             icons_pending = true;
@@ -1159,7 +1311,7 @@ impl App {
                         x += column_width;
                     }
                     result.context_menu(|ui| {
-                        if ui.button("Open").clicked() {
+                        if ui.button(if self.mode == Mode::Apps { "Launch" } else { "Open" }).clicked() {
                             open(&entry.path, false);
                             ui.close_menu();
                         }
@@ -1187,7 +1339,7 @@ impl App {
                             }
                             ui.close_menu();
                         }
-                        if icon_menu_button(ui, "Reveal in file manager", MenuIcon::Folder) {
+                        if icon_menu_button(ui, if cfg!(target_os = "linux") && self.mode == Mode::Apps { "Reveal launcher file" } else { "Reveal in file manager" }, MenuIcon::Folder) {
                             open(&entry.path, true);
                             ui.close_menu();
                         }
@@ -1233,6 +1385,11 @@ impl App {
                 }
             });
             self.scroll_offset = scroll.state.offset.y;
+            if enter && result_focus && !row_menu_open {
+                if let Some(entry) = self.selected.and_then(|index| self.results.get(index)) {
+                    open(&entry.path, false);
+                }
+            }
         });
         #[cfg(feature = "ui-test-driver")]
         if let Some(path) = std::env::var_os("DRILL_UI_TEST_STATUS") {
@@ -1269,7 +1426,7 @@ impl App {
 
     #[cfg(target_os = "macos")]
     fn refresh_after_permission_selection(&mut self) {
-        if !self.query.trim().is_empty() && !self.stopped {
+        if (self.mode == Mode::Apps || !self.query.trim().is_empty()) && !self.stopped {
             self.changed = Some(Instant::now() - Duration::from_millis(250));
         }
     }
@@ -1396,7 +1553,7 @@ mod ui_tests {
         assert_eq!(app.results[0].name, "kept");
         assert_eq!(app.selected, Some(0));
         let stale = Search::start_with_cancel("stale".into(), vec![], cancel);
-        assert!(tx.send(stale).is_err());
+        assert!(tx.send(Results::Walk(stale)).is_err());
         assert!(app.search.is_none());
     }
 
@@ -1455,7 +1612,7 @@ mod ui_tests {
             query: "kept".into(),
             results: vec![entry("kept", 1)],
             selected: Some(0),
-            search: Some(search),
+            search: Some(Results::Walk(search)),
             ..Default::default()
         };
         app.stop_search();
@@ -1692,6 +1849,84 @@ mod ui_tests {
     }
 
     #[test]
+    fn menu_and_error_dialog_own_enter_over_a_selected_app() {
+        let ctx = egui::Context::default();
+        let mut app = App {
+            mode: Mode::Apps,
+            ..Default::default()
+        };
+        let file = entry("Example.exe", 1);
+        let expected = file.path.to_string_lossy().into_owned();
+        app.append_hits([(MatchKind::Exact, file)]);
+        let render = |app: &mut App, events| {
+            let input = egui::RawInput {
+                screen_rect: Some(egui::Rect::from_min_size(
+                    egui::Pos2::ZERO,
+                    egui::vec2(800.0, 600.0),
+                )),
+                events,
+                ..Default::default()
+            };
+            ctx.run(input, |ctx| {
+                app.update_ui_with_opener(ctx, &mut |_, _| {
+                    panic!("Enter on a menu or dialog launched the selected application")
+                })
+            })
+        };
+        let point = text_position(&render(&mut app, vec![]), "Example.exe");
+        for pressed in [true, false] {
+            render(
+                &mut app,
+                vec![
+                    egui::Event::PointerMoved(point),
+                    egui::Event::PointerButton {
+                        pos: point,
+                        button: egui::PointerButton::Secondary,
+                        pressed,
+                        modifiers: egui::Modifiers::NONE,
+                    },
+                ],
+            );
+        }
+        assert_eq!(app.selected, Some(0));
+        render(&mut app, vec![]);
+        let key_event = |key, pressed| egui::Event::Key {
+            key,
+            physical_key: None,
+            pressed,
+            repeat: false,
+            modifiers: egui::Modifiers::NONE,
+        };
+        let tab_to = |app: &mut App, label: &str| {
+            for _ in 0..40 {
+                let mut focused = false;
+                for pressed in [true, false] {
+                    let output = render(app, vec![key_event(Key::Tab, pressed)]);
+                    focused |= output.platform_output.events.iter().any(|event| matches!(
+                        event, egui::output::OutputEvent::FocusGained(info) if info.label.as_deref() == Some(label)
+                    ));
+                }
+                if focused {
+                    return;
+                }
+            }
+            panic!("{label} should be reachable with Tab");
+        };
+        tab_to(&mut app, "Copy Full Path");
+        let output = render(&mut app, vec![key(Key::Enter)]);
+        assert!(output
+            .platform_output
+            .commands
+            .iter()
+            .any(|cmd| matches!(cmd, egui::OutputCommand::CopyText(path) if path == &expected)));
+        app.action_error = Some("Launch failed".into());
+        render(&mut app, vec![key_event(Key::Enter, false)]);
+        tab_to(&mut app, "OK");
+        render(&mut app, vec![key(Key::Enter)]);
+        assert!(app.action_error.is_none());
+    }
+
+    #[test]
     fn both_clicks_must_target_the_same_file_to_open_it() {
         for insert_exact in [false, true] {
             let ctx = egui::Context::default();
@@ -1741,6 +1976,61 @@ mod ui_tests {
     }
 
     #[test]
+    fn switching_scope_keeps_text_and_cancels_previous_results() {
+        let ctx = egui::Context::default();
+        let mut app = App {
+            query: "calculator".into(),
+            results: vec![entry("calculator.txt", 2)],
+            next_hit: Some((MatchKind::Partial, entry("old", 1))),
+            selected: Some(0),
+            ..App::default()
+        };
+        let click = |app: &mut App, pos| {
+            for pressed in [true, false] {
+                let _ = frame(
+                    &ctx,
+                    app,
+                    vec![
+                        egui::Event::PointerMoved(pos),
+                        egui::Event::PointerButton {
+                            pos,
+                            button: egui::PointerButton::Primary,
+                            pressed,
+                            modifiers: egui::Modifiers::NONE,
+                        },
+                    ],
+                );
+            }
+            frame(&ctx, app, vec![])
+        };
+        let output = frame(&ctx, &mut app, vec![]);
+        let files = text_position(&output, "Files");
+        assert!(files.x > 680.0, "scope must be on the right");
+        let popup = click(&mut app, files);
+        let apps = text_position(&popup, "Apps");
+        let cancel = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
+        app.starting_cancel = Some(cancel.clone());
+        let _ = click(&mut app, apps);
+        assert_eq!(app.mode.label(), "Apps");
+        assert_eq!(app.query, "calculator");
+        assert!(cancel.load(std::sync::atomic::Ordering::Relaxed));
+        assert!(app.results.is_empty() && app.next_hit.is_none() && app.selected.is_none());
+        assert!(app.changed.is_some());
+
+        // An empty query browses Apps but returns Files to its idle screen.
+        app.query.clear();
+        let button = text_position(&frame(&ctx, &mut app, vec![]), "Apps");
+        let popup = click(&mut app, button);
+        let _ = click(&mut app, text_position(&popup, "Files"));
+        assert_eq!(app.mode.label(), "Files");
+        assert!(app.changed.is_none());
+        let button = text_position(&frame(&ctx, &mut app, vec![]), "Files");
+        let popup = click(&mut app, button);
+        let _ = click(&mut app, text_position(&popup, "Apps"));
+        assert!(app.changed.is_some());
+    }
+
+    #[test]
     fn enter_on_continue_admits_and_ranks_the_next_hit_and_consumes_the_shortcut() {
         let ctx = egui::Context::default();
         let mut app = App {
@@ -1749,7 +2039,21 @@ mod ui_tests {
             ..App::default()
         };
         let _ = frame(&ctx, &mut app, vec![]);
-        let _ = frame(&ctx, &mut app, vec![key(Key::Tab)]);
+        // The scope selector is between the search field and Continue in tab order.
+        for _ in 0..2 {
+            let _ = frame(&ctx, &mut app, vec![key(Key::Tab)]);
+            let _ = frame(
+                &ctx,
+                &mut app,
+                vec![egui::Event::Key {
+                    key: Key::Tab,
+                    physical_key: None,
+                    pressed: false,
+                    repeat: false,
+                    modifiers: egui::Modifiers::NONE,
+                }],
+            );
+        }
         let _ = frame(&ctx, &mut app, vec![key(Key::Enter)]);
         assert!(app.next_hit.is_none());
         assert_eq!(app.results[0].name, "rom.exe");
@@ -1764,7 +2068,10 @@ mod ui_tests {
                 std::fs::write(root.path().join(format!("item-{n}")), []).unwrap();
             }
             let mut app = App {
-                search: Some(Search::start("item".into(), vec![root.path().to_owned()])),
+                search: Some(Results::Walk(Search::start(
+                    "item".into(),
+                    vec![root.path().to_owned()],
+                ))),
                 result_limit: 2,
                 ..App::default()
             };
