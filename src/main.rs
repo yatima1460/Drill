@@ -5,6 +5,7 @@ use drill_core::{default_roots_with_cancel, Entry, MatchKind, Search, SearchQuer
 use eframe::egui::{self, Key};
 use std::path::Path;
 use std::time::{Duration, Instant};
+mod appimage_icon;
 mod exe_icon;
 mod result_order;
 mod search_mode;
@@ -17,9 +18,9 @@ mod native_menu;
 mod permissions;
 
 const LIMIT: usize = 10_000;
-fn embedded_icons_setting(storage: Option<&dyn eframe::Storage>) -> bool {
+fn embedded_icons_setting(storage: Option<&dyn eframe::Storage>, key: &str) -> bool {
     storage
-        .and_then(|storage| storage.get_string("embedded_exe_icons"))
+        .and_then(|storage| storage.get_string(key))
         .and_then(|value| value.parse().ok())
         .unwrap_or(true)
 }
@@ -97,6 +98,8 @@ struct App {
     exe_type_icon: Option<Option<egui::TextureHandle>>,
     icon_generation: u64,
     embedded_exe_icons: bool,
+    embedded_appimage_icons: bool,
+    appimage_type_icon: Option<Option<egui::TextureHandle>>,
     interface_open: bool,
     sort: Option<(SortColumn, bool)>,
     column_widths: [f32; 4],
@@ -143,6 +146,8 @@ impl Default for App {
             exe_type_icon: None,
             icon_generation: 0,
             embedded_exe_icons: true,
+            embedded_appimage_icons: true,
+            appimage_type_icon: None,
             interface_open: false,
             sort: None,
             column_widths: [0.35, 0.35, 0.1, 0.2],
@@ -221,25 +226,28 @@ fn platform_icon_texture(
     Some(ctx.load_texture(name, image, egui::TextureOptions::LINEAR))
 }
 #[cfg(not(target_os = "linux"))]
-fn executable_type_icon(ctx: &egui::Context) -> Option<egui::TextureHandle> {
+fn executable_type_icon(ctx: &egui::Context, sample_name: &str) -> Option<egui::TextureHandle> {
     // Ask the OS about a private, empty sample; never pass it the untrusted executable.
-    let sample = tempfile::Builder::new().suffix(".exe").tempfile().ok()?;
+    let sample = tempfile::Builder::new()
+        .suffix(sample_name)
+        .tempfile()
+        .ok()?;
     let icon = file_icon_provider::get_file_icon(sample.path(), NATIVE_ICON_PIXELS).ok()?;
-    platform_icon_texture(ctx, icon, "exe-type-icon")
+    platform_icon_texture(ctx, icon, sample_name)
 }
 #[cfg(target_os = "linux")]
-fn executable_type_icon(ctx: &egui::Context) -> Option<egui::TextureHandle> {
+fn executable_type_icon(ctx: &egui::Context, sample_name: &str) -> Option<egui::TextureHandle> {
     use gtk::prelude::*;
     if !gtk::is_initialized() {
         gtk::init().ok()?;
     }
-    let (content_type, _) = gtk::gio::content_type_guess(Some(Path::new("application.exe")), None);
+    let (content_type, _) = gtk::gio::content_type_guess(Some(Path::new(sample_name)), None);
     let icon = gtk::gio::content_type_get_icon(&content_type);
     let themed = icon.dynamic_cast_ref::<gtk::gio::ThemedIcon>()?;
     themed_icon_texture(
         ctx,
         themed.names().iter().map(|name| name.as_str()),
-        "exe-type-icon",
+        sample_name,
     )
 }
 
@@ -762,16 +770,27 @@ impl App {
         let interface_was_open = self.interface_open;
         if self.interface_open {
             let mut open = self.interface_open;
-            let mut enabled = self.embedded_exe_icons;
+            let mut exe_enabled = self.embedded_exe_icons;
+            let mut appimage_enabled = self.embedded_appimage_icons;
             egui::Window::new("Interface")
                 .open(&mut open)
                 .show(ctx, |ui| {
-                    ui.checkbox(&mut enabled, "Use embedded icons for Windows executables");
+                    ui.checkbox(
+                        &mut exe_enabled,
+                        "Use embedded icons for Windows executables",
+                    );
+                    ui.checkbox(&mut appimage_enabled, "Use embedded icons for AppImages");
                 });
             self.interface_open = open;
-            if enabled != self.embedded_exe_icons {
-                self.embedded_exe_icons = enabled;
-                self.icons.retain(|path, _| !exe_icon::is_exe(path));
+            let exe_changed = exe_enabled != self.embedded_exe_icons;
+            let appimage_changed = appimage_enabled != self.embedded_appimage_icons;
+            if exe_changed || appimage_changed {
+                self.embedded_exe_icons = exe_enabled;
+                self.embedded_appimage_icons = appimage_enabled;
+                self.icons.retain(|path, _| {
+                    !(exe_changed && exe_icon::is_exe(path)
+                        || appimage_changed && exe_icon::is_appimage(path))
+                });
                 self.pending_icons.clear();
                 self.icon_generation = self.icon_generation.wrapping_add(1);
                 if let Some(worker) = &self.icon_worker {
@@ -1229,11 +1248,13 @@ impl App {
                     ];
                     let icon_pos = egui::pos2(rect.left() + 5.0, rect.center().y - RESULT_ICON_SIZE / 2.0);
                     let icon_rect = egui::Rect::from_min_size(icon_pos, egui::Vec2::splat(RESULT_ICON_SIZE));
+                    let is_appimage = exe_icon::is_appimage(&entry.path);
+                    let embedded_enabled = if is_appimage { self.embedded_appimage_icons } else { self.embedded_exe_icons };
                     if !self.icons.contains_key(&entry.path) {
                         let route = exe_icon::icon_route(
                             &entry.path,
                             entry.is_dir,
-                            self.embedded_exe_icons,
+                            embedded_enabled,
                         );
                         if route != exe_icon::IconRoute::Platform {
                             if route != exe_icon::IconRoute::Decode {
@@ -1291,9 +1312,13 @@ impl App {
                             );
                         }
                         Some(None) => {
-                            let type_icon = if !entry.is_dir && exe_icon::is_exe(&entry.path) {
+                            let type_icon = if !entry.is_dir && is_appimage {
+                                self.appimage_type_icon
+                                    .get_or_insert_with(|| executable_type_icon(ctx, "sample.AppImage"))
+                                    .as_ref()
+                            } else if !entry.is_dir && exe_icon::is_exe(&entry.path) {
                                 self.exe_type_icon
-                                    .get_or_insert_with(|| executable_type_icon(ctx))
+                                    .get_or_insert_with(|| executable_type_icon(ctx, "sample.exe"))
                                     .as_ref()
                             } else {
                                 None
@@ -1339,9 +1364,9 @@ impl App {
                         }
                         None => {}
                     }
-                    if self.embedded_exe_icons
+                    if embedded_enabled
                         && !entry.is_dir
-                        && exe_icon::is_exe(&entry.path)
+                        && (is_appimage || exe_icon::is_exe(&entry.path))
                         && matches!(self.icons.get(&entry.path), Some(None))
                     {
                         result.clone().on_hover_text(
@@ -1496,6 +1521,10 @@ impl eframe::App for App {
     }
     fn save(&mut self, storage: &mut dyn eframe::Storage) {
         storage.set_string("embedded_exe_icons", self.embedded_exe_icons.to_string());
+        storage.set_string(
+            "embedded_appimage_icons",
+            self.embedded_appimage_icons.to_string(),
+        );
     }
     fn persist_egui_memory(&self) -> bool {
         false
@@ -1535,16 +1564,20 @@ fn main() -> eframe::Result {
         options,
         Box::new(|creation| {
             creation.egui_ctx.set_theme(egui::ThemePreference::System);
-            let embedded_exe_icons = embedded_icons_setting(creation.storage);
+            let embedded_exe_icons = embedded_icons_setting(creation.storage, "embedded_exe_icons");
+            let embedded_appimage_icons =
+                embedded_icons_setting(creation.storage, "embedded_appimage_icons");
             #[cfg(any(target_os = "macos", target_os = "windows"))]
             let app = App {
                 native_menu: Some(native_menu::NativeMenu::new(creation)?),
                 embedded_exe_icons,
+                embedded_appimage_icons,
                 ..Default::default()
             };
             #[cfg(not(any(target_os = "macos", target_os = "windows")))]
             let app = App {
                 embedded_exe_icons,
+                embedded_appimage_icons,
                 ..Default::default()
             };
             Ok(Box::new(app))
@@ -1558,26 +1591,39 @@ mod ui_tests {
     use std::path::PathBuf;
 
     #[test]
-    fn executable_icon_preference_defaults_on_and_round_trips() {
+    fn embedded_icon_preferences_default_on_and_round_trip_independently() {
         use eframe::App as _;
-        struct Memory(Option<String>);
+        #[derive(Default)]
+        struct Memory(std::collections::HashMap<String, String>);
         impl eframe::Storage for Memory {
-            fn get_string(&self, _: &str) -> Option<String> {
-                self.0.clone()
+            fn get_string(&self, key: &str) -> Option<String> {
+                self.0.get(key).cloned()
             }
-            fn set_string(&mut self, _: &str, value: String) {
-                self.0 = Some(value);
+            fn set_string(&mut self, key: &str, value: String) {
+                self.0.insert(key.into(), value);
             }
             fn flush(&mut self) {}
         }
-        let mut storage = Memory(None);
-        assert!(embedded_icons_setting(Some(&storage)));
+        let mut storage = Memory::default();
+        eframe::Storage::set_string(&mut storage, "embedded_exe_icons", "false".into());
+        assert!(embedded_icons_setting(
+            Some(&storage),
+            "embedded_appimage_icons"
+        ));
+        assert!(!embedded_icons_setting(
+            Some(&storage),
+            "embedded_exe_icons"
+        ));
         let mut app = App {
-            embedded_exe_icons: false,
+            embedded_appimage_icons: false,
             ..Default::default()
         };
         app.save(&mut storage);
-        assert!(!embedded_icons_setting(Some(&storage)));
+        assert!(!embedded_icons_setting(
+            Some(&storage),
+            "embedded_appimage_icons"
+        ));
+        assert!(embedded_icons_setting(Some(&storage), "embedded_exe_icons"));
     }
 
     #[cfg(target_os = "linux")]
@@ -1731,32 +1777,14 @@ mod ui_tests {
             ..Default::default()
         };
         let render = |app: &mut App, events| {
-            let _ = ctx.run(
-                egui::RawInput {
-                    screen_rect: Some(egui::Rect::from_min_size(
-                        egui::Pos2::ZERO,
-                        egui::vec2(800.0, 600.0),
-                    )),
-                    events,
-                    ..Default::default()
-                },
-                |ctx| in_window_search_menu(ctx, app),
-            );
+            let _ = ctx.run(frame_input(events), |ctx| in_window_search_menu(ctx, app));
         };
         render(&mut app, vec![]);
         for point in [egui::pos2(20.0, 10.0), egui::pos2(20.0, 38.0)] {
             for pressed in [true, false] {
                 render(
                     &mut app,
-                    vec![
-                        egui::Event::PointerMoved(point),
-                        egui::Event::PointerButton {
-                            pos: point,
-                            button: egui::PointerButton::Primary,
-                            pressed,
-                            modifiers: egui::Modifiers::NONE,
-                        },
-                    ],
+                    pointer_events(point, egui::PointerButton::Primary, pressed),
                 );
             }
             render(&mut app, vec![]);
@@ -1802,15 +1830,7 @@ mod ui_tests {
                 });
             });
             for pressed in [true, false] {
-                let events = vec![
-                    egui::Event::PointerMoved(point),
-                    egui::Event::PointerButton {
-                        pos: point,
-                        button: egui::PointerButton::Primary,
-                        pressed,
-                        modifiers: egui::Modifiers::NONE,
-                    },
-                ];
+                let events = pointer_events(point, egui::PointerButton::Primary, pressed);
                 let _ = ctx.run(
                     egui::RawInput {
                         events,
@@ -1828,16 +1848,35 @@ mod ui_tests {
         }
     }
 
-    fn frame(ctx: &egui::Context, app: &mut App, events: Vec<egui::Event>) -> egui::FullOutput {
-        let input = egui::RawInput {
+    fn pointer_events(
+        pos: egui::Pos2,
+        button: egui::PointerButton,
+        pressed: bool,
+    ) -> Vec<egui::Event> {
+        vec![
+            egui::Event::PointerMoved(pos),
+            egui::Event::PointerButton {
+                pos,
+                button,
+                pressed,
+                modifiers: egui::Modifiers::NONE,
+            },
+        ]
+    }
+
+    fn frame_input(events: Vec<egui::Event>) -> egui::RawInput {
+        egui::RawInput {
             screen_rect: Some(egui::Rect::from_min_size(
                 egui::Pos2::ZERO,
                 egui::vec2(800.0, 600.0),
             )),
             events,
             ..Default::default()
-        };
-        ctx.run(input, |ctx| app.update_ui(ctx))
+        }
+    }
+
+    fn frame(ctx: &egui::Context, app: &mut App, events: Vec<egui::Event>) -> egui::FullOutput {
+        ctx.run(frame_input(events), |ctx| app.update_ui(ctx))
     }
     fn key(key: Key) -> egui::Event {
         egui::Event::Key {
@@ -1905,22 +1944,11 @@ mod ui_tests {
         let path = original.path.to_string_lossy().into_owned();
         app.append_hits([(MatchKind::Partial, original)]);
         let pos = text_position(&frame(&ctx, &mut app, vec![]), "rom.exe.bak");
-        let button = |pos, button, pressed| {
-            vec![
-                egui::Event::PointerMoved(pos),
-                egui::Event::PointerButton {
-                    pos,
-                    button,
-                    pressed,
-                    modifiers: egui::Modifiers::NONE,
-                },
-            ]
-        };
         for pressed in [true, false] {
             let _ = frame(
                 &ctx,
                 &mut app,
-                button(pos, egui::PointerButton::Secondary, pressed),
+                pointer_events(pos, egui::PointerButton::Secondary, pressed),
             );
         }
         app.append_hits([(MatchKind::Exact, entry("rom.exe", 2))]);
@@ -1929,12 +1957,12 @@ mod ui_tests {
         let _ = frame(
             &ctx,
             &mut app,
-            button(copy, egui::PointerButton::Primary, true),
+            pointer_events(copy, egui::PointerButton::Primary, true),
         );
         let output = frame(
             &ctx,
             &mut app,
-            button(copy, egui::PointerButton::Primary, false),
+            pointer_events(copy, egui::PointerButton::Primary, false),
         );
         assert!(
             output
@@ -1958,15 +1986,7 @@ mod ui_tests {
         let expected = file.path.to_string_lossy().into_owned();
         app.append_hits([(MatchKind::Exact, file)]);
         let render = |app: &mut App, events| {
-            let input = egui::RawInput {
-                screen_rect: Some(egui::Rect::from_min_size(
-                    egui::Pos2::ZERO,
-                    egui::vec2(800.0, 600.0),
-                )),
-                events,
-                ..Default::default()
-            };
-            ctx.run(input, |ctx| {
+            ctx.run(frame_input(events), |ctx| {
                 app.update_ui_with_opener(ctx, &mut |_, _| {
                     panic!("Enter on a menu or dialog launched the selected application")
                 })
@@ -1976,15 +1996,7 @@ mod ui_tests {
         for pressed in [true, false] {
             render(
                 &mut app,
-                vec![
-                    egui::Event::PointerMoved(point),
-                    egui::Event::PointerButton {
-                        pos: point,
-                        button: egui::PointerButton::Secondary,
-                        pressed,
-                        modifiers: egui::Modifiers::NONE,
-                    },
-                ],
+                pointer_events(point, egui::PointerButton::Secondary, pressed),
             );
         }
         assert_eq!(app.selected, Some(0));
@@ -2033,15 +2045,7 @@ mod ui_tests {
             app.append_hits([(MatchKind::Partial, entry("rom.exe.bak", 2))]);
             let mut opened = Vec::new();
             let mut render = |app: &mut App, events| {
-                let input = egui::RawInput {
-                    screen_rect: Some(egui::Rect::from_min_size(
-                        egui::Pos2::ZERO,
-                        egui::vec2(800.0, 600.0),
-                    )),
-                    events,
-                    ..Default::default()
-                };
-                ctx.run(input, |ctx| {
+                ctx.run(frame_input(events), |ctx| {
                     app.update_ui_with_opener(ctx, &mut |path, _| opened.push(path.to_owned()))
                 })
             };
@@ -2054,15 +2058,7 @@ mod ui_tests {
                 for pressed in [true, false] {
                     let _ = render(
                         &mut app,
-                        vec![
-                            egui::Event::PointerMoved(pos),
-                            egui::Event::PointerButton {
-                                pos,
-                                button: egui::PointerButton::Primary,
-                                pressed,
-                                modifiers: egui::Modifiers::NONE,
-                            },
-                        ],
+                        pointer_events(pos, egui::PointerButton::Primary, pressed),
                     );
                 }
             }
@@ -2089,15 +2085,7 @@ mod ui_tests {
                 let _ = frame(
                     &ctx,
                     app,
-                    vec![
-                        egui::Event::PointerMoved(pos),
-                        egui::Event::PointerButton {
-                            pos,
-                            button: egui::PointerButton::Primary,
-                            pressed,
-                            modifiers: egui::Modifiers::NONE,
-                        },
-                    ],
+                    pointer_events(pos, egui::PointerButton::Primary, pressed),
                 );
             }
             frame(&ctx, app, vec![])
@@ -2197,15 +2185,7 @@ mod ui_tests {
                 let _ = frame(
                     &ctx,
                     &mut app,
-                    vec![
-                        egui::Event::PointerMoved(pos),
-                        egui::Event::PointerButton {
-                            pos,
-                            button: egui::PointerButton::Primary,
-                            pressed,
-                            modifiers: egui::Modifiers::NONE,
-                        },
-                    ],
+                    pointer_events(pos, egui::PointerButton::Primary, pressed),
                 );
             }
             assert!(app.next_hit.is_none());
@@ -2220,7 +2200,8 @@ mod ui_tests {
 
     fn assert_result_loads_embedded_icon(path: PathBuf) {
         let ctx = egui::Context::default();
-        let mut result = entry("program.exe", 1);
+        let name = path.file_name().unwrap().to_str().unwrap().to_owned();
+        let mut result = entry(&name, 1);
         result.path = path.clone();
         let mut app = App {
             results: vec![result],
@@ -2257,9 +2238,7 @@ mod ui_tests {
                     .shapes
                     .iter()
                     .find_map(|shape| match &shape.shape {
-                        egui::Shape::Text(text) if text.galley.text() == "program.exe" => {
-                            Some(text.pos)
-                        }
+                        egui::Shape::Text(text) if text.galley.text() == name => Some(text.pos),
                         _ => None,
                     })
                     .expect("row did not draw the filename");
@@ -2272,14 +2251,78 @@ mod ui_tests {
     }
     #[test]
     fn visible_executable_row_loads_embedded_icon() {
-        use std::io::Write;
-        let mut file = tempfile::Builder::new().suffix(".exe").tempfile().unwrap();
-        file.write_all(include_bytes!(
-            "../tools/exe-icon-wasm/tests/fixtures/icon-pe32.exe"
-        ))
-        .unwrap();
+        let file = exe_icon::temporary_pe32();
         assert_result_loads_embedded_icon(file.path().to_path_buf());
     }
+    #[test]
+    fn visible_appimage_rows_draw_their_embedded_png_and_svg() {
+        let root = tempfile::tempdir().unwrap();
+        let fixtures =
+            Path::new(env!("CARGO_MANIFEST_DIR")).join("tools/appimage-icon-wasm/tests/fixtures");
+        for (name, fixture) in [
+            ("linked.aPpImAgE", "linked-png.AppImage"),
+            ("legacy.AppImage", "rock-ridge.AppImage"),
+            ("direct.AppImage", "direct-svg.AppImage"),
+        ] {
+            let path = root.path().join(name);
+            std::fs::copy(fixtures.join(fixture), &path).unwrap();
+            assert_result_loads_embedded_icon(path);
+        }
+    }
+
+    #[test]
+    fn appimage_checkbox_invalidates_cached_icon_and_reloads_when_enabled() {
+        let ctx = egui::Context::default();
+        let path = Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("tools/appimage-icon-wasm/tests/fixtures/linked-png.AppImage");
+        let mut item = entry("linked-png.AppImage", 1);
+        item.path = path.clone();
+        let mut app = App {
+            results: vec![item],
+            interface_open: true,
+            appimage_type_icon: Some(None), // exercise the generic fallback without a window server
+            ..Default::default()
+        };
+        let render_until_loaded = |app: &mut App| {
+            let deadline = Instant::now() + Duration::from_secs(10);
+            while !matches!(app.icons.get(&path), Some(Some(_))) {
+                frame(&ctx, app, vec![]);
+                assert!(Instant::now() < deadline, "AppImage icon did not arrive");
+                std::thread::sleep(Duration::from_millis(10));
+            }
+        };
+        let toggle = |app: &mut App| {
+            let point = text_position(
+                &frame(&ctx, app, vec![]),
+                "Use embedded icons for AppImages",
+            );
+            for pressed in [true, false] {
+                frame(
+                    &ctx,
+                    app,
+                    vec![
+                        egui::Event::PointerMoved(point),
+                        egui::Event::PointerButton {
+                            pos: point,
+                            button: egui::PointerButton::Primary,
+                            pressed,
+                            modifiers: egui::Modifiers::NONE,
+                        },
+                    ],
+                );
+            }
+        };
+        render_until_loaded(&mut app);
+        let first = app.icons[&path].as_ref().unwrap().id();
+        toggle(&mut app);
+        assert!(!app.embedded_appimage_icons && app.embedded_exe_icons);
+        assert!(matches!(app.icons.get(&path), Some(None)));
+        assert!(app.pending_icons.is_empty());
+        toggle(&mut app);
+        render_until_loaded(&mut app);
+        assert_ne!(first, app.icons[&path].as_ref().unwrap().id());
+    }
+
     #[test]
     fn typing_starts_debounce_and_clearing_resets_the_window() {
         let ctx = egui::Context::default();

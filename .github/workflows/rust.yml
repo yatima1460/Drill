@@ -7,6 +7,21 @@ on:
 permissions:
   contents: read
 jobs:
+  jscpd:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Check for duplicate code
+        working-directory: ${{ runner.temp }}
+        run: |
+          curl --fail --location --retry 3 --output jscpd.tar.gz https://github.com/kucherenko/jscpd/releases/download/v5.4.3/jscpd-linux-x64-gnu.tar.gz
+          echo 'a19d719331b21a047a7537f982566dabcf6d6e5f51581c3b80d9c420979cc92c  jscpd.tar.gz' | sha256sum --check
+          tar -xzf jscpd.tar.gz jscpd
+          cd "$GITHUB_WORKSPACE"
+          "$RUNNER_TEMP/jscpd" .
   linux:
     runs-on: ubuntu-24.04
     steps:
@@ -37,6 +52,19 @@ jobs:
           name: decoder-rebuild
           path: tools/exe-icon-wasm/target/wasm32-unknown-unknown/release/drill_exe_icon_wasm.wasm
           if-no-files-found: ignore
+      - name: Verify isolated AppImage decoder
+        run: |
+          cargo fmt --manifest-path tools/appimage-icon-wasm/Cargo.toml -- --check
+          export RUSTFLAGS="--remap-path-prefix=${CARGO_HOME:-$HOME/.cargo}/registry/src=/cargo/registry/src --remap-path-prefix=$PWD=/workspace"
+          cargo build --manifest-path tools/appimage-icon-wasm/Cargo.toml --target wasm32-unknown-unknown --release --locked
+          cmp src/assets/appimage-icon.wasm tools/appimage-icon-wasm/target/wasm32-unknown-unknown/release/drill_appimage_icon_wasm.wasm
+      - name: Preserve AppImage decoder rebuild on failure
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: appimage-decoder-rebuild
+          path: tools/appimage-icon-wasm/target/wasm32-unknown-unknown/release/drill_appimage_icon_wasm.wasm
+          if-no-files-found: ignore
       - run: cargo fmt --all -- --check
       - run: cargo check --locked --workspace --all-targets
       - run: cargo clippy --locked --workspace --all-targets --all-features -- -D warnings -D clippy::undocumented_unsafe_blocks
@@ -46,6 +74,8 @@ jobs:
       - run: cargo build --release --locked
       - run: target/release/drill --version
       - run: scripts/package-linux.sh
+      - name: Decode the icon from the packaged AppImage
+        run: cargo test --locked --bin drill appimage_icon::tests::packaged_appimage_contains_drill_icon -- --ignored --exact
       - name: Double-click AppImage results with Xed and Nemo
         timeout-minutes: 8
         run: |
@@ -158,7 +188,7 @@ jobs:
                     .base.ref == "main" and .merge_commit_sha == $sha)')
           echo "eligible=$matched" >> "$GITHUB_OUTPUT"
   sign-macos:
-    needs: [merged-main, linux, windows-cross, macos]
+    needs: [merged-main, jscpd, linux, windows-cross, macos]
     if: >-
       needs.merged-main.outputs.eligible == 'true' && needs.macos.outputs.executable-id != '' &&
       (github.run_attempt == 1 || github.triggering_actor == 'yatima1460')
