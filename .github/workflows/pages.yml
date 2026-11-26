@@ -34,7 +34,11 @@ jobs:
         run: |
           set -euo pipefail
           git fetch --no-tags origin refs/heads/main
-          if ! git diff --quiet HEAD FETCH_HEAD -- docs/; then
+          inputs=(docs/ .github/workflows/pages.yml)
+          if [[ "$GITHUB_EVENT_NAME" == workflow_dispatch || "$GITHUB_RUN_ATTEMPT" != 1 ]]; then
+            inputs+=(.github/workflows/website.yml tools/website-ci/)
+          fi
+          if ! git diff --quiet HEAD FETCH_HEAD -- "${inputs[@]}"; then
             echo 'A newer version of the site is already on main.' >&2
             exit 1
           fi
