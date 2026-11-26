@@ -47,6 +47,16 @@ shellcheck: ## Lint shell scripts and launchers
 test: ## Run all non-interactive workspace tests
 	$(CARGO) test --locked --workspace
 
+.PHONY: prove test-mutants
+prove: ## Model-check the search filter, row insertion and Wasm resource range
+	$(CARGO) kani --manifest-path verification/Cargo.toml --lib --output-format terse
+
+test-mutants: export CARGO := $(CARGO)
+test-mutants: ## Run the focused mutation tests for all three Rust packages
+	scripts/test-mutants.sh core
+	scripts/test-mutants.sh desktop
+	scripts/test-mutants.sh guest
+
 test-core: ## Run search core tests without the UI
 	$(CARGO) test --locked -p drill-core
 

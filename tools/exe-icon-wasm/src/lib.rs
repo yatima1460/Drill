@@ -1,6 +1,8 @@
 use icoextract_rs::{ExtractedIcon, ExtractedImage, IconExtractor};
 use std::io::Cursor;
 
+mod resource;
+
 #[no_mangle]
 pub extern "C" fn allocate(size: u32) -> *mut u8 {
     let mut input = vec![0u8; size as usize].into_boxed_slice();
@@ -37,9 +39,12 @@ fn extract(input: &[u8]) -> Option<Vec<u8>> {
                 std::cmp::Reverse(img.bit_count()),
             )
         })?;
-    let start = usize::try_from(image.file_offset()).ok()?;
-    let end = start.checked_add(image.bytes_in_resource() as usize)?;
-    let bytes = input.get(start..end)?.to_vec();
+    let range = resource::byte_range(
+        image.file_offset(),
+        image.bytes_in_resource(),
+        u32::try_from(input.len()).ok()?,
+    )?;
+    let bytes = input.get(range)?.to_vec();
     let ico = ExtractedIcon::new(
         group.resource_id().clone(),
         vec![ExtractedImage::new(image.clone(), bytes)],
@@ -58,4 +63,22 @@ fn extract(input: &[u8]) -> Option<Vec<u8>> {
         .resize_exact(32, 32, image::imageops::FilterType::Triangle)
         .to_rgba8();
     Some(rgba.into_raw())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn extracts_the_green_32_pixel_frame_from_both_pe_formats() {
+        for fixture in [
+            &include_bytes!("../tests/fixtures/icon-pe32.exe")[..],
+            &include_bytes!("../tests/fixtures/icon-pe64.exe")[..],
+        ] {
+            let pixels = extract(fixture).expect("fixture has an icon");
+            assert_eq!(pixels.len(), 32 * 32 * 4);
+            assert_eq!(&pixels[..4], &[0, 255, 0, 255]);
+            assert!(extract(&fixture[..64]).is_none());
+        }
+    }
 }

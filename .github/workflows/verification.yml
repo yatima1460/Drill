@@ -1,0 +1,75 @@
+name: Rust verification
+on:
+  pull_request:
+    paths:
+      - '**/*.rs'
+      - '**/Cargo.*'
+      - 'rust-toolchain.toml'
+      - 'src/assets/**'
+      - 'tools/exe-icon-wasm/tests/fixtures/**'
+      - 'verification/**'
+      - 'Makefile'
+      - 'scripts/test-mutants.sh'
+      - '.github/workflows/verification.yml'
+  workflow_dispatch:
+    inputs:
+      scope:
+        description: Package to mutate
+        type: choice
+        options: [core, desktop, guest]
+      platform:
+        description: Native test platform
+        type: choice
+        options: [linux, macos, windows]
+      shard:
+        description: Zero-based shard (e.g. 0/32), or 0/1 for every candidate
+        type: string
+        default: '0/32'
+permissions:
+  contents: read
+jobs:
+  proofs:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Install pinned Kani
+        run: |
+          source verification/tools.env
+          cargo install --locked --version "$KANI_VERSION" kani-verifier
+          cargo kani setup
+      - run: cargo fmt --manifest-path verification/Cargo.toml -- --check
+      - run: make prove
+  mutations:
+    runs-on: ${{ inputs.platform == 'macos' && 'macos-15' || inputs.platform == 'windows' && 'windows-2022' || 'ubuntu-24.04' }}
+    timeout-minutes: 90
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Install Linux desktop test dependencies
+        if: runner.os == 'Linux' && (github.event_name == 'pull_request' || inputs.scope == 'desktop')
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libxkbcommon-dev libwayland-dev libgl1-mesa-dev libgtk-3-dev libxkbcommon-x11-0 libx11-xcb1 libegl1
+      - name: Install pinned cargo-mutants
+        run: |
+          source verification/tools.env
+          cargo install --locked --version "$MUTANTS_VERSION" cargo-mutants
+      - name: Test focused mutations in all three packages
+        if: github.event_name == 'pull_request'
+        run: make test-mutants
+      - name: Run requested mutation campaign
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          SCOPE: ${{ inputs.scope }}
+          MUTATION_SHARD: ${{ inputs.shard }}
+        run: scripts/test-mutants.sh "$SCOPE" full
+      - name: Preserve mutation outcomes, diffs and logs
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: mutation-results-${{ runner.os }}
+          path: target/mutations/
+          if-no-files-found: warn
