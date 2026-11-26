@@ -1,0 +1,48 @@
+name: Website
+on:
+  pull_request:
+    paths: &website
+      - 'docs/**/*.html'
+      - 'docs/**/*.css'
+      - 'docs/**/*.js'
+      - 'docs/**/*.mjs'
+      - 'docs/**/*.svg'
+      - 'docs/**/*.png'
+      - 'docs/**/*.jpg'
+      - 'docs/**/*.jpeg'
+      - 'docs/**/*.webp'
+      - 'docs/**/*.avif'
+      - 'docs/**/*.gif'
+      - 'docs/**/*.ico'
+      - 'docs/**/*.woff'
+      - 'docs/**/*.woff2'
+      - 'docs/**/*.ttf'
+      - 'docs/**/*.webmanifest'
+      - 'docs/**/*.json'
+      - 'docs/CNAME'
+      - 'docs/robots.txt'
+      - 'tools/website-ci/**'
+      - '.github/workflows/website.yml'
+  push:
+    branches: [main]
+    paths: *website
+permissions:
+  contents: read
+jobs:
+  website:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    defaults:
+      run:
+        working-directory: tools/website-ci
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24.22.3'
+          cache: npm
+          cache-dependency-path: tools/website-ci/package-lock.json
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: npm run check
