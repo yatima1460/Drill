@@ -2,7 +2,7 @@
 #![deny(unsafe_code)]
 use chrono::{DateTime, Local};
 use drill_core::{default_roots_with_cancel, Entry, Search};
-use eframe::egui::{self, Key, RichText};
+use eframe::egui::{self, Key};
 use std::path::Path;
 use std::time::{Duration, Instant};
 mod exe_icon;
@@ -35,6 +35,33 @@ fn compare_entries(a: &Entry, b: &Entry, column: SortColumn) -> std::cmp::Orderi
     };
     ordering.then_with(|| a.path.cmp(&b.path))
 }
+
+// Dividers transfer width only between adjacent columns, preserving their sum.
+fn resize_columns(widths: &mut [f32; 4], divider: usize, delta: f32, total: f32) {
+    if total <= 0.0 {
+        return;
+    }
+    let minima = [80.0, 80.0, 60.0, 90.0];
+    let scale = (total / 310.0_f32).min(1.0);
+    let pair = widths[divider] + widths[divider + 1];
+    let mut left_min = minima[divider] * scale / total;
+    let mut right_min = minima[divider + 1] * scale / total;
+    if left_min + right_min > pair {
+        // Leave room to move the divider when the pair is already too narrow
+        // to satisfy both preferred minima.
+        let factor = 0.8 * pair / (left_min + right_min);
+        left_min *= factor;
+        right_min *= factor;
+    }
+    // Existing proportions can be below the preferred minima after a window
+    // resize. Never move the divider merely to enforce a new minimum.
+    let current = widths[divider];
+    let lower = left_min.min(current);
+    let upper = (pair - right_min).max(current);
+    let left = (current + delta / total).clamp(lower, upper);
+    widths[divider] = left;
+    widths[divider + 1] = pair - left;
+}
 struct App {
     query: String,
     changed: Option<Instant>,
@@ -56,6 +83,8 @@ struct App {
     embedded_exe_icons: bool,
     interface_open: bool,
     sort: Option<(SortColumn, bool)>,
+    column_widths: [f32; 4],
+    column_drag: Option<(usize, f32, [f32; 4])>,
     action_error: Option<String>,
     action_result: Option<std::sync::mpsc::Receiver<Result<(), String>>>,
     terminal_sender: std::sync::mpsc::Sender<String>,
@@ -89,6 +118,8 @@ impl Default for App {
             embedded_exe_icons: true,
             interface_open: false,
             sort: None,
+            column_widths: [0.35, 0.35, 0.1, 0.2],
+            column_drag: None,
             action_error: None,
             action_result: None,
             terminal_sender,
@@ -756,46 +787,100 @@ impl App {
                 }
             }
             ui.separator();
-            let widths = [0.35, 0.35, 0.1, 0.2];
             let total = ui.available_width();
-            ui.horizontal(|ui| {
-                for ((name, column), fraction) in [
-                    ("Name", SortColumn::Name),
-                    ("Path", SortColumn::Path),
-                    ("Size", SortColumn::Size),
-                    ("Date", SortColumn::Date),
-                ]
-                .into_iter()
-                .zip(widths)
-                {
-                    let label =
-                        egui::Label::new(RichText::new(name).strong()).sense(egui::Sense::click());
-                    let response = ui.add_sized([total * fraction - 8.0, 20.0], label);
-                    if let Some((current, ascending)) =
-                        self.sort.filter(|(current, _)| *current == column)
-                    {
-                        let _ = current;
-                        let center =
-                            egui::pos2(response.rect.right() - 9.0, response.rect.center().y);
-                        let direction = if ascending { -1.0 } else { 1.0 };
-                        ui.painter().add(egui::Shape::convex_polygon(
-                            vec![
-                                center + egui::vec2(0.0, direction * 3.0),
-                                center + egui::vec2(-4.0, -direction * 2.0),
-                                center + egui::vec2(4.0, -direction * 2.0),
-                            ],
-                            ui.visuals().text_color(),
-                            egui::Stroke::NONE,
-                        ));
+            let (header, _) = ui.allocate_exact_size(
+                egui::vec2(total, 20.0),
+                egui::Sense::hover(),
+            );
+            let mut edge = header.left();
+            let hit_widths = self.column_widths;
+            for divider in 0..3 {
+                edge += total * hit_widths[divider];
+                let hit = egui::Rect::from_center_size(
+                    egui::pos2(edge, header.center().y),
+                    egui::vec2(8.0, header.height()),
+                );
+                let response = ui.interact(
+                    hit,
+                    ui.id().with(("column-divider", divider)),
+                    egui::Sense::drag(),
+                ).on_hover_cursor(egui::CursorIcon::ResizeHorizontal);
+                let pointer_x = ctx.input(|input| {
+                    if response.drag_stopped() {
+                        input.events.iter().rev().find_map(|event| match event {
+                            egui::Event::PointerButton { pos, button: egui::PointerButton::Primary, pressed: false, .. } => Some(pos.x),
+                            _ => None,
+                        }).or_else(|| input.pointer.latest_pos().map(|pos| pos.x))
+                    } else {
+                        input.pointer.latest_pos().map(|pos| pos.x)
                     }
-                    if response.clicked() {
-                        let ascending =
-                            !matches!(self.sort, Some((current, true)) if current == column);
-                        self.sort = Some((column, ascending));
-                        results_changed = true;
+                });
+                if response.drag_started() {
+                    if let Some(x) = ctx.input(|input| input.pointer.press_origin().map(|pos| pos.x)) {
+                        self.column_drag = Some((divider, x, hit_widths));
                     }
                 }
-            });
+                match (response.dragged() || response.drag_stopped(), self.column_drag, pointer_x) {
+                    (true, Some((active, start, original)), Some(x)) if active == divider => {
+                        self.column_widths = original;
+                        resize_columns(&mut self.column_widths, divider, x - start, total);
+                    }
+                    _ => {}
+                }
+                if response.drag_stopped() {
+                    self.column_drag = None;
+                }
+            }
+            let mut edge = header.left();
+            for width in self.column_widths.iter().take(3) {
+                edge += total * width;
+                ui.painter().line_segment(
+                    [egui::pos2(edge, header.top()), egui::pos2(edge, header.bottom())],
+                    ui.visuals().widgets.noninteractive.bg_stroke,
+                );
+            }
+            let widths = self.column_widths;
+            let mut x = header.left();
+            for (index, (name, column)) in [
+                ("Name", SortColumn::Name),
+                ("Path", SortColumn::Path),
+                ("Size", SortColumn::Size),
+                ("Date", SortColumn::Date),
+            ].into_iter().enumerate() {
+                let width = total * widths[index];
+                let cell = egui::Rect::from_min_max(
+                    egui::pos2(x + if index == 0 { 0.0 } else { 4.0 }, header.top()),
+                    egui::pos2((x + width - if index == 3 { 0.0 } else { 4.0 }).max(x + 4.0), header.bottom()),
+                );
+                let response = ui.interact(cell, ui.id().with(("column-header", index)), egui::Sense::click());
+                let painter = ui.painter().with_clip_rect(cell);
+                painter.text(
+                    egui::pos2(x + 4.0, header.center().y),
+                    egui::Align2::LEFT_CENTER,
+                    name,
+                    egui::TextStyle::Body.resolve(ui.style()),
+                    ui.visuals().text_color(),
+                );
+                if let Some((_, ascending)) = self.sort.filter(|(current, _)| *current == column) {
+                    let center = egui::pos2(cell.right() - 9.0, cell.center().y);
+                    let direction = if ascending { -1.0 } else { 1.0 };
+                    painter.add(egui::Shape::convex_polygon(
+                        vec![
+                            center + egui::vec2(0.0, direction * 3.0),
+                            center + egui::vec2(-4.0, -direction * 2.0),
+                            center + egui::vec2(4.0, -direction * 2.0),
+                        ],
+                        ui.visuals().text_color(),
+                        egui::Stroke::NONE,
+                    ));
+                }
+                if response.clicked() {
+                    let ascending = !matches!(self.sort, Some((current, true)) if current == column);
+                    self.sort = Some((column, ascending));
+                    results_changed = true;
+                }
+                x += width;
+            }
             if results_changed {
                 if let Some((column, ascending)) = self.sort {
                     let selected_path = self
@@ -1523,6 +1608,88 @@ mod ui_tests {
         app.selected = Some(0);
         let _ = frame(&ctx, &mut app, vec![key(Key::ArrowUp)]);
         assert_eq!(app.selected, None);
+    }
+    #[test]
+    fn dragging_column_divider_resizes_without_sorting() {
+        let ctx = egui::Context::default();
+        let mut app = App {
+            results: vec![entry("zeta", 1), entry("alpha", 2)],
+            selected: Some(0),
+            ..Default::default()
+        };
+        let _ = frame(&ctx, &mut app, vec![]);
+        let start = egui::pos2(
+            8.0 + 784.0 * 0.35,
+            66.0 + if cfg!(target_os = "linux") { 22.0 } else { 0.0 },
+        );
+        let end = start + egui::vec2(50.0, 0.0);
+        let button = |pos, pressed| egui::Event::PointerButton {
+            pos,
+            button: egui::PointerButton::Primary,
+            pressed,
+            modifiers: egui::Modifiers::NONE,
+        };
+        let _ = frame(
+            &ctx,
+            &mut app,
+            vec![egui::Event::PointerMoved(start - egui::vec2(70.0, 0.0))],
+        );
+        let _ = frame(
+            &ctx,
+            &mut app,
+            vec![egui::Event::PointerMoved(start), button(start, true)],
+        );
+        assert_eq!(app.column_widths, [0.35, 0.35, 0.1, 0.2]);
+        let _ = frame(&ctx, &mut app, vec![egui::Event::PointerMoved(end)]);
+        let release = end + egui::vec2(10.0, 0.0);
+        let _ = frame(
+            &ctx,
+            &mut app,
+            vec![
+                egui::Event::PointerMoved(release),
+                button(release, false),
+                egui::Event::PointerMoved(release + egui::vec2(20.0, 0.0)),
+            ],
+        );
+        assert!((app.column_widths[0] - (0.35 + 60.0 / 784.0)).abs() < 0.001);
+        assert!(app.column_widths[0] > 0.40, "{:?}", app.column_widths);
+        assert!(app.column_widths[1] < 0.30);
+        assert_eq!(app.sort, None);
+        assert_eq!(app.selected, Some(0));
+        let header = egui::pos2(20.0, start.y);
+        let _ = frame(
+            &ctx,
+            &mut app,
+            vec![egui::Event::PointerMoved(header), button(header, true)],
+        );
+        let _ = frame(&ctx, &mut app, vec![button(header, false)]);
+        assert_eq!(app.sort, Some((SortColumn::Name, true)));
+        assert_eq!(app.results[0].name, "alpha");
+    }
+    #[test]
+    fn column_resize_is_bounded_even_in_narrow_windows() {
+        for total in [100.0, 800.0] {
+            let mut widths = [0.35, 0.35, 0.1, 0.2];
+            for divider in 0..3 {
+                for delta in [-10_000.0, 10_000.0] {
+                    resize_columns(&mut widths, divider, delta, total);
+                    assert!(widths.iter().all(|width| *width >= 0.0));
+                    assert!((widths.iter().sum::<f32>() - 1.0).abs() < 0.0001);
+                }
+            }
+        }
+        for total in [400.0, 482.0] {
+            for delta in [-1.0, 0.0, 1.0] {
+                let mut widths = [0.35, 0.35, 0.1, 0.2];
+                resize_columns(&mut widths, 2, delta, total);
+                let movement = (widths[2] - 0.1) * total;
+                assert!(movement.abs() <= 1.001, "unexpected jump: {movement}");
+                assert!(movement * delta >= 0.0);
+                if delta != 0.0 {
+                    assert!(movement * delta > 0.0, "divider did not move");
+                }
+            }
+        }
     }
     #[test]
     fn clicking_header_toggles_sort_order() {
