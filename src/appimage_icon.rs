@@ -140,8 +140,16 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "requires the packaged Linux AppImage"]
+    #[ignore = "requires a packaged AppImage and --features verify-packaged-appimage"]
     fn packaged_appimage_contains_drill_icon() {
+        #[cfg(not(feature = "verify-packaged-appimage"))]
+        panic!("Rerun the packaged icon check with --features verify-packaged-appimage");
+        #[cfg(feature = "verify-packaged-appimage")]
+        check_packaged_icon();
+    }
+
+    #[cfg(feature = "verify-packaged-appimage")]
+    fn check_packaged_icon() {
         let path = std::env::var_os("DRILL_PACKAGED_APPIMAGE")
             .unwrap_or_else(|| "dist/Drill-linux-x86_64.AppImage".into());
         let file = File::open(path).unwrap();

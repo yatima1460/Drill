@@ -19,11 +19,10 @@ lto = "off"
 
 [features]
 ui-test-driver = []
-
-[dev-dependencies]
-image = { version = "0.25.10", default-features = false, features = ["png"] }
+verify-packaged-appimage = ["dep:image"]
 
 [dependencies]
+image = { version = "0.25.10", default-features = false, features = ["png"], optional = true }
 eframe = { version = "0.31.1", default-features = false, features = ["default_fonts", "glow", "persistence"] }
 drill-core = { path = "crates/drill-core" }
 wasmi = { version = "0.51.3", default-features = false, features = ["std", "extra-checks"] }

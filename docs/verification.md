@@ -15,6 +15,14 @@ make test-mutants
 
 Kani runs on pull requests that change the proof workspace, its imported modules or its build inputs. Mutation checks cover changes to the packages they exercise. The platform workflow tests shared application changes on Linux, macOS and Windows under Wine. A change specific to one platform runs its corresponding build. After an application change merges to main, the release workflow rebuilds all three platforms together.
 
+To check the packaged AppImage icon locally, build the Linux package or set `DRILL_PACKAGED_APPIMAGE` to a built AppImage. Run the check with its reference decoder enabled.
+
+```sh
+cargo test --locked --bin drill --features verify-packaged-appimage appimage_icon::tests::packaged_appimage_contains_drill_icon -- --ignored --exact
+```
+
+This check uses the original artwork and an independent PNG decoder as its reference.
+
 ## Duplicate code
 
 Source changes run jscpd 5.4.3 on the full checkout. Each release also requires this check on its integrated main commit. Any reported clone fails the job and blocks release signing. To reproduce it, install the pinned version and run from the repository root.

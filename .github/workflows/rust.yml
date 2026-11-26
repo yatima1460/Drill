@@ -119,7 +119,7 @@ jobs:
       - run: target/release/drill --version
       - run: scripts/package-linux.sh
       - name: Decode the icon from the packaged AppImage
-        run: cargo test --locked --bin drill appimage_icon::tests::packaged_appimage_contains_drill_icon -- --ignored --exact
+        run: cargo test --locked --bin drill --features verify-packaged-appimage appimage_icon::tests::packaged_appimage_contains_drill_icon -- --ignored --exact
       - name: Double-click AppImage results with Xed and Nemo
         timeout-minutes: 8
         run: |
