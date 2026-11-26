@@ -2,10 +2,20 @@ name: Windows system search
 on:
   pull_request:
     paths:
+      - '.github/workflows/windows-search.yml'
+      - '.cargo/**'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+      - 'rust-toolchain.toml'
       - 'crates/drill-core/**'
+      - 'vendor/*/Cargo.toml'
+      # drill-core embeds all three root lists and the dictionary at compile time.
+      - 'src/assets/roots_*.txt'
+      - 'src/assets/wordsalpha.txt'
+      # Desktop startup, result delivery and exact-row insertion.
       - 'src/main.rs'
       - 'src/search_mode.rs'
-      - '.github/workflows/windows-search.yml'
+      - 'src/result_order.rs'
   workflow_dispatch:
 permissions:
   contents: read

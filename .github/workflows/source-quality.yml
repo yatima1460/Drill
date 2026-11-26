@@ -1,0 +1,29 @@
+name: Shell scripts
+on:
+  pull_request:
+    paths: &shell_paths
+      - '**/*.sh'
+      - '**/*.command'
+      - '!vendor/**'
+      - '.github/workflows/source-quality.yml'
+  push:
+    branches: [main]
+    paths: *shell_paths
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  shellcheck:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Check tracked shell scripts and macOS launchers
+        shell: bash
+        run: |
+          scripts="$RUNNER_TEMP/drill-shell-scripts"
+          git ls-files -z -- '*.sh' '*.command' ':(exclude)vendor/**' > "$scripts"
+          xargs -0 -r shellcheck -- < "$scripts"
+          xargs -0 -r -n 1 bash -n -- < "$scripts"
