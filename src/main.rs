@@ -2240,22 +2240,14 @@ mod ui_tests {
     #[test]
     fn visible_appimage_rows_draw_their_embedded_png_and_svg() {
         let root = tempfile::tempdir().unwrap();
-        for (name, data) in [
-            (
-                "linked.aPpImAgE",
-                &include_bytes!("../tests/fixtures/appimages/linked-png.AppImage")[..],
-            ),
-            (
-                "legacy.AppImage",
-                &include_bytes!("../tests/fixtures/appimages/rock-ridge.AppImage")[..],
-            ),
-            (
-                "direct.AppImage",
-                &include_bytes!("../tests/fixtures/appimages/direct-svg.AppImage")[..],
-            ),
+        let fixtures = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/appimages");
+        for (name, fixture) in [
+            ("linked.aPpImAgE", "linked-png.AppImage"),
+            ("legacy.AppImage", "rock-ridge.AppImage"),
+            ("direct.AppImage", "direct-svg.AppImage"),
         ] {
             let path = root.path().join(name);
-            std::fs::write(&path, data).unwrap();
+            std::fs::copy(fixtures.join(fixture), &path).unwrap();
             assert_result_loads_embedded_icon(path);
         }
     }

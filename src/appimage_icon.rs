@@ -23,7 +23,7 @@ fn read_at(mut caller: Caller<'_, Input>, offset: u64, dest: u32, len: u32) -> i
     let len = len as usize;
     if input.reads_left == 0
         || len > input.bytes_left
-        || len > 1 << 20
+        || len > 4 << 20
         || offset > input.file_len
         || len as u64 > input.file_len - offset
     {
@@ -117,9 +117,9 @@ mod tests {
         let decoder = Decoder::new().unwrap();
         let mut f = tempfile::tempfile().unwrap();
         let bytes = include_bytes!("../tests/fixtures/appimages/linked-png.AppImage");
-        let offset = 160 << 20;
+        let offset = 160u64 << 20;
         let mut header = bytes[..128].to_vec();
-        header[88..96].copy_from_slice(&(offset as u64).to_le_bytes());
+        header[88..96].copy_from_slice(&offset.to_le_bytes());
         f.write_all(&header).unwrap();
         f.seek(SeekFrom::Start(offset)).unwrap();
         f.write_all(&bytes[128..]).unwrap();
