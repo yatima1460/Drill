@@ -31,9 +31,10 @@ if ! window_id=$(timeout 120s xdotool search --sync --onlyvisible --name '^Drill
     exit 1
 fi
 window_id=${window_id%%$'\n'*}
-if ! timeout 15s xdotool windowactivate --sync "$window_id" key --clearmodifiers Escape; then
+xdotool getwindowname "$window_id"
+if ! timeout 15s xdotool windowclose "$window_id"; then
     cat "$log_file" >&2
-    echo 'Could not focus the Wine window for the exit check.' >&2
+    echo 'Could not close the Wine window.' >&2
     exit 1
 fi
 for _ in {1..30}; do
@@ -47,5 +48,5 @@ for _ in {1..30}; do
     sleep 1
 done
 cat "$log_file" >&2
-echo 'Drill did not exit after Escape under Wine.' >&2
+echo 'Drill did not exit after closing its Wine window.' >&2
 exit 1
