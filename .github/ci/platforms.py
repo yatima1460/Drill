@@ -7,11 +7,32 @@ from pathlib import Path
 ALL = {"linux", "windows", "macos"}
 
 
+def swift_ui_only(path):
+    return path.startswith(("native/macos/", "crates/drill-swift/")) or path in {
+        "scripts/build-swift-ui.py", "scripts/bench-swift-ui.py",
+    }
+
+
+def checks_swift_ui(path):
+    if path.endswith(".md"):
+        return False
+    return swift_ui_only(path) or path.startswith((
+        "crates/drill-core/", "crates/drill-query/", "crates/drill-icons/", ".cargo/",
+        "tools/exe-icon-wasm/tests/fixtures/", "tools/appimage-icon-wasm/tests/fixtures/",
+    )) or path in {
+        "Cargo.toml", "Cargo.lock", "rust-toolchain.toml", "Makefile",
+        ".github/workflows/rust.yml", ".github/ci/platforms.py", ".github/ci/test_platforms.py",
+        "src/assets/exe-icon.wasm", "src/assets/appimage-icon.wasm", "src/assets/drill-macos.icns",
+        "src/assets/wordsalpha.txt", "src/assets/roots_mac.txt", "src/assets/roots_linux.txt",
+        "src/assets/roots_windows.txt",
+    }
+
+
 def select(paths, event):
     platforms = set()
     product = False
     for path in paths:
-        if path.endswith(".md"):
+        if path.endswith(".md") or swift_ui_only(path):
             continue
         targets = ALL
         shipped = True
@@ -89,7 +110,10 @@ def check_outputs(paths, event):
     platforms, release = select(paths, event)
     values = {platform: platform in platforms for platform in sorted(ALL)}
     values["release"] = release
-    values["duplicates"] = bool(platforms) or any(map(scans_source, paths))
+    values["swift_ui"] = event == "workflow_dispatch" or (
+        event == "pull_request" and any(map(checks_swift_ui, paths))
+    )
+    values["duplicates"] = bool(platforms) or values["swift_ui"] or any(map(scans_source, paths))
     return values
 
 

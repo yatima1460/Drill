@@ -1,26 +1,18 @@
-//! Isolated, bounded extraction of untrusted executable icons.
+//! Queue icon work off the egui thread and drop stale requests after a search.
+use drill_icons::EmbeddedIcon;
 use eframe::egui;
 use std::{
-    io::Read,
     path::{Path, PathBuf},
     sync::{
         atomic::{AtomicU64, Ordering},
         mpsc, Arc,
     },
 };
-use wasmi::{Config, Engine, Linker, Module, Store, StoreLimits, StoreLimitsBuilder};
-
-const MAX_FILE: u64 = 16 * 1024 * 1024;
-const PIXELS: usize = 32 * 32 * 4;
-const FUEL: u64 = 80_000_000;
-
 pub fn is_exe(path: &Path) -> bool {
-    path.extension()
-        .is_some_and(|ext| ext.eq_ignore_ascii_case("exe"))
+    EmbeddedIcon::for_path(path) == Some(EmbeddedIcon::Exe)
 }
 pub fn is_appimage(path: &Path) -> bool {
-    path.extension()
-        .is_some_and(|ext| ext.eq_ignore_ascii_case("AppImage"))
+    EmbeddedIcon::for_path(path) == Some(EmbeddedIcon::AppImage)
 }
 #[derive(Debug, PartialEq, Eq)]
 pub enum IconRoute {
@@ -38,109 +30,6 @@ pub fn icon_route(path: &Path, is_dir: bool, enabled: bool) -> IconRoute {
         IconRoute::Decode
     } else {
         IconRoute::TypeIcon
-    }
-}
-fn resident_file(path: &Path) -> Option<(std::fs::File, u64)> {
-    let mut options = std::fs::OpenOptions::new();
-    options.read(true);
-    #[cfg(unix)]
-    {
-        use std::os::unix::fs::OpenOptionsExt;
-        options.custom_flags(libc::O_NONBLOCK | libc::O_NOFOLLOW);
-    }
-    #[cfg(windows)]
-    {
-        use std::os::windows::fs::OpenOptionsExt;
-        use windows_sys::Win32::Storage::FileSystem::{
-            FILE_FLAG_OPEN_NO_RECALL, FILE_FLAG_OPEN_REPARSE_POINT,
-        };
-        options.custom_flags(FILE_FLAG_OPEN_NO_RECALL | FILE_FLAG_OPEN_REPARSE_POINT);
-    }
-    let file = options.open(path).ok()?;
-    let metadata = file.metadata().ok()?;
-    if !metadata.is_file() {
-        return None;
-    }
-    #[cfg(windows)]
-    {
-        use std::os::windows::fs::MetadataExt;
-        use windows_sys::Win32::Storage::FileSystem::{
-            FILE_ATTRIBUTE_OFFLINE, FILE_ATTRIBUTE_RECALL_ON_DATA_ACCESS,
-            FILE_ATTRIBUTE_RECALL_ON_OPEN, FILE_ATTRIBUTE_REPARSE_POINT,
-        };
-        if metadata.file_attributes()
-            & (FILE_ATTRIBUTE_OFFLINE
-                | FILE_ATTRIBUTE_RECALL_ON_DATA_ACCESS
-                | FILE_ATTRIBUTE_RECALL_ON_OPEN
-                | FILE_ATTRIBUTE_REPARSE_POINT)
-            != 0
-        {
-            return None;
-        }
-    }
-    Some((file, metadata.len()))
-}
-
-fn snapshot(path: &Path) -> Option<Vec<u8>> {
-    let (file, len) = resident_file(path)?;
-    if len > MAX_FILE {
-        return None;
-    }
-    let mut bytes = Vec::new();
-    file.take(MAX_FILE + 1).read_to_end(&mut bytes).ok()?;
-    if bytes.len() as u64 > MAX_FILE {
-        return None;
-    }
-    Some(bytes)
-}
-
-struct Decoder {
-    engine: Engine,
-    module: Module,
-}
-impl Decoder {
-    fn new() -> Option<Self> {
-        let mut config = Config::default();
-        config.consume_fuel(true);
-        let engine = Engine::new(&config);
-        let module = Module::new(&engine, &include_bytes!("assets/exe-icon.wasm")[..]).ok()?;
-        // The fixed decoder must not receive filesystem, process, network, or any other host imports.
-        if module.imports().next().is_some() {
-            return None;
-        }
-        Some(Self { engine, module })
-    }
-    fn decode(&self, bytes: &[u8]) -> Option<Vec<u8>> {
-        let limits = StoreLimitsBuilder::new()
-            .memory_size(64 * 1024 * 1024)
-            .instances(1)
-            .memories(1)
-            .tables(1)
-            .build();
-        let mut store = Store::new(&self.engine, limits);
-        store.limiter(|limits: &mut StoreLimits| limits);
-        store.set_fuel(FUEL).ok()?;
-        let linker = Linker::new(&self.engine);
-        let instance = linker
-            .instantiate_and_start(&mut store, &self.module)
-            .ok()?;
-        let memory = instance.get_memory(&store, "memory")?;
-        let allocate = instance
-            .get_typed_func::<u32, u32>(&store, "allocate")
-            .ok()?;
-        let decode = instance
-            .get_typed_func::<(u32, u32), u32>(&store, "decode")
-            .ok()?;
-        let len = u32::try_from(bytes.len()).ok()?;
-        let input = allocate.call(&mut store, len).ok()?;
-        memory.write(&mut store, input as usize, bytes).ok()?;
-        let output = decode.call(&mut store, (input, len)).ok()?;
-        if output == 0 {
-            return None;
-        }
-        let mut pixels = vec![0; PIXELS];
-        memory.read(&store, output as usize, &mut pixels).ok()?;
-        Some(pixels)
     }
 }
 struct Request {
@@ -164,19 +53,6 @@ pub enum RequestState {
     Closed,
 }
 
-#[cfg(target_os = "macos")]
-#[allow(unsafe_code)]
-fn prevent_cloud_materialization() -> bool {
-    unsafe extern "C" {
-        fn setiopolicy_np(kind: i32, scope: i32, policy: i32) -> i32;
-    }
-    // SAFETY: this sets a documented I/O policy only on the dedicated worker thread.
-    unsafe { setiopolicy_np(3, 1, 1) == 0 }
-}
-#[cfg(not(target_os = "macos"))]
-fn prevent_cloud_materialization() -> bool {
-    true
-}
 impl Worker {
     pub fn new() -> Self {
         let (sender, requests) = mpsc::sync_channel::<Request>(16);
@@ -184,35 +60,12 @@ impl Worker {
         let generation = Arc::new(AtomicU64::new(0));
         let current = generation.clone();
         std::thread::spawn(move || {
-            let resident_reads = prevent_cloud_materialization();
-            let exe_decoder = std::cell::OnceCell::new();
-            let appimage_decoder = std::cell::OnceCell::new();
             while let Ok(request) = requests.recv() {
-                if current.load(Ordering::Relaxed) != request.generation {
+                let is_current = || current.load(Ordering::Relaxed) == request.generation;
+                if !is_current() {
                     continue;
                 }
-                let pixels = if !resident_reads {
-                    None
-                } else if is_appimage(&request.path) {
-                    appimage_decoder
-                        .get_or_init(crate::appimage_icon::Decoder::new)
-                        .as_ref()
-                        .and_then(|decoder| {
-                            let (file, len) = resident_file(&request.path)?;
-                            decoder.decode(file, len)
-                        })
-                } else {
-                    exe_decoder
-                        .get_or_init(Decoder::new)
-                        .as_ref()
-                        .and_then(|decoder| {
-                            let bytes = snapshot(&request.path)?;
-                            if current.load(Ordering::Relaxed) != request.generation {
-                                return None;
-                            }
-                            decoder.decode(&bytes)
-                        })
-                };
+                let pixels = drill_icons::decode(&request.path, is_current);
                 if response
                     .send(Response {
                         generation: request.generation,
@@ -265,9 +118,7 @@ pub(super) fn write_pe32_fixture(directory: &crate::test_directory::TestDirector
 mod tests {
     use super::*;
     #[test]
-    fn malformed_input_is_rejected_and_decoder_has_no_imports() {
-        let decoder = Decoder::new().expect("decoder must instantiate");
-        assert!(decoder.decode(b"MZ not an executable").is_none());
+    fn routes_embedded_icon_formats() {
         assert!(is_exe(Path::new("APP.EXE")));
         assert!(!is_exe(Path::new("APP.EXE.txt")));
         assert_eq!(
@@ -292,19 +143,6 @@ mod tests {
         );
     }
     #[test]
-    fn extracts_pe32_and_pe64_icons_inside_the_guest() {
-        let decoder = Decoder::new().expect("decoder must instantiate");
-        for fixture in [
-            &include_bytes!("../tools/exe-icon-wasm/tests/fixtures/icon-pe32.exe")[..],
-            &include_bytes!("../tools/exe-icon-wasm/tests/fixtures/icon-pe64.exe")[..],
-        ] {
-            let pixels = decoder.decode(fixture).expect("valid embedded icon");
-            assert_eq!(pixels.len(), PIXELS);
-            assert_eq!(&pixels[..4], &[0, 255, 0, 255]);
-        }
-    }
-
-    #[test]
     fn worker_reads_and_decodes_resident_executable() {
         let directory = crate::test_directory::private_temp_dir();
         let path = write_pe32_fixture(&directory);
@@ -320,30 +158,5 @@ mod tests {
         assert_eq!(result.path, path);
         let pixels = result.pixels.expect("worker did not extract icon");
         assert_eq!(&pixels[..4], &[0, 255, 0, 255]);
-    }
-    #[test]
-    fn malformed_resource_headers_do_not_escape_or_crash_decoder() {
-        let decoder = Decoder::new().expect("decoder must instantiate");
-        let fixture = include_bytes!("../tools/exe-icon-wasm/tests/fixtures/icon-pe32.exe");
-        for offset in [0x3c, 0x80, 0x100, 0x200, 0x400, 0x800] {
-            let mut input = fixture.to_vec();
-            for byte in &mut input[offset..offset + 4] {
-                *byte = 0xff;
-            }
-            if let Some(pixels) = decoder.decode(&input) {
-                assert_eq!(pixels.len(), PIXELS);
-            }
-        }
-    }
-    #[test]
-    fn rejects_directory_and_large_file() {
-        assert!(snapshot(&std::env::temp_dir()).is_none());
-        let directory = crate::test_directory::private_temp_dir();
-        let path = directory.path().join("large.exe");
-        std::fs::File::create_new(&path)
-            .unwrap()
-            .set_len(MAX_FILE + 1)
-            .unwrap();
-        assert!(snapshot(&path).is_none());
     }
 }

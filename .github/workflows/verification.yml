@@ -16,6 +16,7 @@ on:
       - 'tests/**'
       - 'crates/drill-core/**'
       - 'crates/drill-query/**'
+      - 'crates/drill-icons/**'
       - 'crates/drill-gtk/**'
       - 'crates/drill-macos/**'
       - 'crates/drill-windows/**'

@@ -1,0 +1,14 @@
+[package]
+name = "drill-icons"
+version = "2.0.0"
+edition = "2021"
+license-file = "../../LICENSE"
+
+[dependencies]
+wasmi = { version = "0.51.3", default-features = false, features = ["std", "extra-checks"] }
+
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"
+
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.61.2", features = ["Win32_Storage_FileSystem"] }

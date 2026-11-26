@@ -473,13 +473,13 @@ version = "2.0.0"
 dependencies = [
  "drill-core",
  "drill-gtk",
+ "drill-icons",
  "drill-macos",
  "drill-windows",
  "eframe",
  "image",
  "libc",
  "raw-window-handle",
- "wasmi",
  "windows-sys 0.61.2",
 ]
 
@@ -496,6 +496,15 @@ name = "drill-gtk"
 version = "2.0.0"
 
 [[package]]
+name = "drill-icons"
+version = "2.0.0"
+dependencies = [
+ "libc",
+ "wasmi",
+ "windows-sys 0.61.2",
+]
+
+[[package]]
 name = "drill-macos"
 version = "2.0.0"
 
@@ -504,6 +513,14 @@ name = "drill-query"
 version = "2.0.0"
 dependencies = [
  "regex",
+]
+
+[[package]]
+name = "drill-swift"
+version = "2.0.0"
+dependencies = [
+ "drill-core",
+ "drill-icons",
 ]
 
 [[package]]

@@ -67,7 +67,7 @@ scripts/test-mutants.sh appimage full
 | --- | --- |
 | `query` | `drill-query` parsing, normalization, matching, stem classification and Windows lookup rules. Its tests run without filesystem fixtures or a window. |
 | `core` | `drill-core` traversal, filters, ranking and worker control. Runs its tests against temporary filesystem fixtures. |
-| `desktop` | The `drill` package’s desktop state, search-mode adapter, headless egui logic, Windows executable and AppImage icon workers, Wasmi hosts and Rust platform integration. The candidate list filters the platform-specific icon, menu, appearance and catalog modules for the selected runner. The dedicated window workflow drives interactive OS input. |
+| `desktop` | The `drill` package’s desktop state, search-mode adapter, headless egui logic, icon workers and Rust platform integration. Full campaigns also mutate the shared Wasmi hosts in `drill-icons` and run both packages’ tests. The candidate list filters the platform-specific icon, menu, appearance and catalog modules for the selected runner. The dedicated window workflow drives interactive OS input. |
 | `guest` | The standalone `tools/exe-icon-wasm` crate. Native tests feed the actual extraction function PE32 and PE32+ fixtures, exercise truncated input, and check resource-range boundaries. The separate Linux Wasm rebuild and host tests cover the shipped guest. |
 | `appimage` | The `tools/appimage-icon-wasm` crate. Native tests exercise the same read-only parser and image decoder on ISO/Rock Ridge and SquashFS fixtures, including links, truncated inputs and a cycle. Desktop tests exercise the shipped Wasm ABI. Linux CI compares the icon from the packaged application with its source artwork. |
 

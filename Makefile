@@ -12,6 +12,17 @@ help: ## Show available commands
 start: ## Build and start Drill in release mode
 	$(CARGO) run --release --locked
 
+.PHONY: build-swift-ui start-swift test-swift-ui
+build-swift-ui test-swift-ui: export CARGO := $(CARGO)
+build-swift-ui: ## Build the SwiftUI prototype app on macOS
+	python3 scripts/build-swift-ui.py
+
+start-swift: build-swift-ui ## Launch the SwiftUI prototype on macOS
+	open "target/swift-ui/Drill Swift.app"
+
+test-swift-ui: ## Exercise the SwiftUI prototype in a native macOS window
+	python3 scripts/build-swift-ui.py --test
+
 start_wine: ## Build the Windows version and run it with Wine
 	@command -v "$$WINE" >/dev/null 2>&1 || { echo 'Wine not found. Install Wine or set WINE to its executable.' >&2; exit 1; }
 	@command -v "$$WINDOWS_LINKER" >/dev/null 2>&1 || { echo 'Windows cross-linker not found. Install MinGW-w64 or set WINDOWS_LINKER.' >&2; exit 1; }

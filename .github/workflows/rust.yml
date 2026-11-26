@@ -15,6 +15,7 @@ jobs:
       linux: ${{ steps.select.outputs.linux }}
       windows: ${{ steps.select.outputs.windows }}
       macos: ${{ steps.select.outputs.macos }}
+      swift_ui: ${{ steps.select.outputs.swift_ui }}
       release: ${{ steps.select.outputs.release }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -275,6 +276,41 @@ jobs:
           name: drill-macos-preview
           path: dist/*.dmg
           if-no-files-found: error
+  swift-ui:
+    name: macOS SwiftUI prototype
+    needs: platforms
+    if: needs.platforms.outputs.swift_ui == 'true'
+    runs-on: macos-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Check the Swift search adapter
+        run: |
+          cargo fmt -p drill-swift -- --check
+          cargo clippy --locked -p drill-swift --all-targets -- -D warnings -D clippy::undocumented_unsafe_blocks
+          cargo test --locked -p drill-swift
+      - name: Drive the native SwiftUI window
+        run: make test-swift-ui
+      - name: Build and verify the prototype app archive
+        shell: bash
+        run: |
+          make build-swift-ui
+          ditto -c -k --keepParent 'target/swift-ui/Drill Swift.app' "$RUNNER_TEMP/Drill-Swift-preview.zip"
+          ditto -x -k "$RUNNER_TEMP/Drill-Swift-preview.zip" "$RUNNER_TEMP/extracted"
+          version=$(cargo metadata --locked --no-deps --format-version=1 | jq -er '.packages[] | select(.name == "drill") | .version')
+          app="$RUNNER_TEMP/extracted/Drill Swift.app"
+          codesign --verify --strict "$app"
+          test "$("$app/Contents/MacOS/drill-swift" --version)" = "Drill $version"
+      - name: Upload the PR prototype
+        if: github.event_name == 'pull_request'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: drill-swiftui-macos-prototype
+          path: ${{ runner.temp }}/Drill-Swift-preview.zip
+          if-no-files-found: error
+          retention-days: 7
   merged-main:
     needs: platforms
     if: >-

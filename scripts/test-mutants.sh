@@ -25,6 +25,8 @@ case "$campaign" in
     esac ;;
   full)
     if [[ "$scope" == desktop ]]; then
+      # The desktop exercises its shared Wasm hosts through the icon workers.
+      args+=(-p drill-icons --test-package drill --test-package drill-icons)
       case "$(uname -s)" in
         Linux)
           args+=(--exclude native_menu.rs --exclude 'src/native_menu/*.rs' --exclude permissions.rs

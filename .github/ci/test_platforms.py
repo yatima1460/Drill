@@ -71,6 +71,32 @@ class PlatformRouting(unittest.TestCase):
 
     def test_manual_validation(self):
         self.assertEqual(select([], "workflow_dispatch"), (ALL, False))
+        self.assertTrue(check_outputs([], "workflow_dispatch")["swift_ui"])
+
+    def test_swift_prototype_does_not_trigger_desktop_packaging_or_release(self):
+        for path in ["native/macos/App.swift", "native/macos/tests/WindowTests.swift",
+                     "crates/drill-swift/Cargo.toml", "crates/drill-swift/src/lib.rs",
+                     "scripts/build-swift-ui.py", "scripts/bench-swift-ui.py"]:
+            for event in ("pull_request", "push"):
+                with self.subTest(path=path, event=event):
+                    outputs = check_outputs([path], event)
+                    self.assertEqual({key for key, value in outputs.items() if value},
+                                     {"swift_ui", "duplicates"} if event == "pull_request" else {"duplicates"})
+
+    def test_shared_inputs_validate_swift_prototype(self):
+        for path in ["Makefile", "Cargo.lock", "Cargo.toml", "rust-toolchain.toml",
+                     ".github/workflows/rust.yml", ".github/ci/platforms.py",
+                     "crates/drill-core/src/lib.rs", "crates/drill-query/src/lib.rs",
+                     "crates/drill-icons/src/lib.rs", "src/assets/wordsalpha.txt",
+                     "src/assets/roots_mac.txt", "src/assets/drill-macos.icns",
+                     "src/assets/exe-icon.wasm", "src/assets/appimage-icon.wasm",
+                     "tools/exe-icon-wasm/tests/fixtures/icon-pe32.exe"]:
+            self.assertTrue(check_outputs([path], "pull_request")["swift_ui"], path)
+        outputs = check_outputs(["native/macos/App.swift", "crates/drill-icons/src/lib.rs"], "push")
+        self.assertEqual({key for key, value in outputs.items() if value}, ALL | {"release", "duplicates"})
+        for path in ["crates/drill-windows/src/menu.c", "src/main.rs", "docs/index.html",
+                     "crates/drill-swift/README.md", "native/macos/README.md"]:
+            self.assertFalse(check_outputs([path], "pull_request")["swift_ui"], path)
 
     def test_duplicate_gate_runs_for_every_platform_build(self):
         for event in ("pull_request", "push"):
