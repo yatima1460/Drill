@@ -11,6 +11,8 @@ mod query;
 #[cfg(any(windows, test))]
 mod windows_startup;
 pub use query::{matches, MatchKind, SearchQuery};
+#[cfg(windows)]
+pub use windows_startup::WindowsSearch;
 
 #[derive(Clone, Debug)]
 pub struct Entry {
@@ -224,6 +226,38 @@ fn entry_key(path: &Path) -> Option<PathBuf> {
     )
 }
 
+// Keep only a bounded window of ordinary exact hits while a system lookup is
+// outstanding. Once there are already many exact hits, the walk owns all new ones.
+#[derive(Default)]
+struct PreviewPaths {
+    early: HashSet<PathBuf>,
+    walked: HashSet<PathBuf>,
+    finished: bool,
+}
+impl PreviewPaths {
+    fn admit_walk(shared: &Mutex<Self>, path: &Path) -> bool {
+        {
+            let state = shared.lock().unwrap();
+            if state.finished && state.early.is_empty() {
+                return true;
+            }
+        }
+        let Some(key) = entry_key(path) else {
+            return true;
+        };
+        let mut state = shared.lock().unwrap();
+        let already_sent = state.early.remove(&key);
+        if !state.finished {
+            state.walked.insert(key);
+            if state.walked.len() >= 32 {
+                state.finished = true;
+                state.walked.clear();
+            }
+        }
+        !already_sent
+    }
+}
+
 struct Work {
     queue: BinaryHeap<Priority>,
     outstanding: usize,
@@ -279,7 +313,7 @@ impl Search {
         startup_cancel: Arc<AtomicBool>,
         filter: FileFilter,
     ) -> Self {
-        Self::start_remaining(query, roots, startup_cancel, filter, HashSet::new())
+        Self::start_remaining(query, roots, startup_cancel, filter, None)
     }
 
     fn start_remaining(
@@ -287,9 +321,8 @@ impl Search {
         roots: Vec<PathBuf>,
         startup_cancel: Arc<AtomicBool>,
         filter: FileFilter,
-        delivered: HashSet<PathBuf>,
+        previews: Option<Arc<Mutex<PreviewPaths>>>,
     ) -> Self {
-        let delivered = Arc::new(delivered);
         let roots = if query.error().is_some() {
             Vec::new()
         } else {
@@ -335,7 +368,7 @@ impl Search {
             let (tx, cancel, work, query) =
                 (tx.clone(), cancel.clone(), work.clone(), query.clone());
             let paused = paused.clone();
-            let delivered = delivered.clone();
+            let previews = previews.clone();
             workers.push(thread::spawn(move || loop {
                 let dir = {
                     let (lock, cv) = &*work;
@@ -390,11 +423,12 @@ impl Search {
                             query.classify(&name)
                         };
                         if let Some(rank) = rank {
-                            if rank == MatchKind::Exact
-                                && !delivered.is_empty()
-                                && entry_key(&path).is_some_and(|key| delivered.contains(&key))
-                            {
-                                continue;
+                            if rank == MatchKind::Exact {
+                                if let Some(previews) = &previews {
+                                    if !PreviewPaths::admit_walk(previews, &path) {
+                                        continue;
+                                    }
+                                }
                             }
                             let metadata = item.metadata().ok();
                             let entry = Entry {

@@ -1,7 +1,7 @@
 use unicode_normalization::{char::is_combining_mark, UnicodeNormalization};
 use wax::Program;
 
-fn normalized(text: &str) -> String {
+pub(super) fn normalized(text: &str) -> String {
     text.to_lowercase()
         .nfd()
         .filter(|c| !is_combining_mark(*c))
@@ -140,9 +140,37 @@ impl SearchQuery {
     }
 
     #[cfg(any(windows, test))]
-    pub(super) fn is_plain_executable_name(&self) -> bool {
-        matches!(&self.0, Matcher::Text { filename, tokens: Tokens::Plain(_) }
-            if filename.ends_with(".exe") && !filename.contains(['/', '\\', ':']))
+    pub(super) fn executable_filename(&self) -> Option<&str> {
+        let Matcher::Text {
+            filename,
+            tokens: Tokens::Plain(_),
+        } = &self.0
+        else {
+            return None;
+        };
+        if !filename.ends_with(".exe")
+            || filename.len() > 255
+            || filename
+                .chars()
+                .any(|c| c.is_control() || r#"<>:"/\|?*"#.contains(c))
+        {
+            return None;
+        }
+        // A DOS device remains special even when followed by an extension.
+        let stem = filename.split('.').next()?.trim_end_matches(' ');
+        if matches!(stem, "con" | "aux" | "nul" | "prn" | "conin$" | "conout$")
+            || ["com", "lpt"].iter().any(|prefix| {
+                stem.strip_prefix(prefix).is_some_and(|n| {
+                    matches!(
+                        n,
+                        "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" | "¹" | "²" | "³"
+                    )
+                })
+            })
+        {
+            return None;
+        }
+        Some(filename)
     }
 
     pub(super) fn exact_stem(&self, stem: &str) -> bool {

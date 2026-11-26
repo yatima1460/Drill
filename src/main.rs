@@ -3,7 +3,9 @@
 use chrono::{DateTime, Local};
 #[cfg(not(windows))]
 use drill_core::default_roots_with_cancel;
-use drill_core::{Entry, MatchKind, Search, SearchQuery};
+#[cfg(any(not(windows), test, feature = "ui-test-driver"))]
+use drill_core::Search;
+use drill_core::{Entry, MatchKind, SearchQuery};
 use eframe::egui::{self, Key};
 use std::path::Path;
 use std::time::{Duration, Instant};
@@ -69,12 +71,6 @@ fn resize_columns(widths: &mut [f32; 4], divider: usize, delta: f32, total: f32)
     widths[divider] = left;
     widths[divider + 1] = pair - left;
 }
-enum Startup {
-    #[cfg(any(windows, test))]
-    Exact(Entry),
-    Ready(Results),
-}
-
 struct App {
     query: String,
     prepared: Option<SearchQuery>,
@@ -87,7 +83,7 @@ struct App {
     #[cfg(target_os = "linux")]
     catalog_loading: Option<std::sync::mpsc::Receiver<linux_apps::Catalog>>,
     search: Option<Results>,
-    starting: Option<std::sync::mpsc::Receiver<Startup>>,
+    starting: Option<std::sync::mpsc::Receiver<Results>>,
     starting_cancel: Option<std::sync::Arc<std::sync::atomic::AtomicBool>>,
     completed: bool,
     results: Vec<Entry>,
@@ -658,7 +654,7 @@ impl App {
         if let Some(hit) = self.next_hit.take() {
             self.result_limit = self.result_limit.saturating_add(LIMIT);
             self.append_hits([hit]);
-            if let Some(search) = &self.search {
+            if let Some(search) = &mut self.search {
                 search.set_paused(false);
             }
         }
@@ -872,54 +868,52 @@ impl App {
                     #[cfg(target_os = "linux")]
                     if let Some(apps) = catalog.filter(|_| mode == Mode::Apps) {
                         let hits = apps.search(&query, &cancel);
-                        let _ = tx.send(Startup::Ready(Results::Apps(hits.into_iter())));
+                        let _ = tx.send(Results::Apps(hits.into_iter()));
                         return;
                     }
                     #[cfg(feature = "ui-test-driver")]
-                    let fixture =
-                        std::env::var_os("DRILL_UI_TEST_ROOT").map(std::path::PathBuf::from);
-                    #[cfg(not(feature = "ui-test-driver"))]
-                    let fixture = None::<std::path::PathBuf>;
-
+                    if let Some(root) = std::env::var_os("DRILL_UI_TEST_ROOT") {
+                        let search = Search::start_filtered(
+                            query,
+                            vec![root.into()],
+                            cancel,
+                            mode.file_filter(),
+                        );
+                        let _ = tx.send(Results::Walk(search));
+                        return;
+                    }
                     #[cfg(windows)]
-                    let search = if let Some(root) = fixture {
-                        Search::start_filtered(query, vec![root], cancel, mode.file_filter())
-                    } else {
-                        Search::start_windows_default(query, cancel, mode.file_filter(), |entry| {
-                            let _ = tx.send(Startup::Exact(entry));
-                        })
-                    };
+                    let results = Results::Windows(drill_core::WindowsSearch::start(
+                        query,
+                        cancel,
+                        mode.file_filter(),
+                    ));
                     #[cfg(not(windows))]
-                    let search = {
-                        let roots = fixture
-                            .map(|root| vec![root])
-                            .unwrap_or_else(|| default_roots_with_cancel(&cancel));
+                    let results = {
+                        let roots = default_roots_with_cancel(&cancel);
                         #[cfg(target_os = "macos")]
                         let roots = {
                             let mut roots = roots;
                             roots.extend(additional_roots);
                             roots
                         };
-                        Search::start_filtered(query, roots, cancel, mode.file_filter())
+                        Results::Walk(Search::start_filtered(
+                            query,
+                            roots,
+                            cancel,
+                            mode.file_filter(),
+                        ))
                     };
-                    let _ = tx.send(Startup::Ready(Results::Walk(search)));
+                    let _ = tx.send(results);
                 });
             }
         }
-        let selected_before_batch = self.selected;
-        let mut results_changed = self.receive_results();
         if let Some(result) = self.starting.as_ref().map(|starting| starting.try_recv()) {
             match result {
-                #[cfg(any(windows, test))]
-                Ok(Startup::Exact(entry)) => {
-                    self.append_hits([(MatchKind::Exact, entry)]);
-                    results_changed = true;
-                }
-                Ok(Startup::Ready(search)) => {
+                Ok(search) => {
                     self.search = Some(search);
                     self.starting = None;
                     self.starting_cancel = None;
-                    results_changed |= self.receive_results();
                 }
                 Err(std::sync::mpsc::TryRecvError::Disconnected) => {
                     self.starting = None;
@@ -930,6 +924,8 @@ impl App {
                 Err(std::sync::mpsc::TryRecvError::Empty) => {}
             }
         }
+        let selected_before_batch = self.selected;
+        let mut results_changed = self.receive_results();
         let title = if self.stopped {
             format!("Drill - {} items found - stopped", self.results.len())
         } else if self.next_hit.is_some() {
@@ -946,8 +942,13 @@ impl App {
                     self.results.len(),
                     pending
                 )
-            } else {
+            } else if cfg!(target_os = "linux") && self.mode == Mode::Apps {
                 format!("Drill - {} apps found", self.results.len())
+            } else {
+                format!(
+                    "Drill - {} items found - discovering search roots",
+                    self.results.len()
+                )
             }
         } else if self.prepared.is_some() || self.starting.is_some() {
             "Drill - starting search".into()
@@ -1588,24 +1589,34 @@ mod ui_tests {
     }
 
     #[test]
-    fn exact_executable_is_visible_while_discovery_is_pending() {
-        let ctx = egui::Context::default();
+    fn streamed_exact_executable_renders_sorted_and_preserves_selection() {
+        let root = tempfile::tempdir().unwrap();
+        std::fs::write(root.path().join("Demo.EXE"), b"file").unwrap();
         let (tx, rx) = std::sync::mpsc::sync_channel(1);
         let mut app = App {
             starting: Some(rx),
             sort: Some((SortColumn::Name, true)),
-            ..Default::default()
+            ..App::default()
         };
         app.append_hits([(MatchKind::Partial, entry("z-demo.exe", 1))]);
         app.selected = Some(0);
-        assert!(tx.send(Startup::Exact(entry("Demo.EXE", 2))).is_ok());
-        let output = frame(&ctx, &mut app, vec![]);
-        text_position(&output, "Demo.EXE");
+        let walk = Search::start("demo.exe".into(), vec![root.path().to_owned()]);
+        assert!(tx.send(Results::Walk(walk)).is_ok());
+        let ctx = egui::Context::default();
+        let deadline = Instant::now() + Duration::from_secs(5);
+        loop {
+            let output = frame(&ctx, &mut app, vec![]);
+            if app.results.len() == 2 {
+                text_position(&output, "Demo.EXE");
+                break;
+            }
+            assert!(Instant::now() < deadline, "result never reached the UI");
+            std::thread::yield_now();
+        }
         assert_eq!(app.results[0].name, "Demo.EXE");
         assert_eq!(app.results[app.selected.unwrap()].name, "z-demo.exe");
-        assert!(app.starting.is_some() && app.search.is_none());
         app.stop_search();
-        assert!(tx.send(Startup::Exact(entry("stale.exe", 3))).is_err());
+        assert!(app.starting.is_none());
     }
 
     #[test]
@@ -1630,7 +1641,7 @@ mod ui_tests {
         assert_eq!(app.results[0].name, "kept");
         assert_eq!(app.selected, Some(0));
         let stale = Search::start_with_cancel("stale".into(), vec![], cancel);
-        assert!(tx.send(Startup::Ready(Results::Walk(stale))).is_err());
+        assert!(tx.send(Results::Walk(stale)).is_err());
         assert!(app.search.is_none());
     }
 
