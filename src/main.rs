@@ -14,6 +14,7 @@ mod appimage_icon;
 mod exe_icon;
 mod result_order;
 mod search_mode;
+mod syntax_help;
 use search_mode::{Mode, Results};
 #[cfg(target_os = "linux")]
 mod linux_apps;
@@ -80,6 +81,7 @@ struct App {
     changed: Option<Instant>,
     mode: Mode,
     selector_open: bool,
+    syntax_open: bool,
     #[cfg(target_os = "linux")]
     catalog: Option<std::sync::Arc<linux_apps::Catalog>>,
     #[cfg(target_os = "linux")]
@@ -131,6 +133,7 @@ impl Default for App {
             changed: None,
             mode: Mode::Files,
             selector_open: false,
+            syntax_open: false,
             #[cfg(target_os = "linux")]
             catalog: None,
             #[cfg(target_os = "linux")]
@@ -589,6 +592,12 @@ fn in_window_search_menu(ctx: &egui::Context, app: &mut App) {
                     ui.close_menu();
                 }
             });
+            ui.menu_button("Help", |ui| {
+                if ui.button("Syntax").clicked() {
+                    app.syntax_open = true;
+                    ui.close_menu();
+                }
+            });
         });
     });
 }
@@ -767,11 +776,22 @@ impl App {
 
     fn update_ui_with_opener(&mut self, ctx: &egui::Context, open: &mut dyn FnMut(&Path, bool)) {
         #[cfg(any(target_os = "macos", target_os = "windows"))]
-        if self
+        let native_requests = self
             .native_menu
             .as_ref()
-            .is_some_and(|menu| menu.take_interface())
-        {
+            .map(|menu| menu.take_requests())
+            .unwrap_or_default();
+        #[cfg(any(target_os = "macos", target_os = "windows"))]
+        if native_requests.syntax {
+            self.syntax_open = true;
+        }
+        let syntax_was_open = self.syntax_open;
+        if self.syntax_open && syntax_help::show(ctx) {
+            self.syntax_open = false;
+            self.focus_search = true;
+        }
+        #[cfg(any(target_os = "macos", target_os = "windows"))]
+        if native_requests.interface {
             self.interface_open = true;
         }
         if self.interface_open && ctx.input(|i| i.key_pressed(Key::Escape)) {
@@ -828,11 +848,7 @@ impl App {
         }
         #[cfg(target_os = "macos")]
         let permissions_were_open = {
-            if self
-                .native_menu
-                .as_ref()
-                .is_some_and(|menu| menu.take_permissions())
-            {
+            if native_requests.permissions {
                 self.permissions.open = true;
             }
             if self.permissions.open && ctx.input(|i| i.key_pressed(Key::Escape)) {
@@ -846,11 +862,7 @@ impl App {
             was_open
         };
         #[cfg(any(target_os = "macos", target_os = "windows"))]
-        if self
-            .native_menu
-            .as_ref()
-            .is_some_and(|menu| menu.take_stop())
-        {
+        if native_requests.stop {
             self.stop_search();
         }
         if let Ok(error) = self.action_errors.try_recv() {
@@ -886,7 +898,7 @@ impl App {
                 self.action_error = None;
             }
         }
-        if !self.selector_open && ctx.input(|i| i.key_pressed(Key::Escape)) {
+        if !syntax_was_open && !self.selector_open && ctx.input(|i| i.key_pressed(Key::Escape)) {
             ctx.send_viewport_cmd(egui::ViewportCommand::Close);
             return;
         }
@@ -1012,6 +1024,9 @@ impl App {
         ctx.send_viewport_cmd(egui::ViewportCommand::Title(title));
         #[cfg(any(target_os = "macos", target_os = "windows"))]
         if let Some(menu) = &self.native_menu {
+            if syntax_was_open && !self.syntax_open {
+                menu.syntax_closed();
+            }
             menu.set_enabled(self.can_stop());
         }
         #[cfg(not(any(target_os = "macos", target_os = "windows")))]
@@ -1024,7 +1039,7 @@ impl App {
         let mut icon_budget = 4;
         let mut icons_pending = false;
         egui::CentralPanel::default().show(ctx, |ui| {
-            let background_input_allowed = background_input_allowed && !error_was_open;
+            let background_input_allowed = background_input_allowed && !error_was_open && !syntax_was_open && !self.syntax_open;
             if !background_input_allowed {
                 ui.disable();
             }
@@ -1049,7 +1064,7 @@ impl App {
                 (response, selector)
             }).inner;
             let mode_changed = old_mode != self.mode;
-            if self.focus_search || mode_changed {
+            if background_input_allowed && (self.focus_search || mode_changed) {
                 response.request_focus();
                 self.focus_search = false;
             }
@@ -2086,6 +2101,121 @@ mod ui_tests {
                 _ => None,
             })
             .unwrap_or_else(|| panic!("missing label: {label}"))
+    }
+
+    #[test]
+    fn help_menu_opens_syntax_and_keeps_searching_while_blocking_result_actions() {
+        let ctx = egui::Context::default();
+        let mut app = App {
+            query: "notes".into(),
+            results: vec![entry("first", 1), entry("second", 2)],
+            selected: Some(0),
+            ..Default::default()
+        };
+        let render = |app: &mut App, events| {
+            ctx.run(frame_input(events), |ctx| {
+                // Exercise the in-window menu even on hosts that normally use a native menu.
+                #[cfg(any(target_os = "macos", target_os = "windows"))]
+                in_window_search_menu(ctx, app);
+                app.update_ui_with_opener(ctx, &mut |_, _| panic!("help opened a result"));
+            })
+        };
+        let click = |app: &mut App, pos| {
+            for pressed in [true, false] {
+                render(
+                    app,
+                    pointer_events(pos, egui::PointerButton::Primary, pressed),
+                );
+            }
+            render(app, vec![])
+        };
+        let open_help = |app: &mut App| {
+            let menu = text_position(&render(app, vec![]), "Help");
+            click(app, menu);
+            let item = text_position(&render(app, vec![]), "Syntax");
+            click(app, item);
+            let output = render(app, vec![]);
+            text_position(&output, "Search syntax");
+            text_position(&output, "fuzzy:projecx notes");
+            assert!(app.syntax_open);
+        };
+        let row = text_position(&render(&mut app, vec![]), "second");
+        open_help(&mut app);
+        click(&mut app, row);
+        click(&mut app, row);
+        render(
+            &mut app,
+            vec![key(Key::ArrowDown), egui::Event::Text("extra".into())],
+        );
+        assert_eq!(app.selected, Some(0));
+        assert_eq!(app.query, "notes");
+
+        let folder = tempfile::tempdir().unwrap();
+        std::fs::write(folder.path().join("notes.txt"), b"new hit").unwrap();
+        app.search = Some(Results::Walk(Search::start(
+            "notes".into(),
+            vec![folder.path().to_owned()],
+        )));
+        let deadline = Instant::now() + Duration::from_secs(5);
+        while !app.completed {
+            render(&mut app, vec![]);
+            assert!(
+                Instant::now() < deadline,
+                "search stalled while reading help"
+            );
+            std::thread::yield_now();
+        }
+        assert_eq!(app.results.len(), 3);
+        assert!(app.syntax_open);
+        let output = render(&mut app, vec![key(Key::Escape)]);
+        assert!(!app.syntax_open);
+        assert!(!output.viewport_output[&egui::ViewportId::ROOT]
+            .commands
+            .contains(&egui::ViewportCommand::Close));
+        render(&mut app, vec![]);
+        render(&mut app, vec![egui::Event::Text("!".into())]);
+        assert_eq!(app.query, "notes!");
+
+        for button in ["×", "Close"] {
+            open_help(&mut app);
+            let pos = text_position(&render(&mut app, vec![]), button);
+            click(&mut app, pos);
+            assert!(!app.syntax_open);
+        }
+        open_help(&mut app);
+        render(&mut app, vec![key(Key::Enter)]);
+        assert!(!app.syntax_open, "the Close button takes keyboard focus");
+    }
+
+    #[test]
+    fn syntax_examples_scroll_in_a_small_window_with_close_always_visible() {
+        let ctx = egui::Context::default();
+        let screen = egui::Rect::from_min_size(egui::Pos2::ZERO, egui::vec2(320.0, 240.0));
+        let render = |events| {
+            let mut input = frame_input(events);
+            input.screen_rect = Some(screen);
+            ctx.run(input, |ctx| assert!(!syntax_help::show(ctx)))
+        };
+        render(vec![]);
+        let opening = render(vec![]);
+        let words = text_position(&opening, "Words");
+        assert!(screen.contains(words));
+        let close = text_position(&opening, "Close");
+        assert!(screen.contains(close));
+        render(vec![
+            egui::Event::PointerMoved(words),
+            egui::Event::MouseWheel {
+                unit: egui::MouseWheelUnit::Point,
+                delta: egui::vec2(0.0, -3000.0),
+                modifiers: egui::Modifiers::NONE,
+            },
+        ]);
+        for _ in 0..30 {
+            render(vec![]);
+        }
+        let bottom = render(vec![]);
+        assert!(screen.contains(text_position(&bottom, "More pattern syntax")));
+        assert_eq!(text_position(&bottom, "Close"), close);
     }
 
     #[test]
