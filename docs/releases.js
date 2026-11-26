@@ -1,6 +1,6 @@
 (function () {
   const repo = "yatima1460/Drill";
-  const aurUrl = "https://aur.archlinux.org/packages/drill-search";
+  const aurLink = document.getElementById("aur-download");
   const actionsRoot = document.getElementById("release-actions");
   const releaseDateNode = document.getElementById("release-date");
   if (!actionsRoot) return;
@@ -113,7 +113,8 @@
       downloads++;
     }
     if (!downloads) return;
-    sections.linux.actions.append(createButton("AUR (legacy Python)", aurUrl, "arch-linux-logo.svg", "linux"));
+    if (currentOs === "linux") aurLink.classList.add("btn-current-os");
+    sections.linux.actions.append(aurLink);
     const order = ["windows", "linux", "macos"];
     if (order.includes(currentOs)) {
       order.splice(order.indexOf(currentOs), 1);

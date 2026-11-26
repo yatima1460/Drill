@@ -97,10 +97,6 @@ body {
   text-underline-offset: 0.15em;
 }
 
-.hero-actions > a {
-  justify-self: start;
-}
-
 .hero-actions {
   display: grid;
   gap: 0.75rem;
