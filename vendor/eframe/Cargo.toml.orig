@@ -1,0 +1,278 @@
+[package]
+name = "eframe"
+version.workspace = true
+authors = ["Emil Ernerfeldt <emil.ernerfeldt@gmail.com>"]
+description = "egui framework - write GUI apps that compiles to web and/or natively"
+edition.workspace = true
+rust-version.workspace = true
+homepage = "https://github.com/emilk/egui/tree/master/crates/eframe"
+license.workspace = true
+readme = "README.md"
+repository = "https://github.com/emilk/egui/tree/master/crates/eframe"
+categories = ["gui", "game-development"]
+keywords = ["egui", "gui", "gamedev"]
+include = [
+  "../LICENSE-APACHE",
+  "../LICENSE-MIT",
+  "**/*.rs",
+  "Cargo.toml",
+  "data/icon.png",
+]
+
+[package.metadata.docs.rs]
+all-features = true
+targets = ["x86_64-unknown-linux-gnu", "wasm32-unknown-unknown"]
+rustdoc-args = ["--generate-link-to-definition"]
+
+[lints]
+workspace = true
+
+[lib]
+
+
+[features]
+default = [
+  "accesskit",
+  "default_fonts",
+  "glow",
+  "wayland",                                      # Required for Linux support (including CI!)
+  "web_screen_reader",
+  "winit/default",
+  "x11",
+  "egui-wgpu?/fragile-send-sync-non-atomic-wasm",
+]
+
+## Enable platform accessibility API implementations through [AccessKit](https://accesskit.dev/).
+accesskit = ["egui/accesskit", "egui-winit/accesskit"]
+
+# Allow crates to choose an android-activity backend via Winit
+# - It's important that most applications should not have to depend on android-activity directly, and can
+#   rely on Winit to pull in a suitable version (unlike most Rust crates, any version conflicts won't link)
+# - It's also important that we don't impose an android-activity backend by taking this choice away from applications.
+
+## Enable the `game-activity` backend via `egui-winit` on Android
+android-game-activity = ["egui-winit/android-game-activity"]
+## Enable the `native-activity` backend via `egui-winit` on Android
+android-native-activity = ["egui-winit/android-native-activity"]
+
+## If set, egui will use `include_bytes!` to bundle some fonts.
+## If you plan on specifying your own fonts you may disable this feature.
+default_fonts = ["egui/default_fonts"]
+
+## Use [`glow`](https://github.com/grovesNL/glow) for painting, via [`egui_glow`](https://github.com/emilk/egui/tree/master/crates/egui_glow).
+glow = ["dep:egui_glow", "dep:glow", "dep:glutin-winit", "dep:glutin"]
+
+## Enable saving app state to disk.
+persistence = [
+  "dep:home",
+  "egui-winit/serde",
+  "egui/persistence",
+  "ron",
+  "serde",
+]
+
+## Enables wayland support and fixes clipboard issue.
+##
+## If you are compiling for Linux (or want to test on a CI system using Linux), you should enable this feature.
+wayland = [
+  "egui-winit/wayland",
+  "egui-wgpu?/wayland",
+  "egui_glow?/wayland",
+  "glutin?/wayland",
+  "glutin-winit?/wayland",
+]
+
+## Enable screen reader support (requires `ctx.options_mut(|o| o.screen_reader = true);`) on web.
+##
+## For other platforms, use the `accesskit` feature instead.
+web_screen_reader = [
+  "web-sys/SpeechSynthesis",
+  "web-sys/SpeechSynthesisUtterance",
+]
+
+## Use [`wgpu`](https://docs.rs/wgpu) for painting (via [`egui-wgpu`](https://github.com/emilk/egui/tree/master/crates/egui-wgpu)).
+##
+## This overrides the `glow` feature.
+##
+## By default, only WebGPU is enabled on web.
+## If you want to enable WebGL, you need to turn on the `webgl` feature of crate `wgpu`:
+##
+## ```toml
+## wgpu = { version = "*", features = ["webgpu", "webgl"] }
+## ```
+##
+## By default, eframe will prefer WebGPU over WebGL, but
+## you can configure this at run-time with [`NativeOptions::wgpu_options`].
+wgpu = ["dep:wgpu", "dep:egui-wgpu", "dep:pollster"]
+
+## Enables compiling for x11.
+x11 = [
+  "egui-winit/x11",
+  "egui-wgpu?/x11",
+  "egui_glow?/x11",
+  "glutin?/x11",
+  "glutin?/glx",
+  "glutin-winit?/x11",
+  "glutin-winit?/glx",
+]
+
+## If set, eframe will look for the env-var `EFRAME_SCREENSHOT_TO` and write a screenshot to that location, and then quit.
+## This is used to generate images for examples.
+__screenshot = []
+
+[dependencies]
+egui = { workspace = true, default-features = false, features = [
+  "bytemuck",
+  "log",
+] }
+
+ahash.workspace = true
+document-features.workspace = true
+log.workspace = true
+parking_lot.workspace = true
+profiling.workspace = true
+raw-window-handle.workspace = true
+static_assertions = "1.1.0"
+web-time.workspace = true
+
+# Optional dependencies
+
+egui_glow = { workspace = true, optional = true, default-features = false }
+glow = { workspace = true, optional = true }
+ron = { workspace = true, optional = true, features = ["integer128"] }
+serde = { workspace = true, optional = true }
+
+# -------------------------------------------
+# native:
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+egui-winit = { workspace = true, default-features = false, features = [
+  "clipboard",
+  "links",
+] }
+image = { workspace = true, features = ["png"] } # Needed for app icon
+winit = { workspace = true, default-features = false, features = ["rwh_06"] }
+
+# optional native:
+egui-wgpu = { workspace = true, optional = true, features = [
+  "winit",
+] } # if wgpu is used, use it with winit
+pollster = { workspace = true, optional = true } # needed for wgpu
+
+glutin = { workspace = true, optional = true, default-features = false, features = [
+  "egl",
+  "wgl",
+] }
+glutin-winit = { workspace = true, optional = true, default-features = false, features = [
+  "egl",
+  "wgl",
+] }
+home = { workspace = true, optional = true }
+wgpu = { workspace = true, optional = true, features = [
+  # Let's enable some backends so that users can use `eframe` out-of-the-box
+  # without having to explicitly opt-in to backends
+  "metal",
+  "webgpu",
+] }
+
+# mac:
+[target.'cfg(any(target_os = "macos"))'.dependencies]
+objc2 = "0.5.1"
+objc2-foundation = { version = "0.2.0", default-features = false, features = [
+  "std",
+  "block2",
+  "NSData",
+  "NSString",
+] }
+objc2-app-kit = { version = "0.2.0", default-features = false, features = [
+  "std",
+  "NSApplication",
+  "NSImage",
+  "NSMenu",
+  "NSMenuItem",
+  "NSResponder",
+] }
+
+# windows:
+[target.'cfg(any(target_os = "windows"))'.dependencies]
+winapi = { version = "0.3.9", features = ["winuser"] }
+windows-sys = { workspace = true, features = [
+  "Win32_Foundation",
+  "Win32_UI_Shell",
+  "Win32_System_Com",
+] }
+
+# -------------------------------------------
+# web:
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+bytemuck.workspace = true
+image = { workspace = true, features = ["png"] } # For copying images
+js-sys = "0.3"
+percent-encoding = "2.1"
+wasm-bindgen.workspace = true
+wasm-bindgen-futures.workspace = true
+web-sys = { workspace = true, features = [
+  "AddEventListenerOptions",
+  "BinaryType",
+  "Blob",
+  "BlobPropertyBag",
+  "Clipboard",
+  "ClipboardEvent",
+  "ClipboardItem",
+  "CompositionEvent",
+  "console",
+  "CssStyleDeclaration",
+  "DataTransfer",
+  "DataTransferItem",
+  "DataTransferItemList",
+  "Document",
+  "DomRect",
+  "DragEvent",
+  "Element",
+  "Event",
+  "EventListener",
+  "EventTarget",
+  "ExtSRgb",
+  "File",
+  "FileList",
+  "FocusEvent",
+  "HtmlCanvasElement",
+  "HtmlElement",
+  "HtmlInputElement",
+  "InputEvent",
+  "KeyboardEvent",
+  "Location",
+  "MediaQueryList",
+  "MediaQueryListEvent",
+  "MouseEvent",
+  "Navigator",
+  "Node",
+  "NodeList",
+  "Performance",
+  "ResizeObserver",
+  "ResizeObserverBoxOptions",
+  "ResizeObserverEntry",
+  "ResizeObserverOptions",
+  "ResizeObserverSize",
+  "Storage",
+  "Touch",
+  "TouchEvent",
+  "PointerEvent",
+  "TouchList",
+  "WebGl2RenderingContext",
+  "WebglDebugRendererInfo",
+  "WebGlRenderingContext",
+  "WheelEvent",
+  "Window",
+] }
+
+# optional web:
+egui-wgpu = { workspace = true, optional = true } # if wgpu is used, use it without (!) winit
+wgpu = { workspace = true, optional = true, features = [
+  # Let's enable some backends so that users can use `eframe` out-of-the-box
+  # without having to explicitly opt-in to backends
+  "webgpu",
+] }
+
+# Native dev dependencies for testing
+[target.'cfg(not(target_arch = "wasm32"))'.dev-dependencies]
+directories = "5"
