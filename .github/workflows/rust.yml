@@ -74,7 +74,7 @@ jobs:
         with:
           toolchain: 1.100.0
           targets: x86_64-pc-windows-gnu
-      - run: sudo apt-get update && sudo apt-get install -y gcc-mingw-w64-x86-64 zip file
+      - run: sudo apt-get update && sudo apt-get install -y gcc-mingw-w64-x86-64 zip file icoutils
       - name: Cross-compile Windows executable
         env:
           CARGO_TARGET_X86_64_PC_WINDOWS_GNU_LINKER: x86_64-w64-mingw32-gcc
@@ -92,6 +92,13 @@ jobs:
           cp LICENSE build/windows/
           (cd build/windows && zip -q ../../dist/Drill-windows-x86_64.zip Drill.exe LICENSE)
           unzip -t dist/Drill-windows-x86_64.zip
+          unzip -p dist/Drill-windows-x86_64.zip Drill.exe > build/windows/packaged.exe
+          wrestool --extract --type=14 --name=1 build/windows/packaged.exe > build/windows/embedded.ico
+          mkdir -p build/windows/{original,embedded}
+          icotool -x -o build/windows/original/ src/assets/drill.ico
+          cp build/windows/embedded.ico build/windows/drill.ico
+          icotool -x -o build/windows/embedded/ build/windows/drill.ico
+          diff -r build/windows/original build/windows/embedded
       - uses: actions/upload-artifact@v4
         with:
           name: drill-windows
