@@ -99,3 +99,5 @@ Support this project with your organization. Your logo will show up here with a 
 <a href="https://opencollective.com/Drill/organization/7/website"><img src="https://opencollective.com/Drill/organization/7/avatar.svg"></a>
 <a href="https://opencollective.com/Drill/organization/8/website"><img src="https://opencollective.com/Drill/organization/8/avatar.svg"></a>
 <a href="https://opencollective.com/Drill/organization/9/website"><img src="https://opencollective.com/Drill/organization/9/avatar.svg"></a>
+
+Filename emoji use [Twemoji artwork](https://github.com/jdecked/twemoji) under CC BY 4.0. [Credits and licenses](src/assets/emoji/NOTICE)
