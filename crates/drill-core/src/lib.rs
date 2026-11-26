@@ -76,7 +76,7 @@ impl SearchQuery {
         self.filename.is_empty()
     }
 
-    fn classify(&self, name: &str) -> Option<MatchKind> {
+    pub fn classify(&self, name: &str) -> Option<MatchKind> {
         let name = normalized(name);
         if !self.is_empty() && name == self.filename {
             return Some(MatchKind::Exact);
@@ -191,12 +191,64 @@ pub fn default_roots_with_cancel(cancel: &AtomicBool) -> Vec<PathBuf> {
             }
         }
     }
+    #[cfg(target_os = "linux")]
+    if !cancel.load(Ordering::Relaxed) {
+        let candidates = desktop_roots(
+            &home,
+            std::env::var_os("XDG_DATA_HOME").as_deref(),
+            std::env::var_os("XDG_DATA_DIRS").as_deref(),
+        );
+        roots.extend(
+            candidates
+                .into_iter()
+                .take_while(|_| !cancel.load(Ordering::Relaxed))
+                .filter(|dir| dir.is_dir()),
+        );
+    }
     if roots.is_empty() && !cancel.load(Ordering::Relaxed) {
         roots.push(home);
     }
     roots.sort();
     roots.dedup();
     roots
+}
+
+#[cfg(target_os = "linux")]
+fn desktop_roots(
+    home: &Path,
+    data_home: Option<&std::ffi::OsStr>,
+    data_dirs: Option<&std::ffi::OsStr>,
+) -> Vec<PathBuf> {
+    let user_dir = data_home
+        .map(Path::new)
+        .filter(|dir| dir.is_absolute())
+        .map(Path::to_owned)
+        .unwrap_or_else(|| home.join(".local/share"));
+    let system_dirs = data_dirs
+        .filter(|dirs| !dirs.is_empty())
+        .unwrap_or(std::ffi::OsStr::new("/usr/local/share:/usr/share"));
+    std::iter::once(user_dir)
+        .chain(std::env::split_paths(system_dirs).filter(|dir| dir.is_absolute()))
+        .map(|dir| dir.join("applications"))
+        .collect()
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum FileFilter {
+    All,
+    MacBundles,
+    WindowsExecutables,
+}
+
+impl FileFilter {
+    fn accepts(self, path: &Path, kind: fs::FileType) -> bool {
+        let ext = path.extension().unwrap_or_default();
+        match self {
+            Self::All => true,
+            Self::MacBundles => kind.is_dir() && ext.eq_ignore_ascii_case("app"),
+            Self::WindowsExecutables => kind.is_file() && ext.eq_ignore_ascii_case("exe"),
+        }
+    }
 }
 
 type Priority = Reverse<(bool, bool, usize, usize, Reverse<u64>, PathBuf)>;
@@ -302,6 +354,15 @@ impl Search {
         roots: Vec<PathBuf>,
         startup_cancel: Arc<AtomicBool>,
     ) -> Self {
+        Self::start_filtered(query, roots, startup_cancel, FileFilter::All)
+    }
+
+    pub fn start_filtered(
+        query: SearchQuery,
+        roots: Vec<PathBuf>,
+        startup_cancel: Arc<AtomicBool>,
+        filter: FileFilter,
+    ) -> Self {
         let query = Arc::new(query);
         let paused = Arc::new(AtomicBool::new(false));
         let (tx, receiver) = mpsc::sync_channel(512);
@@ -366,7 +427,11 @@ impl Search {
                         }
                         let path = item.path();
                         let Ok(kind) = item.file_type() else { continue };
-                        if kind.is_dir() && !kind.is_symlink() {
+                        let accepted = filter.accepts(&path, kind);
+                        if kind.is_dir()
+                            && !kind.is_symlink()
+                            && !(filter == FileFilter::MacBundles && accepted)
+                        {
                             let canonical =
                                 fs::canonicalize(&path).unwrap_or_else(|_| path.clone());
                             let ranked = priority(path.clone());
@@ -378,8 +443,20 @@ impl Search {
                                 cv.notify_one();
                             }
                         }
+                        if !accepted {
+                            continue;
+                        }
                         let name = item.file_name().to_string_lossy().into_owned();
-                        if let Some(rank) = query.classify(&name) {
+                        let rank = if filter != FileFilter::All
+                            && path.file_stem().is_some_and(|stem| {
+                                !query.is_empty()
+                                    && normalized(&stem.to_string_lossy()) == query.filename
+                            }) {
+                            Some(MatchKind::Exact)
+                        } else {
+                            query.classify(&name)
+                        };
+                        if let Some(rank) = rank {
                             let metadata = item.metadata().ok();
                             let entry = Entry {
                                 path,
@@ -504,6 +581,66 @@ mod tests {
         assert!(!matches("anything", "fuzzy:   "));
         assert!(matches("anything", ""));
     }
+    #[test]
+    fn app_filters_use_file_type_and_ignore_case_before_delivering_results() {
+        let root = private_temp_dir();
+        for dir in ["Real.APP/Contents/Nested.app", "fake.exe"] {
+            fs::create_dir_all(root.path().join(dir)).unwrap();
+        }
+        for file in ["fake.app", "Real.EXE", "Real.exe.bak"] {
+            fs::write(root.path().join(file), []).unwrap();
+        }
+        for (filter, expected) in [
+            (FileFilter::MacBundles, "Real.APP"),
+            (FileFilter::WindowsExecutables, "Real.EXE"),
+        ] {
+            for (text, rank) in [
+                ("", MatchKind::Partial),
+                ("real", MatchKind::Exact),
+                (expected, MatchKind::Exact),
+            ] {
+                let search = Search::start_filtered(
+                    SearchQuery::parse(text),
+                    vec![root.path().into()],
+                    Arc::new(AtomicBool::new(false)),
+                    filter,
+                );
+                let (kind, item) = search
+                    .receiver
+                    .recv_timeout(std::time::Duration::from_secs(5))
+                    .unwrap();
+                assert_eq!((kind, item.name.as_str()), (rank, expected));
+                assert!(matches!(
+                    search
+                        .receiver
+                        .recv_timeout(std::time::Duration::from_secs(5)),
+                    Err(mpsc::RecvTimeoutError::Disconnected)
+                ));
+            }
+        }
+    }
+
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn desktop_files_follow_xdg_search_directories() {
+        let dirs = desktop_roots(
+            Path::new("/home/example"),
+            Some("/user-data".as_ref()),
+            Some("/first:relative:/second".as_ref()),
+        );
+        assert_eq!(
+            dirs,
+            [
+                Path::new("/user-data/applications"),
+                Path::new("/first/applications"),
+                Path::new("/second/applications")
+            ]
+        );
+        let defaults = desktop_roots(Path::new("/home/example"), None, Some("".as_ref()));
+        assert!(defaults.contains(&PathBuf::from("/usr/share/applications")));
+        assert!(defaults.contains(&PathBuf::from("/home/example/.local/share/applications")));
+    }
+
     #[test]
     fn priorities_favor_dictionary_and_visible_directories() {
         let dictionary = priority(PathBuf::from("/home/user/music"));
