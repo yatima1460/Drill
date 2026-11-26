@@ -1,0 +1,20 @@
+{
+  "name": "drill-website-ci",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check": "npm run lint:html && npm run lint:css && npm run lint:js && node check-links.js",
+    "lint:html": "html-validate --config htmlvalidate.json '../../docs/**/*.html'",
+    "lint:css": "stylelint --config stylelint.config.js --max-warnings 0 '../../docs/**/*.css'",
+    "lint:js": "cd ../.. && eslint --config tools/website-ci/eslint.config.js --max-warnings 0 'docs/**/*.{js,mjs}'"
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "css-tree": "3.2.1",
+    "eslint": "10.15.0",
+    "html-validate": "11.23.0",
+    "linkedom": "0.18.15",
+    "stylelint": "18.1.0",
+    "stylelint-config-recommended": "19.1.0"
+  }
+}

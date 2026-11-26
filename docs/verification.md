@@ -13,18 +13,18 @@ make prove
 make test-mutants
 ```
 
-Pull requests changing Rust code or verification inputs run these checks on Linux. The separate release workflow continues to exercise the native window, Windows build under Wine, and Linux rebuilds of both shipped Wasm assets.
+Kani runs on pull requests that change the proof workspace, its imported modules or its build inputs. Mutation checks cover changes to the packages they exercise. The platform workflow tests shared application changes on Linux, macOS and Windows under Wine. A change specific to one platform runs its corresponding build. After an application change merges to main, the release workflow rebuilds all three platforms together.
 
 ## Duplicate code
 
-Every pull request and every push to `main` runs jscpd 5.4.3 on the full checkout. Any reported clone fails the job and blocks release signing. To reproduce it, install the pinned version and run from the repository root.
+Source changes run jscpd 5.4.3 on the full checkout. Each release also requires this check on its integrated main commit. Any reported clone fails the job and blocks release signing. To reproduce it, install the pinned version and run from the repository root.
 
 ```sh
 cargo install --locked --version 5.4.3 jscpd
 jscpd .
 ```
 
-The detector reports repeated blocks of at least 50 tokens spanning at least five lines, including repeats within one file. It checks tests, shell launchers, workflows, website code and the other supported formats. The configuration excludes vendored dependencies, Cargo lockfiles, the word list and the three Potrace-generated Drill logos. jscpd respects Git ignore files for local build output.
+The detector reports repeated blocks of at least 50 tokens spanning at least five lines, including repeats within one file. It checks tests, shell launchers, workflows, website code and the other supported formats. The configuration excludes vendored dependencies, Cargo lockfiles, the generated website lint dependency lockfile, the word list and the three Potrace-generated Drill logos. jscpd respects Git ignore files for local build output.
 
 ## What Kani checks
 
