@@ -185,6 +185,11 @@ fn date(entry: &Entry) -> String {
         })
         .unwrap_or_else(|| "?".into())
 }
+// Qt's result list used 32 logical pixels. Keep native art sharp on a 2× display.
+const RESULT_ICON_SIZE: f32 = 32.0;
+const NATIVE_ICON_PIXELS: u16 = 64;
+const RESULT_ROW_PITCH: f32 = 36.0;
+
 fn platform_icon_texture(
     ctx: &egui::Context,
     icon: file_icon_provider::Icon,
@@ -214,7 +219,7 @@ fn platform_icon_texture(
 fn executable_type_icon(ctx: &egui::Context) -> Option<egui::TextureHandle> {
     // Ask the OS about a private, empty sample; never pass it the untrusted executable.
     let sample = tempfile::Builder::new().suffix(".exe").tempfile().ok()?;
-    let icon = file_icon_provider::get_file_icon(sample.path(), 24).ok()?;
+    let icon = file_icon_provider::get_file_icon(sample.path(), NATIVE_ICON_PIXELS).ok()?;
     platform_icon_texture(ctx, icon, "exe-type-icon")
 }
 #[cfg(target_os = "linux")]
@@ -246,7 +251,11 @@ fn themed_icon_texture<'a>(
     let theme = gtk::IconTheme::default()?;
     for name in names {
         if let Some(pixbuf) = theme
-            .load_icon(name, 24, gtk::IconLookupFlags::empty())
+            .load_icon(
+                name,
+                i32::from(NATIVE_ICON_PIXELS),
+                gtk::IconLookupFlags::empty(),
+            )
             .ok()
             .flatten()
         {
@@ -1114,16 +1123,18 @@ impl App {
                 }
             }
             ui.separator();
+            let row_spacing = ui.spacing().item_spacing.y;
+            let row_height = (RESULT_ROW_PITCH - row_spacing).max(RESULT_ICON_SIZE);
             let mut area = egui::ScrollArea::both().auto_shrink([false, false]);
             if keyboard_selection_changed {
                 if let Some(selected) = self.selected {
                     let height = ui.available_height();
-                    let stride = 25.0 + ui.spacing().item_spacing.y;
+                    let stride = row_height + row_spacing;
                     let top = selected as f32 * stride;
                     let offset = if top < self.scroll_offset {
                         top
-                    } else if top + 25.0 > self.scroll_offset + height {
-                        (top + 25.0 - height).max(0.0)
+                    } else if top + row_height > self.scroll_offset + height {
+                        (top + row_height - height).max(0.0)
                     } else {
                         self.scroll_offset
                     };
@@ -1136,10 +1147,10 @@ impl App {
             } else {
                 None
             };
-            let scroll = area.show_rows(ui, 25.0, self.results.len(), |ui, range| {
+            let scroll = area.show_rows(ui, row_height, self.results.len(), |ui, range| {
                 for index in range {
                     let entry = &self.results[index];
-                    let (_, rect) = ui.allocate_space(egui::vec2(total, 25.0));
+                    let (_, rect) = ui.allocate_space(egui::vec2(total, row_height));
                     // Keep open menus and pending clicks attached to the same file as rows move.
                     let result = ui.interact(rect, ui.id().with(("result", &entry.path)), egui::Sense::click());
                     result_focus |= self.selected == Some(index) && result.has_focus();
@@ -1171,7 +1182,8 @@ impl App {
                         size(entry),
                         date(entry),
                     ];
-                    let icon_pos = egui::pos2(rect.left() + 3.0, rect.center().y - 10.0);
+                    let icon_pos = egui::pos2(rect.left() + 5.0, rect.center().y - RESULT_ICON_SIZE / 2.0);
+                    let icon_rect = egui::Rect::from_min_size(icon_pos, egui::Vec2::splat(RESULT_ICON_SIZE));
                     if !self.icons.contains_key(&entry.path) {
                         let route = exe_icon::icon_route(
                             &entry.path,
@@ -1207,7 +1219,7 @@ impl App {
                         } else if icon_budget > 0 {
                             icon_budget -= 1;
                             let path_label = entry.path.to_string_lossy();
-                            let fallback = || file_icon_provider::get_file_icon(&entry.path, 24).ok()
+                            let fallback = || file_icon_provider::get_file_icon(&entry.path, NATIVE_ICON_PIXELS).ok()
                                 .and_then(|icon| platform_icon_texture(ctx, icon, &path_label));
                             #[cfg(target_os = "linux")]
                             let icon = if self.mode == Mode::Apps {
@@ -1222,12 +1234,13 @@ impl App {
                             icons_pending = true;
                         }
                     }
-                    let painter = ui.painter().with_clip_rect(rect);
+                    let name_cell = egui::Rect::from_min_size(rect.min, egui::vec2(total * widths[0], row_height));
+                    let painter = ui.painter().with_clip_rect(name_cell);
                     match self.icons.get(&entry.path) {
                         Some(Some(texture)) => {
                             painter.image(
                                 texture.id(),
-                                egui::Rect::from_min_size(icon_pos, egui::vec2(20.0, 20.0)),
+                                icon_rect,
                                 egui::Rect::from_min_max(egui::Pos2::ZERO, egui::pos2(1.0, 1.0)),
                                 egui::Color32::WHITE,
                             );
@@ -1243,7 +1256,7 @@ impl App {
                             if let Some(texture) = type_icon {
                                 painter.image(
                                     texture.id(),
-                                    egui::Rect::from_min_size(icon_pos, egui::vec2(20.0, 20.0)),
+                                    icon_rect,
                                     egui::Rect::from_min_max(
                                         egui::Pos2::ZERO,
                                         egui::pos2(1.0, 1.0),
@@ -1254,16 +1267,16 @@ impl App {
                                 let color = egui::Color32::from_rgb(224, 174, 78);
                                 painter.rect_filled(
                                     egui::Rect::from_min_size(
-                                        icon_pos + egui::vec2(1.0, 3.0),
-                                        egui::vec2(7.0, 4.0),
+                                        icon_pos + egui::vec2(2.0, 5.0),
+                                        egui::vec2(11.0, 6.0),
                                     ),
                                     1.0,
                                     color,
                                 );
                                 painter.rect_filled(
                                     egui::Rect::from_min_size(
-                                        icon_pos + egui::vec2(1.0, 6.0),
-                                        egui::vec2(16.0, 11.0),
+                                        icon_pos + egui::vec2(2.0, 10.0),
+                                        egui::vec2(26.0, 18.0),
                                     ),
                                     2.0,
                                     color,
@@ -1271,8 +1284,8 @@ impl App {
                             } else {
                                 painter.rect_filled(
                                     egui::Rect::from_min_size(
-                                        icon_pos + egui::vec2(3.0, 3.0),
-                                        egui::vec2(12.0, 15.0),
+                                        icon_pos + egui::vec2(5.0, 4.0),
+                                        egui::vec2(20.0, 24.0),
                                     ),
                                     1.0,
                                     egui::Color32::from_gray(190),
@@ -1298,7 +1311,7 @@ impl App {
                             egui::pos2(x + column_width - 4.0, rect.bottom()),
                         );
                         ui.painter().with_clip_rect(clip).text(
-                            egui::pos2(x + if column == 0 { 29.0 } else { 4.0 }, rect.center().y),
+                            egui::pos2(if column == 0 { icon_rect.right() + 6.0 } else { x + 4.0 }, rect.center().y),
                             egui::Align2::LEFT_CENTER,
                             value,
                             egui::TextStyle::Body.resolve(ui.style()),
@@ -2142,7 +2155,29 @@ mod ui_tests {
                     panic!("unexpected icon texture format")
                 };
                 assert_eq!(image.pixels[0], egui::Color32::from_rgb(0, 255, 0));
-                assert!(output.shapes.iter().any(|shape| matches!(&shape.shape, egui::Shape::Mesh(mesh) if mesh.texture_id == icon.id())), "row did not draw the embedded icon");
+                let (bounds, clip) = output
+                    .shapes
+                    .iter()
+                    .find_map(|shape| match &shape.shape {
+                        egui::Shape::Mesh(mesh) if mesh.texture_id == icon.id() => {
+                            Some((mesh.calc_bounds(), shape.clip_rect))
+                        }
+                        _ => None,
+                    })
+                    .expect("row did not draw the embedded icon");
+                assert_eq!(bounds.size(), egui::vec2(32.0, 32.0));
+                assert!(clip.contains_rect(bounds));
+                let filename = output
+                    .shapes
+                    .iter()
+                    .find_map(|shape| match &shape.shape {
+                        egui::Shape::Text(text) if text.galley.text() == "program.exe" => {
+                            Some(text.pos)
+                        }
+                        _ => None,
+                    })
+                    .expect("row did not draw the filename");
+                assert!((filename.x - bounds.right() - 6.0).abs() < 1.0);
                 return;
             }
             assert!(Instant::now() < deadline, "icon did not arrive");
