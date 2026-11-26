@@ -250,8 +250,8 @@ mod tests {
     fn extracts_pe32_and_pe64_icons_inside_the_guest() {
         let decoder = Decoder::new().expect("decoder must instantiate");
         for fixture in [
-            &include_bytes!("../tests/fixtures/icon-pe32.exe")[..],
-            &include_bytes!("../tests/fixtures/icon-pe64.exe")[..],
+            &include_bytes!("../tools/exe-icon-wasm/tests/fixtures/icon-pe32.exe")[..],
+            &include_bytes!("../tools/exe-icon-wasm/tests/fixtures/icon-pe64.exe")[..],
         ] {
             let pixels = decoder.decode(fixture).expect("valid embedded icon");
             assert_eq!(pixels.len(), PIXELS);
@@ -263,8 +263,10 @@ mod tests {
     fn worker_reads_and_decodes_resident_executable() {
         use std::io::Write;
         let mut file = tempfile::Builder::new().suffix(".exe").tempfile().unwrap();
-        file.write_all(include_bytes!("../tests/fixtures/icon-pe32.exe"))
-            .unwrap();
+        file.write_all(include_bytes!(
+            "../tools/exe-icon-wasm/tests/fixtures/icon-pe32.exe"
+        ))
+        .unwrap();
         let worker = Worker::new();
         let path = file.path().to_path_buf();
         assert!(matches!(
@@ -282,7 +284,7 @@ mod tests {
     #[test]
     fn malformed_resource_headers_do_not_escape_or_crash_decoder() {
         let decoder = Decoder::new().expect("decoder must instantiate");
-        let fixture = include_bytes!("../tests/fixtures/icon-pe32.exe");
+        let fixture = include_bytes!("../tools/exe-icon-wasm/tests/fixtures/icon-pe32.exe");
         for offset in [0x3c, 0x80, 0x100, 0x200, 0x400, 0x800] {
             let mut input = fixture.to_vec();
             for byte in &mut input[offset..offset + 4] {
