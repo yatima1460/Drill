@@ -16,8 +16,7 @@ license-file = "LICENSE"
 
 [profile.release]
 opt-level = 3
-lto = "fat"
-codegen-units = 1
+lto = "off"
 
 [features]
 ui-test-driver = []

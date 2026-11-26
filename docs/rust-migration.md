@@ -4,10 +4,10 @@ The `rust` branch introduces a native Rust desktop application. The former Pytho
 
 Run `cargo run --release` or open `Start Drill.command` on macOS. The launcher requires Rust installed through rustup. The first build may download dependencies.
 
-Desktop releases use optimization level 3, one codegen unit per crate, and fat
-link-time optimization across the Rust crates in the executable. Each OS keeps
-its standard CPU target. Native system libraries and the embedded Wasm
-decoders retain their own compilation boundaries.
+Desktop releases use optimization level 3, Cargo's default parallel code
+generation, and explicitly disable link-time optimization. See the
+[measured release-profile tradeoff](../AGENTS.md#desktop-release-profile).
+The embedded Wasm icon decoders use separate size-focused release profiles.
 
 To compare clean desktop builds, give the benchmark a fresh output directory and
 the paths to clean checkouts. Fetch their locked dependencies first. On macOS

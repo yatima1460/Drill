@@ -31,6 +31,12 @@ For a bug fix, demonstrate the regression against the previous revision when pra
 
 Use property tests, mutation testing, fuzzing or bounded proofs for the contracts each can check. Record proof assumptions, input domains and unwinding bounds. Review surviving mutants and counterexamples. Preserve the meaning of tests, assertions and CI gates when making a change.
 
+## Desktop release profile
+
+Keep desktop releases at optimization level 3 with `lto = "off"` and Cargo's default codegen-unit count. On an Apple M6 with 12 build jobs, a clean build took 20.54 s with the previous default release profile and 41.84 s with fat LTO and one codegen unit. In 24 paired searches over 32,769 files, median first-query completion improved from 26.52 ms to 25.24 ms. A repeated query improved from 10.49 ms to 10.34 ms. Median time to a visible window was 206.83 ms versus 208.48 ms across 16 pairs. These marginal runtime gains did not justify the clean-build cost for Drill.
+
+The comparison changed both LTO and codegen units. The earlier control used Cargo's default, which permits crate-local ThinLTO. Reconsider the desktop profile when representative startup or search measurements show a larger benefit. The independent Wasm decoder profiles optimize for embedded code size.
+
 ## Platform and release evidence
 
 Consult the [release workflow](.github/workflows/rust.yml) before reporting platform coverage. A Windows cross-build, a Wine smoke test and a native Windows run establish different things. The macOS preview build and production signing are separate jobs. Keep signing credentials in the protected production environment and ordinary PR validation independent of those credentials.
