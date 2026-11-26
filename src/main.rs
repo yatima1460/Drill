@@ -72,7 +72,9 @@ struct App {
     mode: Mode,
     selector_open: bool,
     #[cfg(target_os = "linux")]
-    catalog: std::sync::Arc<std::sync::OnceLock<linux_apps::Catalog>>,
+    catalog: Option<std::sync::Arc<linux_apps::Catalog>>,
+    #[cfg(target_os = "linux")]
+    catalog_loading: Option<std::sync::mpsc::Receiver<linux_apps::Catalog>>,
     search: Option<Results>,
     starting: Option<std::sync::mpsc::Receiver<Results>>,
     starting_cancel: Option<std::sync::Arc<std::sync::atomic::AtomicBool>>,
@@ -114,7 +116,9 @@ impl Default for App {
             mode: Mode::Files,
             selector_open: false,
             #[cfg(target_os = "linux")]
-            catalog: Default::default(),
+            catalog: None,
+            #[cfg(target_os = "linux")]
+            catalog_loading: None,
             search: None,
             starting: None,
             starting_cancel: None,
@@ -390,6 +394,31 @@ fn open_with(path: &Path) -> Result<(), String> {
     result
 }
 
+#[cfg(windows)]
+#[allow(unsafe_code)]
+fn launch_windows_app(path: &Path) -> Result<(), String> {
+    use std::os::windows::ffi::OsStrExt;
+    use windows_sys::Win32::UI::{Shell::ShellExecuteW, WindowsAndMessaging::SW_SHOWNORMAL};
+    let wide: Vec<_> = path.as_os_str().encode_wide().chain(Some(0)).collect();
+    // SAFETY: the path and verb are terminated UTF-16 and live for the call.
+    // Null optional parameters ask the shell to open the app with its normal policy.
+    let result = unsafe {
+        ShellExecuteW(
+            std::ptr::null_mut(),
+            windows_sys::core::w!("open"),
+            wide.as_ptr(),
+            std::ptr::null(),
+            std::ptr::null(),
+            SW_SHOWNORMAL,
+        )
+    } as isize;
+    if result > 32 {
+        Ok(())
+    } else {
+        Err(format!("Windows shell error {result}"))
+    }
+}
+
 #[cfg(target_os = "windows")]
 #[allow(unsafe_code)]
 fn open_with(path: &Path) -> Result<(), String> {
@@ -612,6 +641,34 @@ impl App {
         }
     }
 
+    #[cfg(target_os = "linux")]
+    fn catalog_ready(&mut self) -> bool {
+        if self.catalog.is_some() {
+            return true;
+        }
+        let receiver = self.catalog_loading.get_or_insert_with(|| {
+            let (sender, receiver) = std::sync::mpsc::channel();
+            std::thread::spawn(move || {
+                let _ = sender.send(linux_apps::Catalog::load());
+            });
+            receiver
+        });
+        match receiver.try_recv() {
+            Ok(catalog) => {
+                self.catalog = Some(std::sync::Arc::new(catalog));
+                self.catalog_loading = None;
+                true
+            }
+            Err(std::sync::mpsc::TryRecvError::Disconnected) => {
+                self.catalog_loading = None;
+                self.changed = None;
+                self.action_error = Some("Could not load the desktop application list".into());
+                false
+            }
+            Err(std::sync::mpsc::TryRecvError::Empty) => false,
+        }
+    }
+
     fn update_ui(&mut self, ctx: &egui::Context) {
         #[cfg(target_os = "linux")]
         if self.mode == Mode::Apps {
@@ -620,7 +677,7 @@ impl App {
             self.update_ui_with_opener(ctx, &mut |path, reveal| {
                 if reveal {
                     open(path, true);
-                } else if let Some(catalog) = catalog.get() {
+                } else if let Some(catalog) = &catalog {
                     error = catalog.launch(path).err();
                 }
             });
@@ -635,7 +692,7 @@ impl App {
             self.update_ui_with_opener(ctx, &mut |path, reveal| {
                 if reveal {
                     open(path, true);
-                } else if let Err(err) = std::process::Command::new(path).spawn() {
+                } else if let Err(err) = launch_windows_app(path) {
                     error = Some(format!("Cannot launch {}: {err}", path.display()));
                 }
             });
@@ -741,7 +798,8 @@ impl App {
                 Err(std::sync::mpsc::TryRecvError::Empty) => {}
             }
         }
-        if self.action_error.is_some() {
+        let error_was_open = self.action_error.is_some();
+        if error_was_open {
             let mut dismiss = false;
             egui::Window::new("Unable to complete action")
                 .collapsible(false)
@@ -759,10 +817,12 @@ impl App {
             ctx.send_viewport_cmd(egui::ViewportCommand::Close);
             return;
         }
-        if self
+        let ready = self
             .changed
-            .is_some_and(|t| t.elapsed() >= Duration::from_millis(250))
-        {
+            .is_some_and(|t| t.elapsed() >= Duration::from_millis(250));
+        #[cfg(target_os = "linux")]
+        let ready = ready && (self.mode != Mode::Apps || self.catalog_ready());
+        if ready {
             self.changed = None;
             self.clear_search();
             let query = SearchQuery::parse(&self.query);
@@ -778,8 +838,7 @@ impl App {
                 self.starting = Some(rx);
                 std::thread::spawn(move || {
                     #[cfg(target_os = "linux")]
-                    if mode == Mode::Apps {
-                        let apps = catalog.get_or_init(linux_apps::Catalog::load);
+                    if let Some(apps) = catalog.filter(|_| mode == Mode::Apps) {
                         let hits = apps.search(&query, &cancel);
                         let _ = tx.send(Results::Apps(hits.into_iter()));
                         return;
@@ -862,6 +921,7 @@ impl App {
         let mut icon_budget = 4;
         let mut icons_pending = false;
         egui::CentralPanel::default().show(ctx, |ui| {
+            let background_input_allowed = background_input_allowed && !error_was_open;
             if !background_input_allowed {
                 ui.disable();
             }
@@ -898,7 +958,7 @@ impl App {
                 self.clear_search();
                 #[cfg(target_os = "linux")]
                 if mode_changed {
-                    self.catalog = Default::default();
+                    self.catalog = None;
                 }
                 self.changed = (self.mode == Mode::Apps || !self.query.trim().is_empty()).then(Instant::now);
             }
@@ -932,11 +992,10 @@ impl App {
                     }
                 }
             }
-            if background_input_allowed && !continued && ctx.input(|i| i.key_pressed(Key::Enter)) {
-                if let Some(entry) = self.selected.and_then(|n| self.results.get(n)) {
-                    open(&entry.path, false);
-                }
-            }
+            let enter = background_input_allowed && !continued && ctx.input(|input| input.events.iter().any(|event|
+                matches!(event, egui::Event::Key { key: Key::Enter, pressed: true, repeat: false, .. })));
+            let mut result_focus = ctx.memory(|memory| memory.focused().is_none() || memory.has_focus(response.id));
+            let mut row_menu_open = false;
             ui.separator();
             let total = ui.available_width();
             let (header, _) = ui.allocate_exact_size(
@@ -1083,6 +1142,8 @@ impl App {
                     let (_, rect) = ui.allocate_space(egui::vec2(total, 25.0));
                     // Keep open menus and pending clicks attached to the same file as rows move.
                     let result = ui.interact(rect, ui.id().with(("result", &entry.path)), egui::Sense::click());
+                    result_focus |= self.selected == Some(index) && result.has_focus();
+                    row_menu_open |= result.context_menu_opened();
                     if result.clicked() || result.secondary_clicked() {
                         self.selected = Some(index);
                     }
@@ -1150,7 +1211,7 @@ impl App {
                                 .and_then(|icon| platform_icon_texture(ctx, icon, &path_label));
                             #[cfg(target_os = "linux")]
                             let icon = if self.mode == Mode::Apps {
-                                self.catalog.get().and_then(|catalog| themed_icon_texture(ctx,
+                                self.catalog.as_ref().and_then(|catalog| themed_icon_texture(ctx,
                                     catalog.icon_names(&entry.path).iter().map(String::as_str), &path_label))
                                     .or_else(fallback)
                             } else { fallback() };
@@ -1324,6 +1385,11 @@ impl App {
                 }
             });
             self.scroll_offset = scroll.state.offset.y;
+            if enter && result_focus && !row_menu_open {
+                if let Some(entry) = self.selected.and_then(|index| self.results.get(index)) {
+                    open(&entry.path, false);
+                }
+            }
         });
         #[cfg(feature = "ui-test-driver")]
         if let Some(path) = std::env::var_os("DRILL_UI_TEST_STATUS") {
@@ -1780,6 +1846,84 @@ mod ui_tests {
             "clipboard output: {:?}",
             output.platform_output.commands
         );
+    }
+
+    #[test]
+    fn menu_and_error_dialog_own_enter_over_a_selected_app() {
+        let ctx = egui::Context::default();
+        let mut app = App {
+            mode: Mode::Apps,
+            ..Default::default()
+        };
+        let file = entry("Example.exe", 1);
+        let expected = file.path.to_string_lossy().into_owned();
+        app.append_hits([(MatchKind::Exact, file)]);
+        let render = |app: &mut App, events| {
+            let input = egui::RawInput {
+                screen_rect: Some(egui::Rect::from_min_size(
+                    egui::Pos2::ZERO,
+                    egui::vec2(800.0, 600.0),
+                )),
+                events,
+                ..Default::default()
+            };
+            ctx.run(input, |ctx| {
+                app.update_ui_with_opener(ctx, &mut |_, _| {
+                    panic!("Enter on a menu or dialog launched the selected application")
+                })
+            })
+        };
+        let point = text_position(&render(&mut app, vec![]), "Example.exe");
+        for pressed in [true, false] {
+            render(
+                &mut app,
+                vec![
+                    egui::Event::PointerMoved(point),
+                    egui::Event::PointerButton {
+                        pos: point,
+                        button: egui::PointerButton::Secondary,
+                        pressed,
+                        modifiers: egui::Modifiers::NONE,
+                    },
+                ],
+            );
+        }
+        assert_eq!(app.selected, Some(0));
+        render(&mut app, vec![]);
+        let key_event = |key, pressed| egui::Event::Key {
+            key,
+            physical_key: None,
+            pressed,
+            repeat: false,
+            modifiers: egui::Modifiers::NONE,
+        };
+        let tab_to = |app: &mut App, label: &str| {
+            for _ in 0..40 {
+                let mut focused = false;
+                for pressed in [true, false] {
+                    let output = render(app, vec![key_event(Key::Tab, pressed)]);
+                    focused |= output.platform_output.events.iter().any(|event| matches!(
+                        event, egui::output::OutputEvent::FocusGained(info) if info.label.as_deref() == Some(label)
+                    ));
+                }
+                if focused {
+                    return;
+                }
+            }
+            panic!("{label} should be reachable with Tab");
+        };
+        tab_to(&mut app, "Copy Full Path");
+        let output = render(&mut app, vec![key(Key::Enter)]);
+        assert!(output
+            .platform_output
+            .commands
+            .iter()
+            .any(|cmd| matches!(cmd, egui::OutputCommand::CopyText(path) if path == &expected)));
+        app.action_error = Some("Launch failed".into());
+        render(&mut app, vec![key_event(Key::Enter, false)]);
+        tab_to(&mut app, "OK");
+        render(&mut app, vec![key(Key::Enter)]);
+        assert!(app.action_error.is_none());
     }
 
     #[test]
