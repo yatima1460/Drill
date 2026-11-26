@@ -1,5 +1,5 @@
 import unittest
-from platforms import ALL, scans_source, select
+from platforms import ALL, check_outputs, scans_source, select
 
 
 class PlatformRouting(unittest.TestCase):
@@ -41,6 +41,13 @@ class PlatformRouting(unittest.TestCase):
 
     def test_manual_validation(self):
         self.assertEqual(select([], "workflow_dispatch"), (ALL, False))
+
+    def test_duplicate_gate_runs_for_every_platform_build(self):
+        for event in ("pull_request", "push"):
+            for path in ("Cargo.lock", "vendor/eframe/src/lib.rs", "src/assets/drill.ico"):
+                self.assertTrue(check_outputs([path], event)["duplicates"], path)
+            self.assertFalse(check_outputs(["docs/screenshot.png"], event)["duplicates"])
+        self.assertTrue(check_outputs([], "workflow_dispatch")["duplicates"])
 
 
 if __name__ == "__main__":

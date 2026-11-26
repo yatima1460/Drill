@@ -48,7 +48,11 @@ if ! timeout 15s wmctrl -ic "$window_id"; then
 fi
 for _ in {1..30}; do
     if ! kill -0 "$app_pid" 2>/dev/null; then
-        wait "$app_pid"
+        wait "$app_pid" || {
+            status=$?
+            cat "$log_file" >&2
+            exit "$status"
+        }
         app_pid=''
         cleanup
         trap - EXIT

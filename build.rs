@@ -1,4 +1,9 @@
-use std::{env, ffi::OsString, path::PathBuf, process::Command};
+use std::{
+    env,
+    ffi::{OsStr, OsString},
+    path::{Path, PathBuf},
+    process::Command,
+};
 
 // Cargo can find the MSVC linker in an ordinary shell where the Windows SDK's
 // rc.exe is not on PATH. Locate the newest installed SDK with a host compiler.
@@ -37,6 +42,32 @@ throw 'rc.exe not found; install the Windows SDK or set RC'
         .into()
 }
 
+// RC may select a compiler from the other Windows toolchain. Custom wrappers
+// can advertise the same version/help banner as the compiler they invoke.
+fn uses_windres(compiler: &OsStr, target_default: bool) -> bool {
+    let name = Path::new(compiler)
+        .file_stem()
+        .unwrap_or_default()
+        .to_string_lossy()
+        .to_ascii_lowercase();
+    if name.contains("windres") {
+        return true;
+    }
+    if name == "rc" || name.starts_with("llvm-rc") {
+        return false;
+    }
+    if let Ok(output) = Command::new(compiler).args(["-V", "/?"]).output() {
+        let banner = String::from_utf8_lossy(&output.stdout).to_ascii_lowercase();
+        if banner.contains("windres") {
+            return true;
+        }
+        if banner.contains("resource compiler") || banner.contains("resource converter") {
+            return false;
+        }
+    }
+    target_default
+}
+
 fn main() {
     println!("cargo:rerun-if-changed=src/assets/drill.rc");
     println!("cargo:rerun-if-changed=src/assets/drill.ico");
@@ -70,7 +101,7 @@ fn main() {
     });
     let out = PathBuf::from(env::var_os("OUT_DIR").unwrap());
     let mut command = Command::new(&compiler);
-    let resource = if msvc {
+    let resource = if !uses_windres(&compiler, !msvc) {
         let resource = out.join("drill.res");
         command
             .args(["/i", "src/assets", "/fo"])

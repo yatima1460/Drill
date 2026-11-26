@@ -71,13 +71,17 @@ def changed_paths(event):
     return [os.fsdecode(path) for path in raw.split(b"\0") if path]
 
 
-if __name__ == "__main__":
-    event = os.environ["GITHUB_EVENT_NAME"]
-    paths = changed_paths(event)
+def check_outputs(paths, event):
     platforms, release = select(paths, event)
     values = {platform: platform in platforms for platform in sorted(ALL)}
     values["release"] = release
-    values["duplicates"] = release or event == "workflow_dispatch" or any(map(scans_source, paths))
+    values["duplicates"] = bool(platforms) or any(map(scans_source, paths))
+    return values
+
+
+if __name__ == "__main__":
+    event = os.environ["GITHUB_EVENT_NAME"]
+    values = check_outputs(changed_paths(event), event)
     outputs = "".join(f"{key}={str(value).lower()}\n" for key, value in values.items())
     print(outputs, end="")
     with Path(os.environ["GITHUB_OUTPUT"]).open("a") as output:
