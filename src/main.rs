@@ -2086,7 +2086,7 @@ mod ui_tests {
                     .all(|v| v.color == egui::Color32::WHITE));
                 let bounds = mesh.calc_bounds();
                 assert!(clipped.clip_rect.contains_rect(bounds));
-                emoji.push((bounds, clipped.clip_rect, &image.pixels));
+                emoji.push((bounds, clipped.clip_rect, &image.pixels, mesh.texture_id));
             }
         }
         assert_eq!(
@@ -2111,6 +2111,20 @@ mod ui_tests {
             .any(|p| p.g() > 75 && p.g() > p.r() && p.g() > p.b()));
         assert_eq!(app.results[0].name, name);
         assert_eq!(app.results[0].path, PathBuf::from("work👩🏽‍💻").join(name));
+
+        let multiline = format!("{}\n😭🥀.log", "x".repeat(150));
+        let result = entry(&multiline, 0);
+        app.icons.insert(result.path.clone(), None);
+        app.results[0] = result;
+        let multiline_output = frame(&ctx, &mut app, vec![]);
+        let suffix = text_position(&multiline_output, ".log");
+        assert!(face.1.contains(suffix));
+        for id in [face.3, rose.3] {
+            assert!(multiline_output.shapes.iter().any(|shape| {
+                matches!(&shape.shape, egui::Shape::Mesh(mesh)
+                    if mesh.texture_id == id && shape.clip_rect.intersects(mesh.calc_bounds()))
+            }));
+        }
     }
     #[test]
     fn late_exact_hits_preserve_selection_and_respect_manual_sort() {
