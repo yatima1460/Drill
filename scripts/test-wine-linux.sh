@@ -25,7 +25,7 @@ trap cleanup EXIT
 
 make start_wine >"$log_file" 2>&1 &
 app_pid=$!
-if ! window_id=$(timeout 120s xdotool search --sync --onlyvisible --name '^Drill'); then
+if ! window_id=$(timeout 120s xdotool search --sync --onlyvisible --name '^Drill$'); then
     cat "$log_file" >&2
     echo 'Drill did not open a visible window under Wine.' >&2
     exit 1
