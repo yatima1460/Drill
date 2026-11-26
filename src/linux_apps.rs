@@ -1,4 +1,5 @@
 use drill_core::{Entry, MatchKind, SearchQuery};
+use gio_unix::DesktopAppInfo;
 use gtk::gio::{self, prelude::*};
 use std::path::Path;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -12,7 +13,7 @@ struct Application {
 
 impl Application {
     fn from_registered(app: gio::AppInfo) -> Option<Self> {
-        let app = app.downcast::<gio::DesktopAppInfo>().ok()?;
+        let app = app.downcast::<DesktopAppInfo>().ok()?;
         if !app.should_show() {
             return None;
         }
@@ -86,7 +87,7 @@ impl Catalog {
 
     pub(super) fn launch(&self, path: &Path) -> Result<(), String> {
         let registered = self.find(path).ok_or("Unknown application")?;
-        let app = gio::DesktopAppInfo::new(&registered.id)
+        let app = DesktopAppInfo::new(&registered.id)
             .filter(|app| app.should_show() && app.filename().as_deref() == Some(path))
             .ok_or_else(|| format!("{} is no longer available", registered.entry.name))?;
         app.launch(&[], None::<&gio::AppLaunchContext>)
