@@ -15,7 +15,13 @@ start: ## Build and start Drill in release mode
 start_wine: ## Build the Windows version and run it with Wine
 	@command -v "$$WINE" >/dev/null 2>&1 || { echo 'Wine not found. Install Wine or set WINE to its executable.' >&2; exit 1; }
 	@command -v "$$WINDOWS_LINKER" >/dev/null 2>&1 || { echo 'Windows cross-linker not found. Install MinGW-w64 or set WINDOWS_LINKER.' >&2; exit 1; }
-	CARGO_TARGET_X86_64_PC_WINDOWS_GNU_LINKER="$$WINDOWS_LINKER" CARGO_TARGET_X86_64_PC_WINDOWS_GNU_RUNNER=./scripts/wine-runner.sh RUSTFLAGS="$${RUSTFLAGS-} -C target-feature=+crt-static" $(CARGO) run --locked --release -p drill --bin drill --target x86_64-pc-windows-gnu
+	@if [ "$${CARGO_ENCODED_RUSTFLAGS+x}" = x ]; then \
+		sep=$$(printf '\037'); \
+		if [ -n "$$CARGO_ENCODED_RUSTFLAGS" ]; then CARGO_ENCODED_RUSTFLAGS="$$CARGO_ENCODED_RUSTFLAGS$$sep"; fi; \
+		export CARGO_ENCODED_RUSTFLAGS="$${CARGO_ENCODED_RUSTFLAGS}-C$${sep}target-feature=+crt-static"; \
+	fi; \
+	CARGO_TARGET_X86_64_PC_WINDOWS_GNU_LINKER="$$WINDOWS_LINKER" CARGO_TARGET_X86_64_PC_WINDOWS_GNU_RUNNER=./scripts/wine-runner.sh RUSTFLAGS="$${RUSTFLAGS-} -C target-feature=+crt-static" "$$CARGO" run --locked --release -p drill --bin drill --target x86_64-pc-windows-gnu
+start_wine: export CARGO := $(CARGO)
 start_wine: export WINE := $(WINE)
 start_wine: export WINDOWS_LINKER := $(WINDOWS_LINKER)
 start_wine: export RUSTFLAGS := $(RUSTFLAGS)
