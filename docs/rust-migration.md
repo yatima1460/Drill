@@ -22,7 +22,21 @@ Settings → Interface controls embedded icons for Windows executables. The defa
 
 Development checks: `cargo fmt --check`, `cargo check --locked`, `cargo clippy --locked --all-targets -- -D warnings`, and `cargo test --locked`.
 
-CI builds a macOS DMG, Windows x86-64 ZIP, and Linux Debian, Arch, and AppImage packages. Windows is cross-compiled on Linux; the archive is inspected there but still requires a native Windows runtime check. macOS bundles are unsigned and not notarized. The AppImage relies on compatible system graphics libraries. Publishing runs only after all platform build jobs succeed on a push to main.
+CI builds a macOS DMG, Windows x86-64 ZIP, and Linux Debian, Arch, and AppImage packages. Windows is cross-compiled on Linux; the archive is inspected there but still requires a native Windows runtime check. Local builds and PR artifacts contain a preview DMG. GitHub releases use the signed and notarized DMG described below. The AppImage relies on compatible system graphics libraries. After all platform checks pass, a push to `main` that matches the merge commit of a PR into `yatima1460/Drill:main` can request a production deployment. Direct pushes, tags, pull requests and manual runs cannot publish. The repository owner approves the deployment and can retry a failed release.
+
+### macOS production credentials
+
+The GitHub Actions environment `prod` allows only the branch `main` and requires approval from `yatima1460`. Before approving, verify the workflow, signing scripts and commit displayed for the deployment. Keep these credentials exclusively in that environment.
+
+| Environment secret | Contents |
+| --- | --- |
+| `MACOS_CERTIFICATE_P12_BASE64` | Base64 of the password-protected PKCS#12 export for Developer ID Application: Pandaware LLC (ZYRW8ZPM2V), including its private key |
+| `MACOS_CERTIFICATE_PASSWORD` | The PKCS#12 export password |
+| `APPLE_NOTARY_KEY_P8` | The text of the dedicated App Store Connect team API private key, including its PEM header and footer |
+| `APPLE_NOTARY_KEY_ID` | The API key ID |
+| `APPLE_NOTARY_ISSUER_ID` | The Pandaware team API issuer ID |
+
+The signing job retrieves the tested executable by artifact ID and stages it without launching it. It signs `software.drill` with Hardened Runtime and a secure timestamp, signs the DMG, submits it to Apple and staples the accepted ticket. The publisher retrieves the validated DMG by its artifact ID. Missing credentials or failed verification block publication.
 
 The search core forbids unsafe Rust. The desktop crate denies unsafe Rust except for narrowly scoped Windows shell launch, Open With, COM and window-menu calls, Linux GTK dialog destruction, and the macOS icon worker's thread-local I/O policy. The isolated Wasm decoder also uses a pointer at its host boundary; it has no host imports. CI checks for undocumented unsafe blocks in the workspace targets it builds. Focused tests cover matching, priority, overlapping roots, completion and cancellation with a full result queue. Formal verification is not yet configured; the present filesystem, OS, GUI and packaging boundaries would not be established by a small bounded proof.
 
