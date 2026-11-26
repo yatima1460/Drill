@@ -46,10 +46,12 @@ fn resize_columns(widths: &mut [f32; 4], divider: usize, delta: f32, total: f32)
     let pair = widths[divider] + widths[divider + 1];
     let left_min = minima[divider] * scale / total;
     let right_min = minima[divider + 1] * scale / total;
-    // A narrow previous window may have left this pair below its new minimum.
-    let left_min = left_min.min(pair);
-    let right_min = right_min.min(pair - left_min);
-    let left = (widths[divider] + delta / total).clamp(left_min, pair - right_min);
+    // Existing proportions can be below the preferred minima after a window
+    // resize. Never move the divider merely to enforce a new minimum.
+    let current = widths[divider];
+    let lower = left_min.min(current);
+    let upper = (pair - right_min).max(current);
+    let left = (current + delta / total).clamp(lower, upper);
     widths[divider] = left;
     widths[divider + 1] = pair - left;
 }
@@ -75,6 +77,7 @@ struct App {
     interface_open: bool,
     sort: Option<(SortColumn, bool)>,
     column_widths: [f32; 4],
+    column_drag: Option<(usize, f32, [f32; 4])>,
     action_error: Option<String>,
     action_result: Option<std::sync::mpsc::Receiver<Result<(), String>>>,
     terminal_sender: std::sync::mpsc::Sender<String>,
@@ -109,6 +112,7 @@ impl Default for App {
             interface_open: false,
             sort: None,
             column_widths: [0.35, 0.35, 0.1, 0.2],
+            column_drag: None,
             action_error: None,
             action_result: None,
             terminal_sender,
@@ -782,8 +786,9 @@ impl App {
                 egui::Sense::hover(),
             );
             let mut edge = header.left();
+            let hit_widths = self.column_widths;
             for divider in 0..3 {
-                edge += total * self.column_widths[divider];
+                edge += total * hit_widths[divider];
                 let hit = egui::Rect::from_center_size(
                     egui::pos2(edge, header.center().y),
                     egui::vec2(8.0, header.height()),
@@ -793,17 +798,29 @@ impl App {
                     ui.id().with(("column-divider", divider)),
                     egui::Sense::drag(),
                 ).on_hover_cursor(egui::CursorIcon::ResizeHorizontal);
-                if response.dragged() {
-                    resize_columns(&mut self.column_widths, divider, response.drag_delta().x, total);
+                let pointer_x = ctx.input(|input| input.pointer.latest_pos().map(|pos| pos.x));
+                if response.drag_started() {
+                    if let Some(x) = ctx.input(|input| input.pointer.press_origin().map(|pos| pos.x)) {
+                        self.column_drag = Some((divider, x, hit_widths));
+                    }
                 }
-                let stroke = if response.hovered() || response.dragged() {
-                    ui.visuals().widgets.hovered.fg_stroke
-                } else {
-                    ui.visuals().widgets.noninteractive.bg_stroke
-                };
+                match (response.dragged() || response.drag_stopped(), self.column_drag, pointer_x) {
+                    (true, Some((active, start, original)), Some(x)) if active == divider => {
+                        self.column_widths = original;
+                        resize_columns(&mut self.column_widths, divider, x - start, total);
+                    }
+                    _ => {}
+                }
+                if response.drag_stopped() {
+                    self.column_drag = None;
+                }
+            }
+            let mut edge = header.left();
+            for width in self.column_widths.iter().take(3) {
+                edge += total * width;
                 ui.painter().line_segment(
                     [egui::pos2(edge, header.top()), egui::pos2(edge, header.bottom())],
-                    stroke,
+                    ui.visuals().widgets.noninteractive.bg_stroke,
                 );
             }
             let widths = self.column_widths;
@@ -1599,10 +1616,22 @@ mod ui_tests {
         let _ = frame(
             &ctx,
             &mut app,
+            vec![egui::Event::PointerMoved(start - egui::vec2(70.0, 0.0))],
+        );
+        let _ = frame(
+            &ctx,
+            &mut app,
             vec![egui::Event::PointerMoved(start), button(start, true)],
         );
+        assert_eq!(app.column_widths, [0.35, 0.35, 0.1, 0.2]);
         let _ = frame(&ctx, &mut app, vec![egui::Event::PointerMoved(end)]);
-        let _ = frame(&ctx, &mut app, vec![button(end, false)]);
+        let release = end + egui::vec2(10.0, 0.0);
+        let _ = frame(
+            &ctx,
+            &mut app,
+            vec![egui::Event::PointerMoved(release), button(release, false)],
+        );
+        assert!((app.column_widths[0] - (0.35 + 60.0 / 784.0)).abs() < 0.001);
         assert!(app.column_widths[0] > 0.40, "{:?}", app.column_widths);
         assert!(app.column_widths[1] < 0.30);
         assert_eq!(app.sort, None);
@@ -1627,6 +1656,15 @@ mod ui_tests {
                     assert!(widths.iter().all(|width| *width >= 0.0));
                     assert!((widths.iter().sum::<f32>() - 1.0).abs() < 0.0001);
                 }
+            }
+        }
+        for total in [400.0, 482.0] {
+            for delta in [-1.0, 0.0, 1.0] {
+                let mut widths = [0.35, 0.35, 0.1, 0.2];
+                resize_columns(&mut widths, 2, delta, total);
+                let movement = (widths[2] - 0.1) * total;
+                assert!(movement.abs() <= 1.001, "unexpected jump: {movement}");
+                assert!(movement * delta >= 0.0);
             }
         }
     }
