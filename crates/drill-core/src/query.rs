@@ -1,12 +1,7 @@
-use unicode_normalization::{char::is_combining_mark, UnicodeNormalization};
+#[path = "normalization.rs"]
+mod normalization;
+pub(super) use normalization::normalized;
 use wax::Program;
-
-pub(super) fn normalized(text: &str) -> String {
-    text.to_lowercase()
-        .nfd()
-        .filter(|c| !is_combining_mark(*c))
-        .collect()
-}
 
 // Ratcliff/Obershelp matching, as used by Python's difflib.SequenceMatcher.
 fn matching_chars(a: &[char], b: &[char]) -> usize {
