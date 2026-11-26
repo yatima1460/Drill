@@ -106,8 +106,8 @@ struct App {
     column_drag: Option<(usize, f32, [f32; 4])>,
     action_error: Option<String>,
     action_result: Option<std::sync::mpsc::Receiver<Result<(), String>>>,
-    terminal_sender: std::sync::mpsc::Sender<String>,
-    terminal_errors: std::sync::mpsc::Receiver<String>,
+    action_error_sender: std::sync::mpsc::Sender<String>,
+    action_errors: std::sync::mpsc::Receiver<String>,
     #[cfg(any(target_os = "macos", target_os = "windows"))]
     native_menu: Option<native_menu::NativeMenu>,
     #[cfg(target_os = "macos")]
@@ -115,7 +115,7 @@ struct App {
 }
 impl Default for App {
     fn default() -> Self {
-        let (terminal_sender, terminal_errors) = std::sync::mpsc::channel();
+        let (action_error_sender, action_errors) = std::sync::mpsc::channel();
         Self {
             query: String::new(),
             prepared: None,
@@ -154,8 +154,8 @@ impl Default for App {
             column_drag: None,
             action_error: None,
             action_result: None,
-            terminal_sender,
-            terminal_errors,
+            action_error_sender,
+            action_errors,
             #[cfg(any(target_os = "macos", target_os = "windows"))]
             native_menu: None,
             #[cfg(target_os = "macos")]
@@ -286,6 +286,7 @@ fn themed_icon_texture<'a>(
     }
     None
 }
+#[cfg(not(target_os = "linux"))]
 fn open(path: &Path, reveal: bool) {
     #[cfg(target_os = "macos")]
     let mut command = {
@@ -314,6 +315,31 @@ fn open(path: &Path, reveal: bool) {
     if let Err(error) = command.arg(path).spawn() {
         eprintln!("Cannot open {}: {error}", path.display());
     }
+}
+
+#[cfg(target_os = "linux")]
+fn open_linux_path(
+    path: &Path,
+    reveal: bool,
+    errors: std::sync::mpsc::Sender<String>,
+    ctx: egui::Context,
+) {
+    let target = if reveal {
+        path.parent().unwrap_or(path)
+    } else {
+        path
+    }
+    .to_owned();
+    std::thread::spawn(move || {
+        // Some desktop handlers keep xdg-open alive until their window closes.
+        let reason = match std::process::Command::new("xdg-open").arg(&target).status() {
+            Ok(status) if status.success() => return,
+            Ok(status) => format!("xdg-open exited with {status}"),
+            Err(error) => error.to_string(),
+        };
+        let _ = errors.send(format!("Cannot open {}: {reason}", target.display()));
+        ctx.request_repaint();
+    });
 }
 
 fn terminal_directory(entry: &Entry) -> &Path {
@@ -694,20 +720,20 @@ impl App {
 
     fn update_ui(&mut self, ctx: &egui::Context) {
         #[cfg(target_os = "linux")]
-        if self.mode == Mode::Apps {
+        {
+            let apps_mode = self.mode == Mode::Apps;
             let catalog = self.catalog.clone();
-            let mut error = None;
+            let errors = self.action_error_sender.clone();
             self.update_ui_with_opener(ctx, &mut |path, reveal| {
-                if reveal {
-                    open(path, true);
-                } else if let Some(catalog) = &catalog {
-                    error = catalog.launch(path).err();
+                if apps_mode && !reveal {
+                    if let Some(error) = catalog.as_ref().and_then(|apps| apps.launch(path).err()) {
+                        let _ = errors.send(error);
+                        ctx.request_repaint();
+                    }
+                } else {
+                    open_linux_path(path, reveal, errors.clone(), ctx.clone());
                 }
             });
-            if error.is_some() {
-                self.action_error = error;
-            }
-            return;
         }
         #[cfg(windows)]
         if self.mode == Mode::Apps {
@@ -724,6 +750,7 @@ impl App {
             }
             return;
         }
+        #[cfg(not(target_os = "linux"))]
         self.update_ui_with_opener(ctx, &mut open);
     }
 
@@ -814,7 +841,7 @@ impl App {
         {
             self.stop_search();
         }
-        if let Ok(error) = self.terminal_errors.try_recv() {
+        if let Ok(error) = self.action_errors.try_recv() {
             self.action_error = Some(error);
         }
         if let Some(result) = self.action_result.as_ref().map(|rx| rx.try_recv()) {
@@ -1402,7 +1429,7 @@ impl App {
                         if icon_menu_button(ui, "Open terminal here", MenuIcon::Terminal) {
                             match open_terminal(terminal_directory(entry)) {
                                 Ok(mut child) => {
-                                    let sender = self.terminal_sender.clone();
+                                    let sender = self.action_error_sender.clone();
                                     let context = ui.ctx().clone();
                                     std::thread::spawn(move || {
                                         let error = match child.wait() {
@@ -1597,6 +1624,42 @@ mod ui_tests {
             "embedded_appimage_icons"
         ));
         assert!(embedded_icons_setting(Some(&storage), "embedded_exe_icons"));
+    }
+
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn unsuccessful_linux_opener_reports_target_and_exit_status() {
+        use std::os::unix::fs::PermissionsExt;
+
+        const CHILD: &str = "DRILL_TEST_FAILED_OPENER";
+        if std::env::var_os(CHILD).is_some() {
+            let target = Path::new("/example/folder with spaces");
+            let (errors, receiver) = std::sync::mpsc::channel();
+            open_linux_path(target, false, errors, egui::Context::default());
+            let error = receiver.recv_timeout(Duration::from_secs(5)).unwrap();
+            assert!(error.contains(&target.display().to_string()), "{error}");
+            assert!(error.contains("exit status: 4"), "{error}");
+            return;
+        }
+
+        // Isolate PATH so parallel UI tests use their usual desktop environment.
+        let bin = tempfile::tempdir().unwrap();
+        let opener = bin.path().join("xdg-open");
+        std::fs::write(&opener, "#!/bin/sh\nexit 4\n").unwrap();
+        std::fs::set_permissions(&opener, std::fs::Permissions::from_mode(0o700)).unwrap();
+        let output = std::process::Command::new(std::env::current_exe().unwrap())
+            .args([
+                "--exact",
+                "ui_tests::unsuccessful_linux_opener_reports_target_and_exit_status",
+            ])
+            .env("PATH", bin.path())
+            .env(CHILD, "1")
+            .output()
+            .unwrap();
+        assert!(
+            output.status.success() && String::from_utf8_lossy(&output.stdout).contains("1 passed"),
+            "{output:?}"
+        );
     }
 
     #[test]

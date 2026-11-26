@@ -61,6 +61,18 @@ jobs:
       - run: scripts/package-linux.sh
       - name: Decode the icon from the packaged AppImage
         run: cargo test --locked --bin drill appimage_icon::tests::packaged_appimage_contains_drill_icon -- --ignored --exact
+      - name: Double-click AppImage results with Xed and Nemo
+        timeout-minutes: 8
+        run: |
+          docker run --rm --volume "$PWD/scripts/test-appimage-open.sh:/test.sh:ro" \
+            --volume "$PWD/dist/Drill-linux-x86_64.AppImage:/Drill.AppImage:ro" \
+            archlinux:base bash -euxo pipefail -c '
+              pacman -Syu --noconfirm --needed xed nemo xorg-server-xvfb xorg-xauth openbox xdotool wmctrl xdg-utils libxkbcommon-x11 mesa ttf-dejavu
+              useradd -m tester
+              install -d -m 700 -o tester /tmp/drill-session
+              runuser -u tester -- env XDG_RUNTIME_DIR=/tmp/drill-session \
+                xvfb-run -a dbus-run-session -- bash /test.sh /Drill.AppImage
+            '
       - uses: actions/upload-artifact@v4
         with:
           name: drill-linux
