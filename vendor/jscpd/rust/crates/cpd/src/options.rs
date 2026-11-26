@@ -1,0 +1,569 @@
+// options.rs — normalized runtime configuration for cpd, merged from CLI and config file
+
+use std::collections::HashMap;
+use std::path::PathBuf;
+
+use super::cli::{DeadCodeSetting, IdentifierMatching};
+use cpd_core::summary::SummaryMetric;
+use cpd_reporter::reporter::{DEFAULT_REPORT_NAME, REPORT_EXTENSIONS};
+use cpd_semantic::SemanticOptions;
+use cpd_tokenizer::tokenizer::Mode;
+
+#[derive(Debug, Clone)]
+pub struct Options {
+    pub paths: Vec<PathBuf>,
+    pub min_tokens: usize,
+    /// The `--min-tokens` of a comparison: of `--compare`, or of the MCP
+    /// server's compare_folders tool. A function worth porting is often
+    /// shorter than a clone worth reporting, so the default is 30, not 50.
+    pub compare_min_tokens: usize,
+    pub min_lines: usize,
+    pub max_lines: Option<usize>,
+    pub max_gap_lines: usize,
+    /// The threshold of `--similarity`, `None` when it is off. A value
+    /// outside (0, 1] turns it off too; `main` warns about it.
+    pub similarity: Option<f64>,
+    /// The fewest normalized nodes a unit `--similarity` compares has
+    /// (`--min-nodes`).
+    pub min_nodes: u32,
+    /// The model and thresholds of semantic clones: `None` unless
+    /// `--semantic` turns the mode on, or a mode that runs the model on its
+    /// own asks for them (`--compare`, and `--mcp` for its tools).
+    pub semantic: Option<SemanticOptions>,
+    /// Whether `--semantic` or the config file's `semantic.enabled` asked
+    /// for semantic clones, rather than a mode that only needs the options.
+    pub semantic_requested: bool,
+    /// `--semantic-download`: the settings whose local model to fetch.
+    pub semantic_download: Option<SemanticOptions>,
+    /// The `--semantic-*` tuning flags given, which do nothing without
+    /// `--semantic` (the ones that pick the model to download aside).
+    pub semantic_flags: Vec<&'static str>,
+    /// The boundary rules of the config file, unchecked; a clone run checks
+    /// them (see [`crate::boundaries`]). `None` without the key.
+    pub boundaries: Option<crate::boundaries::Setting>,
+    /// `--kind` values, before parsing.
+    pub kind: Vec<String>,
+    /// The `health` config object; a `--health-input` file is laid over it
+    /// when a health score is computed.
+    pub health: cpd_core::health::HealthConfig,
+    pub health_input: Option<PathBuf>,
+    pub mode: Mode,
+    pub formats: Vec<String>,
+    pub ignore: Vec<String>,
+    pub ignore_patterns: Vec<String>,
+    pub reporters: Vec<String>,
+    pub output_dir: PathBuf,
+    /// Base name for report files, without the extension (#1015).
+    pub report_name: String,
+    pub exit_code: Option<i32>,
+    pub threshold: Option<f64>,
+    pub sarif_error_tokens: Option<u32>,
+    pub baseline: Option<PathBuf>,
+    pub update_baseline: bool,
+    pub fail_on_new_clones: Option<u64>,
+    pub fail_on_empty: bool,
+    pub baseline_from_ref: Option<String>,
+    /// `--changed`, also on when `--changed-only` is.
+    pub changed: bool,
+    pub changed_only: bool,
+    pub blame: bool,
+    pub no_gitignore: bool,
+    pub follow_symlinks: bool,
+    pub max_size: Option<u64>,
+    pub workers: Option<usize>,
+    pub no_colors: bool,
+    pub absolute: bool,
+    pub ignore_case: bool,
+    pub ignore_identifiers: bool,
+    /// With `ignore_identifiers`, any name matches any other
+    /// (`--ignore-identifiers=blind`) rather than one name only.
+    pub blind_identifiers: bool,
+    pub ignore_literals: bool,
+    pub ignore_annotations: bool,
+    pub formats_exts: HashMap<String, Vec<String>>,
+    pub formats_names: HashMap<String, Vec<String>>,
+    pub cross_formats: Vec<Vec<String>>,
+    pub skip_local: bool,
+    pub skip_isolated: Vec<Vec<String>>,
+    pub no_tips: bool,
+    pub silent: bool,
+    pub summary: bool,
+    pub summary_top: usize,
+    pub summary_by: SummaryMetric,
+    /// True when `--summary-by` or the `summaryBy` config key named a metric.
+    /// `--complexity` ranks by complexity only when nothing else was asked for.
+    pub summary_by_set: bool,
+    /// The `--history` range; empty for a bare flag with none in the config,
+    /// which walks the newest commits of the branch.
+    pub history: Option<String>,
+    pub history_since: Option<String>,
+    pub history_every: usize,
+    pub history_limit: usize,
+    pub pattern: Option<String>,
+    /// Run dead-code detection instead of clone detection (`--dead-code`).
+    pub dead_code: bool,
+    /// Dead-code finding categories, before parsing.
+    pub dead_code_categories: Vec<String>,
+    /// Confidence floor for dead-code findings.
+    pub min_confidence: Option<u8>,
+    /// Extra dead-code entry-point globs.
+    pub entry: Vec<String>,
+    /// Report dead code inside test files.
+    pub include_tests: bool,
+    /// Report exports of dead-code entry points.
+    pub include_entry_exports: bool,
+    /// The config file's dead-code section, for what only it can say: the
+    /// frameworks, an `ignore` and a `minLines` of the mode's own, and a
+    /// threshold that is not the duplication one. Everything above is
+    /// already merged with it.
+    pub dead_code_section: basta::section::Section,
+}
+
+impl Options {
+    /// Merge CLI args over config file, with CLI flags taking highest priority.
+    pub fn from_cli_and_config(cli: &super::cli::Cli, config: &super::cli::ConfigFile) -> Self {
+        let section = config
+            .dead_code
+            .as_ref()
+            .and_then(DeadCodeSetting::section)
+            .cloned()
+            .unwrap_or_default();
+        // A value on the command line wins; the bare flag takes the config's
+        // matching when it names one, as `--similarity` takes its ratio.
+        let configured = config.ignore_identifiers.unwrap_or(IdentifierMatching::Off);
+        let identifiers = match &cli.ignore_identifiers {
+            Some(Some(value)) => *value,
+            Some(None) if configured == IdentifierMatching::Off => IdentifierMatching::Consistent,
+            _ => configured,
+        };
+        let mode_str = if cli.skip_comments {
+            "weak".to_string()
+        } else {
+            cli.mode
+                .clone()
+                .or(config.mode.clone())
+                .unwrap_or_else(|| "mild".to_string())
+        };
+        let mode = mode_str.parse::<Mode>().unwrap_or_default();
+
+        let max_size = cli
+            .max_size
+            .as_deref()
+            .or(config.max_size.as_deref())
+            .and_then(super::cli::parse_size)
+            .or_else(|| super::cli::parse_size("1mb")); // default: 1mb
+
+        let formats_exts = cli
+            .formats_exts
+            .as_deref()
+            .or(config.formats_exts.as_deref())
+            .map(super::cli::parse_format_mappings)
+            .unwrap_or_default();
+
+        let formats_names = cli
+            .formats_names
+            .as_deref()
+            .or(config.formats_names.as_deref())
+            .map(super::cli::parse_format_mappings)
+            .unwrap_or_default();
+
+        let cross_formats = cli
+            .cross_formats
+            .as_deref()
+            .or(config.cross_formats.as_deref())
+            .map(super::cli::parse_cross_formats)
+            .unwrap_or_default();
+
+        let download = semantic_download(cli);
+        let semantic_requested = cli.semantic
+            || config
+                .semantic
+                .as_ref()
+                .is_some_and(|s| s.enabled.unwrap_or(false));
+        let compare_min_tokens = cli.min_tokens.or(config.min_tokens).unwrap_or(30);
+        Self {
+            paths: if cli.paths.is_empty() && download.path.is_none() {
+                config
+                    .path
+                    .clone()
+                    .unwrap_or_default()
+                    .into_iter()
+                    .map(PathBuf::from)
+                    .collect()
+            } else {
+                cli.paths.iter().chain(&download.path).cloned().collect()
+            },
+            // A function worth porting is often shorter than a clone worth
+            // reporting: a loop of ten lines in Python is some 40 tokens.
+            min_tokens: match cli.compare {
+                true => compare_min_tokens,
+                false => cli.min_tokens.or(config.min_tokens).unwrap_or(50),
+            },
+            compare_min_tokens,
+            min_lines: cli.min_lines.or(config.min_lines).unwrap_or(5),
+            max_lines: cli.max_lines.or(config.max_lines),
+            max_gap_lines: cli.max_gap_lines.or(config.max_gap_lines).unwrap_or(0),
+            similarity: match cli.similarity {
+                Some(Some(ratio)) => Some(ratio),
+                // The bare flag turns the search on at the config's ratio.
+                Some(None) => Some(
+                    config
+                        .similarity
+                        .unwrap_or(cpd_similarity::DEFAULT_THRESHOLD),
+                ),
+                None => config.similarity,
+            },
+            min_nodes: cli
+                .min_nodes
+                .or(config.min_nodes)
+                .unwrap_or(cpd_similarity::DEFAULT_MIN_NODES),
+            semantic: (semantic_requested || cli.compare || cli.mcp).then(|| {
+                let model = cli.semantic_model.clone().or(download.model.clone());
+                semantic_options(cli, config, model)
+            }),
+            semantic_requested,
+            semantic_download: download.requested.then(|| {
+                let model = download.model.clone().or(cli.semantic_model.clone());
+                semantic_options(cli, config, model)
+            }),
+            semantic_flags: [
+                ("--semantic-threshold", cli.semantic_threshold.is_some()),
+                (
+                    "--semantic-same-threshold",
+                    cli.semantic_same_threshold.is_some(),
+                ),
+                ("--semantic-scope", cli.semantic_scope.is_some()),
+                ("--semantic-url", cli.semantic_url.is_some()),
+                ("--semantic-rebuild-cache", cli.semantic_rebuild_cache),
+                // Both pick the model --semantic-download fetches.
+                (
+                    "--semantic-model",
+                    cli.semantic_model.is_some() && !download.requested,
+                ),
+                (
+                    "--semantic-provider",
+                    cli.semantic_provider.is_some() && !download.requested,
+                ),
+            ]
+            .into_iter()
+            .filter_map(|(flag, given)| given.then_some(flag))
+            .collect(),
+            boundaries: config
+                .boundaries
+                .clone()
+                .map(|raw| crate::boundaries::Setting {
+                    raw,
+                    base: config
+                        .base_dir
+                        .clone()
+                        .unwrap_or_else(|| PathBuf::from(".")),
+                    semantic: semantic_options(cli, config, cli.semantic_model.clone()),
+                }),
+            health: config.health.clone().unwrap_or_default(),
+            health_input: cli
+                .health_input
+                .clone()
+                .or_else(|| config.health_input.as_ref().map(PathBuf::from)),
+            kind: if cli.kind.is_empty() {
+                config.kind.clone().unwrap_or_default()
+            } else {
+                cli.kind.clone()
+            },
+            mode,
+            formats: if cli.format.is_empty() {
+                config.format.clone().unwrap_or_default()
+            } else {
+                cli.format.clone()
+            },
+            ignore: if cli.ignore.is_empty() {
+                config.ignore.clone().unwrap_or_default()
+            } else {
+                cli.ignore.clone()
+            },
+            ignore_patterns: if cli.ignore_pattern.is_empty() {
+                config.ignore_pattern.clone().unwrap_or_default()
+            } else {
+                cli.ignore_pattern.clone()
+            },
+            reporters: if cli.reporters.is_empty() {
+                config
+                    .reporters
+                    .clone()
+                    .unwrap_or_else(|| vec!["console".to_string()])
+            } else {
+                cli.reporters.clone()
+            },
+            output_dir: cli.output.clone().unwrap_or_else(|| {
+                PathBuf::from(
+                    config
+                        .output
+                        .clone()
+                        .unwrap_or_else(|| "report".to_string()),
+                )
+            }),
+            report_name: cli
+                .report_name
+                .clone()
+                .or_else(|| config.report_name.clone())
+                .unwrap_or_else(|| DEFAULT_REPORT_NAME.to_string()),
+            exit_code: cli.exit_code.or(config.exit_code),
+            threshold: cli.threshold.or(config.threshold),
+            sarif_error_tokens: cli.sarif_error_tokens.or(config.sarif_error_tokens),
+            baseline: cli
+                .baseline
+                .clone()
+                .or_else(|| config.baseline.clone().map(PathBuf::from)),
+            update_baseline: cli.update_baseline,
+            fail_on_new_clones: cli.fail_on_new_clones.or(config.fail_on_new_clones),
+            fail_on_empty: cli.fail_on_empty || config.fail_on_empty.unwrap_or(false),
+            baseline_from_ref: cli
+                .baseline_from_ref
+                .clone()
+                .or(config.baseline_from_ref.clone()),
+            // Command line only: a config file shared with CI must not
+            // narrow every run to the files of a clean checkout.
+            changed: cli.changed || cli.changed_only,
+            changed_only: cli.changed_only,
+            blame: cli.blame || config.blame.unwrap_or(false),
+            no_gitignore: cli.no_gitignore || config.no_gitignore.unwrap_or(false),
+            follow_symlinks: cli.follow_symlinks || config.follow_symlinks.unwrap_or(false),
+            max_size,
+            workers: cli.workers,
+            no_colors: cli.no_colors || config.no_colors.unwrap_or(false),
+            absolute: cli.absolute || config.absolute.unwrap_or(false),
+            ignore_case: cli.ignore_case || config.ignore_case.unwrap_or(false),
+            ignore_identifiers: identifiers != IdentifierMatching::Off,
+            blind_identifiers: identifiers == IdentifierMatching::Blind,
+            ignore_literals: cli.ignore_literals || config.ignore_literals.unwrap_or(false),
+            ignore_annotations: cli.ignore_annotations
+                || config.ignore_annotations.unwrap_or(false),
+            formats_exts,
+            formats_names,
+            cross_formats,
+            skip_local: cli.skip_local || config.skip_local.unwrap_or(false),
+            skip_isolated: cli
+                .skip_isolated
+                .as_deref()
+                .map(super::cli::parse_skip_isolated)
+                .or_else(|| config.skip_isolated.clone())
+                .unwrap_or_default(),
+            // NO_COLOR is deliberately not in this list: it only asks for
+            // plain output, and people who export it globally still sit in an
+            // interactive terminal. Tips are skipped at the print site instead
+            // when stdout is not a terminal.
+            no_tips: cli.no_tips
+                || config.no_tips.unwrap_or(false)
+                || ["CI", "JSCPD_NO_TIPS"]
+                    .iter()
+                    .any(|var| std::env::var(var).is_ok()),
+            silent: cli.silent || config.silent.unwrap_or(false),
+            summary: cli.summary || config.summary.unwrap_or(false),
+            // A bare --history turns the series on over the config's range,
+            // or, staying empty, over the newest commits of the branch.
+            history: match cli.history.as_deref() {
+                Some("") => Some(config.history.clone().unwrap_or_default()),
+                Some(range) => Some(range.to_string()),
+                None => config.history.clone(),
+            },
+            history_since: cli.history_since.clone().or(config.history_since.clone()),
+            history_every: cli.history_every.or(config.history_every).unwrap_or(1),
+            history_limit: cli.history_limit.or(config.history_limit).unwrap_or(30),
+            summary_top: cli.summary_top.or(config.summary_top).unwrap_or(10),
+            // Invalid metric values are warned about in main() (like --mode).
+            summary_by_set: cli.summary_by.is_some() || config.summary_by.is_some(),
+            summary_by: cli
+                .summary_by
+                .as_deref()
+                .or(config.summary_by.as_deref())
+                .and_then(|s| s.parse().ok())
+                .unwrap_or_default(),
+            pattern: cli.pattern.clone().or(config.pattern.clone()),
+            // Dead-code settings come from three places, nearest first: the
+            // flag, the config file's dead-code section, and the flat keys
+            // that predate the section.
+            dead_code: cli.dead_code
+                || config
+                    .dead_code
+                    .as_ref()
+                    .is_some_and(DeadCodeSetting::enabled),
+            dead_code_categories: if cli.dead_code_categories.is_empty() {
+                section
+                    .categories
+                    .clone()
+                    .or(config.dead_code_categories.clone())
+                    .unwrap_or_default()
+            } else {
+                cli.dead_code_categories.clone()
+            },
+            min_confidence: cli
+                .min_confidence
+                .or(section.min_confidence)
+                .or(config.min_confidence),
+            entry: if cli.entry.is_empty() {
+                section
+                    .entry
+                    .clone()
+                    .or(config.entry.clone())
+                    .unwrap_or_default()
+            } else {
+                cli.entry.clone()
+            },
+            include_tests: cli.include_tests
+                || section
+                    .include_tests
+                    .or(config.include_tests)
+                    .unwrap_or(false),
+            include_entry_exports: cli.include_entry_exports
+                || section
+                    .include_entry_exports
+                    .or(config.include_entry_exports)
+                    .unwrap_or(false),
+            dead_code_section: section,
+        }
+    }
+}
+
+/// What `--semantic-download [MODEL]` asks for.
+struct DownloadRequest {
+    requested: bool,
+    /// The model named after the flag.
+    model: Option<String>,
+    /// A path that followed the flag: `jscpd --semantic-download src/`
+    /// scans `src/`, as it did before the flag took a value.
+    path: Option<PathBuf>,
+}
+
+fn semantic_download(cli: &super::cli::Cli) -> DownloadRequest {
+    let value = cli.semantic_download.as_deref().map(str::trim);
+    let path = value.filter(|v| {
+        !v.is_empty()
+            && cpd_semantic::embed::catalog::find(v).is_none()
+            && std::path::Path::new(v).exists()
+    });
+    DownloadRequest {
+        requested: value.is_some(),
+        model: value
+            .filter(|v| !v.is_empty() && path.is_none())
+            .map(str::to_string),
+        path: path.map(PathBuf::from),
+    }
+}
+
+/// `--semantic` and its tuning flags laid over the config file's `semantic`
+/// section, with `model` (from the command line) over the section's model.
+/// Whether the mode is on is decided by the caller.
+pub(crate) fn semantic_options(
+    cli: &super::cli::Cli,
+    config: &super::cli::ConfigFile,
+    model: Option<String>,
+) -> SemanticOptions {
+    use cpd_semantic::{DEFAULT_HTTP_MODEL, DEFAULT_LOCAL_MODEL, Provider};
+    let section = config.semantic.clone().unwrap_or_default();
+    let defaults = SemanticOptions::default();
+    let url = cli.semantic_url.clone().or(section.url);
+    let provider = cli
+        .semantic_provider
+        .as_deref()
+        .and_then(|p| p.parse().ok())
+        .or(section.provider)
+        .unwrap_or(match url {
+            Some(_) => Provider::Http,
+            None => Provider::Local,
+        });
+    let model = model.or(section.model).unwrap_or_else(|| {
+        match provider {
+            Provider::Local => DEFAULT_LOCAL_MODEL,
+            Provider::Http => DEFAULT_HTTP_MODEL,
+        }
+        .to_string()
+    });
+    SemanticOptions {
+        provider,
+        threshold: cli
+            .semantic_threshold
+            .or(section.threshold)
+            .unwrap_or_else(|| cpd_semantic::embed::catalog::thresholds(&model, None, None).across),
+        same_threshold: cli.semantic_same_threshold.or(section.same_threshold),
+        scope: cli
+            .semantic_scope
+            .as_deref()
+            .and_then(|s| s.parse().ok())
+            .or(section.scope)
+            .unwrap_or(defaults.scope),
+        model,
+        url_from_config: cli.semantic_url.is_none() && url.is_some(),
+        url: url.unwrap_or(defaults.url),
+        dimensions: section.dimensions.filter(|&d| d > 0),
+        params: section.params.unwrap_or_default(),
+        prefix: section.prefix,
+        cache: section.cache.unwrap_or(defaults.cache),
+        // --compare runs the model too, but only a typed --semantic lets a
+        // config file's URL on another machine receive the code.
+        on_command_line: cli.semantic,
+        rebuild_cache: cli.semantic_rebuild_cache,
+    }
+}
+
+/// Why `name` can't name the report files, if it can't: the files go to
+/// `--output`, so a name is one plain file name without an extension, and
+/// not the name the codeclimate reporter writes.
+pub fn report_name_problem(name: &str) -> Option<String> {
+    use std::path::{Component, Path};
+    if name.trim().is_empty() {
+        return Some("the name is empty".to_string());
+    }
+    let mut parts = Path::new(name).components();
+    let plain = matches!(parts.next(), Some(Component::Normal(part)) if part == name)
+        && parts.next().is_none()
+        && !name.contains(['/', '\\']);
+    if !plain {
+        return Some(format!(
+            "'{name}' is a path; give a file name and set the folder with --output"
+        ));
+    }
+    if let Some(extension) = REPORT_EXTENSIONS
+        .iter()
+        .find(|extension| name.ends_with(&format!(".{extension}")))
+    {
+        return Some(format!(
+            "'{name}' ends in .{extension}; give the name without an extension"
+        ));
+    }
+    if name == "gl-code-quality-report" {
+        return Some(format!(
+            "'{name}.json' is the file of the codeclimate reporter"
+        ));
+    }
+    None
+}
+
+#[cfg(test)]
+mod report_name_tests {
+    use super::report_name_problem;
+
+    #[test]
+    fn a_plain_name_is_fine() {
+        for name in ["megalinter-jscpd", "jscpd-report", "report.v2", "x"] {
+            assert_eq!(report_name_problem(name), None, "{name}");
+        }
+    }
+
+    #[test]
+    fn empty_names_paths_extensions_and_the_codeclimate_file_are_refused() {
+        for name in [
+            "",
+            "  ",
+            "/tmp/x",
+            "../x",
+            "sub/x",
+            "sub\\x",
+            ".",
+            "..",
+            "x.json",
+            "x.sarif",
+            "gl-code-quality-report",
+        ] {
+            assert!(report_name_problem(name).is_some(), "{name:?}");
+        }
+    }
+}

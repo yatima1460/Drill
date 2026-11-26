@@ -43,6 +43,12 @@ class PlatformRouting(unittest.TestCase):
     def test_manual_validation(self):
         self.assertEqual(select([], "workflow_dispatch"), (ALL, False))
 
+    def test_detector_source_runs_only_the_duplicate_check(self):
+        for event in ("pull_request", "push"):
+            for path in ("vendor/jscpd/rust/Cargo.lock", "vendor/jscpd/rust/crates/cpd/src/main.rs"):
+                selected = check_outputs([path], event)
+                self.assertEqual({key for key, active in selected.items() if active}, {"duplicates"})
+
     def test_duplicate_gate_runs_for_every_platform_build(self):
         for event in ("pull_request", "push"):
             for path in ("Cargo.lock", "vendor/eframe/src/lib.rs", "src/assets/drill.ico"):

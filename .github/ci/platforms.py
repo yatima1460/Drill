@@ -11,7 +11,7 @@ def select(paths, event):
     platforms = set()
     product = False
     for path in paths:
-        if path.endswith(".md"):
+        if path.endswith(".md") or path.startswith("vendor/jscpd/"):
             continue
         targets = ALL
         shipped = True
@@ -50,6 +50,8 @@ def select(paths, event):
 
 
 def scans_source(path):
+    if path.startswith("vendor/jscpd/"):
+        return True
     if path.startswith("vendor/") or path.rsplit("/", 1)[-1] == "Cargo.lock":
         return False
     if path in {"src/assets/wordsalpha.txt", "tools/website-ci/package-lock.json",

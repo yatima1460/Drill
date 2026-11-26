@@ -1,0 +1,826 @@
+// shared.rs — common reporter utilities to keep output formatting DRY.
+
+use cpd_core::models::{CloneKind, CpdClone, Fragment, SimilarityMethod, StatRow, Statistics};
+use std::collections::BTreeMap;
+use std::collections::HashMap;
+
+/// ANSI terminal styling that respects `--no-colors`.
+pub struct Style {
+    no_colors: bool,
+}
+
+impl Style {
+    pub fn new(no_colors: bool) -> Self {
+        Self { no_colors }
+    }
+
+    pub fn dim(&self, text: &str) -> String {
+        if self.no_colors {
+            text.to_string()
+        } else {
+            format!("\x1b[90m{}\x1b[39m", text)
+        }
+    }
+
+    pub fn red(&self, text: &str) -> String {
+        if self.no_colors {
+            text.to_string()
+        } else {
+            format!("\x1b[31m{}\x1b[39m", text)
+        }
+    }
+
+    /// `text` in the ANSI foreground colour `code` (32 green, 33 yellow, ...).
+    pub fn paint(&self, text: &str, code: u8) -> String {
+        if self.no_colors {
+            text.to_string()
+        } else {
+            format!("\x1b[{code}m{text}\x1b[39m")
+        }
+    }
+
+    pub fn bold(&self, text: &str) -> String {
+        if self.no_colors {
+            text.to_string()
+        } else {
+            format!("\x1b[1m{}\x1b[22m", text)
+        }
+    }
+
+    pub fn bold_green(&self, text: &str) -> String {
+        if self.no_colors {
+            text.to_string()
+        } else {
+            format!("\x1b[1m\x1b[32m{}\x1b[39m\x1b[22m", text)
+        }
+    }
+
+    pub fn green_prefix(&self, message: &str) -> String {
+        if self.no_colors {
+            message.to_string()
+        } else {
+            format!("\x1b[32m{}\x1b[39m", message)
+        }
+    }
+
+    /// `text` as a solid badge chip: `code` becomes the background, via
+    /// reverse video, so it reads as a filled pill rather than coloured text.
+    pub fn chip(&self, text: &str, code: u8) -> String {
+        if self.no_colors {
+            text.to_string()
+        } else {
+            format!("\x1b[1m\x1b[{code}m\x1b[7m{text}\x1b[27m\x1b[39m\x1b[22m")
+        }
+    }
+}
+
+pub fn make_row(fmt: &str, row: &StatRow) -> [String; 7] {
+    [
+        fmt.to_string(),
+        row.sources.to_string(),
+        row.lines.to_string(),
+        row.tokens.to_string(),
+        row.clones.to_string(),
+        format!("{} ({:.2}%)", row.duplicated_lines, row.percentage),
+        format!("{} ({:.2}%)", row.duplicated_tokens, row.percentage_tokens),
+    ]
+}
+
+/// Iterate over format statistics sorted by format name.
+///
+/// `callback` receives `(format_name, stat_row)` for each known format, followed
+/// by `("Total:", total_row)`.
+pub fn for_each_sorted_format<F>(stats: &Statistics, mut callback: F)
+where
+    F: FnMut(&str, &StatRow),
+{
+    let mut format_names: Vec<&str> = stats.formats.keys().map(|s| s.as_str()).collect();
+    format_names.sort();
+    for fmt in &format_names {
+        if let Some(row) = stats.formats.get(*fmt) {
+            callback(fmt, row);
+        }
+    }
+    callback("Total:", &stats.total);
+}
+
+/// Prints the statistics table in the jscpd console style.
+pub fn print_table(stats: &Statistics, style: &Style, box_chars: BoxChars) {
+    let headers = [
+        "Format",
+        "Files analyzed",
+        "Total lines",
+        "Total tokens",
+        "Clones found",
+        "Duplicated lines",
+        "Duplicated tokens",
+    ];
+
+    let sorted_formats: BTreeMap<&str, &StatRow> =
+        stats.formats.iter().map(|(k, v)| (k.as_str(), v)).collect();
+
+    let format_rows: Vec<[String; 7]> = sorted_formats
+        .iter()
+        .map(|(fmt, row)| make_row(fmt, row))
+        .collect();
+
+    let total_row = make_row("Total:", &stats.total);
+
+    let mut widths = [0usize; 7];
+    for (i, h) in headers.iter().enumerate() {
+        widths[i] = h.len();
+    }
+    for row in format_rows.iter().chain(std::iter::once(&total_row)) {
+        for (i, cell) in row.iter().enumerate() {
+            widths[i] = widths[i].max(cell.len());
+        }
+    }
+
+    print_sep(
+        &widths,
+        box_chars.top_left,
+        box_chars.top_mid,
+        box_chars.top_right,
+        style,
+    );
+    print_row(
+        &headers.map(|h| h.to_string()),
+        &widths,
+        true,
+        style,
+        box_chars.vsep,
+    );
+    for row in &format_rows {
+        print_sep(
+            &widths,
+            box_chars.mid_left,
+            box_chars.mid_mid,
+            box_chars.mid_right,
+            style,
+        );
+        print_row(row, &widths, false, style, box_chars.vsep);
+    }
+    print_sep(
+        &widths,
+        box_chars.mid_left,
+        box_chars.mid_mid,
+        box_chars.mid_right,
+        style,
+    );
+    print_row(&total_row, &widths, false, style, box_chars.vsep);
+    print_sep(
+        &widths,
+        box_chars.bot_left,
+        box_chars.bot_mid,
+        box_chars.bot_right,
+        style,
+    );
+}
+
+/// Set of box-drawing characters used by `print_table`.
+pub struct BoxChars {
+    pub top_left: char,
+    pub top_mid: char,
+    pub top_right: char,
+    pub mid_left: char,
+    pub mid_mid: char,
+    pub mid_right: char,
+    pub bot_left: char,
+    pub bot_mid: char,
+    pub bot_right: char,
+    pub hsep: char,
+    pub vsep: char,
+}
+
+impl BoxChars {
+    /// ASCII-friendly box drawing characters.
+    pub fn ascii() -> Self {
+        Self {
+            top_left: '┌',
+            top_mid: '┬',
+            top_right: '┐',
+            mid_left: '├',
+            mid_mid: '┼',
+            mid_right: '┤',
+            bot_left: '└',
+            bot_mid: '┴',
+            bot_right: '┘',
+            hsep: '─',
+            vsep: '│',
+        }
+    }
+
+    /// Unicode box drawing characters.
+    pub fn unicode() -> Self {
+        Self {
+            top_left: '\u{250c}',
+            top_mid: '\u{252c}',
+            top_right: '\u{2510}',
+            mid_left: '\u{251c}',
+            mid_mid: '\u{253c}',
+            mid_right: '\u{2524}',
+            bot_left: '\u{2514}',
+            bot_mid: '\u{2534}',
+            bot_right: '\u{2518}',
+            hsep: '\u{2500}',
+            vsep: '\u{2502}',
+        }
+    }
+}
+
+fn print_sep(widths: &[usize], left: char, mid: char, right: char, style: &Style) {
+    let mut s = String::new();
+    s.push(left);
+    for (i, &w) in widths.iter().enumerate() {
+        for _ in 0..(w + 2) {
+            s.push('─');
+        }
+        if i < widths.len() - 1 {
+            s.push(mid);
+        }
+    }
+    s.push(right);
+    println!("{}", style.dim(&s));
+}
+
+fn print_row(cells: &[String; 7], widths: &[usize], header: bool, style: &Style, vsep: char) {
+    let sep = style.dim(&vsep.to_string());
+    print!("{}", sep);
+    for (i, cell) in cells.iter().enumerate() {
+        if header {
+            let text = style.red(&format!(" {:width$} ", cell, width = widths[i]));
+            print!("{}{}", text, sep);
+        } else if i == 0 && cell == "Total:" {
+            let padded = format!("{:<width$}", cell, width = widths[i]);
+            print!(" {}{} {}", style.bold(cell), &padded[cell.len()..], sep);
+        } else {
+            print!(" {:width$} {}", cell, sep, width = widths[i]);
+        }
+    }
+    println!();
+}
+
+// Canonical implementations live in cpd-core so cpd-finder (blame) resolves
+// paths identically; re-exported here to keep the reporter-facing API stable.
+pub use cpd_core::paths::{clean_source_id, resolve_fragment_path};
+
+/// Read the text lines from `content` between `[start_line, end_line]` (1-indexed, inclusive).
+pub fn extract_lines(content: &str, start_line: u32, end_line: u32) -> String {
+    content
+        .lines()
+        .skip(start_line.saturating_sub(1) as usize)
+        .take(end_line.saturating_sub(start_line.saturating_sub(1)) as usize)
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
+/// Load file contents once per resolved path. Returns the cached entry when available.
+pub fn read_file_cached<'a>(
+    cache: &'a mut HashMap<String, String>,
+    fragment: &Fragment,
+) -> &'a str {
+    let resolved = resolve_fragment_path(fragment);
+    cache
+        .entry(resolved.clone())
+        .or_insert_with(|| std::fs::read_to_string(&resolved).unwrap_or_default())
+        .as_str()
+}
+
+/// Read the source text for a fragment from disk, if available.
+pub fn fragment_text(cache: &mut HashMap<String, String>, fragment: &Fragment) -> String {
+    let content = read_file_cached(cache, fragment).to_string();
+    extract_lines(&content, fragment.start.line, fragment.end.line)
+}
+
+/// The texts a clone is known by, in SARIF and in a baseline: its two
+/// snippets. None when neither snippet can be read from disk.
+pub fn identity_texts(
+    cache: &mut HashMap<String, String>,
+    clone: &CpdClone,
+) -> Option<(String, String)> {
+    let snippet_a = fragment_text(cache, &clone.fragment_a);
+    let snippet_b = fragment_text(cache, &clone.fragment_b);
+    if snippet_a.is_empty() && snippet_b.is_empty() {
+        return None;
+    }
+    Some((snippet_a, snippet_b))
+}
+
+/// Content hash identifying a clone pair: the 16-hex-char `snippet_pair_hash`
+/// of the texts it is known by ([`identity_texts`]), insensitive to fragment
+/// order. This is the same identity used by SARIF `partialFingerprints` and
+/// the baseline file. None when neither snippet can be read from disk.
+pub fn clone_pair_hash(cache: &mut HashMap<String, String>, clone: &CpdClone) -> Option<String> {
+    let (a, b) = identity_texts(cache, clone)?;
+    Some(format!(
+        "{:016x}",
+        cpd_core::hash::snippet_pair_hash(&a, &b)
+    ))
+}
+
+/// Print a source snippet for a fragment, with optional color dimming.
+pub fn print_snippet(fragment: &Fragment, style: &Style, max_display: usize) {
+    let resolved = resolve_fragment_path(fragment);
+    let content = match std::fs::read_to_string(&resolved) {
+        Ok(c) => c,
+        Err(_) => return,
+    };
+
+    let start = fragment.start.line.saturating_sub(1) as usize;
+    let end = fragment.end.line as usize;
+
+    let lines: Vec<&str> = content.lines().collect();
+    let snippet_lines = lines.get(start..end.min(lines.len())).unwrap_or(&[]);
+
+    let truncated = snippet_lines.len() > max_display;
+    let display_lines = if truncated {
+        &snippet_lines[..max_display]
+    } else {
+        snippet_lines
+    };
+
+    for (i, line) in display_lines.iter().enumerate() {
+        let line_num = fragment.start.line as usize + i;
+        let prefix = format!("{:>4} │ ", line_num);
+        println!("{}{}", style.dim(&prefix), line);
+    }
+    if truncated {
+        let remaining = snippet_lines.len() - max_display;
+        println!("{}", style.dim(&format!("     … {} more lines", remaining)));
+    }
+}
+
+/// Format a clone location summary line, e.g. `file [1:1 - 10:10]`.
+pub fn format_location(
+    source_id: &str,
+    start_line: u32,
+    start_col: u32,
+    end_line: u32,
+    end_col: u32,
+) -> String {
+    format!(
+        "{} [{}:{} - {}:{}]",
+        source_id,
+        start_line,
+        start_col + 1,
+        end_line,
+        end_col + 1
+    )
+}
+
+/// Label for a clone header: the format, plus `, renamed` for Type-2 clones,
+/// `, similar (gap) ~0.91` / `, similar (ast) ~0.75` for near-miss clones —
+/// the method matters because the two scores are not comparable — and
+/// `, semantic ~0.78` for Type-4 clones, whose score is a cosine similarity.
+pub fn clone_label(
+    format: &str,
+    kind: CloneKind,
+    similarity: Option<f32>,
+    method: Option<SimilarityMethod>,
+) -> String {
+    match (kind, similarity) {
+        (CloneKind::Exact, _) => format.to_string(),
+        (CloneKind::Renamed, _) => format!("{format}, renamed"),
+        (CloneKind::Similar, Some(s)) => match method {
+            Some(m) => format!("{format}, similar ({}) ~{s:.2}", m.as_str()),
+            None => format!("{format}, similar ~{s:.2}"),
+        },
+        (CloneKind::Similar, None) => format!("{format}, similar"),
+        (CloneKind::Semantic, Some(s)) => format!("{format}, semantic ~{s:.2}"),
+        (CloneKind::Semantic, None) => format!("{format}, semantic"),
+    }
+}
+
+/// Print a clone header line in console style: `Clone found (format)`, with a
+/// `, renamed` / `, similar ~0.91` suffix for non-exact clones and a ` [NEW]`
+/// marker for clones absent from the baseline.
+pub fn print_clone_header(style: &Style, clone: &CpdClone) {
+    let header = style.bold(&format!(
+        "Clone found ({})",
+        clone_label(
+            &clone.format,
+            clone.kind,
+            clone.similarity,
+            clone.similarity_method
+        )
+    ));
+    let is_new = clone.is_new;
+    if is_new {
+        println!("{} {}", header, style.red("[NEW]"));
+    } else {
+        println!("{}", header);
+    }
+}
+
+/// Print the two fragment location lines for a clone (console-full style).
+pub fn print_clone_locations(_style: &Style, clone: &CpdClone) {
+    let fa = &clone.fragment_a;
+    let fb = &clone.fragment_b;
+    println!(
+        " - {}",
+        format_location(
+            &fa.source_id,
+            fa.start.line,
+            fa.start.column,
+            fa.end.line,
+            fa.end.column
+        )
+    );
+    println!(
+        "   {}",
+        format_location(
+            &fb.source_id,
+            fb.start.line,
+            fb.start.column,
+            fb.end.line,
+            fb.end.column
+        )
+    );
+}
+
+/// Build the standard duplication summary sentence used by silent/markdown reporters.
+pub fn summary_line(
+    clones_len: usize,
+    total: &cpd_core::models::StatRow,
+    format_count: usize,
+) -> String {
+    format!(
+        "Duplications detection: Found {} exact clones with {}({:.2}%) duplicated lines in {} ({} formats) files.",
+        clones_len, total.duplicated_lines, total.percentage, total.sources, format_count,
+    )
+}
+
+/// Print the trailing "Found N clones" summary line. When a baseline marked
+/// clones as new, the count is qualified with "(M new)".
+pub fn print_found_count(clones: &[CpdClone], new_clones: u64, style: &Style) {
+    let suffix = if new_clones > 0 {
+        format!(" ({} new)", new_clones)
+    } else {
+        String::new()
+    };
+    println!(
+        "{}",
+        style.dim(&format!("Found {} clones{}.", clones.len(), suffix))
+    );
+}
+
+/// Print the report trailer shared by console-style reporters.
+pub fn print_report_trailer(
+    clones: &[CpdClone],
+    stats: &Statistics,
+    style: &Style,
+    box_chars: BoxChars,
+) {
+    print_table(stats, style, box_chars);
+    print_found_count(clones, stats.total.new_clones, style);
+}
+
+/// Print the "No duplicates found." message used by console-style reporters.
+pub fn print_no_duplicates(style: &Style) {
+    println!("{}", style.dim("No duplicates found."));
+}
+
+/// Shared skeleton for console-style reporters.
+///
+/// Prints the empty-clones message, invokes `render_clone` for each clone, then prints the
+/// statistics table and found-count summary.
+pub fn report_console_style<F>(
+    clones: &[CpdClone],
+    stats: &Statistics,
+    style: &Style,
+    box_chars: BoxChars,
+    mut render_clone: F,
+) where
+    F: FnMut(&CpdClone),
+{
+    if clones.is_empty() {
+        print_no_duplicates(style);
+    } else {
+        for clone in clones {
+            render_clone(clone);
+        }
+    }
+    print_report_trailer(clones, stats, style, box_chars);
+}
+
+/// Print a green "X report saved to PATH" message, respecting `--no-colors`.
+/// `label` is the kind of report, e.g. `CSV`.
+pub fn print_saved_report(style: &Style, label: &str, path: &std::path::Path) {
+    let msg = format!("{} report saved to {}", label, path.display());
+    println!("{}", style.green_prefix(&msg));
+}
+
+/// Write serialized report content to `output_dir/<filename>` and print the saved message.
+pub fn write_report_file<C: AsRef<[u8]>>(
+    output_dir: &std::path::Path,
+    filename: &str,
+    content: C,
+    style: &Style,
+    label: &str,
+) -> Result<std::path::PathBuf, std::io::Error> {
+    std::fs::create_dir_all(output_dir)?;
+    let path = output_dir.join(filename);
+    std::fs::write(&path, content)?;
+    print_saved_report(style, label, &path);
+    Ok(path)
+}
+
+/// Print the opt-in blocks that follow a console-style report: the
+/// `--summary` tables and the `--history` chart. Shared by every reporter that
+/// writes to stdout so the two features render the same everywhere.
+pub fn print_appendices(ctx: &crate::context::ReportContext, style: &Style) {
+    if let Some(boundaries) = ctx.boundaries {
+        crate::boundaries_render::print_boundaries(boundaries, style);
+    }
+    if let Some(summary) = ctx.summary {
+        crate::summary_render::print_summary(summary, style);
+    }
+    if let Some(history) = ctx.history {
+        crate::history_render::print_history(history, style);
+    }
+}
+
+#[cfg(test)]
+pub mod fixtures {
+    use crate::context::ReportContext;
+    use cpd_core::models::{CpdClone, Fragment, Location, StatRow, Statistics};
+    use std::collections::HashMap;
+    use std::path::{Path, PathBuf};
+    use std::time::Duration;
+
+    /// Build a minimal Statistics total with the given duplication percentage and duplicated lines.
+    pub fn stats_with_pct(pct: f64, lines: u64) -> Statistics {
+        Statistics {
+            total: StatRow {
+                lines: 100,
+                tokens: 500,
+                sources: 5,
+                clones: 2,
+                duplicated_lines: lines,
+                duplicated_tokens: 50,
+                percentage: pct,
+                percentage_tokens: pct,
+                new_duplicated_lines: 0,
+                new_clones: 0,
+            },
+            formats: HashMap::new(),
+            detection_date: "2026-01-01T00:00:00Z".to_string(),
+        }
+    }
+
+    /// Generate a test asserting that `Reporter::report` succeeds on an empty clone list.
+    #[macro_export]
+    macro_rules! assert_empty_report_ok {
+        ($test_name:ident, $reporter:ty) => {
+            #[test]
+            fn $test_name() {
+                let output_dir = std::path::PathBuf::from("/tmp");
+                let opts = $crate::reporter::ReporterOptions::new(output_dir.clone());
+                let reporter = <$reporter>::new(&opts);
+                let ctx = $crate::shared::fixtures::empty_ctx();
+                assert!(
+                    $crate::reporter::Reporter::report(&reporter, &[], &ctx, &output_dir,).is_ok()
+                );
+            }
+        };
+    }
+
+    /// Generate a test asserting that the reporter `name()` returns the expected value.
+    #[macro_export]
+    macro_rules! assert_reporter_name {
+        ($test_name:ident, $reporter:ty, $expected:expr) => {
+            #[test]
+            fn $test_name() {
+                let opts = $crate::reporter::ReporterOptions::new(std::path::PathBuf::from("/tmp"));
+                let reporter = <$reporter>::new(&opts);
+                assert_eq!($crate::reporter::Reporter::name(&reporter), $expected);
+            }
+        };
+    }
+
+    /// Run a file-writing reporter over `clones` with `stats` into a fresh
+    /// temp dir and return the content of `file_name`. `configure` adjusts the
+    /// options before `make` builds the reporter from them.
+    pub fn report_to_file<R: crate::reporter::Reporter>(
+        prefix: &str,
+        file_name: &str,
+        clones: &[CpdClone],
+        stats: &Statistics,
+        configure: impl FnOnce(&mut crate::reporter::ReporterOptions),
+        make: impl FnOnce(&crate::reporter::ReporterOptions) -> R,
+    ) -> String {
+        report_to_file_timed(
+            prefix,
+            file_name,
+            clones,
+            stats,
+            Duration::ZERO,
+            configure,
+            make,
+        )
+    }
+
+    /// [`report_to_file`] with an explicit detection duration, for reporters
+    /// that print the elapsed time.
+    pub fn report_to_file_timed<R: crate::reporter::Reporter>(
+        prefix: &str,
+        file_name: &str,
+        clones: &[CpdClone],
+        stats: &Statistics,
+        duration: Duration,
+        configure: impl FnOnce(&mut crate::reporter::ReporterOptions),
+        make: impl FnOnce(&crate::reporter::ReporterOptions) -> R,
+    ) -> String {
+        let dir = tmp_dir(prefix);
+        let mut opts = crate::reporter::ReporterOptions::new(dir.clone());
+        configure(&mut opts);
+        let reporter = make(&opts);
+        let ctx = ReportContext::new(stats, duration);
+        reporter.report(clones, &ctx, &dir).unwrap();
+        std::fs::read_to_string(dir.join(file_name)).unwrap()
+    }
+
+    /// Run a stdout reporter over an empty clone list with `stats` and return
+    /// its result, for reporters that write nothing to disk.
+    pub fn report_result<R: crate::reporter::Reporter>(
+        stats: &Statistics,
+        configure: impl FnOnce(&mut crate::reporter::ReporterOptions),
+        make: impl FnOnce(&crate::reporter::ReporterOptions) -> R,
+    ) -> Result<(), crate::reporter::ReporterError> {
+        let dir = PathBuf::from("/tmp");
+        let mut opts = crate::reporter::ReporterOptions::new(dir.clone());
+        configure(&mut opts);
+        let reporter = make(&opts);
+        let ctx = ReportContext::new(stats, Duration::ZERO);
+        reporter.report(&[], &ctx, &dir)
+    }
+
+    /// Leaked empty statistics for tests that need a `ReportContext<'static>`.
+    pub fn empty_ctx() -> ReportContext<'static> {
+        let stats = Box::leak(Box::new(empty_stats()));
+        ReportContext::new(stats, Duration::ZERO)
+    }
+
+    /// Write `text` to `name` under `dir` and return a fragment covering
+    /// lines `start..=end` of it.
+    pub fn file_fragment(dir: &Path, name: &str, text: &str, start: u32, end: u32) -> Fragment {
+        let path = dir.join(name);
+        std::fs::write(&path, text).unwrap();
+        Fragment::new(
+            path.to_string_lossy().into_owned(),
+            Location::new(start, 0, 0),
+            Location::new(end, 0, 0),
+            [0, text.len() as u32],
+        )
+    }
+
+    pub fn tmp_dir(prefix: &str) -> PathBuf {
+        // A process-wide counter guarantees uniqueness across parallel test
+        // threads; timestamps alone can collide and make tests share a dir.
+        static NEXT_ID: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+        let dir = std::env::temp_dir().join(format!(
+            "cpd-{}-{}-{}",
+            prefix,
+            std::process::id(),
+            NEXT_ID.fetch_add(1, std::sync::atomic::Ordering::Relaxed)
+        ));
+        std::fs::create_dir_all(&dir).ok();
+        dir
+    }
+
+    pub fn empty_stats() -> Statistics {
+        Statistics {
+            total: StatRow::default(),
+            formats: HashMap::new(),
+            detection_date: "2026-01-01T00:00:00Z".to_string(),
+        }
+    }
+
+    pub fn one_clone_stats() -> Statistics {
+        let mut formats = HashMap::new();
+        formats.insert(
+            "javascript".to_string(),
+            StatRow {
+                lines: 100,
+                tokens: 500,
+                sources: 5,
+                clones: 1,
+                duplicated_lines: 10,
+                duplicated_tokens: 50,
+                percentage: 10.0,
+                percentage_tokens: 10.0,
+                new_duplicated_lines: 0,
+                new_clones: 0,
+            },
+        );
+        Statistics {
+            total: StatRow {
+                lines: 100,
+                tokens: 500,
+                sources: 5,
+                clones: 1,
+                duplicated_lines: 10,
+                duplicated_tokens: 50,
+                percentage: 10.0,
+                percentage_tokens: 10.0,
+                new_duplicated_lines: 0,
+                new_clones: 0,
+            },
+            formats,
+            detection_date: "2026-01-01T00:00:00Z".to_string(),
+        }
+    }
+
+    pub fn make_clone(source_a: &str, source_b: &str, token_count: u32) -> CpdClone {
+        make_clone_with_lines(source_a, source_b, 1, 10, token_count)
+    }
+
+    pub fn make_clone_with_lines(
+        source_a: &str,
+        source_b: &str,
+        start_line: u32,
+        end_line: u32,
+        token_count: u32,
+    ) -> CpdClone {
+        let start = Location {
+            line: start_line,
+            column: 0,
+            offset: 0,
+        };
+        let end = Location {
+            line: end_line,
+            column: 0,
+            offset: 100,
+        };
+        make_clone_with_locations(source_a, source_b, start.clone(), end.clone(), token_count)
+    }
+
+    pub fn make_clone_with_locations(
+        source_a: &str,
+        source_b: &str,
+        start: Location,
+        end: Location,
+        token_count: u32,
+    ) -> CpdClone {
+        let frag_a = Fragment {
+            source_id: source_a.to_string(),
+            source_root: None,
+            start: start.clone(),
+            end: end.clone(),
+            range: [0, 100],
+            blame: None,
+        };
+        let frag_b = Fragment {
+            source_id: source_b.to_string(),
+            source_root: None,
+            start,
+            end,
+            range: [0, 100],
+            blame: None,
+        };
+        CpdClone::exact("javascript".to_string(), frag_a, frag_b, token_count)
+    }
+}
+
+#[cfg(test)]
+mod label_tests {
+    use super::*;
+
+    #[test]
+    fn clone_label_shows_kind_method_and_score() {
+        assert_eq!(
+            clone_label("javascript", CloneKind::Exact, None, None),
+            "javascript"
+        );
+        assert_eq!(
+            clone_label("javascript", CloneKind::Renamed, None, None),
+            "javascript, renamed"
+        );
+        assert_eq!(
+            clone_label(
+                "javascript",
+                CloneKind::Similar,
+                Some(0.91),
+                Some(SimilarityMethod::Gap)
+            ),
+            "javascript, similar (gap) ~0.91"
+        );
+        assert_eq!(
+            clone_label(
+                "typescript",
+                CloneKind::Similar,
+                Some(0.752),
+                Some(SimilarityMethod::Ast)
+            ),
+            "typescript, similar (ast) ~0.75"
+        );
+        assert_eq!(
+            clone_label("java", CloneKind::Similar, None, None),
+            "java, similar"
+        );
+        assert_eq!(
+            clone_label("rust", CloneKind::Semantic, Some(0.7849), None),
+            "rust, semantic ~0.78"
+        );
+    }
+}

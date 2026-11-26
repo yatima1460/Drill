@@ -1,0 +1,26 @@
+[package]
+name = "cpd-reporter"
+version = "0.1.24"
+edition.workspace = true
+publish = false
+rust-version.workspace = true
+description = "Output format reporters for cpd"
+homepage.workspace = true
+license.workspace = true
+repository.workspace = true
+documentation = "https://docs.rs/cpd-reporter"
+keywords = ["duplicate-code", "clone-detection", "sarif", "cpd", "static-analysis"]
+categories = ["development-tools"]
+
+[dependencies]
+cpd-core = { version = "0.1.23", path = "../cpd-core" }
+cpd-finder = { version = "0.1.22", path = "../cpd-finder" }
+cpd-tokenizer = { version = "0.1.22", path = "../cpd-tokenizer" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+quick-xml = { version = "0.42", features = ["serialize"] }
+csv = "1"
+# Without the default `config` feature: jscpd has no askama.toml, and the
+# feature pulls in basic-toml, which is unmaintained (RUSTSEC-2026-0374).
+askama = { version = "0.16", default-features = false, features = ["derive", "std"] }
+xxhash-rust = { version = "0.8", features = ["xxh3"] }

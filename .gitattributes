@@ -1,2 +1,5 @@
 # Auto detect text files and perform LF normalization
 * text=auto
+
+# Keep the pinned upstream jscpd tree byte-identical on every checkout.
+vendor/jscpd/rust/** -text

@@ -1,0 +1,70 @@
+use crate::context::ReportContext;
+use crate::reporter::{Reporter, ReporterError, ReporterOptions};
+use crate::shared::{Style, summary_line};
+use cpd_core::models::CpdClone;
+use std::path::Path;
+
+pub struct SilentReporter {
+    style: Style,
+}
+
+impl SilentReporter {
+    pub fn new(opts: &ReporterOptions) -> Self {
+        Self {
+            style: Style::new(opts.no_colors),
+        }
+    }
+}
+
+impl Reporter for SilentReporter {
+    fn name(&self) -> &str {
+        "silent"
+    }
+
+    fn report(
+        &self,
+        clones: &[CpdClone],
+        ctx: &ReportContext,
+        _output_dir: &Path,
+    ) -> Result<(), ReporterError> {
+        let total = &ctx.stats.total;
+        let format_count = ctx.stats.formats.len();
+        let line = summary_line(clones.len(), total, format_count);
+        println!("{}", self.style.bold(&line));
+        Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::assert_reporter_name;
+    use crate::shared::fixtures::report_result;
+    use cpd_core::models::{StatRow, Statistics};
+    use std::collections::HashMap;
+
+    fn any_stats() -> Statistics {
+        Statistics {
+            total: StatRow {
+                lines: 1000,
+                tokens: 5000,
+                sources: 10,
+                clones: 5,
+                duplicated_lines: 500,
+                duplicated_tokens: 2500,
+                percentage: 50.0,
+                percentage_tokens: 50.0,
+                ..StatRow::default()
+            },
+            formats: HashMap::new(),
+            detection_date: "2026-01-01T00:00:00Z".to_string(),
+        }
+    }
+
+    assert_reporter_name!(silent_name_is_correct, SilentReporter, "silent");
+
+    #[test]
+    fn silent_always_ok_with_high_duplication() {
+        assert!(report_result(&any_stats(), |_| {}, SilentReporter::new).is_ok());
+    }
+}

@@ -6,6 +6,7 @@ on:
       - '.github/workflows/offline-source.yml'
       - '**/Cargo.toml'
       - '**/Cargo.lock'
+      - '!vendor/jscpd/**'
       - '.cargo/**'
       - 'rust-toolchain.toml'
   workflow_dispatch:
