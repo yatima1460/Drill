@@ -15,8 +15,9 @@ def select(paths, event):
             continue
         targets = ALL
         shipped = True
-        if path.startswith((".github/ci/", "tests/")) or path in {
-            ".github/workflows/rust.yml", "crates/drill-core/src/test_directory.rs",
+        if path.startswith("tests/") or path in {
+            ".github/workflows/rust.yml", ".github/ci/platforms.py",
+            ".github/ci/test_platforms.py", "crates/drill-core/src/test_directory.rs",
         }:
             shipped = False
         elif path.startswith(("scripts/test-native-ui-linux", "scripts/test-appimage-open", "scripts/test-wine-linux")):

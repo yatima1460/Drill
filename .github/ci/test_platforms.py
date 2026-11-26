@@ -5,7 +5,8 @@ from platforms import ALL, scans_source, select
 class PlatformRouting(unittest.TestCase):
     def test_web_and_notes(self):
         paths = ["docs/styles.css", "docs/index.html", "docs/releases.js", "docs/screenshot.png",
-                 "docs/rust-migration.md", "README.md", "tools/website-ci/package.json"]
+                 "docs/rust-migration.md", "README.md", "tools/website-ci/package.json",
+                 ".github/ci/prepare-jscpd.sh", ".github/ci/windows_resource_smoke.py"]
         for event in ("push", "pull_request"):
             self.assertEqual(select(paths, event), (set(), False))
 
