@@ -46,6 +46,18 @@ jobs:
       - run: cargo build --release --locked
       - run: target/release/drill --version
       - run: scripts/package-linux.sh
+      - name: Double-click AppImage results with Xed and Nemo
+        timeout-minutes: 8
+        run: |
+          docker run --rm --volume "$PWD/scripts/test-appimage-open.sh:/test.sh:ro" \
+            --volume "$PWD/dist/Drill-linux-x86_64.AppImage:/Drill.AppImage:ro" \
+            archlinux:base bash -euxo pipefail -c '
+              pacman -Syu --noconfirm --needed xed nemo xorg-server-xvfb xorg-xauth openbox xdotool wmctrl xdg-utils libxkbcommon-x11 mesa ttf-dejavu
+              useradd -m tester
+              install -d -m 700 -o tester /tmp/drill-session
+              runuser -u tester -- env XDG_RUNTIME_DIR=/tmp/drill-session \
+                xvfb-run -a dbus-run-session -- bash /test.sh /Drill.AppImage
+            '
       - uses: actions/upload-artifact@v4
         with:
           name: drill-linux
@@ -59,7 +71,7 @@ jobs:
         with:
           toolchain: 1.100.0
           targets: x86_64-pc-windows-gnu
-      - run: sudo apt-get update && sudo apt-get install -y gcc-mingw-w64-x86-64 zip file
+      - run: sudo apt-get update && sudo apt-get install -y gcc-mingw-w64-x86-64 zip file icoutils
       - name: Cross-compile Windows executable
         env:
           CARGO_TARGET_X86_64_PC_WINDOWS_GNU_LINKER: x86_64-w64-mingw32-gcc
@@ -77,6 +89,13 @@ jobs:
           cp LICENSE build/windows/
           (cd build/windows && zip -q ../../dist/Drill-windows-x86_64.zip Drill.exe LICENSE)
           unzip -t dist/Drill-windows-x86_64.zip
+          unzip -p dist/Drill-windows-x86_64.zip Drill.exe > build/windows/packaged.exe
+          wrestool --extract --type=14 --name=1 build/windows/packaged.exe > build/windows/embedded.ico
+          mkdir -p build/windows/{original,embedded}
+          icotool -x -o build/windows/original/ src/assets/drill.ico
+          cp build/windows/embedded.ico build/windows/drill.ico
+          icotool -x -o build/windows/embedded/ build/windows/drill.ico
+          diff -r build/windows/original build/windows/embedded
       - uses: actions/upload-artifact@v4
         with:
           name: drill-windows

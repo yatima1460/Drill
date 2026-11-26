@@ -4,10 +4,20 @@ if [[ $# -gt 1 || (${1:-} != '' && ${1:-} != '--stage-only') ]]; then
   echo 'Usage: package-macos.sh [--stage-only]' >&2
   exit 2
 fi
-mkdir -p dist 'build/dmg-root/Drill.app/Contents/MacOS' 'build/dmg-root/Drill.app/Contents/Resources'
-install -m 755 target/release/drill 'build/dmg-root/Drill.app/Contents/MacOS/Drill'
-cp src/assets/drill-macos.icns 'build/dmg-root/Drill.app/Contents/Resources/Drill.icns'
-cat > 'build/dmg-root/Drill.app/Contents/Info.plist' <<'PLIST'
+mkdir -p build dist
+work=$(mktemp -d "$PWD/build/dmg.XXXXXXXX")
+mount="$work/mount"
+mounted=false
+cleanup() {
+  if [[ $mounted == true ]]; then hdiutil detach "$mount" || return 1; fi
+  rm -rf "$work"
+}
+trap cleanup EXIT
+app="$work/root/Drill.app"
+mkdir -p "$app/Contents/MacOS" "$app/Contents/Resources" "$mount"
+install -m 755 target/release/drill "$app/Contents/MacOS/Drill"
+cp src/assets/drill-macos.icns "$app/Contents/Resources/Drill.icns"
+cat > "$app/Contents/Info.plist" <<'PLIST'
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0"><dict>
@@ -28,15 +38,39 @@ cat > 'build/dmg-root/Drill.app/Contents/Info.plist' <<'PLIST'
 <key>NSFileProviderDomainUsageDescription</key><string>Drill searches cloud folders for filenames.</string>
 </dict></plist>
 PLIST
-/usr/bin/plutil -lint 'build/dmg-root/Drill.app/Contents/Info.plist'
-if [[ ${1:-} == '--stage-only' ]]; then exit 0; fi
-'build/dmg-root/Drill.app/Contents/MacOS/Drill' --version
-hdiutil create -volname Drill -srcfolder 'build/dmg-root' -ov -format UDZO "dist/Drill-macos-$(uname -m).dmg"
-hdiutil verify "dist/Drill-macos-$(uname -m).dmg"
+/usr/bin/plutil -lint "$app/Contents/Info.plist"
+ln -s /Applications "$work/root/Applications"
+cp scripts/macos-dmg/background.png "$work/root/.background.png"
+python3 -m venv build/dmg-tools
+python=build/dmg-tools/bin/python
+"$python" -m pip install --disable-pip-version-check --require-hashes --only-binary=:all: \
+  -r scripts/macos-dmg/requirements.txt
 
-mkdir -p build/dmg-check
-hdiutil attach -nobrowse -readonly -mountpoint "$PWD/build/dmg-check" "dist/Drill-macos-$(uname -m).dmg"
-trap 'hdiutil detach "$PWD/build/dmg-check" || true' EXIT
-bundle_id=$(/usr/bin/plutil -extract CFBundleIdentifier raw -o - 'build/dmg-check/Drill.app/Contents/Info.plist')
+# The extra room allows codesign to replace the executable on the staged volume.
+root_kib=$(du -sk "$work/root" | cut -f1)
+stage="$work/Drill-stage.dmg"
+hdiutil create -volname Drill -fs HFS+ -srcfolder "$work/root" -size "$((root_kib + 32768))k" -format UDRW "$stage"
+hdiutil attach -nobrowse -readwrite -mountpoint "$mount" "$stage"
+mounted=true
+"$python" -I scripts/macos-dmg/layout.py "$mount"
+if [[ ${1:-} == '--stage-only' ]]; then
+  cmp target/release/drill "$mount/Drill.app/Contents/MacOS/Drill"
+  "$python" -I scripts/macos-dmg/check-layout.py "$mount"
+fi
+hdiutil detach "$mount"
+mounted=false
+if [[ ${1:-} == '--stage-only' ]]; then
+  mv -f "$stage" build/Drill-stage.dmg
+  exit 0
+fi
+
+dmg="dist/Drill-macos-$(uname -m).dmg"
+hdiutil convert "$stage" -format UDZO -ov -o "$dmg"
+hdiutil verify "$dmg"
+hdiutil attach -nobrowse -readonly -mountpoint "$mount" "$dmg"
+mounted=true
+"$python" -I scripts/macos-dmg/check-layout.py "$mount"
+cmp scripts/macos-dmg/background.png "$mount/.background.png"
+bundle_id=$(/usr/bin/plutil -extract CFBundleIdentifier raw -o - "$mount/Drill.app/Contents/Info.plist")
 [[ "$bundle_id" == 'software.drill' ]] || { echo "Unexpected bundle identifier: $bundle_id" >&2; exit 1; }
-'build/dmg-check/Drill.app/Contents/MacOS/Drill' --version
+"$mount/Drill.app/Contents/MacOS/Drill" --version
