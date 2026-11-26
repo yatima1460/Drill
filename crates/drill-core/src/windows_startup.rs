@@ -47,7 +47,7 @@ fn lookup(path: &Path, filter: FileFilter) -> Option<(PathBuf, Entry)> {
     #[cfg(not(windows))]
     let name = path.file_name()?.to_str()?.to_owned();
     // A short (8.3) alias may resolve to an unrelated long name.
-    if query::normalized(&name) != path.file_name()?.to_str()? {
+    if query::normalized(&name) != query::normalized(path.file_name()?.to_str()?) {
         return None;
     }
     let actual_path = path.with_file_name(&name);
@@ -269,7 +269,7 @@ mod tests {
         let candidate = system.join("tool.exe");
         let expected = candidate.clone();
         let mut scan = WindowsSearch::start_with(
-            SearchQuery::parse("TOOL.EXE"),
+            SearchQuery::parse("tool.exe"),
             token(),
             FileFilter::All,
             move |_| {
@@ -307,6 +307,39 @@ mod tests {
         );
         release_probe.send(()).unwrap();
         exit.recv_timeout(TIMEOUT).unwrap();
+    }
+
+    #[test]
+    fn system_lookup_uses_the_literal_accented_and_mixed_case_filename() {
+        let temp = tempfile::tempdir().unwrap();
+        let root = temp.path().to_owned();
+        let disk_name = "CaféTool.EXE";
+        let expected = root.join(disk_name);
+        fs::write(&expected, b"file").unwrap();
+        let (release, gate) = mpsc::channel();
+        let (called, candidate) = mpsc::channel();
+        let mut scan = WindowsSearch::start_with(
+            SearchQuery::parse("  CaféTool.EXE  "),
+            token(),
+            FileFilter::WindowsExecutables,
+            move |_| {
+                let _ = gate.recv_timeout(TIMEOUT);
+                vec![]
+            },
+            permit,
+            move || vec![root],
+            move |p, filter| {
+                called.send(p.to_owned()).unwrap();
+                lookup(p, filter)
+            },
+        );
+        assert_eq!(candidate.recv_timeout(TIMEOUT).unwrap(), expected);
+        let (kind, hit) = poll(|| scan.try_recv_hit()).unwrap();
+        assert_eq!(
+            (kind, hit.name, hit.path),
+            (MatchKind::Exact, disk_name.to_owned(), expected)
+        );
+        release.send(()).unwrap();
     }
 
     #[test]
