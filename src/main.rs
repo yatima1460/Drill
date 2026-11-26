@@ -223,7 +223,7 @@ fn executable_type_icon(ctx: &egui::Context) -> Option<egui::TextureHandle> {
     if !gtk::is_initialized() {
         gtk::init().ok()?;
     }
-    let (content_type, _) = gtk::gio::content_type_guess(Some(Path::new("application.exe")), &[]);
+    let (content_type, _) = gtk::gio::content_type_guess(Some(Path::new("application.exe")), None);
     let icon = gtk::gio::content_type_get_icon(&content_type);
     let themed = icon.dynamic_cast_ref::<gtk::gio::ThemedIcon>()?;
     themed_icon_texture(
