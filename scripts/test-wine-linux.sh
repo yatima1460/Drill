@@ -25,14 +25,23 @@ trap cleanup EXIT
 
 make start_wine >"$log_file" 2>&1 &
 app_pid=$!
-if ! window_id=$(timeout 120s xdotool search --sync --onlyvisible --name '^Drill$'); then
+# Wine creates and destroys helper windows during startup. Query Openbox's
+# managed client list instead of walking the transient X11 window tree.
+window_id=''
+deadline=$((SECONDS + 120))
+while (( SECONDS < deadline )) && kill -0 "$app_pid" 2>/dev/null; do
+    window_id=$(wmctrl -l 2>/dev/null | awk 'NF == 4 && $4 == "Drill" {print $1}') || window_id=''
+    if [[ -n "$window_id" ]]; then break; fi
+    sleep 0.25
+done
+if [[ -z "$window_id" ]]; then
     cat "$log_file" >&2
-    echo 'Drill did not open a visible window under Wine.' >&2
+    echo 'Drill did not open a managed window under Wine.' >&2
     exit 1
 fi
 window_id=${window_id%%$'\n'*}
 xdotool getwindowname "$window_id"
-if ! timeout 15s wmctrl -ic "$(printf '0x%x' "$window_id")"; then
+if ! timeout 15s wmctrl -ic "$window_id"; then
     cat "$log_file" >&2
     echo 'Could not close the Wine window.' >&2
     exit 1
