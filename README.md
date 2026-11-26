@@ -39,7 +39,7 @@ Install Rust using [rustup](https://rustup.rs/), then run:
 cargo run --release
 ```
 
-On macOS, double-click `Start Drill.command` to build and start Drill. The first build downloads Rust dependencies. Search results appear while the filesystem is scanned; prefix a query with `fuzzy:` for approximate matching. Drill follows your system light or dark appearance and displays native file icons when available.
+On macOS, double-click `Start Drill.command` to build and start Drill. The first build downloads Rust dependencies. Search results appear while the filesystem is scanned. Type `*.md` to find Markdown files, `glob:report-??.pdf` for a wildcard pattern, `regex:^IMG_[0-9]{4}\.jpg$` for a regular expression, or `fuzzy:` followed by words for approximate matching. Drill follows your system light or dark appearance and displays native file icons when available.
 
 Run `make help` to see common commands, including `make start`, `make test-core`, and `make test-ui`. The native UI tests drive a real window and may move the mouse or type; on macOS they require Accessibility permission. Linux UI tests use Xvfb and Openbox.
 

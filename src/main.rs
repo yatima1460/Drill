@@ -68,6 +68,8 @@ fn resize_columns(widths: &mut [f32; 4], divider: usize, delta: f32, total: f32)
 }
 struct App {
     query: String,
+    prepared: Option<SearchQuery>,
+    query_error: Option<String>,
     changed: Option<Instant>,
     mode: Mode,
     selector_open: bool,
@@ -112,6 +114,8 @@ impl Default for App {
         let (terminal_sender, terminal_errors) = std::sync::mpsc::channel();
         Self {
             query: String::new(),
+            prepared: None,
+            query_error: None,
             changed: None,
             mode: Mode::Files,
             selector_open: false,
@@ -545,6 +549,7 @@ fn in_window_search_menu(ctx: &egui::Context, app: &mut App) {
 impl App {
     fn can_stop(&self) -> bool {
         self.changed.is_some()
+            || self.prepared.is_some()
             || self.starting.is_some()
             || (self.search.is_some() && !self.completed)
     }
@@ -554,6 +559,7 @@ impl App {
             return;
         }
         self.changed = None;
+        self.prepared = None;
         if let Some(cancel) = self.starting_cancel.take() {
             cancel.store(true, std::sync::atomic::Ordering::Relaxed);
         }
@@ -565,6 +571,8 @@ impl App {
     }
 
     fn clear_search(&mut self) {
+        self.prepared = None;
+        self.query_error = None;
         self.search = None;
         if let Some(cancel) = self.starting_cancel.take() {
             cancel.store(true, std::sync::atomic::Ordering::Relaxed);
@@ -670,7 +678,7 @@ impl App {
             }
             Err(std::sync::mpsc::TryRecvError::Disconnected) => {
                 self.catalog_loading = None;
-                self.changed = None;
+                self.prepared = None;
                 self.action_error = Some("Could not load the desktop application list".into());
                 false
             }
@@ -829,14 +837,23 @@ impl App {
         let ready = self
             .changed
             .is_some_and(|t| t.elapsed() >= Duration::from_millis(250));
-        #[cfg(target_os = "linux")]
-        let ready = ready && (self.mode != Mode::Apps || self.catalog_ready());
         if ready {
             self.changed = None;
             self.clear_search();
             let query = SearchQuery::parse(&self.query);
+            if let Some(error) = query.error() {
+                self.query_error = Some(error.to_owned());
+            } else if !query.is_empty() || (self.mode == Mode::Apps && self.query.trim().is_empty())
+            {
+                self.prepared = Some(query);
+            }
+        }
+        let ready = self.prepared.is_some();
+        #[cfg(target_os = "linux")]
+        let ready = ready && (self.mode != Mode::Apps || self.catalog_ready());
+        if ready {
             let mode = self.mode;
-            if !query.is_empty() || (mode == Mode::Apps && self.query.trim().is_empty()) {
+            if let Some(query) = self.prepared.take() {
                 #[cfg(target_os = "linux")]
                 let catalog = self.catalog.clone();
                 #[cfg(target_os = "macos")]
@@ -910,7 +927,7 @@ impl App {
             } else {
                 format!("Drill - {} apps found", self.results.len())
             }
-        } else if self.starting.is_some() {
+        } else if self.prepared.is_some() || self.starting.is_some() {
             "Drill - starting search".into()
         } else {
             "Drill".into()
@@ -943,7 +960,7 @@ impl App {
                     egui::TextEdit::singleline(&mut self.query)
                         .font(egui::FontId::proportional(24.0))
                         .hint_text("Search..."),
-                );
+                ).on_hover_text("Search names, use a wildcard like *.md, or start with glob:, regex: or fuzzy:");
                 let selector = egui::ComboBox::from_id_salt("search_mode")
                     .width(combo_width)
                     .selected_text(self.mode.label())
@@ -970,6 +987,9 @@ impl App {
                     self.catalog = None;
                 }
                 self.changed = (self.mode == Mode::Apps || !self.query.trim().is_empty()).then(Instant::now);
+            }
+            if let Some(error) = &self.query_error {
+                ui.colored_label(ui.visuals().error_fg_color, error);
             }
             let continued = self.next_hit.is_some() && ui.button("Continue searching").clicked();
             if continued {
@@ -1431,6 +1451,7 @@ impl App {
         if (self.search.is_some() && !self.completed && self.next_hit.is_none())
             || self.starting.is_some()
             || self.changed.is_some()
+            || self.prepared.is_some()
             || icons_pending
         {
             ctx.request_repaint_after(Duration::from_millis(30));
@@ -2207,6 +2228,26 @@ mod ui_tests {
         assert!(app.search.is_none());
         assert!(app.changed.is_none());
     }
+    #[test]
+    fn invalid_pattern_shows_inline_feedback_and_can_be_edited() {
+        let ctx = egui::Context::default();
+        let mut app = App::default();
+        let _ = frame(&ctx, &mut app, vec![]);
+        app.results.push(entry("stale", 0));
+        let _ = frame(&ctx, &mut app, vec![egui::Event::Text("regex:[".into())]);
+        app.changed = Some(Instant::now() - Duration::from_millis(250));
+        let output = frame(&ctx, &mut app, vec![]);
+        let error = app.query_error.as_deref().expect("expected a syntax error");
+        assert!(error.starts_with("Invalid regex"));
+        text_position(&output, error);
+        assert!(app.results.is_empty() && !app.can_stop());
+        assert!(app.starting.is_none() && app.search.is_none());
+        let _ = frame(&ctx, &mut app, vec![egui::Event::Text("abc]".into())]);
+        assert_eq!(app.query, "regex:[abc]");
+        assert!(app.query_error.is_none() && app.changed.is_some());
+        assert!(SearchQuery::parse(&app.query).classify("a").is_some());
+    }
+
     #[test]
     fn escape_requests_window_close() {
         let ctx = egui::Context::default();
