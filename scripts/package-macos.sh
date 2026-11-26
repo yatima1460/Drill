@@ -1,7 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
+if [[ $# -gt 1 || (${1:-} != '' && ${1:-} != '--stage-only') ]]; then
+  echo 'Usage: package-macos.sh [--stage-only]' >&2
+  exit 2
+fi
 mkdir -p dist 'build/dmg-root/Drill.app/Contents/MacOS' 'build/dmg-root/Drill.app/Contents/Resources'
-cp target/release/drill 'build/dmg-root/Drill.app/Contents/MacOS/Drill'
+install -m 755 target/release/drill 'build/dmg-root/Drill.app/Contents/MacOS/Drill'
 cp src/assets/drill-macos.icns 'build/dmg-root/Drill.app/Contents/Resources/Drill.icns'
 cat > 'build/dmg-root/Drill.app/Contents/Info.plist' <<'PLIST'
 <?xml version="1.0" encoding="UTF-8"?>
@@ -25,6 +29,7 @@ cat > 'build/dmg-root/Drill.app/Contents/Info.plist' <<'PLIST'
 </dict></plist>
 PLIST
 /usr/bin/plutil -lint 'build/dmg-root/Drill.app/Contents/Info.plist'
+if [[ ${1:-} == '--stage-only' ]]; then exit 0; fi
 'build/dmg-root/Drill.app/Contents/MacOS/Drill' --version
 hdiutil create -volname Drill -srcfolder 'build/dmg-root' -ov -format UDZO "dist/Drill-macos-$(uname -m).dmg"
 hdiutil verify "dist/Drill-macos-$(uname -m).dmg"
