@@ -73,6 +73,8 @@ def main():
     linker = shutil.which(args.linker) if args.linker else None
     if args.linker and (os.name != "posix" or not linker):
         parser.error("--linker requires an executable Unix C compiler driver")
+    if linker:
+        linker = os.path.abspath(linker)
     checkouts = [p.resolve() for p in args.checkouts]
     if len(set(checkouts)) != len(checkouts):
         parser.error("specify each checkout once")

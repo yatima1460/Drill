@@ -5,10 +5,12 @@ import subprocess
 import sys
 import time
 
+args = sys.argv[1:]
 start = time.perf_counter()
-result = subprocess.run([os.environ["DRILL_BENCH_LINKER"], *sys.argv[1:]])
+result = subprocess.run([os.environ["DRILL_BENCH_LINKER"], *args])
 elapsed = time.perf_counter() - start
-if result.returncode == 0 and "-o" in sys.argv[1:]:
+# rustc may put the whole link command in a response file on large builds.
+if result.returncode == 0 and ("-o" in args or any(arg.startswith("@") for arg in args)):
     with open(os.environ["DRILL_BENCH_LINK_LOG"], "a") as log:
         print(elapsed, file=log)
 sys.exit(result.returncode if result.returncode >= 0 else 128 - result.returncode)
