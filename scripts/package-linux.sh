@@ -2,6 +2,11 @@
 set -euo pipefail
 version="2.0.0"
 revision="${GITHUB_RUN_NUMBER:-1}"
+for stage in build/package build/appdir build/arch; do
+  licenses="$stage/usr/share/licenses/drill/emoji"
+  mkdir -p "$licenses"
+  cp src/assets/emoji/{NOTICE,LICENSE-TWEMOJI,LICENSE-UNICODE} "$licenses/"
+done
 mkdir -p dist build/package/usr/bin build/package/usr/share/applications build/package/usr/share/icons/hicolor/256x256/apps build/package/DEBIAN
 install -m755 target/release/drill build/package/usr/bin/drill
 install -m644 src/assets/drill.png build/package/usr/share/icons/hicolor/256x256/apps/drill.png

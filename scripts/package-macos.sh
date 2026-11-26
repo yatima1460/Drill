@@ -15,6 +15,9 @@ cleanup() {
 trap cleanup EXIT
 app="$work/root/Drill.app"
 mkdir -p "$app/Contents/MacOS" "$app/Contents/Resources" "$mount"
+licenses="$app/Contents/Resources/licenses/emoji"
+mkdir -p "$licenses"
+cp src/assets/emoji/{NOTICE,LICENSE-TWEMOJI,LICENSE-UNICODE} "$licenses/"
 install -m 755 target/release/drill "$app/Contents/MacOS/Drill"
 cp src/assets/drill-macos.icns "$app/Contents/Resources/Drill.icns"
 cat > "$app/Contents/Info.plist" <<'PLIST'

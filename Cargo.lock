@@ -640,6 +640,7 @@ dependencies = [
  "raw-window-handle",
  "rfd",
  "tempfile",
+ "unicode-segmentation",
  "wasmi",
  "windows-sys 0.61.2",
 ]
