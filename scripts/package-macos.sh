@@ -1,14 +1,18 @@
 #!/usr/bin/env bash
 set -euo pipefail
+if [[ $# -gt 1 || (${1:-} != '' && ${1:-} != '--stage-only') ]]; then
+  echo 'Usage: package-macos.sh [--stage-only]' >&2
+  exit 2
+fi
 mkdir -p dist 'build/dmg-root/Drill.app/Contents/MacOS' 'build/dmg-root/Drill.app/Contents/Resources'
-cp target/release/drill 'build/dmg-root/Drill.app/Contents/MacOS/Drill'
+install -m 755 target/release/drill 'build/dmg-root/Drill.app/Contents/MacOS/Drill'
 cp src/assets/drill-macos.icns 'build/dmg-root/Drill.app/Contents/Resources/Drill.icns'
 cat > 'build/dmg-root/Drill.app/Contents/Info.plist' <<'PLIST'
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0"><dict>
 <key>CFBundleExecutable</key><string>Drill</string>
-<key>CFBundleIdentifier</key><string>com.yatima1460.drill</string>
+<key>CFBundleIdentifier</key><string>software.drill</string>
 <key>CFBundleName</key><string>Drill</string>
 <key>CFBundleDisplayName</key><string>Drill</string>
 <key>CFBundleIconFile</key><string>Drill</string>
@@ -25,6 +29,7 @@ cat > 'build/dmg-root/Drill.app/Contents/Info.plist' <<'PLIST'
 </dict></plist>
 PLIST
 /usr/bin/plutil -lint 'build/dmg-root/Drill.app/Contents/Info.plist'
+if [[ ${1:-} == '--stage-only' ]]; then exit 0; fi
 'build/dmg-root/Drill.app/Contents/MacOS/Drill' --version
 hdiutil create -volname Drill -srcfolder 'build/dmg-root' -ov -format UDZO "dist/Drill-macos-$(uname -m).dmg"
 hdiutil verify "dist/Drill-macos-$(uname -m).dmg"
@@ -32,4 +37,6 @@ hdiutil verify "dist/Drill-macos-$(uname -m).dmg"
 mkdir -p build/dmg-check
 hdiutil attach -nobrowse -readonly -mountpoint "$PWD/build/dmg-check" "dist/Drill-macos-$(uname -m).dmg"
 trap 'hdiutil detach "$PWD/build/dmg-check" || true' EXIT
+bundle_id=$(/usr/bin/plutil -extract CFBundleIdentifier raw -o - 'build/dmg-check/Drill.app/Contents/Info.plist')
+[[ "$bundle_id" == 'software.drill' ]] || { echo "Unexpected bundle identifier: $bundle_id" >&2; exit 1; }
 'build/dmg-check/Drill.app/Contents/MacOS/Drill' --version
