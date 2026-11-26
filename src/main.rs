@@ -71,6 +71,7 @@ struct App {
     completed: bool,
     results: Vec<Entry>,
     selected: Option<usize>,
+    last_clicked_file: Option<std::path::PathBuf>,
     exact_count: usize,
     result_limit: usize,
     next_hit: Option<(MatchKind, Entry)>,
@@ -108,6 +109,7 @@ impl Default for App {
             completed: false,
             results: Vec::new(),
             selected: None,
+            last_clicked_file: None,
             exact_count: 0,
             result_limit: LIMIT,
             next_hit: None,
@@ -496,6 +498,7 @@ impl App {
     }
 
     fn reset_result_page(&mut self) {
+        self.last_clicked_file = None;
         self.exact_count = 0;
         self.result_limit = LIMIT;
         self.next_hit = None;
@@ -562,6 +565,10 @@ impl App {
     }
 
     fn update_ui(&mut self, ctx: &egui::Context) {
+        self.update_ui_with_opener(ctx, &mut open);
+    }
+
+    fn update_ui_with_opener(&mut self, ctx: &egui::Context, open: &mut dyn FnMut(&Path, bool)) {
         #[cfg(any(target_os = "macos", target_os = "windows"))]
         if self
             .native_menu
@@ -979,6 +986,12 @@ impl App {
                     area = area.vertical_scroll_offset(offset);
                 }
             }
+            // egui counts double-clicks across widgets. A moving row must receive both clicks.
+            let previous_click = if ctx.input(|input| input.pointer.any_click()) {
+                self.last_clicked_file.take()
+            } else {
+                None
+            };
             let scroll = area.show_rows(ui, 25.0, self.results.len(), |ui, range| {
                 for index in range {
                     let entry = &self.results[index];
@@ -988,8 +1001,11 @@ impl App {
                     if result.clicked() || result.secondary_clicked() {
                         self.selected = Some(index);
                     }
-                    if result.double_clicked() {
-                        open(&entry.path, false);
+                    if result.clicked_by(egui::PointerButton::Primary) {
+                        if result.double_clicked() && previous_click.as_ref() == Some(&entry.path) {
+                            open(&entry.path, false);
+                        }
+                        self.last_clicked_file = Some(entry.path.clone());
                     }
                     if self.selected == Some(index) {
                         ui.painter()
@@ -1673,6 +1689,55 @@ mod ui_tests {
             "clipboard output: {:?}",
             output.platform_output.commands
         );
+    }
+
+    #[test]
+    fn both_clicks_must_target_the_same_file_to_open_it() {
+        for insert_exact in [false, true] {
+            let ctx = egui::Context::default();
+            let mut app = App::default();
+            app.append_hits([(MatchKind::Partial, entry("rom.exe.bak", 2))]);
+            let mut opened = Vec::new();
+            let mut render = |app: &mut App, events| {
+                let input = egui::RawInput {
+                    screen_rect: Some(egui::Rect::from_min_size(
+                        egui::Pos2::ZERO,
+                        egui::vec2(800.0, 600.0),
+                    )),
+                    events,
+                    ..Default::default()
+                };
+                ctx.run(input, |ctx| {
+                    app.update_ui_with_opener(ctx, &mut |path, _| opened.push(path.to_owned()))
+                })
+            };
+            let pos = text_position(&render(&mut app, vec![]), "rom.exe.bak");
+            for click in 0..2 {
+                if click == 1 && insert_exact {
+                    app.append_hits([(MatchKind::Exact, entry("rom.exe", 1))]);
+                    let _ = render(&mut app, vec![]);
+                }
+                for pressed in [true, false] {
+                    let _ = render(
+                        &mut app,
+                        vec![
+                            egui::Event::PointerMoved(pos),
+                            egui::Event::PointerButton {
+                                pos,
+                                button: egui::PointerButton::Primary,
+                                pressed,
+                                modifiers: egui::Modifiers::NONE,
+                            },
+                        ],
+                    );
+                }
+            }
+            if insert_exact {
+                assert!(opened.is_empty(), "unexpected open: {opened:?}");
+            } else {
+                assert_eq!(opened, vec![entry("rom.exe.bak", 2).path]);
+            }
+        }
     }
 
     #[test]
