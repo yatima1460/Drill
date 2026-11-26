@@ -10,13 +10,14 @@ umask 077
 
 team=ZYRW8ZPM2V
 identity="Developer ID Application: Pandaware LLC ($team)"
-app=build/dmg-root/Drill.app
+stage=build/Drill-stage.dmg
 dmg="dist/Drill-macos-$(uname -m).dmg"
 bundle_id=software.drill
 requirement="anchor apple generic and certificate leaf[subject.OU] = \"$team\" and certificate leaf[field.1.2.840.113635.100.6.1.13] exists"
 work=$(mktemp -d "${RUNNER_TEMP:?}/drill-sign.XXXXXXXX")
 keychain="$work/signing.keychain-db"
 mount="$work/mount"
+mounted=false
 # security prints one quoted, indented path per line. Preserve spaces and order.
 original_keychains=()
 while IFS= read -r path; do
@@ -24,13 +25,19 @@ while IFS= read -r path; do
   original_keychains+=("${path%\"}")
 done < <(security list-keychains -d user)
 cleanup() {
-  if mount | grep -Fq " on $mount "; then hdiutil detach "$mount" >/dev/null; fi
+  rm -f "$work/identity.p12" "$work/notary.p8"
   security list-keychains -d user -s "${original_keychains[@]}"
   security delete-keychain "$keychain" >/dev/null 2>&1 || true
+  if [[ $mounted == true ]]; then hdiutil detach "$mount" >/dev/null || return 1; fi
   rm -rf "$work"
 }
 trap cleanup EXIT
 
+mkdir -p dist "$mount"
+hdiutil attach -nobrowse -readwrite -mountpoint "$mount" "$stage"
+mounted=true
+app="$mount/Drill.app"
+layout_hash=$(shasum -a 256 "$mount/.DS_Store" | cut -d' ' -f1)
 plist_id=$(plutil -extract CFBundleIdentifier raw -o - "$app/Contents/Info.plist")
 [[ "$plist_id" == "$bundle_id" ]] || { echo "Unexpected app identifier: $plist_id" >&2; exit 1; }
 printf '%s' "$MACOS_CERTIFICATE_P12_BASE64" | base64 -D > "$work/identity.p12"
@@ -52,11 +59,13 @@ unset keychain_password
 fingerprint=$(security find-identity -v -p codesigning "$keychain" |
   awk -F'"' -v cn="$identity" '$2 == cn { split($1, fields, " "); print fields[2] }')
 [[ "$fingerprint" =~ ^[A-Fa-f0-9]{40}$ ]] || { echo "Expected exactly one valid $identity identity" >&2; exit 1; }
-codesign --force --sign "$fingerprint" --keychain "$keychain" --options runtime --timestamp "$app"
+# CodeResources is part of the distributable app and must be readable by other users.
+(umask 022; codesign --force --sign "$fingerprint" --keychain "$keychain" --options runtime --timestamp "$app")
 codesign --verify --deep --strict -R="identifier \"$bundle_id\" and $requirement" "$app"
 
-mkdir -p dist "$mount"
-hdiutil create -volname Drill -srcfolder build/dmg-root -ov -format UDZO "$dmg"
+hdiutil detach "$mount"
+mounted=false
+hdiutil convert "$stage" -format UDZO -ov -o "$dmg"
 codesign --force --sign "$fingerprint" --keychain "$keychain" --timestamp --identifier "$bundle_id.dmg" "$dmg"
 security lock-keychain "$keychain"
 codesign --verify --strict -R="identifier \"$bundle_id.dmg\" and $requirement" "$dmg"
@@ -75,5 +84,9 @@ hdiutil verify "$dmg"
 codesign --verify --strict -R="identifier \"$bundle_id.dmg\" and $requirement" "$dmg"
 spctl --assess --type open --context context:primary-signature "$dmg"
 hdiutil attach -nobrowse -readonly -mountpoint "$mount" "$dmg"
+mounted=true
+[[ -L "$mount/Applications" && $(readlink "$mount/Applications") == /Applications ]]
+printf '%s  %s\n' "$layout_hash" "$mount/.DS_Store" | shasum -a 256 --check
+cmp scripts/macos-dmg/background.png "$mount/.background.png"
 codesign --verify --deep --strict -R="identifier \"$bundle_id\" and $requirement" "$mount/Drill.app"
 spctl --assess --type execute "$mount/Drill.app"
