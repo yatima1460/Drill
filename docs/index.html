@@ -2,12 +2,13 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' https://github.com; connect-src https://api.github.com; base-uri 'none'; form-action 'none'" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta
       name="description"
       content="Drill is a very fast desktop file searcher without indexing. Multithreaded, heuristic-first, and built for modern NVMe-era hardware."
     />
-    <title>Drill | Search files without indexing, but fast crawling</title>
+    <title>Drill | File and app search</title>
     <link rel="icon" type="image/svg+xml" href="drill.svg" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -16,6 +17,8 @@
       rel="stylesheet"
     />
     <link rel="stylesheet" href="styles.css" />
+    <link rel="alternate" type="application/atom+xml" title="Drill releases" href="https://github.com/yatima1460/Drill/releases.atom" />
+    <script defer src="releases.js"></script>
   </head>
   <body>
     <div class="page-backdrop" aria-hidden="true"></div>
@@ -26,20 +29,12 @@
           <img class="brand-mark" src="drill.svg" alt="" aria-hidden="true" />
           <h1>Drill</h1>
         </div>
-        <p class="hero-copy">Search files without indexing, but fast crawling</p>
-        <p class="release-date" id="release-date">Latest release: loading...</p>
-        <div class="hero-actions" id="release-actions"></div>
-        <noscript>
-          <div class="hero-actions">
-            <a
-              class="btn btn-primary"
-              href="https://github.com/yatima1460/Drill/releases/latest"
-              target="_blank"
-              rel="noopener noreferrer"
-              >Download Latest Release</a
-            >
-          </div>
-        </noscript>
+        <p class="hero-copy">Search files and apps without indexing.</p>
+        <p class="release-date" id="release-date"><a href="https://github.com/yatima1460/Drill/releases/latest">Latest release</a></p>
+        <p class="release-feed"><a type="application/atom+xml" href="https://github.com/yatima1460/Drill/releases.atom">Subscribe to the release feed</a></p>
+        <div class="hero-actions" id="release-actions">
+          <a class="btn btn-primary" href="https://github.com/yatima1460/Drill/releases/latest">Download latest release</a>
+        </div>
       </section>
 
       <figure class="app-shot">
@@ -67,254 +62,18 @@
       </div>
       <div class="footer-badge">
         <a
-          href="https://github.com/yatima1460/Drill/actions/workflows/cd.yml"
+          href="https://github.com/yatima1460/Drill/actions/workflows/rust.yml"
           target="_blank"
           rel="noopener noreferrer"
-          aria-label="CD workflow status"
+          aria-label="Rust build and release status on main"
         >
           <img
-            src="https://github.com/yatima1460/Drill/actions/workflows/cd.yml/badge.svg"
-            alt="CD workflow status"
+            src="https://github.com/yatima1460/Drill/actions/workflows/rust.yml/badge.svg?branch=main"
+            alt="Rust build and release status on main"
           />
         </a>
       </div>
     </footer>
-    <script>
-      (function () {
-        const repo = "yatima1460/Drill";
-        const aurUrl = "https://aur.archlinux.org/packages/drill-search";
-        const actionsRoot = document.getElementById("release-actions");
-        const releaseDateNode = document.getElementById("release-date");
-        if (!actionsRoot) return;
 
-        const detectCurrentOs = () => {
-          const platform = String(navigator.platform || "").toLowerCase();
-          const ua = String(navigator.userAgent || "").toLowerCase();
-          if (platform.includes("win") || ua.includes("windows")) return "windows";
-          if (platform.includes("mac") || ua.includes("mac os")) return "macos";
-          if (platform.includes("linux") || ua.includes("linux")) return "linux";
-          return "";
-        };
-        const currentOs = detectCurrentOs();
-
-        const getOsType = (text) => {
-          const name = String(text || "").toLowerCase();
-          if (name.includes("windows")) return "windows";
-          if (name.includes("macos")) return "macos";
-          if (name.includes("linux") || name.endsWith(".deb") || name.includes("arch")) return "linux";
-          return "";
-        };
-
-        const getOsIcon = (text) => {
-          const name = String(text || "").toLowerCase();
-          if (name.includes("arch") || name.includes(".pkg.tar")) {
-            return "arch-linux-logo.svg";
-          }
-          if (name.endsWith(".deb")) {
-            return "debian-logo.svg";
-          }
-          if (name.endsWith(".rpm")) {
-            return "redhat-logo.svg";
-          }
-          if (name.endsWith(".appimage")) {
-            return "appimage-logo.svg";
-          }
-          const osType = getOsType(text);
-          if (osType === "windows") {
-            return "windows-logo.svg";
-          }
-          if (osType === "macos") {
-            return "apple-logo.svg";
-          }
-          if (osType === "linux") {
-            return "linux-tux.svg";
-          }
-          return "";
-        };
-
-        const getFriendlyAssetLabel = (assetName) => {
-          const name = String(assetName || "").toLowerCase();
-          if (!name) return "Download";
-          if (name.includes("windows")) return "Windows x64";
-          if (name.includes("macos") && name.endsWith(".dmg")) return "macOS .dmg";
-          if (name.includes("macos") && name.endsWith(".zip")) return "macOS .app.zip";
-          if (name.includes("linux") && name.endsWith(".deb")) return "Linux .deb";
-          if (name.includes("linux") && name.endsWith(".rpm")) return "Linux .rpm";
-          if (name.endsWith(".appimage")) return "Linux AppImage x64";
-          if (name.includes("arch") || name.includes(".pkg.tar")) return "Arch Linux pkg";
-          if (name.includes("linux")) return "Linux x64";
-          return String(assetName || "Download");
-        };
-
-        const createButton = (label, href, className, withGithubIcon, osIcon, osType) => {
-          const link = document.createElement("a");
-          link.className = className;
-          link.href = href;
-          link.target = "_blank";
-          link.rel = "noopener noreferrer";
-          if (withGithubIcon) {
-            link.innerHTML =
-              '<svg class="btn-icon" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M8 .198a8 8 0 0 0-2.53 15.59c.4.073.546-.174.546-.386 0-.19-.007-.693-.01-1.36-2.22.483-2.69-1.07-2.69-1.07-.364-.924-.89-1.17-.89-1.17-.727-.497.055-.487.055-.487.804.056 1.227.825 1.227.825.714 1.222 1.872.869 2.328.665.072-.517.28-.87.508-1.07-1.773-.202-3.638-.886-3.638-3.944 0-.872.312-1.586.824-2.145-.083-.202-.357-1.016.078-2.117 0 0 .672-.215 2.2.82a7.62 7.62 0 0 1 4.004 0c1.527-1.035 2.198-.82 2.198-.82.437 1.101.163 1.915.08 2.117.513.559.823 1.273.823 2.145 0 3.066-1.868 3.74-3.648 3.938.287.246.543.732.543 1.476 0 1.065-.01 1.923-.01 2.185 0 .214.145.463.55.384A8 8 0 0 0 8 .198Z"></path></svg><span>' +
-              label +
-              "</span>";
-          } else {
-            link.textContent = label;
-          }
-          if (osIcon) {
-            link.classList.add("btn-with-icon");
-            link.innerHTML = '<img class="os-icon-img" src="' + osIcon + '" alt="" aria-hidden="true" /><span>' + label + "</span>";
-          }
-          if (osType && currentOs && osType === currentOs) {
-            link.classList.add("btn-current-os");
-          }
-          return link;
-        };
-
-        const createAurButton = () => {
-          const link = document.createElement("a");
-          link.className = "btn btn-primary btn-with-icon";
-          link.href = aurUrl;
-          link.target = "_blank";
-          link.rel = "noopener noreferrer";
-          link.innerHTML =
-            '<img class="btn-icon arch-icon" src="arch-linux-logo.svg" alt="" aria-hidden="true" /><span>AUR</span>';
-          return link;
-        };
-
-        const formatRelativeAge = (fromDate, toDate) => {
-          const ms = Math.max(0, toDate.getTime() - fromDate.getTime());
-          const dayMs = 24 * 60 * 60 * 1000;
-          const days = Math.floor(ms / dayMs);
-          if (days < 1) {
-            const hourMs = 60 * 60 * 1000;
-            const hours = Math.floor(ms / hourMs);
-            return hours === 1 ? "1 hour ago" : hours + " hours ago";
-          }
-          if (days < 30) return days === 1 ? "1 day ago" : days + " days ago";
-          if (days < 365) {
-            const months = Math.floor(days / 30);
-            return months === 1 ? "1 month ago" : months + " months ago";
-          }
-          const years = Math.floor(days / 365);
-          return years === 1 ? "1 year ago" : years + " years ago";
-        };
-
-        const createOsSection = (title) => {
-          const section = document.createElement("section");
-          section.className = "download-group";
-          const heading = document.createElement("h3");
-          heading.className = "download-group-title";
-          heading.textContent = title;
-          const actions = document.createElement("div");
-          actions.className = "download-group-actions";
-          section.appendChild(heading);
-          section.appendChild(actions);
-          return { section, actions };
-        };
-
-        const renderButtons = (release) => {
-          actionsRoot.innerHTML = "";
-          const assets = Array.isArray(release && release.assets) ? release.assets : [];
-          const publishedAt = release && (release.published_at || release.created_at);
-          if (releaseDateNode && publishedAt) {
-            const date = new Date(publishedAt);
-            const yyyy = date.getFullYear();
-            const mm = String(date.getMonth() + 1).padStart(2, "0");
-            const dd = String(date.getDate()).padStart(2, "0");
-            const age = formatRelativeAge(date, new Date());
-            const tagOrName = String((release && (release.name || release.tag_name)) || "");
-            const runMatch = tagOrName.match(/(\d+)\s*$/);
-            const runNumber = runMatch ? runMatch[1] : "";
-            if (runNumber) {
-              releaseDateNode.innerHTML =
-                "Latest release <strong>v" +
-                runNumber +
-                "</strong>: " +
-                yyyy +
-                "/" +
-                mm +
-                "/" +
-                dd +
-                " (<strong>" +
-                age +
-                "</strong>)";
-            } else {
-              releaseDateNode.innerHTML =
-                "Latest release: " +
-                yyyy +
-                "/" +
-                mm +
-                "/" +
-                dd +
-                " (<strong>" +
-                age +
-                "</strong>)";
-            }
-          }
-
-          if (assets.length > 0) {
-            const sections = {
-              windows: createOsSection("Windows"),
-              linux: createOsSection("Linux"),
-              macos: createOsSection("macOS"),
-            };
-            assets.forEach((asset) => {
-              if (!asset || !asset.browser_download_url) return;
-              const label = getFriendlyAssetLabel(asset.name);
-              const osType = getOsType(asset.name);
-              if (!sections[osType]) return;
-              const osIcon = getOsIcon(asset.name);
-              sections[osType].actions.appendChild(
-                createButton(label, asset.browser_download_url, "btn btn-primary", false, osIcon, osType)
-              );
-            });
-            sections.linux.actions.appendChild(createAurButton());
-            const defaultOrder = ["windows", "linux", "macos"];
-            const osOrder =
-              currentOs && defaultOrder.includes(currentOs)
-                ? [currentOs].concat(defaultOrder.filter((osKey) => osKey !== currentOs))
-                : defaultOrder;
-            osOrder.forEach((osKey) => {
-              if (sections[osKey].actions.children.length > 0) {
-                if (currentOs && osKey !== currentOs) {
-                  sections[osKey].section.classList.add("download-group-secondary");
-                }
-                actionsRoot.appendChild(sections[osKey].section);
-              }
-            });
-          } else {
-            const fallbackUrl =
-              release && release.html_url
-                ? release.html_url
-                : "https://github.com/" + repo + "/releases/latest";
-            actionsRoot.appendChild(
-              createButton("Download Latest Release", fallbackUrl, "btn btn-primary", false, "", "")
-            );
-            actionsRoot.appendChild(createAurButton());
-          }
-        };
-
-        fetch("https://api.github.com/repos/" + repo + "/releases/latest")
-          .then((res) => (res.ok ? res.json() : Promise.reject(new Error("release request failed"))))
-          .then((release) => {
-            renderButtons(release);
-          })
-          .catch(() => {
-            if (releaseDateNode) {
-              releaseDateNode.textContent = "Latest release date unavailable";
-            }
-            actionsRoot.innerHTML = "";
-            actionsRoot.appendChild(
-              createButton(
-                "Open Latest Release",
-                "https://github.com/" + repo + "/releases/latest",
-                "btn btn-primary",
-                false
-              )
-            );
-            actionsRoot.appendChild(createAurButton());
-          });
-      })();
-    </script>
   </body>
 </html>
