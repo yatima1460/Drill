@@ -15,6 +15,17 @@ make test-mutants
 
 Pull requests changing Rust code or verification inputs run these checks on Linux. The separate release workflow continues to exercise the native window, Windows build under Wine, and the Linux rebuild of the shipped Wasm asset.
 
+## Duplicate code
+
+Every pull request and every push to `main` runs jscpd 5.4.3 on the full checkout. Any reported clone fails the job and blocks release signing. To reproduce it, install the pinned version and run from the repository root.
+
+```sh
+cargo install --locked --version 5.4.3 jscpd
+jscpd .
+```
+
+The detector reports repeated blocks of at least 50 tokens spanning at least five lines, including repeats within one file. It checks tests, shell launchers, workflows, website code and the other supported formats. The configuration excludes vendored dependencies, Cargo lockfiles, the word list and the three Potrace-generated Drill logos. jscpd respects Git ignore files for local build output.
+
 ## What Kani checks
 
 The independent proof workspace imports the same modules compiled by the application and guest. All harnesses run with Kani's default memory, overflow, assertion reachability and unwinding checks.

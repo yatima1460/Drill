@@ -1731,32 +1731,14 @@ mod ui_tests {
             ..Default::default()
         };
         let render = |app: &mut App, events| {
-            let _ = ctx.run(
-                egui::RawInput {
-                    screen_rect: Some(egui::Rect::from_min_size(
-                        egui::Pos2::ZERO,
-                        egui::vec2(800.0, 600.0),
-                    )),
-                    events,
-                    ..Default::default()
-                },
-                |ctx| in_window_search_menu(ctx, app),
-            );
+            let _ = ctx.run(frame_input(events), |ctx| in_window_search_menu(ctx, app));
         };
         render(&mut app, vec![]);
         for point in [egui::pos2(20.0, 10.0), egui::pos2(20.0, 38.0)] {
             for pressed in [true, false] {
                 render(
                     &mut app,
-                    vec![
-                        egui::Event::PointerMoved(point),
-                        egui::Event::PointerButton {
-                            pos: point,
-                            button: egui::PointerButton::Primary,
-                            pressed,
-                            modifiers: egui::Modifiers::NONE,
-                        },
-                    ],
+                    pointer_events(point, egui::PointerButton::Primary, pressed),
                 );
             }
             render(&mut app, vec![]);
@@ -1802,15 +1784,7 @@ mod ui_tests {
                 });
             });
             for pressed in [true, false] {
-                let events = vec![
-                    egui::Event::PointerMoved(point),
-                    egui::Event::PointerButton {
-                        pos: point,
-                        button: egui::PointerButton::Primary,
-                        pressed,
-                        modifiers: egui::Modifiers::NONE,
-                    },
-                ];
+                let events = pointer_events(point, egui::PointerButton::Primary, pressed);
                 let _ = ctx.run(
                     egui::RawInput {
                         events,
@@ -1828,16 +1802,35 @@ mod ui_tests {
         }
     }
 
-    fn frame(ctx: &egui::Context, app: &mut App, events: Vec<egui::Event>) -> egui::FullOutput {
-        let input = egui::RawInput {
+    fn pointer_events(
+        pos: egui::Pos2,
+        button: egui::PointerButton,
+        pressed: bool,
+    ) -> Vec<egui::Event> {
+        vec![
+            egui::Event::PointerMoved(pos),
+            egui::Event::PointerButton {
+                pos,
+                button,
+                pressed,
+                modifiers: egui::Modifiers::NONE,
+            },
+        ]
+    }
+
+    fn frame_input(events: Vec<egui::Event>) -> egui::RawInput {
+        egui::RawInput {
             screen_rect: Some(egui::Rect::from_min_size(
                 egui::Pos2::ZERO,
                 egui::vec2(800.0, 600.0),
             )),
             events,
             ..Default::default()
-        };
-        ctx.run(input, |ctx| app.update_ui(ctx))
+        }
+    }
+
+    fn frame(ctx: &egui::Context, app: &mut App, events: Vec<egui::Event>) -> egui::FullOutput {
+        ctx.run(frame_input(events), |ctx| app.update_ui(ctx))
     }
     fn key(key: Key) -> egui::Event {
         egui::Event::Key {
@@ -1905,22 +1898,11 @@ mod ui_tests {
         let path = original.path.to_string_lossy().into_owned();
         app.append_hits([(MatchKind::Partial, original)]);
         let pos = text_position(&frame(&ctx, &mut app, vec![]), "rom.exe.bak");
-        let button = |pos, button, pressed| {
-            vec![
-                egui::Event::PointerMoved(pos),
-                egui::Event::PointerButton {
-                    pos,
-                    button,
-                    pressed,
-                    modifiers: egui::Modifiers::NONE,
-                },
-            ]
-        };
         for pressed in [true, false] {
             let _ = frame(
                 &ctx,
                 &mut app,
-                button(pos, egui::PointerButton::Secondary, pressed),
+                pointer_events(pos, egui::PointerButton::Secondary, pressed),
             );
         }
         app.append_hits([(MatchKind::Exact, entry("rom.exe", 2))]);
@@ -1929,12 +1911,12 @@ mod ui_tests {
         let _ = frame(
             &ctx,
             &mut app,
-            button(copy, egui::PointerButton::Primary, true),
+            pointer_events(copy, egui::PointerButton::Primary, true),
         );
         let output = frame(
             &ctx,
             &mut app,
-            button(copy, egui::PointerButton::Primary, false),
+            pointer_events(copy, egui::PointerButton::Primary, false),
         );
         assert!(
             output
@@ -1958,15 +1940,7 @@ mod ui_tests {
         let expected = file.path.to_string_lossy().into_owned();
         app.append_hits([(MatchKind::Exact, file)]);
         let render = |app: &mut App, events| {
-            let input = egui::RawInput {
-                screen_rect: Some(egui::Rect::from_min_size(
-                    egui::Pos2::ZERO,
-                    egui::vec2(800.0, 600.0),
-                )),
-                events,
-                ..Default::default()
-            };
-            ctx.run(input, |ctx| {
+            ctx.run(frame_input(events), |ctx| {
                 app.update_ui_with_opener(ctx, &mut |_, _| {
                     panic!("Enter on a menu or dialog launched the selected application")
                 })
@@ -1976,15 +1950,7 @@ mod ui_tests {
         for pressed in [true, false] {
             render(
                 &mut app,
-                vec![
-                    egui::Event::PointerMoved(point),
-                    egui::Event::PointerButton {
-                        pos: point,
-                        button: egui::PointerButton::Secondary,
-                        pressed,
-                        modifiers: egui::Modifiers::NONE,
-                    },
-                ],
+                pointer_events(point, egui::PointerButton::Secondary, pressed),
             );
         }
         assert_eq!(app.selected, Some(0));
@@ -2033,15 +1999,7 @@ mod ui_tests {
             app.append_hits([(MatchKind::Partial, entry("rom.exe.bak", 2))]);
             let mut opened = Vec::new();
             let mut render = |app: &mut App, events| {
-                let input = egui::RawInput {
-                    screen_rect: Some(egui::Rect::from_min_size(
-                        egui::Pos2::ZERO,
-                        egui::vec2(800.0, 600.0),
-                    )),
-                    events,
-                    ..Default::default()
-                };
-                ctx.run(input, |ctx| {
+                ctx.run(frame_input(events), |ctx| {
                     app.update_ui_with_opener(ctx, &mut |path, _| opened.push(path.to_owned()))
                 })
             };
@@ -2054,15 +2012,7 @@ mod ui_tests {
                 for pressed in [true, false] {
                     let _ = render(
                         &mut app,
-                        vec![
-                            egui::Event::PointerMoved(pos),
-                            egui::Event::PointerButton {
-                                pos,
-                                button: egui::PointerButton::Primary,
-                                pressed,
-                                modifiers: egui::Modifiers::NONE,
-                            },
-                        ],
+                        pointer_events(pos, egui::PointerButton::Primary, pressed),
                     );
                 }
             }
@@ -2089,15 +2039,7 @@ mod ui_tests {
                 let _ = frame(
                     &ctx,
                     app,
-                    vec![
-                        egui::Event::PointerMoved(pos),
-                        egui::Event::PointerButton {
-                            pos,
-                            button: egui::PointerButton::Primary,
-                            pressed,
-                            modifiers: egui::Modifiers::NONE,
-                        },
-                    ],
+                    pointer_events(pos, egui::PointerButton::Primary, pressed),
                 );
             }
             frame(&ctx, app, vec![])
@@ -2197,15 +2139,7 @@ mod ui_tests {
                 let _ = frame(
                     &ctx,
                     &mut app,
-                    vec![
-                        egui::Event::PointerMoved(pos),
-                        egui::Event::PointerButton {
-                            pos,
-                            button: egui::PointerButton::Primary,
-                            pressed,
-                            modifiers: egui::Modifiers::NONE,
-                        },
-                    ],
+                    pointer_events(pos, egui::PointerButton::Primary, pressed),
                 );
             }
             assert!(app.next_hit.is_none());
@@ -2272,12 +2206,7 @@ mod ui_tests {
     }
     #[test]
     fn visible_executable_row_loads_embedded_icon() {
-        use std::io::Write;
-        let mut file = tempfile::Builder::new().suffix(".exe").tempfile().unwrap();
-        file.write_all(include_bytes!(
-            "../tools/exe-icon-wasm/tests/fixtures/icon-pe32.exe"
-        ))
-        .unwrap();
+        let file = exe_icon::temporary_pe32();
         assert_result_loads_embedded_icon(file.path().to_path_buf());
     }
     #[test]

@@ -225,6 +225,17 @@ impl Worker {
     }
 }
 #[cfg(test)]
+pub(super) fn temporary_pe32() -> tempfile::NamedTempFile {
+    use std::io::Write;
+    let mut file = tempfile::Builder::new().suffix(".exe").tempfile().unwrap();
+    file.write_all(include_bytes!(
+        "../tools/exe-icon-wasm/tests/fixtures/icon-pe32.exe"
+    ))
+    .unwrap();
+    file
+}
+
+#[cfg(test)]
 mod tests {
     use super::*;
     #[test]
@@ -261,12 +272,7 @@ mod tests {
 
     #[test]
     fn worker_reads_and_decodes_resident_executable() {
-        use std::io::Write;
-        let mut file = tempfile::Builder::new().suffix(".exe").tempfile().unwrap();
-        file.write_all(include_bytes!(
-            "../tools/exe-icon-wasm/tests/fixtures/icon-pe32.exe"
-        ))
-        .unwrap();
+        let file = temporary_pe32();
         let worker = Worker::new();
         let path = file.path().to_path_buf();
         assert!(matches!(
