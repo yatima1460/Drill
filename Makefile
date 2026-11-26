@@ -3,7 +3,7 @@ CARGO ?= $(if $(wildcard $(HOME)/.cargo/bin/cargo),$(HOME)/.cargo/bin/cargo,carg
 WINE ?= wine
 WINDOWS_LINKER ?= $(if $(CARGO_TARGET_X86_64_PC_WINDOWS_GNU_LINKER),$(CARGO_TARGET_X86_64_PC_WINDOWS_GNU_LINKER),x86_64-w64-mingw32-gcc)
 
-.PHONY: help start start_wine build check fmt fmt-check lint shellcheck test test-core test-doc test-ui test-ui-headless test-ui-native package-linux package-macos clean
+.PHONY: help start start_wine build check fmt fmt-check lint shellcheck test test-core test-doc test-ui test-ui-headless test-ui-native package-linux package-macos offline-source clean
 .DEFAULT_GOAL := help
 
 help: ## Show available commands
@@ -83,6 +83,9 @@ package-linux: build ## Build Linux packages (requires packaging tools)
 
 package-macos: build ## Build and verify a macOS DMG
 	scripts/package-macos.sh
+
+offline-source: ## Package source and locked dependencies for an offline build
+	scripts/package-offline-source.sh
 
 clean: ## Remove Cargo build artifacts
 	$(CARGO) clean
