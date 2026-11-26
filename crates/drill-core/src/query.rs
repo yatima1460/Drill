@@ -68,7 +68,12 @@ enum Tokens {
 }
 
 enum Matcher {
-    Text { filename: String, tokens: Tokens },
+    Text {
+        filename: String,
+        tokens: Tokens,
+        #[cfg(any(windows, test))]
+        literal_exe: Option<String>,
+    },
     Glob(wax::Glob<'static>),
     Regex(regex::Regex),
     Invalid(String),
@@ -101,14 +106,23 @@ impl SearchQuery {
         {
             return Self::pattern("glob", pattern, compile_glob);
         }
-        let filename = normalized(fuzzy.unwrap_or(input).trim());
+        let literal = fuzzy.unwrap_or(input).trim();
+        let filename = normalized(literal);
+        #[cfg(any(windows, test))]
+        let literal_exe = (fuzzy.is_none() && filename.ends_with(".exe") && literal != filename)
+            .then(|| literal.to_owned());
         let words = filename.split_whitespace();
         let tokens = if fuzzy.is_some() {
             Tokens::Fuzzy(words.map(|word| word.chars().collect()).collect())
         } else {
             Tokens::Plain(words.map(str::to_owned).collect())
         };
-        Self(Matcher::Text { filename, tokens })
+        Self(Matcher::Text {
+            filename,
+            tokens,
+            #[cfg(any(windows, test))]
+            literal_exe,
+        })
     }
 
     fn pattern(
@@ -144,13 +158,15 @@ impl SearchQuery {
         let Matcher::Text {
             filename,
             tokens: Tokens::Plain(_),
+            literal_exe,
         } = &self.0
         else {
             return None;
         };
+        let literal = literal_exe.as_deref().unwrap_or(filename);
         if !filename.ends_with(".exe")
-            || filename.len() > 255
-            || filename
+            || literal.encode_utf16().take(256).count() > 255
+            || literal
                 .chars()
                 .any(|c| c.is_control() || r#"<>:"/\|?*"#.contains(c))
         {
@@ -170,7 +186,7 @@ impl SearchQuery {
         {
             return None;
         }
-        Some(filename)
+        Some(literal)
     }
 
     pub(super) fn exact_stem(&self, stem: &str) -> bool {
@@ -186,7 +202,9 @@ impl SearchQuery {
             }
             Matcher::Regex(regex) => return regex.is_match(name).then_some(MatchKind::Partial),
             Matcher::Invalid(_) => return None,
-            Matcher::Text { filename, tokens } => (filename, tokens),
+            Matcher::Text {
+                filename, tokens, ..
+            } => (filename, tokens),
         };
         let name = normalized(name);
         if !filename.is_empty() && name == *filename {
