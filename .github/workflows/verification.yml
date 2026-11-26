@@ -6,7 +6,7 @@ on:
       - '**/Cargo.*'
       - 'rust-toolchain.toml'
       - 'src/assets/**'
-      - 'tools/exe-icon-wasm/tests/fixtures/**'
+      - 'tools/*-icon-wasm/tests/fixtures/**'
       - 'verification/**'
       - 'Makefile'
       - 'scripts/test-mutants.sh'
@@ -16,7 +16,7 @@ on:
       scope:
         description: Package to mutate
         type: choice
-        options: [core, desktop, guest]
+        options: [core, desktop, guest, appimage]
       platform:
         description: Native test platform
         type: choice
@@ -57,7 +57,7 @@ jobs:
         run: |
           source verification/tools.env
           cargo install --locked --version "$MUTANTS_VERSION" cargo-mutants
-      - name: Test focused mutations in all three packages
+      - name: Test focused mutations in all first-party packages
         if: github.event_name == 'pull_request'
         run: make test-mutants
       - name: Run requested mutation campaign

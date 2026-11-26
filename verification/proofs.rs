@@ -1,6 +1,8 @@
 #![cfg(kani)]
 
 // These are the modules used by the search worker, desktop UI and Wasm guest.
+#[path = "../tools/appimage-icon-wasm/src/bounds.rs"]
+mod appimage_bounds;
 #[path = "../crates/drill-core/src/file_filter.rs"]
 mod file_filter;
 #[path = "../tools/exe-icon-wasm/src/resource.rs"]
@@ -74,5 +76,20 @@ fn pe_resource_range_is_exact_and_inside_wasm32_input() {
         assert_eq!(range.start as u128, u128::from(offset));
         assert_eq!(range.end as u128, end);
         assert_eq!(range.len() as u128, u128::from(size));
+    }
+}
+
+#[kani::proof]
+fn appimage_archive_reads_fit_the_selected_file() {
+    let start: u64 = kani::any();
+    let file_len: u64 = kani::any();
+    let relative: u64 = kani::any();
+    let size: u64 = kani::any();
+    let absolute = u128::from(start) + u128::from(relative);
+    let fits = absolute + u128::from(size) <= u128::from(file_len);
+    let result = appimage_bounds::file_offset(start, file_len, relative, size);
+    assert_eq!(result.is_some(), fits);
+    if let Some(pos) = result {
+        assert_eq!(u128::from(pos), absolute);
     }
 }
