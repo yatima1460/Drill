@@ -1,5 +1,8 @@
 use eframe::egui::{Context, SystemTheme, ThemePreference, Ui, ViewportCommand};
 
+#[cfg(target_os = "linux")]
+pub(super) mod linux;
+
 const STORAGE_KEY: &str = "appearance";
 
 pub(super) fn load(storage: Option<&dyn eframe::Storage>) -> ThemePreference {
@@ -14,6 +17,20 @@ pub(super) fn save(storage: &mut dyn eframe::Storage, preference: ThemePreferenc
 
 pub(super) fn apply(ctx: &Context, preference: ThemePreference) {
     ctx.set_theme(preference);
+    update_window(ctx, preference, ctx.system_theme());
+}
+
+pub(super) fn update_window(
+    ctx: &Context,
+    preference: ThemePreference,
+    system: Option<eframe::egui::Theme>,
+) {
+    // X11's "system default" requests dark decorations even on a light desktop.
+    let preference = if cfg!(target_os = "linux") && preference == ThemePreference::System {
+        system.map(ThemePreference::from).unwrap_or(preference)
+    } else {
+        preference
+    };
     let window_theme = match preference {
         ThemePreference::System => SystemTheme::SystemDefault,
         ThemePreference::Light => SystemTheme::Light,

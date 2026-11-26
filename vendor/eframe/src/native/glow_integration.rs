@@ -1328,6 +1328,24 @@ impl GlutinWindowContext {
 
                 viewport.deferred_commands.append(&mut commands);
 
+                // AppKit can suppress ThemeChanged while the window has a custom appearance.
+                // Refresh the cached system theme when the app gives control back to macOS.
+                #[cfg(target_os = "macos")]
+                if viewport.deferred_commands.iter().any(|command| {
+                    matches!(
+                        command,
+                        egui::ViewportCommand::SetTheme(egui::SystemTheme::SystemDefault)
+                    )
+                }) {
+                    if let Some(state) = &mut viewport.egui_winit {
+                        state.egui_input_mut().system_theme =
+                            event_loop.system_theme().map(|theme| match theme {
+                                winit::window::Theme::Light => egui::Theme::Light,
+                                winit::window::Theme::Dark => egui::Theme::Dark,
+                            });
+                    }
+                }
+
                 egui_winit::process_viewport_commands(
                     egui_ctx,
                     &mut viewport.info,
