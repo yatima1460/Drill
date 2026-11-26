@@ -16,6 +16,7 @@ struct SearchRow: Identifiable {
     let isDirectory: Bool
     let size: UInt64?
     let modifiedSeconds: Int64?
+    let modifiedNanos: UInt32
 
     var displayPath: String { String(decoding: path, as: UTF8.self) }
     var parentBytes: Data.SubSequence {
@@ -73,8 +74,7 @@ struct ResultSort: Equatable {
             let x = a.name.lowercased().utf8, y = b.name.lowercased().utf8
             if !x.elementsEqual(y) { return x.lexicographicallyPrecedes(y) }
         case .path:
-            let x = a.parentBytes, y = b.parentBytes
-            if x != y { return x.lexicographicallyPrecedes(y) }
+            break
         case .size:
             if a.size != b.size {
                 guard let x = a.size else { return true }
@@ -85,8 +85,15 @@ struct ResultSort: Equatable {
             if a.modifiedSeconds != b.modifiedSeconds {
                 return (a.modifiedSeconds ?? .min) < (b.modifiedSeconds ?? .min)
             }
+            if a.modifiedNanos != b.modifiedNanos { return a.modifiedNanos < b.modifiedNanos }
         }
-        return a.path.lexicographicallyPrecedes(b.path)
+        return a.path.withUnsafeBytes { left in
+            b.path.withUnsafeBytes { right in
+                drill_compare_paths(left.bindMemory(to: UInt8.self).baseAddress, left.count,
+                                    right.bindMemory(to: UInt8.self).baseAddress, right.count,
+                                    column == .path) < 0
+            }
+        }
     }
 }
 
@@ -94,7 +101,7 @@ struct ResultSort: Equatable {
 private final class HitBatch {
     var rows: [SearchRow] = []
 
-    static let receive: DrillHitCallback = { context, bytes, count, name, rank, isDir, size, modified in
+    static let receive: DrillHitCallback = { context, bytes, count, name, rank, isDir, size, modified, nanos in
         guard let context, let bytes, let name,
               let url = CFURLCreateFromFileSystemRepresentation(nil, bytes, count, isDir) else {
             return
@@ -104,7 +111,7 @@ private final class HitBatch {
         batch.rows.append(SearchRow(url: url as URL, path: Data(bytes: bytes, count: count),
                                     name: String(cString: name), rank: rank, isDirectory: isDir,
                                     size: size == .max ? nil : size,
-                                    modifiedSeconds: modified == .min ? nil : modified))
+                                    modifiedSeconds: modified == .min ? nil : modified, modifiedNanos: nanos))
     }
 }
 
@@ -112,7 +119,12 @@ private final class HitBatch {
 final class SearchModel: ObservableObject {
     enum Phase { case empty, searching, paused, stopped, finished, invalid }
 
-    @Published var query = "" { didSet { if oldValue != query { replaceSearch() } } }
+    @Published var query = "" {
+        didSet {
+            // Rust regexes distinguish composed and decomposed Unicode.
+            if !oldValue.utf8.elementsEqual(query.utf8) { replaceSearch() }
+        }
+    }
     @Published var mode = SearchMode.files { didSet { if oldValue != mode { replaceSearch() } } }
     @Published var selection: Data?
     @Published private(set) var rows: [SearchRow] = [] { didSet { rowsRevision &+= 1 } }

@@ -26,7 +26,9 @@ private struct SearchField: NSViewRepresentable {
 
     func updateNSView(_ field: NSSearchField, context: Context) {
         field.placeholderString = model.mode == .files ? "Search files" : "Search apps"
-        if field.stringValue != model.query { field.stringValue = model.query }
+        if !field.stringValue.utf8.elementsEqual(model.query.utf8) {
+            field.stringValue = model.query
+        }
     }
 
     @MainActor

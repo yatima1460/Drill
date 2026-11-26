@@ -42,29 +42,33 @@ final class DrillDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation
     private let model: SearchModel
     private let defaults: UserDefaults
     private let accessibilityEnabled: Bool
+    private let present: @MainActor (NSWindow) -> Void
     private var window: NSWindow?
     private var panels: [String: NSWindow] = [:]
 
-    init(root: URL?, defaults: UserDefaults = .standard, accessibilityEnabled: Bool = false) {
+    init(root: URL?, defaults: UserDefaults = .standard, accessibilityEnabled: Bool = false,
+         present: @escaping @MainActor (NSWindow) -> Void = { $0.makeKeyAndOrderFront(nil) }) {
         model = SearchModel(root: root)
         self.defaults = defaults
         self.accessibilityEnabled = accessibilityEnabled
+        self.present = present
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         InterfacePreferences.applyAppearance(from: defaults)
         installMenus()
-        window = makeSearchWindow(model: model)
-        window?.delegate = self
-        window?.makeKeyAndOrderFront(nil)
-        NSApp.activate(ignoringOtherApps: true)
+        let search = makeSearchWindow(model: model)
+        search.delegate = self
+        window = search
+        present(search)
+        if NSApp.activationPolicy() == .regular { NSApp.activate(ignoringOtherApps: true) }
     }
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { true }
 
     func windowWillClose(_ notification: Notification) {
         guard notification.object as? NSWindow === window else { return }
-        for panel in panels.values where panel.isVisible { panel.close() }
+        for panel in panels.values where panel.isVisible || panel.isMiniaturized { panel.close() }
     }
 
     @objc private func find(_ sender: Any?) {
@@ -106,12 +110,12 @@ final class DrillDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation
     private func presentPanel<Content: View>(_ title: String, size: NSSize,
                                             @ViewBuilder content: (NSWindow) -> Content) {
         if let window = panels[title] {
-            window.makeKeyAndOrderFront(nil)
+            present(window)
             return
         }
         let window = makePanel(title: title, size: size, accessibilityEnabled: accessibilityEnabled, content: content)
         panels[title] = window
-        window.makeKeyAndOrderFront(nil)
+        present(window)
     }
 
     func installMenus() {

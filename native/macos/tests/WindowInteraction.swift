@@ -105,7 +105,12 @@ struct WindowDriver {
 @MainActor
 private struct WindowInteractionTest {
     static func main() {
+        if CommandLine.arguments.dropFirst() == ["--minimized-panel"] {
+            runMinimizedPanelApp()
+            exit(EXIT_FAILURE)
+        }
         do {
+            try checkMinimizedPanelQuit()
             try exerciseWindow()
             try checkStreamingBacklog()
             try exerciseResultIcons()
@@ -151,6 +156,27 @@ private struct WindowInteractionTest {
         }
         guard let content = window.contentView, let field = editableField(in: content),
               window.makeFirstResponder(field) else { throw WindowFailure("Could not focus the search field") }
+        // Both strings are canonically equivalent in Swift, but the second regex
+        // character class also matches the ASCII file "e".
+        try Data().write(to: folder.appendingPathComponent("e"))
+        let composed = "regex:^[\u{e9}]$"
+        let decomposed = "regex:^[e\u{301}]$"
+        model.query = composed
+        try driver.wait("The composed regex must finish with no matches") {
+            model.phase == .finished && model.rows.isEmpty && field.stringValue.utf8.elementsEqual(composed.utf8)
+        }
+        guard let editor = window.firstResponder as? NSTextView, editor.isFieldEditor
+        else { throw WindowFailure("Missing the search field editor") }
+        editor.selectAll(nil)
+        editor.insertText(decomposed, replacementRange: editor.selectedRange())
+        try driver.wait("The decomposed regex edit must find the ASCII e") {
+            model.phase == .finished && model.rows.map(\.name) == ["e"]
+        }
+        model.query = composed
+        try driver.wait("Changing back must synchronize the exact regex bytes in the search field") {
+            model.phase == .finished && model.rows.isEmpty && field.stringValue.utf8.elementsEqual(composed.utf8)
+        }
+
         let oldKeys: [(String, UInt16)] = [("o", 31), ("l", 37), ("d", 2)]
         let newKeys: [(String, UInt16)] = [("n", 45), ("e", 14), ("w", 13)]
 

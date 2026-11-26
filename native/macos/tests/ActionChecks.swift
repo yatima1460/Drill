@@ -24,7 +24,7 @@ func checkResultActions() throws {
         guard let url else { throw ActionFailure("Could not construct a fixture file URL") }
         let path = String(decoding: bytes, as: UTF8.self)
         return SearchRow(url: url as URL, path: bytes, name: (path as NSString).lastPathComponent,
-                         rank: 0, isDirectory: directory, size: directory ? 0 : 3, modifiedSeconds: 1)
+                         rank: 0, isDirectory: directory, size: directory ? 0 : 3, modifiedSeconds: 1, modifiedNanos: 0)
     }
 
     let manager = FileManager.default

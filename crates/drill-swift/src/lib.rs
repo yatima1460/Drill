@@ -218,23 +218,56 @@ pub unsafe extern "C" fn drill_search_error(search: *const DrillSearch) -> *cons
 }
 
 pub type DrillHitCallback =
-    unsafe extern "C" fn(*mut c_void, *const u8, usize, *const c_char, u8, bool, u64, i64);
+    unsafe extern "C" fn(*mut c_void, *const u8, usize, *const c_char, u8, bool, u64, i64, u32);
 
-fn modified_seconds(entry: &Entry) -> Option<i64> {
-    match entry.modified?.duration_since(UNIX_EPOCH) {
-        Ok(duration) => i64::try_from(duration.as_secs()).ok(),
-        Err(error) => {
-            // Round fractional timestamps down on both sides of the epoch.
-            let duration = error.duration();
-            let seconds = i64::try_from(duration.as_secs()).ok()?;
-            (-seconds).checked_sub(i64::from(duration.subsec_nanos() != 0))
-        }
-    }
+/// Compares the components of two raw filesystem paths using Rust's native ordering.
+///
+/// # Safety
+/// Each pointer with nonzero length must reference that many readable bytes in
+/// one allocation for the duration of the call, with length at most `isize::MAX`.
+#[no_mangle]
+pub unsafe extern "C" fn drill_compare_paths(
+    left: *const u8,
+    left_len: usize,
+    right: *const u8,
+    right_len: usize,
+    parents_first: bool,
+) -> i32 {
+    let path = |ptr: *const u8, len: usize| {
+        let bytes = if len == 0 {
+            &[]
+        } else {
+            // SAFETY: the caller lends each nonempty slice for this comparison.
+            unsafe { std::slice::from_raw_parts(ptr, len) }
+        };
+        Path::new(OsStr::from_bytes(bytes))
+    };
+    let left = path(left, left_len);
+    let right = path(right, right_len);
+    let order = if parents_first {
+        left.parent()
+            .cmp(&right.parent())
+            .then_with(|| left.cmp(right))
+    } else {
+        left.cmp(right)
+    };
+    order as i32
+}
+
+fn modified_timestamp(entry: &Entry) -> Option<(i64, u32)> {
+    // Duration's u64 seconds and fractional nanos together fit in i128.
+    let total = match entry.modified?.duration_since(UNIX_EPOCH) {
+        Ok(duration) => duration.as_nanos() as i128,
+        Err(error) => -(error.duration().as_nanos() as i128),
+    };
+    const SECOND: i128 = 1_000_000_000;
+    let seconds = i64::try_from(total.div_euclid(SECOND)).ok()?;
+    (seconds != i64::MIN).then_some((seconds, total.rem_euclid(SECOND) as u32))
 }
 
 unsafe fn deliver(ctx: *mut c_void, callback: DrillHitCallback, rank: MatchKind, entry: Entry) {
     let path = entry.path.as_os_str().as_bytes();
-    let modified = modified_seconds(&entry).unwrap_or(i64::MIN);
+    let (seconds, nanos) = modified_timestamp(&entry).unwrap_or((i64::MIN, 0));
     let name = CString::new(entry.name).unwrap_or_else(|_| c"�".into());
     let rank = match rank {
         MatchKind::Exact => 0,
@@ -251,7 +284,8 @@ unsafe fn deliver(ctx: *mut c_void, callback: DrillHitCallback, rank: MatchKind,
             rank,
             entry.is_dir,
             entry.size.unwrap_or(u64::MAX),
-            modified,
+            seconds,
+            nanos,
         );
     }
 }
@@ -345,6 +379,7 @@ mod tests {
             name: Vec<u8>,
             size: u64,
             modified: i64,
+            nanos: u32,
         }
         unsafe extern "C" fn receive(
             ctx: *mut c_void,
@@ -355,6 +390,7 @@ mod tests {
             _: bool,
             size: u64,
             modified: i64,
+            nanos: u32,
         ) {
             // SAFETY: deliver borrows path and name during this invocation,
             // and the context is the live Captured below.
@@ -364,6 +400,7 @@ mod tests {
                     name: CStr::from_ptr(name).to_bytes().into(),
                     size,
                     modified,
+                    nanos,
                 };
             }
         }
@@ -373,7 +410,7 @@ mod tests {
             path: path.into(),
             name: "x�".into(),
             size: None,
-            modified: Some(UNIX_EPOCH - Duration::from_millis(500)),
+            modified: Some(UNIX_EPOCH - Duration::from_nanos(123_456_789)),
             is_dir: false,
         };
         // SAFETY: receive uses the unique Captured context only during deliver.
@@ -389,5 +426,6 @@ mod tests {
         assert_eq!(captured.name, "x�".as_bytes());
         assert_eq!(captured.size, u64::MAX);
         assert_eq!(captured.modified, -1);
+        assert_eq!(captured.nanos, 876_543_211);
     }
 }

@@ -21,6 +21,7 @@ struct Hit {
     is_dir: bool,
     size: u64,
     modified: i64,
+    nanos: u32,
 }
 
 unsafe extern "C" fn receive(
@@ -32,6 +33,7 @@ unsafe extern "C" fn receive(
     is_dir: bool,
     size: u64,
     modified: i64,
+    nanos: u32,
 ) {
     // SAFETY: poll passed an exclusive borrow of this Vec as its context.
     let hits = unsafe { &mut *ctx.cast::<Vec<Hit>>() };
@@ -46,6 +48,7 @@ unsafe extern "C" fn receive(
         is_dir,
         size,
         modified,
+        nanos,
     });
 }
 
@@ -195,11 +198,20 @@ fn streams_original_path_bytes_alongside_utf8_display_name_and_metadata() {
     assert_ne!(hits[0].path, hits[1].path);
     for hit in hits {
         assert_eq!(hit.name, hit.path.file_name().unwrap().to_string_lossy());
+        let modified = fs::metadata(&hit.path)
+            .unwrap()
+            .modified()
+            .unwrap()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap();
         assert_eq!(fs::read(hit.path).unwrap(), b"abc");
         assert_eq!(hit.rank, 1);
         assert!(!hit.is_dir);
         assert_eq!(hit.size, 3);
-        assert_ne!(hit.modified, i64::MIN);
+        assert_eq!(
+            (hit.modified, hit.nanos),
+            (modified.as_secs() as i64, modified.subsec_nanos())
+        );
     }
 }
 

@@ -82,7 +82,7 @@ func checkResultsTable(window: NSWindow, model: SearchModel, opened: () -> [URL]
     try click(1, count: 1)
     let late = SearchRow(url: URL(fileURLWithPath: "/test/late"), path: Data("/test/late".utf8),
                          name: "late", rank: 0, isDirectory: false, size: 10,
-                         modifiedSeconds: (model.rows.compactMap(\.modifiedSeconds).max() ?? 0) + 60)
+                         modifiedSeconds: (model.rows.compactMap(\.modifiedSeconds).max() ?? 0) + 60, modifiedNanos: 0)
     model.append([late])
     let deadline = ProcessInfo.processInfo.systemUptime + 3
     while table.numberOfRows != 5 && ProcessInfo.processInfo.systemUptime < deadline {
@@ -103,14 +103,15 @@ func checkResultsTable(window: NSWindow, model: SearchModel, opened: () -> [URL]
     // These late partial/exact hits share their lossy display name. Raw bytes distinguish
     // both paths and produce deterministic ties even on a host that normalizes filenames.
     let folder = Data("/test/".utf8)
-    func row(_ suffix: UInt8, size: UInt64, modified: Int64, rank: UInt8 = 1) -> SearchRow {
-        let path = folder + [suffix]
+    func row(_ path: Data, size: UInt64, modified: Int64, nanos: UInt32 = 0, rank: UInt8 = 1) -> SearchRow {
+        let name = String(decoding: path.split(separator: 0x2f).last!, as: UTF8.self)
         return SearchRow(url: URL(fileURLWithPath: "/test/fixture"), path: path,
-                         name: "�", rank: rank, isDirectory: false, size: size, modifiedSeconds: modified)
+                         name: name, rank: rank, isDirectory: false,
+                         size: size, modifiedSeconds: modified, modifiedNanos: nanos)
     }
-    let earliest = row(0xfd, size: 0, modified: -1)
-    let latest = row(0xff, size: 2_048, modified: 100, rank: 0)
-    let middle = row(0xfe, size: 5, modified: 100, rank: 0)
+    let earliest = row(folder + [0xfd], size: 0, modified: -1)
+    let latest = row(folder + [0xff], size: 2_048, modified: 100, rank: 0)
+    let middle = row(folder + [0xfe], size: 5, modified: 100, rank: 0)
     let stream = SearchModel()
     stream.append([earliest, latest])
     stream.moveSelection(by: 1)
@@ -124,6 +125,27 @@ func checkResultsTable(window: NSWindow, model: SearchModel, opened: () -> [URL]
         stream.setSort(ResultSort(column: column, ascending: false))
         guard stream.rows.map(\.path) == [latest.path, middle.path, earliest.path], stream.selection == latest.path
         else { throw tableFailure("Descending \(column.rawValue) ordering lost the exact path or tie order") }
+    }
+
+    // At the same displayed second, the earlier "z" must precede the later "a".
+    let older = row(Data("/test/z".utf8), size: 1, modified: 101, nanos: 20)
+    let newer = row(Data("/test/a".utf8), size: 1, modified: 101, nanos: 21)
+    stream.setSort(ResultSort(column: .date, ascending: true))
+    stream.append([newer, older])
+    guard stream.rows.suffix(2).map(\.path) == [older.path, newer.path], older.dateText == newer.dateText
+    else { throw tableFailure("Date sorting discarded subsecond modification times") }
+    stream.setSort(ResultSort(column: .date, ascending: false))
+    guard stream.rows.prefix(2).map(\.path) == [newer.path, older.path]
+    else { throw tableFailure("Descending Date sorting reversed the subsecond ordering") }
+
+    // Rust compares the component "a" before "a-b". A flat byte comparison
+    // would order the hyphen before the separator and reverse these rows.
+    let nested = row(Data("/tmp/a/b/same".utf8), size: 1, modified: 100)
+    let sibling = row(Data("/tmp/a-b/same".utf8), size: 1, modified: 100)
+    for column in ResultColumn.allCases {
+        guard ResultSort(column: column, ascending: true).precedes(nested, sibling),
+              ResultSort(column: column, ascending: false).precedes(sibling, nested)
+        else { throw tableFailure("\(column.rawValue) ordering lost filesystem path components") }
     }
 }
 

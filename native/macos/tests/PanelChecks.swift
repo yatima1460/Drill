@@ -26,7 +26,8 @@ func exercisePanels() throws {
         defaults.removePersistentDomain(forName: suite)
     }
 
-    let delegate = DrillDelegate(root: nil, defaults: defaults, accessibilityEnabled: true)
+    let delegate = DrillDelegate(root: nil, defaults: defaults, accessibilityEnabled: true,
+                                 present: presentPrivateWindow)
     delegate.installMenus()
     defer { withExtendedLifetime(delegate) {} }
 

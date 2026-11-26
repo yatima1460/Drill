@@ -14,10 +14,17 @@ typedef struct DrillSearch DrillSearch;
 /* Pointers are borrowed for this call only. Copy path_len bytes for filesystem
  * identity and use name (NUL-terminated UTF-8) for display. rank is 0 for an
  * exact match and 1 for a partial match. Unknown size and modification time
- * are UINT64_MAX and INT64_MIN. Time is in whole seconds since the Unix epoch. */
+ * are UINT64_MAX and INT64_MIN. Time is Unix seconds rounded down plus
+ * modified_nanos in [0, 999999999], or zero nanos for an unknown time. */
 typedef void (*DrillHitCallback)(void *ctx, const uint8_t *path, size_t path_len,
                                  const char *name, uint8_t rank, bool is_dir,
-                                 uint64_t size, int64_t modified_seconds);
+                                 uint64_t size, int64_t modified_seconds, uint32_t modified_nanos);
+
+/* Rust path ordering of the original filesystem bytes. Returns -1, 0 or 1.
+ * For the Path column, compare parent directories before the full paths.
+ * Each nonempty buffer must remain readable throughout this call. */
+int32_t drill_compare_paths(const uint8_t *left, size_t left_len, const uint8_t *right,
+                            size_t right_len, bool parents_first);
 
 /* Use the handle on one thread. Do not reenter its API during callbacks.
  * Inputs are copied. query is NUL-terminated UTF-8. An explicit filesystem

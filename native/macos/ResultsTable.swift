@@ -35,6 +35,16 @@ private final class NativeResultsTable: NSTableView {
     }
 }
 
+private extension SearchRow {
+    func hasSameIcon(as other: Self) -> Bool {
+        path == other.path && isDirectory == other.isDirectory
+    }
+
+    func displaysSameValues(as other: Self) -> Bool {
+        hasSameIcon(as: other) && name == other.name && size == other.size && modifiedSeconds == other.modifiedSeconds
+    }
+}
+
 private struct TableIcon: View {
     let row: SearchRow
     var body: some View { ResultIcon(row: row).id(row.path) }
@@ -77,7 +87,7 @@ private final class ResultCell: NSTableCellView {
     func display(_ row: SearchRow, column: ResultColumn) {
         textField?.stringValue = column.text(for: row)
         toolTip = column == .name || column == .path ? row.displayPath : textField?.stringValue
-        if let icon, icon.rootView.row.path != row.path { icon.rootView = TableIcon(row: row) }
+        if let icon, !icon.rootView.row.hasSameIcon(as: row) { icon.rootView = TableIcon(row: row) }
     }
 }
 
@@ -158,7 +168,7 @@ struct ResultsTable: NSViewRepresentable {
                 let visible = table.rows(in: table.visibleRect)
                 if visible.length > 0 {
                     let changed = IndexSet((visible.location..<NSMaxRange(visible)).filter {
-                        rows.indices.contains($0) && (!previous.indices.contains($0) || previous[$0].path != rows[$0].path)
+                        rows.indices.contains($0) && (!previous.indices.contains($0) || !previous[$0].displaysSameValues(as: rows[$0]))
                     })
                     if !changed.isEmpty {
                         table.reloadData(forRowIndexes: changed,
