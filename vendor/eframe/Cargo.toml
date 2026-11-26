@@ -228,19 +228,23 @@ default-features = false
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies.glutin]
 version = "0.32.0"
-features = [
-    "egl",
-    "wgl",
-]
 optional = true
 default-features = false
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies.glutin-winit]
 version = "0.5.0"
-features = [
-    "egl",
-    "wgl",
-]
+optional = true
+default-features = false
+
+[target.'cfg(all(unix, not(target_vendor = "apple"), not(target_arch = "wasm32")))'.dependencies.glutin-winit]
+version = "0.5.0"
+features = ["egl"]
+optional = true
+default-features = false
+
+[target.'cfg(windows)'.dependencies.glutin-winit]
+version = "0.5.0"
+features = ["egl", "wgl"]
 optional = true
 default-features = false
 

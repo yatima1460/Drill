@@ -32,3 +32,7 @@ The optional `document-features` feature generates the feature list for docs.rs.
 
 A native frame holds borrowed window handles. The local compile-time check by
 `Frame` rejects a `Clone` implementation without requiring an assertion crate.
+
+Drill enables CGL on macOS, EGL and WGL on Windows, and EGL and GLX on Linux.
+Limiting features to their platforms keeps the unused EGL loader out of the
+macOS release.

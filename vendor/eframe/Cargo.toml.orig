@@ -162,20 +162,20 @@ egui-wgpu = { workspace = true, optional = true, features = [
 ] } # if wgpu is used, use it with winit
 pollster = { workspace = true, optional = true } # needed for wgpu
 
-glutin = { workspace = true, optional = true, default-features = false, features = [
-  "egl",
-  "wgl",
-] }
-glutin-winit = { workspace = true, optional = true, default-features = false, features = [
-  "egl",
-  "wgl",
-] }
+glutin = { workspace = true, optional = true, default-features = false }
+glutin-winit = { workspace = true, optional = true, default-features = false }
 wgpu = { workspace = true, optional = true, features = [
   # Let's enable some backends so that users can use `eframe` out-of-the-box
   # without having to explicitly opt-in to backends
   "metal",
   "webgpu",
 ] }
+
+[target.'cfg(all(unix, not(target_vendor = "apple"), not(target_arch = "wasm32")))'.dependencies]
+glutin-winit = { workspace = true, optional = true, default-features = false, features = ["egl"] }
+
+[target.'cfg(windows)'.dependencies]
+glutin-winit = { workspace = true, optional = true, default-features = false, features = ["egl", "wgl"] }
 
 # mac:
 [target.'cfg(target_os = "macos")'.dependencies]
