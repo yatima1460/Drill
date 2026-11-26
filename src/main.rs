@@ -1,7 +1,11 @@
 #![cfg_attr(target_os = "windows", windows_subsystem = "windows")]
 #![deny(unsafe_code)]
 use chrono::{DateTime, Local};
-use drill_core::{default_roots_with_cancel, Entry, MatchKind, Search, SearchQuery};
+#[cfg(not(windows))]
+use drill_core::default_roots_with_cancel;
+#[cfg(any(not(windows), test, feature = "ui-test-driver"))]
+use drill_core::Search;
+use drill_core::{Entry, MatchKind, SearchQuery};
 use eframe::egui::{self, Key};
 use std::path::Path;
 use std::time::{Duration, Instant};
@@ -684,7 +688,7 @@ impl App {
         if let Some(hit) = self.next_hit.take() {
             self.result_limit = self.result_limit.saturating_add(LIMIT);
             self.append_hits([hit]);
-            if let Some(search) = &self.search {
+            if let Some(search) = &mut self.search {
                 search.set_paused(false);
             }
         }
@@ -914,23 +918,39 @@ impl App {
                         return;
                     }
                     #[cfg(feature = "ui-test-driver")]
-                    let roots = std::env::var_os("DRILL_UI_TEST_ROOT")
-                        .map(|p| vec![p.into()])
-                        .unwrap_or_else(|| default_roots_with_cancel(&cancel));
-                    #[cfg(not(feature = "ui-test-driver"))]
-                    let roots = default_roots_with_cancel(&cancel);
-                    #[cfg(target_os = "macos")]
-                    let roots = {
-                        let mut roots = roots;
-                        roots.extend(additional_roots);
-                        roots
-                    };
-                    let _ = tx.send(Results::Walk(Search::start_filtered(
+                    if let Some(root) = std::env::var_os("DRILL_UI_TEST_ROOT") {
+                        let search = Search::start_filtered(
+                            query,
+                            vec![root.into()],
+                            cancel,
+                            mode.file_filter(),
+                        );
+                        let _ = tx.send(Results::Walk(search));
+                        return;
+                    }
+                    #[cfg(windows)]
+                    let results = Results::Windows(drill_core::WindowsSearch::start(
                         query,
-                        roots,
                         cancel,
                         mode.file_filter(),
-                    )));
+                    ));
+                    #[cfg(not(windows))]
+                    let results = {
+                        let roots = default_roots_with_cancel(&cancel);
+                        #[cfg(target_os = "macos")]
+                        let roots = {
+                            let mut roots = roots;
+                            roots.extend(additional_roots);
+                            roots
+                        };
+                        Results::Walk(Search::start_filtered(
+                            query,
+                            roots,
+                            cancel,
+                            mode.file_filter(),
+                        ))
+                    };
+                    let _ = tx.send(results);
                 });
             }
         }
@@ -968,8 +988,13 @@ impl App {
                     self.results.len(),
                     pending
                 )
-            } else {
+            } else if cfg!(target_os = "linux") && self.mode == Mode::Apps {
                 format!("Drill - {} apps found", self.results.len())
+            } else {
+                format!(
+                    "Drill - {} items found - discovering search roots",
+                    self.results.len()
+                )
             }
         } else if self.prepared.is_some() || self.starting.is_some() {
             "Drill - starting search".into()
@@ -1670,6 +1695,37 @@ mod ui_tests {
         item.is_dir = true;
         assert_eq!(terminal_directory(&item), item.path);
         assert!(open_terminal(terminal_directory(&item)).is_err());
+    }
+
+    #[test]
+    fn streamed_exact_executable_renders_sorted_and_preserves_selection() {
+        let root = tempfile::tempdir().unwrap();
+        std::fs::write(root.path().join("Demo.EXE"), b"file").unwrap();
+        let (tx, rx) = std::sync::mpsc::sync_channel(1);
+        let mut app = App {
+            starting: Some(rx),
+            sort: Some((SortColumn::Name, true)),
+            ..App::default()
+        };
+        app.append_hits([(MatchKind::Partial, entry("z-demo.exe", 1))]);
+        app.selected = Some(0);
+        let walk = Search::start("demo.exe".into(), vec![root.path().to_owned()]);
+        assert!(tx.send(Results::Walk(walk)).is_ok());
+        let ctx = egui::Context::default();
+        let deadline = Instant::now() + Duration::from_secs(5);
+        loop {
+            let output = frame(&ctx, &mut app, vec![]);
+            if app.results.len() == 2 {
+                text_position(&output, "Demo.EXE");
+                break;
+            }
+            assert!(Instant::now() < deadline, "result never reached the UI");
+            std::thread::yield_now();
+        }
+        assert_eq!(app.results[0].name, "Demo.EXE");
+        assert_eq!(app.results[app.selected.unwrap()].name, "z-demo.exe");
+        app.stop_search();
+        assert!(app.starting.is_none());
     }
 
     #[test]
