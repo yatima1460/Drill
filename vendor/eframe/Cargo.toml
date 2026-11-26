@@ -118,10 +118,8 @@ accesskit = [
 ]
 android-game-activity = ["egui-winit/android-game-activity"]
 android-native-activity = ["egui-winit/android-native-activity"]
-clipboard = ["egui-winit/clipboard"]
 default = [
     "accesskit",
-    "clipboard",
     "default_fonts",
     "glow",
     "wayland",
@@ -132,7 +130,6 @@ default = [
 ]
 default_fonts = ["egui/default_fonts"]
 drill-clipboard-tests = []
-drill-windows-clipboard = ["dep:drill-windows"]
 glow = [
     "dep:egui_glow",
     "dep:glow",
@@ -212,7 +209,6 @@ features = [
 [target.'cfg(target_os = "windows")'.dependencies.drill-windows]
 path = "../../crates/drill-windows"
 features = ["clipboard"]
-optional = true
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies.egui-wgpu]
 version = "0.31.1"

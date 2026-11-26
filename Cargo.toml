@@ -44,7 +44,6 @@ drill-macos = { path = "crates/drill-macos" }
 eframe = { version = "0.31.1", default-features = false, features = ["drill-clipboard-tests"] }
 
 [target.'cfg(target_os = "windows")'.dependencies]
-eframe = { version = "0.31.1", default-features = false, features = ["drill-windows-clipboard"] }
 drill-windows = { path = "crates/drill-windows", features = ["shell-icons"] }
 muda = { version = "0.21.2", default-features = false }
 raw-window-handle = "0.6.2"

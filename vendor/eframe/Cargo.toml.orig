@@ -31,9 +31,7 @@ workspace = true
 
 
 [features]
-clipboard = ["egui-winit/clipboard"]
 default = [
-  "clipboard",
   "accesskit",
   "default_fonts",
   "glow",
@@ -63,7 +61,6 @@ default_fonts = ["egui/default_fonts"]
 
 ## Expose the local platform clipboard fixtures to Drill's workspace tests.
 drill-clipboard-tests = []
-drill-windows-clipboard = ["dep:drill-windows"]
 
 ## Use [`glow`](https://github.com/grovesNL/glow) for painting, via [`egui_glow`](https://github.com/emilk/egui/tree/master/crates/egui_glow).
 glow = ["dep:egui_glow", "dep:glow", "dep:glutin-winit", "dep:glutin"]
@@ -162,7 +159,6 @@ egui-winit = { workspace = true, default-features = false, features = ["clipboar
 [target.'cfg(windows)'.dependencies.drill-windows]
 path = "../../crates/drill-windows"
 features = ["clipboard"]
-optional = true
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 egui-winit = { workspace = true, default-features = false }

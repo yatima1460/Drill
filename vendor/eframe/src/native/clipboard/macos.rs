@@ -60,6 +60,60 @@ pub mod tests {
         possible_paste_key, replace_keyboard_paste, Event, KeyCode, Modifiers, NamedKey,
         PhysicalKey, WinitKey,
     };
+    use super::{ColorImage, OutputCommand, PlatformOutput};
+    use std::cell::RefCell;
+
+    /// Exercise native copy and a fallback that writes to the same system pasteboard.
+    #[cfg_attr(test, test)]
+    #[allow(deprecated)]
+    pub fn fallback_copy_preserves_the_last_native_command() {
+        let copy_text = || OutputCommand::CopyText("modern text".to_owned());
+        let copy_image = || OutputCommand::CopyImage(ColorImage::new([1, 1], egui::Color32::WHITE));
+        for (commands, copied_text, expected, expected_replay) in [
+            (vec![copy_text(), copy_image()], "", "image", None),
+            (
+                vec![copy_image(), copy_text()],
+                "",
+                "modern text",
+                Some("modern text"),
+            ),
+            (
+                vec![copy_text(), copy_image()],
+                "legacy text",
+                "legacy text",
+                None,
+            ),
+        ] {
+            let mut output = PlatformOutput {
+                commands,
+                copied_text: copied_text.to_owned(),
+                ..PlatformOutput::default()
+            };
+            let contents = RefCell::new(String::new());
+            let write_text = |text: &str| *contents.borrow_mut() = text.to_owned();
+            super::super::write_clipboard_commands(&mut output, true, write_text, |_| {
+                *contents.borrow_mut() = "image".to_owned();
+            });
+            assert_eq!(*contents.borrow(), expected);
+            assert!(output
+                .commands
+                .iter()
+                .filter_map(|command| match command {
+                    OutputCommand::CopyText(text) => Some(text.as_str()),
+                    _ => None,
+                })
+                .eq(expected_replay));
+            for command in output.commands {
+                if let OutputCommand::CopyText(text) = command {
+                    write_text(&text);
+                }
+            }
+            if !output.copied_text.is_empty() {
+                write_text(&output.copied_text);
+            }
+            assert_eq!(*contents.borrow(), expected);
+        }
+    }
 
     /// Check the logical, physical and modifier key rules used by native paste.
     #[cfg_attr(test, test)]

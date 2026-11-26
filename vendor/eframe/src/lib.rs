@@ -192,7 +192,6 @@ pub use native::clipboard::macos::tests as clipboard_test_cases;
 
 #[cfg(all(
     windows,
-    feature = "drill-windows-clipboard",
     feature = "drill-clipboard-tests",
     any(feature = "glow", feature = "wgpu")
 ))]
