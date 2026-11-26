@@ -1,5 +1,5 @@
-use eframe::egui::{self, Color32, FontId, Painter, Pos2, Rect, TextureHandle, TextureId};
-use std::{collections::VecDeque, sync::OnceLock};
+use eframe::egui::{self, Color32, FontId, Painter, Pos2, Rect, TextureHandle};
+use std::{collections::HashMap, sync::OnceLock};
 use unicode_segmentation::UnicodeSegmentation;
 
 const PACK: &[u8] = include_bytes!("assets/emoji/twemoji.bin");
@@ -30,12 +30,14 @@ fn sprite(cluster: &str) -> Option<Sprite> {
 }
 
 #[derive(Default)]
-pub(super) struct EmojiCache(VecDeque<(usize, TextureHandle)>);
+pub(super) struct EmojiCache(HashMap<usize, (u64, TextureHandle)>);
 
 impl EmojiCache {
-    fn texture(&mut self, painter: &Painter, sprite: Sprite) -> TextureId {
-        if let Some((_, texture)) = self.0.iter().find(|(offset, _)| *offset == sprite.offset) {
-            return texture.id();
+    fn texture(&mut self, painter: &Painter, sprite: Sprite) -> TextureHandle {
+        let pass = painter.ctx().cumulative_pass_nr();
+        if let Some((last_used, texture)) = self.0.get_mut(&sprite.offset) {
+            *last_used = pass;
+            return texture.clone();
         }
         let png = &PACK[sprite.offset..sprite.offset + sprite.len];
         let rgba = image::load_from_memory_with_format(png, image::ImageFormat::Png)
@@ -49,12 +51,19 @@ impl EmojiCache {
             painter
                 .ctx()
                 .load_texture("result emoji", pixels, egui::TextureOptions::LINEAR);
-        let id = texture.id();
         if self.0.len() == MAX_TEXTURES {
-            self.0.pop_front();
+            let oldest = self.0.iter().min_by_key(|(_, (last_used, _))| last_used);
+            if let Some((&key, &(last_used, _))) = oldest {
+                if last_used == pass {
+                    // A full viewport can exceed the cache. Draw the overflow without
+                    // evicting other visible glyphs that will be reused next frame.
+                    return texture;
+                }
+                self.0.remove(&key);
+            }
         }
-        self.0.push_back((sprite.offset, texture));
-        id
+        self.0.insert(sprite.offset, (pass, texture.clone()));
+        texture
     }
 
     pub(super) fn paint(
@@ -63,6 +72,31 @@ impl EmojiCache {
         mut pos: Pos2,
         text: &str,
         font: FontId,
+        color: Color32,
+    ) {
+        if text.contains('\n')
+            && text
+                .graphemes(true)
+                .any(|g| !g.is_ascii() && sprite(g).is_some())
+        {
+            let height = painter.fonts(|fonts| fonts.row_height(&font));
+            let lines = text.split('\n');
+            pos.y -= height * (lines.clone().count() - 1) as f32 / 2.0;
+            for line in lines {
+                self.paint_line(painter, pos, line, &font, color);
+                pos.y += height;
+            }
+        } else {
+            self.paint_line(painter, pos, text, &font, color);
+        }
+    }
+
+    fn paint_line(
+        &mut self,
+        painter: &Painter,
+        mut pos: Pos2,
+        text: &str,
+        font: &FontId,
         color: Color32,
     ) {
         let plain =
@@ -88,9 +122,9 @@ impl EmojiCache {
                     egui::Vec2::splat(font.size),
                 );
                 if rect.intersects(painter.clip_rect()) {
-                    let id = self.texture(painter, sprite);
+                    let texture = self.texture(painter, sprite);
                     painter.image(
-                        id,
+                        texture.id(),
                         rect,
                         Rect::from_min_max(Pos2::ZERO, egui::pos2(1.0, 1.0)),
                         Color32::WHITE,
@@ -119,6 +153,41 @@ mod tests {
             assert_eq!(emoji.graphemes(true).count(), 1);
             let entry = sprite(emoji).unwrap();
             assert!(PACK[entry.offset..entry.offset + entry.len].starts_with(b"\x89PNG"));
+        }
+    }
+
+    #[test]
+    fn emoji_overflow_does_not_evict_the_rest_of_a_visible_page() {
+        let mut sprites = Vec::new();
+        let mut seen = std::collections::HashSet::new();
+        for line in include_str!("assets/emoji/index.tsv").lines() {
+            let entry = sprite(line.split_once('\t').unwrap().0).unwrap();
+            if seen.insert(entry.offset) {
+                sprites.push(entry);
+            }
+            if sprites.len() > MAX_TEXTURES {
+                break;
+            }
+        }
+        assert_eq!(sprites.len(), MAX_TEXTURES + 1);
+        let mut cache = EmojiCache::default();
+        let ctx = egui::Context::default();
+        for expected_uploads in [MAX_TEXTURES + 1, 1, 1] {
+            let output = ctx.run(Default::default(), |ctx| {
+                for &sprite in &sprites {
+                    let _ = cache.texture(&ctx.debug_painter(), sprite);
+                }
+            });
+            assert_eq!(cache.0.len(), MAX_TEXTURES);
+            assert_eq!(
+                output
+                    .textures_delta
+                    .set
+                    .iter()
+                    .filter(|(_, d)| d.image.size() == [72, 72])
+                    .count(),
+                expected_uploads
+            );
         }
     }
 }
