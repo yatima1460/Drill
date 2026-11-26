@@ -520,15 +520,22 @@ mod tests {
         for n in 0..700 {
             fs::write(root.join(format!("match-{n}")), "x").unwrap();
         }
-        let search = Search::start("match".into(), vec![root.to_path_buf()]);
-        std::thread::sleep(std::time::Duration::from_millis(300));
-        search.set_paused(true);
-        search.stop();
-        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(5);
-        while !search.done() && std::time::Instant::now() < deadline {
-            std::thread::yield_now();
+        for paused in [false, true] {
+            let search = Search::start("match".into(), vec![root.to_path_buf()]);
+            if paused {
+                search.set_paused(true);
+            }
+            std::thread::sleep(std::time::Duration::from_millis(300));
+            search.stop();
+            let deadline = std::time::Instant::now() + std::time::Duration::from_secs(5);
+            while !search.done() && std::time::Instant::now() < deadline {
+                std::thread::yield_now();
+            }
+            assert!(
+                search.done(),
+                "cancelled search did not stop (paused={paused})"
+            );
         }
-        assert!(search.done(), "cancelled search did not stop");
     }
     #[test]
     fn scan_finishes_and_finds_files_and_directories() {
