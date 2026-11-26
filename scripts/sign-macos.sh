@@ -17,8 +17,15 @@ requirement="anchor apple generic and certificate leaf[subject.OU] = \"$team\" a
 work=$(mktemp -d "${RUNNER_TEMP:?}/drill-sign.XXXXXXXX")
 keychain="$work/signing.keychain-db"
 mount="$work/mount"
+# security prints one quoted, indented path per line. Preserve spaces and order.
+original_keychains=()
+while IFS= read -r path; do
+  path=${path#*\"}
+  original_keychains+=("${path%\"}")
+done < <(security list-keychains -d user)
 cleanup() {
   if mount | grep -Fq " on $mount "; then hdiutil detach "$mount" >/dev/null; fi
+  security list-keychains -d user -s "${original_keychains[@]}"
   security delete-keychain "$keychain" >/dev/null 2>&1 || true
   rm -rf "$work"
 }
@@ -34,6 +41,7 @@ keychain_password=$(openssl rand -hex 32)
 security create-keychain -p "$keychain_password" "$keychain"
 security set-keychain-settings -lut 3600 "$keychain"
 security unlock-keychain -p "$keychain_password" "$keychain"
+security list-keychains -d user -s "$keychain" "${original_keychains[@]}"
 security import "$work/identity.p12" -k "$keychain" -P "$MACOS_CERTIFICATE_PASSWORD" -T /usr/bin/codesign >/dev/null
 unset MACOS_CERTIFICATE_PASSWORD
 rm "$work/identity.p12"
@@ -50,7 +58,7 @@ codesign --verify --deep --strict -R="identifier \"$bundle_id\" and $requirement
 mkdir -p dist "$mount"
 hdiutil create -volname Drill -srcfolder build/dmg-root -ov -format UDZO "$dmg"
 codesign --force --sign "$fingerprint" --keychain "$keychain" --timestamp --identifier "$bundle_id.dmg" "$dmg"
-security delete-keychain "$keychain"
+security lock-keychain "$keychain"
 codesign --verify --strict -R="identifier \"$bundle_id.dmg\" and $requirement" "$dmg"
 
 xcrun notarytool submit "$dmg" --key "$work/notary.p8" --key-id "$APPLE_NOTARY_KEY_ID" \
