@@ -246,11 +246,7 @@ jobs:
       - run: cargo clippy --locked --workspace --all-targets --all-features -- -D warnings -D clippy::undocumented_unsafe_blocks
       - run: cargo test --locked --workspace
       - name: Verify clipboard text and RGBA on a private macOS pasteboard
-        run: |
-          xcrun --sdk macosx clang -fobjc-arc -Wall -Wextra -Werror -framework AppKit -framework Foundation \
-            crates/drill-macos/src/clipboard.m crates/drill-macos/tests/clipboard.m \
-            -o "$RUNNER_TEMP/drill-clipboard-smoke"
-          "$RUNNER_TEMP/drill-clipboard-smoke"
+        run: scripts/test-macos-clipboard.sh
       - run: cargo build --release --locked
       - run: scripts/package-macos.sh
       - name: Hash the tested executable

@@ -1,6 +1,8 @@
 #import <AppKit/AppKit.h>
 #include <assert.h>
+#include <stdio.h>
 #include <string.h>
+#include <sysexits.h>
 
 #include "../src/clipboard.h"
 
@@ -21,7 +23,10 @@ static void check_text(void *context, const uint8_t *bytes, size_t length) {
 int main(void) {
     @autoreleasepool {
         NSPasteboard *pasteboard = [NSPasteboard pasteboardWithUniqueName];
-        assert(pasteboard != nil);
+        if (pasteboard == nil) {
+            fputs("The macOS pasteboard service is unavailable in this session.\n", stderr);
+            return EX_UNAVAILABLE;
+        }
         void *handle = (__bridge void *)pasteboard;
         const uint8_t text[] = "žlutý 🌳\r\nsecond line";
         const uint8_t rgba[] = {255, 0, 0, 255, 0, 255, 0, 127};
@@ -61,5 +66,6 @@ int main(void) {
         assert(probe.called);
         [pasteboard releaseGlobally];
     }
+    puts("Private macOS pasteboard text and image tests passed.");
     return 0;
 }

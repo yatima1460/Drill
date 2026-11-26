@@ -182,6 +182,14 @@ pub use web::{WebLogger, WebRunner};
 #[cfg(any(feature = "glow", feature = "wgpu"))]
 mod native;
 
+#[cfg(all(
+    target_os = "macos",
+    feature = "drill-clipboard-tests",
+    any(feature = "glow", feature = "wgpu")
+))]
+#[doc(hidden)]
+pub use native::clipboard::macos::tests as clipboard_test_cases;
+
 #[cfg(not(target_arch = "wasm32"))]
 #[cfg(any(feature = "glow", feature = "wgpu"))]
 #[cfg(feature = "persistence")]

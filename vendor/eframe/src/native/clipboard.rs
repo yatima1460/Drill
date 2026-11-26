@@ -3,7 +3,7 @@ use egui_winit::State;
 use winit::window::Window;
 
 #[cfg(target_os = "macos")]
-mod macos;
+pub(crate) mod macos;
 
 #[cfg(target_os = "macos")]
 pub(super) use macos::on_window_event;

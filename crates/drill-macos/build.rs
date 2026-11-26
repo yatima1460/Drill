@@ -1,5 +1,5 @@
 use std::env;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::process::Command;
 
 fn run(command: &mut Command) {
@@ -50,36 +50,37 @@ fn main() {
         .strip_prefix("MACOSX_DEPLOYMENT_TARGET=")
         .filter(|value| !value.is_empty())
         .expect("rustc must report a macOS deployment target");
-    let sdk = env::var_os("SDKROOT")
-        .filter(|root| !root.is_empty())
-        .map(PathBuf::from)
-        .unwrap_or_else(|| {
-            PathBuf::from(
-                stdout(Command::new("xcrun").args(["--sdk", "macosx", "--show-sdk-path"])).trim(),
-            )
-        });
+    let sdk = PathBuf::from(
+        env::var_os("SDKROOT")
+            .filter(|root| !root.is_empty())
+            .unwrap_or_else(|| "macosx".into()),
+    );
+    let sdk = if sdk.is_dir() {
+        sdk
+    } else {
+        let path = stdout(
+            Command::new("xcrun")
+                .arg("--sdk")
+                .arg(sdk)
+                .arg("--show-sdk-path"),
+        );
+        PathBuf::from(path.trim())
+    };
     let output = PathBuf::from(env::var_os("OUT_DIR").unwrap());
-    let source = Path::new("src");
     let optimization = env::var("OPT_LEVEL").unwrap();
 
-    let mut objects = Vec::new();
-    for module in ["clipboard", "file_icon", "menu", "permissions", "png"] {
-        let object = output.join(format!("{module}.o"));
-        run(Command::new("xcrun")
-            .args(["--sdk", "macosx", "clang", "-arch", arch, "-isysroot"])
-            .arg(&sdk)
-            .arg(format!("-mmacosx-version-min={minimum}"))
-            .arg(format!("-O{optimization}"))
-            .args(["-fobjc-arc", "-c"])
-            .arg(source.join(format!("{module}.m")))
-            .arg("-o")
-            .arg(&object));
-        objects.push(object);
-    }
+    let object = output.join("drill_macos.o");
+    run(Command::new("xcrun")
+        .args(["--sdk", "macosx", "clang", "-arch", arch, "-isysroot"])
+        .arg(&sdk)
+        .arg(format!("-mmacosx-version-min={minimum}"))
+        .arg(format!("-O{optimization}"))
+        .args(["-fobjc-arc", "-c", "src/drill_macos.m", "-o"])
+        .arg(&object));
     run(Command::new("xcrun")
         .args(["--sdk", "macosx", "libtool", "-static", "-o"])
         .arg(output.join("libdrill_macos_native.a"))
-        .args(objects));
+        .arg(object));
 
     println!("cargo:rustc-link-search=native={}", output.display());
     println!("cargo:rustc-link-lib=static=drill_macos_native");

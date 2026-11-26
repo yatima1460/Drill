@@ -132,6 +132,7 @@ default = [
     "egui-wgpu?/fragile-send-sync-non-atomic-wasm",
 ]
 default_fonts = ["egui/default_fonts"]
+drill-clipboard-tests = []
 glow = [
     "dep:egui_glow",
     "dep:glow",

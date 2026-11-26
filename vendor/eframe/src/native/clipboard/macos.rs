@@ -125,12 +125,15 @@ fn replace_keyboard_paste(
     }
 }
 
-#[cfg(test)]
-mod tests {
+#[cfg(any(test, feature = "drill-clipboard-tests"))]
+pub mod tests {
+    //! Fixtures also run by Drill's workspace test suite.
+
     use super::*;
 
-    #[test]
-    fn macos_paste_shortcuts_follow_egui_precedence() {
+    /// Check the logical, physical and modifier key rules used by native paste.
+    #[cfg_attr(test, test)]
+    pub fn macos_paste_shortcuts_follow_egui_precedence() {
         let command = Modifiers::MAC_CMD | Modifiers::COMMAND;
         let physical_v = PhysicalKey::Code(KeyCode::KeyV);
         let physical_insert = PhysicalKey::Code(KeyCode::Insert);
@@ -151,8 +154,9 @@ mod tests {
         ));
     }
 
-    #[test]
-    fn native_paste_replaces_the_framework_fallback_once() {
+    /// Check how native clipboard text replaces the framework fallback event.
+    #[cfg_attr(test, test)]
+    pub fn native_paste_replaces_the_framework_fallback_once() {
         let mut events = vec![Event::Copy, Event::Paste("stale".to_owned())];
         replace_keyboard_paste(&mut events, 1, || None);
         assert!(matches!(&events[1], Event::Paste(text) if text == "stale"));
