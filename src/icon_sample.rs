@@ -133,7 +133,7 @@ mod tests {
     }
 
     #[test]
-    fn associated_icons_match_the_previous_lookup() {
+    fn associated_icons_match_direct_native_lookup() {
         let directory = crate::test_directory::private_temp_dir();
         for name in ["sample.exe", "sample.AppImage"] {
             let previous = directory.path().join(name);

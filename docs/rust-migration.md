@@ -9,6 +9,12 @@ generation, and explicitly disable link-time optimization. See the
 [measured release-profile tradeoff](../AGENTS.md#desktop-release-profile).
 The embedded Wasm icon decoders use separate size-focused release profiles.
 
+Linux builds use `pkg-config`, a C compiler and an archiver to compile the small
+GTK 3 and GIO adapter against the system development files. For cross-compilation
+set `CC` and `AR` for the target when the default tool names do not match.
+Set `PKG_CONFIG` to the target's executable or set `PKG_CONFIG_SYSROOT_DIR`
+with the target's `PKG_CONFIG_LIBDIR`.
+
 To compare clean desktop builds, give the benchmark a fresh output directory and
 the paths to clean checkouts. Fetch their locked dependencies first. On macOS
 or Linux, pass the same C compiler driver that Rust normally uses to also
@@ -68,6 +74,6 @@ The GitHub Actions environment `prod` allows only the branch `main` and requires
 
 The signing job retrieves the tested executable by artifact ID and stages it without launching it. It signs `software.drill` with Hardened Runtime and a secure timestamp, signs the DMG, submits it to Apple and staples the accepted ticket. The publisher retrieves the validated DMG by its artifact ID. Missing credentials or failed verification block publication.
 
-The query and search core packages forbid unsafe Rust. Run `cargo test --locked -p drill-query` for pure matching and normalization tests, or `make test-core` to include traversal and result delivery. The desktop crate denies unsafe Rust except for narrowly scoped Windows shell launch, Open With, COM and window-menu calls, Linux GTK dialog destruction, and the macOS icon worker's thread-local I/O policy. The Wasm guests use pointers at their host boundaries. The EXE guest has no host imports. The AppImage guest imports a read-only function scoped to the selected file. CI checks for undocumented unsafe blocks in the workspace targets it builds. Focused tests cover matching, priority, overlapping roots, completion and cancellation with a full result queue. Run `make prove` and `make test-mutants` for additional checks. See [verification domains, commands and limits](verification.md).
+The query and search core packages forbid unsafe Rust. Run `cargo test --locked -p drill-query` for pure matching and normalization tests, or `make test-core` to include traversal and result delivery. The desktop crate denies unsafe Rust except for narrowly scoped Windows shell launch, Open With, COM and window-menu calls and the macOS icon worker's thread-local I/O policy. The Linux GTK and GIO adapter lives in `crates/drill-gtk`. The Wasm guests use pointers at their host boundaries. The EXE guest has no host imports. The AppImage guest imports a read-only function scoped to the selected file. CI checks for undocumented unsafe blocks in the workspace targets it builds. Focused tests cover matching, priority, overlapping roots, completion and cancellation with a full result queue. Run `make prove` and `make test-mutants` for additional checks. See [verification domains, commands and limits](verification.md).
 
 On macOS, `Run Core Tests.command` runs the query and traversal package tests. `Run UI Tests.command` runs the headless egui tests followed by an actual native-window test that moves the mouse and types; grant Accessibility access to the terminal running it if macOS requests it. Do not use the mouse or keyboard while that test runs. Linux CI runs that same native test on a virtual X display. The native test driver is enabled only for test builds.

@@ -52,7 +52,7 @@ prove: ## Model-check the search filter, row insertion and Wasm read bounds
 	$(CARGO) kani --manifest-path verification/Cargo.toml --lib --output-format terse
 
 test-mutants: export CARGO := $(CARGO)
-test-mutants: ## Run the focused mutation tests for all first-party Rust packages
+test-mutants: ## Run focused mutation tests for search, desktop and decoder code
 	scripts/test-mutants.sh query
 	scripts/test-mutants.sh core
 	scripts/test-mutants.sh desktop

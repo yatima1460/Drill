@@ -26,7 +26,9 @@ jobs:
         env:
           BEFORE: ${{ github.event.pull_request.base.sha || github.event.before }}
           AFTER: ${{ github.event.pull_request.head.sha || github.sha }}
-        run: python3 .github/ci/platforms.py
+        run: |
+          python3 .github/ci/test_platforms.py
+          python3 .github/ci/platforms.py
   jscpd:
     needs: platforms
     if: needs.platforms.outputs.duplicates == 'true'
@@ -217,7 +219,7 @@ jobs:
             'ui_tests::emoji_filenames_paint_colored_clusters_inside_their_columns',
             'shell_worker_balances_sta_after_failed_action',
             'icon_sample::tests::owns_only_the_file_it_created',
-            'icon_sample::tests::associated_icons_match_the_previous_lookup'
+            'icon_sample::tests::associated_icons_match_direct_native_lookup'
           )
           foreach ($test in $tests) {
             & .\drill-ui-tests.exe $test --exact --color never | Tee-Object -Variable result
@@ -240,9 +242,15 @@ jobs:
           components: clippy, rustfmt
       - if: needs.platforms.outputs.linux != 'true'
         run: cargo fmt --all -- --check
-      - run: cargo check --locked --all-targets
-      - run: cargo clippy --locked --all-targets --all-features -- -D warnings -D clippy::undocumented_unsafe_blocks
-      - run: cargo test --locked
+      - run: cargo check --locked --workspace --all-targets
+      - run: cargo clippy --locked --workspace --all-targets --all-features -- -D warnings -D clippy::undocumented_unsafe_blocks
+      - run: cargo test --locked --workspace
+      - name: Verify clipboard text and RGBA on a private macOS pasteboard
+        run: |
+          xcrun --sdk macosx clang -fobjc-arc -Wall -Wextra -Werror -framework AppKit -framework Foundation \
+            crates/drill-macos/src/clipboard.m crates/drill-macos/tests/clipboard.m \
+            -o "$RUNNER_TEMP/drill-clipboard-smoke"
+          "$RUNNER_TEMP/drill-clipboard-smoke"
       - run: cargo build --release --locked
       - run: scripts/package-macos.sh
       - name: Hash the tested executable

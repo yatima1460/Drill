@@ -31,10 +31,20 @@ def select(paths, event):
             targets = {"windows"}
         elif path in {"src/native_menu.rs", "src/icon_sample.rs"}:
             targets = {"macos", "windows"}
+        elif path.startswith("crates/drill-gtk/"):
+            targets = {"linux"}
+            shipped = not (path.startswith("crates/drill-gtk/tests/") or
+                           path == "crates/drill-gtk/src/desktop_theme_test.c")
+        elif path.startswith("crates/drill-macos/"):
+            targets = {"macos"}
+            shipped = not path.startswith("crates/drill-macos/tests/")
+        elif path.startswith("crates/drill-windows/"):
+            targets = {"windows"}
+            shipped = not path.startswith("crates/drill-windows/tests/")
         elif path.startswith(("tools/exe-icon-wasm/", "tools/appimage-icon-wasm/")):
             targets = ALL if "/tests/fixtures/" in path else {"linux"}
             shipped = False  # Desktop builds embed the checked-in Wasm files.
-        elif path.startswith("vendor/file_icon_provider/src/implementation/"):
+        elif path.startswith(("src/platform_icon/", "src/native_menu/", "vendor/file_icon_provider/src/implementation/")):
             platform = Path(path).stem
             targets = {platform} if platform in ALL else ALL
         elif not (path.startswith(("src/", "crates/", "vendor/", ".cargo/")) or path in {

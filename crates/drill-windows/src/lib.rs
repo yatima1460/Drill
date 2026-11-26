@@ -1,6 +1,12 @@
 #![cfg(windows)]
 #![deny(unsafe_code)]
-//! Windows filesystem adapters for Drill.
+//! Windows filesystem and Shell adapters for Drill.
+
+#[cfg(feature = "shell-icons")]
+#[allow(unsafe_code)]
+mod file_icon;
+#[cfg(feature = "shell-icons")]
+pub use file_icon::{file_icon, FileIcon};
 
 use std::ffi::c_void;
 use std::mem::MaybeUninit;

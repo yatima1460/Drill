@@ -1,0 +1,146 @@
+use std::{env, ffi::OsString, fs, path::PathBuf, process::Command};
+
+const PACKAGES: &[&str] = &["gtk+-3.0", "gio-unix-2.0"];
+const SOURCES: &[&str] = &[
+    "gtk.c",
+    "linux_app_catalog.c",
+    "desktop_theme.c",
+    "desktop_theme_test.c",
+];
+
+fn setting(name: &str, target: &str, native: bool) -> Option<OsString> {
+    let kind = if native { "HOST" } else { "TARGET" };
+    [
+        format!("{name}_{target}"),
+        format!("{name}_{}", target.replace('-', "_")),
+        format!("{kind}_{name}"),
+        name.to_owned(),
+    ]
+    .into_iter()
+    .find_map(|key| {
+        println!("cargo:rerun-if-env-changed={key}");
+        env::var_os(key)
+    })
+}
+
+// pkg-config escapes literal bytes with a backslash. Keep escaped spaces in
+// paths and pass each flag directly to the compiler, without a shell.
+fn flags(output: &str) -> Vec<String> {
+    let mut words = Vec::new();
+    let mut word = String::new();
+    let mut chars = output.chars();
+    while let Some(ch) = chars.next() {
+        if ch == '\\' {
+            word.push(chars.next().expect("unterminated pkg-config escape"));
+        } else if ch.is_ascii_whitespace() {
+            if !word.is_empty() {
+                words.push(std::mem::take(&mut word));
+            }
+        } else {
+            word.push(ch);
+        }
+    }
+    if !word.is_empty() {
+        words.push(word);
+    }
+    words
+}
+
+fn pkg_config(option: &str, target: &str, native: bool) -> Vec<String> {
+    let configured = |name| setting(name, target, native);
+    let tool = configured("PKG_CONFIG");
+    let sysroot = configured("PKG_CONFIG_SYSROOT_DIR");
+    if !native {
+        let allow = configured("PKG_CONFIG_ALLOW_CROSS");
+        assert!(
+            allow.as_deref().is_some_and(|value| value != "0")
+                || (allow.is_none() && (tool.is_some() || sysroot.is_some())),
+            "configure cross-compilation with a target pkg-config or PKG_CONFIG_SYSROOT_DIR"
+        );
+    }
+    let mut command = Command::new(tool.unwrap_or_else(|| "pkg-config".into()));
+    for name in ["PKG_CONFIG_PATH", "PKG_CONFIG_LIBDIR"] {
+        if let Some(value) = configured(name) {
+            command.env(name, value);
+        }
+    }
+    if let Some(value) = sysroot {
+        command.env("PKG_CONFIG_SYSROOT_DIR", value);
+    }
+    let output = command
+        .args([option])
+        .args(PACKAGES)
+        .output()
+        .expect("run pkg-config");
+    assert!(
+        output.status.success(),
+        "pkg-config could not locate the GTK 3 and GIO development files: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    flags(std::str::from_utf8(&output.stdout).expect("UTF-8 pkg-config flags"))
+}
+
+fn run(command: &mut Command) {
+    let status = command
+        .status()
+        .unwrap_or_else(|error| panic!("run {command:?}: {error}"));
+    assert!(status.success(), "{command:?} failed: {status}");
+}
+
+fn main() {
+    if env::var("CARGO_CFG_TARGET_OS").as_deref() != Ok("linux") {
+        return;
+    }
+    let out = PathBuf::from(env::var_os("OUT_DIR").unwrap());
+    let target = env::var("TARGET").unwrap();
+    let native = env::var("HOST").as_deref() == Ok(target.as_str());
+    let prefix = target.replace("-unknown-", "-");
+    let compiler = setting("CC", &target, native).unwrap_or_else(|| {
+        if native {
+            "cc".into()
+        } else {
+            format!("{prefix}-gcc").into()
+        }
+    });
+    let archiver = setting("AR", &target, native).unwrap_or_else(|| {
+        if native {
+            "ar".into()
+        } else {
+            format!("{prefix}-ar").into()
+        }
+    });
+    let cflags = pkg_config("--cflags", &target, native);
+    let archive = out.join("libdrill_gtk.a");
+    let mut objects = Vec::new();
+
+    for name in SOURCES {
+        let source = format!("src/{name}");
+        println!("cargo:rerun-if-changed={source}");
+        let object = out.join(name.replace(".c", ".o"));
+        run(Command::new(&compiler)
+            .args(["-fPIC", "-c"])
+            .arg(format!("-O{}", env::var("OPT_LEVEL").unwrap()))
+            .args(&cflags)
+            .arg(&source)
+            .arg("-o")
+            .arg(&object));
+        objects.push(object);
+    }
+    if archive.exists() {
+        fs::remove_file(&archive).expect("remove previous GTK archive");
+    }
+    run(Command::new(archiver)
+        .arg("crs")
+        .arg(&archive)
+        .args(objects));
+    println!("cargo:rustc-link-search=native={}", out.display());
+    println!("cargo:rustc-link-lib=static=drill_gtk");
+    for flag in pkg_config("--libs-only-L", &target, native) {
+        let path = flag.strip_prefix("-L").expect("pkg-config library path");
+        println!("cargo:rustc-link-search=native={path}");
+    }
+    for flag in pkg_config("--libs-only-l", &target, native) {
+        let lib = flag.strip_prefix("-l").expect("pkg-config library name");
+        println!("cargo:rustc-link-lib={lib}");
+    }
+}

@@ -252,18 +252,8 @@ fn executable_type_icon(_: &egui::Context, _: &str) -> Option<egui::TextureHandl
 }
 #[cfg(target_os = "linux")]
 fn executable_type_icon(ctx: &egui::Context, sample_name: &str) -> Option<egui::TextureHandle> {
-    use gtk::prelude::*;
-    if !gtk::is_initialized() {
-        gtk::init().ok()?;
-    }
-    let (content_type, _) = gtk::gio::content_type_guess(Some(Path::new(sample_name)), None);
-    let icon = gtk::gio::content_type_get_icon(&content_type);
-    let themed = icon.dynamic_cast_ref::<gtk::gio::ThemedIcon>()?;
-    themed_icon_texture(
-        ctx,
-        themed.names().iter().map(|name| name.as_str()),
-        sample_name,
-    )
+    let icon = platform_icon::mime_type_icon(Path::new(sample_name), NATIVE_ICON_PIXELS)?;
+    platform_icon_texture(ctx, icon, sample_name)
 }
 
 #[cfg(target_os = "linux")]
@@ -272,34 +262,8 @@ fn themed_icon_texture<'a>(
     names: impl Iterator<Item = &'a str>,
     key: &str,
 ) -> Option<egui::TextureHandle> {
-    use gtk::prelude::*;
-    if !gtk::is_initialized() {
-        gtk::init().ok()?;
-    }
-    let theme = gtk::IconTheme::default()?;
-    for name in names {
-        if let Some(pixbuf) = theme
-            .load_icon(
-                name,
-                i32::from(NATIVE_ICON_PIXELS),
-                gtk::IconLookupFlags::empty(),
-            )
-            .ok()
-            .flatten()
-        {
-            let width = u32::try_from(pixbuf.width()).ok()?;
-            let height = u32::try_from(pixbuf.height()).ok()?;
-            let icon = platform_icon::Icon {
-                width,
-                height,
-                pixels: pixbuf.read_pixel_bytes().to_vec(),
-            };
-            if let Some(texture) = platform_icon_texture(ctx, icon, key) {
-                return Some(texture);
-            }
-        }
-    }
-    None
+    let icon = platform_icon::themed_icon(names, NATIVE_ICON_PIXELS)?;
+    platform_icon_texture(ctx, icon, key)
 }
 #[cfg(not(target_os = "linux"))]
 fn open(path: &Path, reveal: bool) {
@@ -434,27 +398,8 @@ fn open_with(path: &Path) -> Result<(), String> {
 }
 
 #[cfg(target_os = "linux")]
-#[allow(unsafe_code)]
 fn open_with(path: &Path) -> Result<(), String> {
-    use gtk::prelude::*;
-    gtk::init().map_err(|e| e.to_string())?;
-    let file = gtk::gio::File::for_path(path);
-    let dialog = gtk::AppChooserDialog::new(None::<&gtk::Window>, gtk::DialogFlags::MODAL, &file);
-    let response = dialog.run();
-    let result = if response == gtk::ResponseType::Ok || response == gtk::ResponseType::Accept {
-        match dialog.app_info() {
-            Some(app) => app
-                .launch(&[file], None::<&gtk::gio::AppLaunchContext>)
-                .map_err(|e| e.to_string()),
-            None => Err("No application was selected".into()),
-        }
-    } else {
-        Ok(())
-    };
-    dialog.hide();
-    // SAFETY: the dialog has returned from its modal loop and is not queried or reused after destruction.
-    unsafe { dialog.destroy() };
-    result
+    platform_icon::open_with(path)
 }
 
 #[cfg(windows)]

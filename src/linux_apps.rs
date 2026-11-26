@@ -1,6 +1,5 @@
 use drill_core::{Entry, MatchKind, SearchQuery};
-use gio_unix::DesktopAppInfo;
-use gtk::gio::{self, prelude::*};
+use drill_gtk::linux_app_catalog::{self, DesktopApp, LaunchError};
 use std::path::Path;
 use std::sync::atomic::{AtomicBool, Ordering};
 
@@ -12,28 +11,19 @@ struct Application {
 }
 
 impl Application {
-    fn from_registered(app: gio::AppInfo) -> Option<Self> {
-        let app = app.downcast::<DesktopAppInfo>().ok()?;
-        if !app.should_show() {
-            return None;
-        }
-        let icon_names = app
-            .icon()
-            .and_then(|icon| icon.downcast::<gio::ThemedIcon>().ok())
-            .map(|icon| icon.names().into_iter().map(String::from).collect())
-            .unwrap_or_default();
-        Some(Self {
+    fn from_registered(app: DesktopApp) -> Self {
+        Self {
             entry: Entry {
-                path: app.filename()?,
-                name: app.display_name().to_string(),
+                path: app.path,
+                name: app.display_name,
                 size: None,
                 modified: None,
                 is_dir: false,
             },
-            id: app.id()?.to_string(),
-            keywords: app.keywords().join(" "),
-            icon_names,
-        })
+            id: app.id,
+            keywords: app.keywords,
+            icon_names: app.icon_names,
+        }
     }
 
     fn classify(&self, query: &SearchQuery) -> Option<MatchKind> {
@@ -58,9 +48,9 @@ pub(super) struct Catalog {
 
 impl Catalog {
     pub(super) fn load() -> Self {
-        let mut apps: Vec<_> = gio::AppInfo::all()
+        let mut apps: Vec<_> = linux_app_catalog::load()
             .into_iter()
-            .filter_map(Application::from_registered)
+            .map(Application::from_registered)
             .collect();
         apps.sort_by_cached_key(|app| (app.entry.name.to_lowercase(), app.id.clone()));
         Self { apps }
@@ -88,11 +78,10 @@ impl Catalog {
 
     pub(super) fn launch(&self, path: &Path) -> Result<(), String> {
         let registered = self.find(path).ok_or("Unknown application")?;
-        let app = DesktopAppInfo::new(&registered.id)
-            .filter(|app| app.should_show() && app.filename().as_deref() == Some(path))
-            .ok_or_else(|| format!("{} is no longer available", registered.entry.name))?;
-        app.launch(&[], None::<&gio::AppLaunchContext>)
-            .map_err(|err| err.to_string())
+        linux_app_catalog::launch(&registered.id, path).map_err(|err| match err {
+            LaunchError::Unavailable => format!("{} is no longer available", registered.entry.name),
+            LaunchError::Failed(message) => message,
+        })
     }
 }
 
@@ -181,6 +170,16 @@ mod tests {
             .launch(Path::new("/tmp/unregistered.desktop"))
             .is_err());
         catalog.launch(path).unwrap(); // The fixture launches /bin/true.
+        assert!(matches!(
+            linux_app_catalog::launch("suite-editor.desktop", Path::new("/tmp/replaced.desktop")),
+            Err(LaunchError::Unavailable)
+        ));
+        let hidden = std::path::PathBuf::from(env::var_os("XDG_DATA_HOME").unwrap())
+            .join("applications/quiet.desktop");
+        assert!(matches!(
+            linux_app_catalog::launch("quiet.desktop", &hidden),
+            Err(LaunchError::Unavailable)
+        ));
         cancel.store(true, Ordering::Relaxed);
         assert!(search("").is_empty());
     }

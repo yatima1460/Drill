@@ -40,6 +40,32 @@ class PlatformRouting(unittest.TestCase):
         for path in ["docs/screenshot.png", "Cargo.lock", "vendor/eframe/src/lib.rs"]:
             self.assertFalse(scans_source(path), path)
 
+    def test_native_adapter_routing(self):
+        for path, targets in [
+            ("crates/drill-gtk/src/linux_app_catalog.c", {"linux"}),
+            ("crates/drill-macos/build.rs", {"macos"}),
+            ("crates/drill-macos/src/file_icon.m", {"macos"}),
+            ("crates/drill-windows/src/lib.rs", {"windows"}),
+            ("src/platform_icon.rs", ALL),
+            ("src/platform_icon/linux.rs", {"linux"}),
+            ("src/platform_icon/macos.rs", {"macos"}),
+            ("src/platform_icon/windows.rs", {"windows"}),
+            ("src/platform_icon/windows.c", {"windows"}),
+            ("src/platform_icon/shared.rs", ALL),
+            ("src/native_menu/macos.rs", {"macos"}),
+            ("src/native_menu/windows.rs", {"windows"}),
+        ]:
+            with self.subTest(path=path):
+                self.assertEqual(select([path], "pull_request"), (targets, False))
+                self.assertEqual(select([path], "push"), (ALL, True))
+        for path, targets in [
+            ("crates/drill-gtk/src/desktop_theme_test.c", {"linux"}),
+            ("crates/drill-macos/tests/clipboard.m", {"macos"}),
+        ]:
+            with self.subTest(path=path):
+                for event in ("pull_request", "push"):
+                    self.assertEqual(select([path], event), (targets, False))
+
     def test_manual_validation(self):
         self.assertEqual(select([], "workflow_dispatch"), (ALL, False))
 

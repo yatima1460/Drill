@@ -1,0 +1,6 @@
+[package]
+name = "drill-gtk"
+version = "2.0.0"
+edition = "2021"
+license-file = "../../LICENSE"
+publish = false
