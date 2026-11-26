@@ -9,6 +9,7 @@ pub struct NativeMenu {
     stop: MenuItem,
     requested: Arc<AtomicBool>,
     interface_requested: Arc<AtomicBool>,
+    syntax_requested: Arc<AtomicBool>,
     #[cfg(target_os = "macos")]
     permissions_requested: Arc<AtomicBool>,
 }
@@ -21,6 +22,8 @@ impl NativeMenu {
         #[cfg(target_os = "macos")]
         let permissions = MenuItem::new("Permissions…", true, None);
         let interface = MenuItem::new("Interface…", true, None);
+        let syntax = MenuItem::new("Syntax", true, None);
+        let help = Submenu::with_items("Help", true, &[&syntax]).map_err(|e| e.to_string())?;
         #[cfg(target_os = "macos")]
         let settings = Submenu::with_items("Settings", true, &[&interface, &permissions])
             .map_err(|e| e.to_string())?;
@@ -51,8 +54,12 @@ impl NativeMenu {
         }
         menu.append(&search).map_err(|e| e.to_string())?;
         menu.append(&settings).map_err(|e| e.to_string())?;
+        menu.append(&help).map_err(|e| e.to_string())?;
         #[cfg(target_os = "macos")]
-        menu.init_for_nsapp();
+        {
+            menu.init_for_nsapp();
+            help.set_as_help_menu_for_nsapp();
+        }
         #[cfg(target_os = "windows")]
         {
             use raw_window_handle::{HasWindowHandle, RawWindowHandle};
@@ -69,6 +76,9 @@ impl NativeMenu {
         let interface_requested = Arc::new(AtomicBool::new(false));
         let interface_target = interface_requested.clone();
         let interface_id = interface.id().clone();
+        let syntax_requested = Arc::new(AtomicBool::new(false));
+        let syntax_target = syntax_requested.clone();
+        let syntax_id = syntax.id().clone();
         #[cfg(target_os = "macos")]
         let permissions_requested = Arc::new(AtomicBool::new(false));
         #[cfg(target_os = "macos")]
@@ -85,6 +95,10 @@ impl NativeMenu {
                 interface_target.store(true, Ordering::Relaxed);
                 context.request_repaint();
             }
+            if event.id == syntax_id {
+                syntax_target.store(true, Ordering::Relaxed);
+                context.request_repaint();
+            }
             #[cfg(target_os = "macos")]
             if event.id == permissions_id {
                 permissions_target.store(true, Ordering::Relaxed);
@@ -96,6 +110,7 @@ impl NativeMenu {
             stop,
             requested,
             interface_requested,
+            syntax_requested,
             #[cfg(target_os = "macos")]
             permissions_requested,
         })
@@ -110,6 +125,9 @@ impl NativeMenu {
     }
     pub fn take_interface(&self) -> bool {
         self.interface_requested.swap(false, Ordering::Relaxed)
+    }
+    pub fn take_syntax(&self) -> bool {
+        self.syntax_requested.swap(false, Ordering::Relaxed)
     }
     #[cfg(target_os = "macos")]
     pub fn take_permissions(&self) -> bool {
