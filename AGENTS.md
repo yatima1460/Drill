@@ -10,7 +10,7 @@ Open a pull request and ask an independent reviewer selected by the same model a
 
 ## External dependencies and platform bindings
 
-Use the standard library first. When Drill needs a platform API, write a small binding for the exact calls and data Drill uses. Keep it next to the feature that owns it. If a replacement would require recreating a general-purpose library, explain the tradeoff to the user.
+Be as native as possible on each supported platform. Follow its desktop conventions and call its documented SDK directly through small bindings for the exact operations Drill needs. On macOS, use Apple's SDKs for integrations such as menus, the clipboard, and file icons. Keep platform bindings at the edge of the application and use the standard library for shared search behavior. If a replacement would require recreating a general-purpose library, explain the tradeoff to the user.
 
 Use an external dependency only when it is strictly necessary. **Always ask the user and wait for explicit approval before adopting one.** Explain which behavior needs it and why the standard library or a narrow binding is insufficient. This also applies to build and test dependencies, vendored code, and direct use of a package already present transitively.
 
