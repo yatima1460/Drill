@@ -3,6 +3,7 @@
 pub mod clipboard;
 mod file_icon;
 pub mod menu;
+pub mod opengl;
 pub mod permissions;
 pub mod png;
 

@@ -249,14 +249,7 @@ impl EpiIntegration {
             self.can_drag_window = true;
         }
 
-        #[cfg(target_os = "macos")]
-        {
-            super::clipboard::on_window_event(egui_winit, window, event)
-        }
-        #[cfg(not(target_os = "macos"))]
-        {
-            egui_winit.on_window_event(window, event)
-        }
+        super::clipboard::on_window_event(egui_winit, window, event)
     }
 
     pub fn pre_update(&mut self) {

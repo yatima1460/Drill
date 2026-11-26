@@ -86,5 +86,6 @@ fn main() {
     println!("cargo:rustc-link-lib=static=drill_macos_native");
     println!("cargo:rustc-link-lib=framework=AppKit");
     println!("cargo:rustc-link-lib=framework=Foundation");
+    println!("cargo:rustc-link-lib=framework=OpenGL");
     println!("cargo:rustc-link-lib=dylib=objc");
 }

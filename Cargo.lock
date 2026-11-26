@@ -572,6 +572,7 @@ dependencies = [
  "ahash",
  "bytemuck",
  "drill-macos",
+ "drill-windows",
  "egui",
  "egui-wgpu",
  "egui-winit",

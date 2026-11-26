@@ -5,4 +5,5 @@ edition = "2021"
 license-file = "../../LICENSE"
 
 [features]
+clipboard = []
 shell-icons = []

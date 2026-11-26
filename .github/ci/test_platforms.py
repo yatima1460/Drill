@@ -63,6 +63,7 @@ class PlatformRouting(unittest.TestCase):
             ("crates/drill-macos/tests/clipboard.m", {"macos"}),
             ("scripts/test-macos-clipboard.sh", {"macos"}),
             ("tests/macos_clipboard.rs", {"macos"}),
+            ("examples/macos_opengl.rs", {"macos"}),
         ]:
             with self.subTest(path=path):
                 for event in ("pull_request", "push"):

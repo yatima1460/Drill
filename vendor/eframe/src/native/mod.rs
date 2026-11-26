@@ -11,6 +11,8 @@ pub mod file_storage;
 pub(crate) mod winit_integration;
 
 #[cfg(feature = "glow")]
+mod glow_context;
+#[cfg(feature = "glow")]
 mod glow_integration;
 
 #[cfg(feature = "wgpu")]

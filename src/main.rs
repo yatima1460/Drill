@@ -1644,6 +1644,13 @@ mod ui_tests {
     use super::*;
     use std::path::PathBuf;
 
+    #[cfg(windows)]
+    #[test]
+    fn windows_clipboard_preserves_shortcuts_and_write_order() {
+        eframe::clipboard_test_cases::windows_paste_shortcuts_preserve_copy_precedence();
+        eframe::clipboard_test_cases::windows_clipboard_commands_keep_output_order();
+    }
+
     #[derive(Default)]
     struct Memory(std::collections::HashMap<String, String>);
     impl eframe::Storage for Memory {

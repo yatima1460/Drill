@@ -4,7 +4,7 @@ This directory contains eframe 0.31.1 from crates.io, corresponding to egui
 commit `1669e52a7ccfc3489c1b0999b9ed48894a0b3887`. It is distributed under
 the MIT or Apache-2.0 license; both license texts are included here.
 
-`src/native/glow_integration.rs` adds a Windows desktop OpenGL compatibility
+`src/native/glow_context/glutin.rs` adds a Windows desktop OpenGL compatibility
 context attempt after both the normal desktop and OpenGL ES context attempts
 fail. Wine on macOS can reject the first two while supporting the compatibility
 context. This follows the approach later adopted upstream in
@@ -20,7 +20,10 @@ The Linux integration uses egui-winit's browser launcher for the two HTTPS
 help links, including its handling of `$BROWSER` and desktop fallbacks. Drill
 uses native launchers on macOS and Windows. The macOS integration uses AppKit for
 clipboard text and images and handles paste requests from keyboard shortcuts
-and context menus. Other native targets use egui-winit's clipboard feature.
+and context menus. Drill selects the Win32 clipboard adapter on Windows. It uses
+the window that initiated the copy, publishes Unicode text or PNG and DIBV5
+image data, and reads paste shortcuts and context-menu requests through the same
+adapter. Other desktop targets retain egui-winit's clipboard integration.
 
 On macOS, AppKit decodes bundled icons and emoji into straight-alpha RGBA
 pixels and encodes the Dock icon. The optional screenshot feature uses `image`.
@@ -33,6 +36,11 @@ The optional `document-features` feature generates the feature list for docs.rs.
 A native frame holds borrowed window handles. The local compile-time check by
 `Frame` rejects a `Clone` implementation without requiring an assertion crate.
 
-Drill enables CGL on macOS, EGL and WGL on Windows, and EGL and GLX on Linux.
-Limiting features to their platforms keeps the unused EGL loader out of the
-macOS release.
+On macOS, the Glow backend calls AppKit through the workspace's drill-macos
+adapter for pixel-format negotiation, the current context and Retina drawables.
+winit still owns the windows and egui_glow still renders them. The native macOS
+example checks resizing, separate viewport pixels, reopening a child and tearing
+down the renderer. macOS context errors use `Error::OpenGL`. The glutin-specific
+`Error::Glutin`, `Error::NoGlutinConfigs` and conversion from `glutin::Error` are
+only available on targets that use the glutin backend. Windows keeps WGL/EGL
+and Linux keeps EGL/GLX.

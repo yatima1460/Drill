@@ -1,11 +1,6 @@
 use drill_macos::clipboard::Pasteboard;
-use egui::{ColorImage, Event, Key, Modifiers, OutputCommand, PlatformOutput};
-use egui_winit::{EventResponse, State};
-use winit::{
-    event::{ElementState, WindowEvent},
-    keyboard::{Key as WinitKey, KeyCode, NamedKey, PhysicalKey},
-    window::Window,
-};
+use egui::{ColorImage, OutputCommand, PlatformOutput};
+use egui_winit::State;
 
 fn write_text(pasteboard: &Pasteboard, text: &str) {
     if !pasteboard.set_text(text) {
@@ -13,24 +8,24 @@ fn write_text(pasteboard: &Pasteboard, text: &str) {
     }
 }
 
-fn write_image(pasteboard: &Pasteboard, image: &ColorImage) -> bool {
+fn write_image(pasteboard: &Pasteboard, image: &ColorImage) {
     let [width, height] = image.size;
-    if width == 0 || height == 0 || width.checked_mul(height) != Some(image.pixels.len()) {
-        return false;
+    let copied = super::straight_rgba(image)
+        .is_some_and(|pixels| pasteboard.set_rgba(width, height, &pixels));
+    if !copied {
+        log::error!("Could not copy image to the macOS pasteboard");
     }
-    let pixels: Vec<u8> = image
-        .pixels
-        .iter()
-        .flat_map(egui::Color32::to_srgba_unmultiplied)
-        .collect();
-    pasteboard.set_rgba(width, height, &pixels)
 }
 
 pub(super) fn clipboard_text(state: &mut State) -> Option<String> {
-    match Pasteboard::general() {
-        Some(pasteboard) => pasteboard.text(),
+    match read_text() {
+        Some(text) => text,
         None => state.clipboard_text(),
     }
+}
+
+pub(super) fn read_text() -> Option<Option<String>> {
+    Some(Pasteboard::general()?.text())
 }
 
 #[allow(deprecated)] // Keep forwarding the legacy copied_text field to egui-winit.
@@ -48,88 +43,23 @@ pub(super) fn copy_to_pasteboard(mut output: PlatformOutput) -> PlatformOutput {
     let Some(pasteboard) = Pasteboard::general() else {
         return output;
     };
-    write_clipboard_commands(&pasteboard, &mut output);
-    output
-}
-
-#[allow(deprecated)] // Preserve the order of the deprecated copied_text field.
-fn write_clipboard_commands(pasteboard: &Pasteboard, output: &mut PlatformOutput) {
-    output.commands.retain(|command| match command {
-        OutputCommand::CopyText(text) => {
-            write_text(pasteboard, text);
-            true
-        }
-        OutputCommand::CopyImage(image) => {
-            if !write_image(pasteboard, image) {
-                log::error!("Could not copy image to the macOS pasteboard");
-            }
-            false
-        }
-        _ => true,
-    });
-    if !output.copied_text.is_empty() {
-        write_text(pasteboard, &output.copied_text);
-    }
-}
-
-fn possible_paste_key(modifiers: Modifiers, logical: &WinitKey, physical: PhysicalKey) -> bool {
-    let logical = match logical {
-        WinitKey::Named(NamedKey::Paste) => Some(Key::Paste),
-        WinitKey::Character(name) => Key::from_name(name.as_str()),
-        _ => None,
-    };
-    logical == Some(Key::Paste)
-        || (modifiers.command
-            && logical.map_or(physical == PhysicalKey::Code(KeyCode::KeyV), |key| {
-                key == Key::V
-            }))
-}
-
-pub(in crate::native) fn on_window_event(
-    state: &mut State,
-    window: &Window,
-    event: &WindowEvent,
-) -> EventResponse {
-    let input = state.egui_input();
-    let first_new_event = input.events.len();
-    let possible_paste = matches!(
-        event,
-        WindowEvent::KeyboardInput { event, is_synthetic: false, .. }
-            if event.state == ElementState::Pressed
-                && possible_paste_key(input.modifiers, &event.logical_key, event.physical_key)
+    super::write_clipboard_commands(
+        &mut output,
+        true,
+        |text| write_text(&pasteboard, text),
+        |image| write_image(&pasteboard, image),
     );
-    let response = state.on_window_event(window, event);
-    if possible_paste {
-        replace_keyboard_paste(&mut state.egui_input_mut().events, first_new_event, || {
-            Some(Pasteboard::general()?.text())
-        });
-    }
-    response
-}
-
-fn replace_keyboard_paste(
-    events: &mut Vec<Event>,
-    first_new_event: usize,
-    read_text: impl FnOnce() -> Option<Option<String>>,
-) {
-    // egui-winit emits one Paste event for its in-process clipboard, or consumes
-    // the same shortcut with no event if that clipboard is empty. A Key event
-    // means the logical key took precedence over the physical shortcut candidate.
-    if !matches!(&events[first_new_event..], [] | [Event::Paste(_)]) {
-        return;
-    }
-    // An unavailable pasteboard leaves the framework fallback in place.
-    if let Some(text) = read_text() {
-        events.truncate(first_new_event);
-        events.extend(super::paste_event(text));
-    }
+    output
 }
 
 #[cfg(any(test, feature = "drill-clipboard-tests"))]
 pub mod tests {
     //! Fixtures also run by Drill's workspace test suite.
 
-    use super::*;
+    use super::super::{
+        possible_paste_key, replace_keyboard_paste, Event, KeyCode, Modifiers, NamedKey,
+        PhysicalKey, WinitKey,
+    };
 
     /// Check the logical, physical and modifier key rules used by native paste.
     #[cfg_attr(test, test)]

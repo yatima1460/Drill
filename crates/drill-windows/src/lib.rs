@@ -2,6 +2,10 @@
 #![deny(unsafe_code)]
 //! Windows filesystem and Shell adapters for Drill.
 
+#[cfg(feature = "clipboard")]
+#[allow(unsafe_code)]
+pub mod clipboard;
+
 #[cfg(feature = "shell-icons")]
 #[allow(unsafe_code)]
 mod file_icon;

@@ -31,7 +31,9 @@ workspace = true
 
 
 [features]
+clipboard = ["egui-winit/clipboard"]
 default = [
+  "clipboard",
   "accesskit",
   "default_fonts",
   "glow",
@@ -59,8 +61,9 @@ android-native-activity = ["egui-winit/android-native-activity"]
 ## If you plan on specifying your own fonts you may disable this feature.
 default_fonts = ["egui/default_fonts"]
 
-## Expose the local macOS clipboard fixtures to Drill's workspace tests.
+## Expose the local platform clipboard fixtures to Drill's workspace tests.
 drill-clipboard-tests = []
+drill-windows-clipboard = ["dep:drill-windows"]
 
 ## Use [`glow`](https://github.com/grovesNL/glow) for painting, via [`egui_glow`](https://github.com/emilk/egui/tree/master/crates/egui_glow).
 glow = ["dep:egui_glow", "dep:glow", "dep:glutin-winit", "dep:glutin"]
@@ -149,8 +152,17 @@ serde = { workspace = true, optional = true }
 egui-winit = { workspace = true, default-features = false, features = ["links"] }
 
 [target.'cfg(all(not(target_arch = "wasm32"), not(target_os = "macos")))'.dependencies]
-egui-winit = { workspace = true, default-features = false, features = ["clipboard"] }
 image = { workspace = true, features = ["png"] }
+glutin = { workspace = true, optional = true, default-features = false }
+glutin-winit = { workspace = true, optional = true, default-features = false }
+
+[target.'cfg(all(not(target_arch = "wasm32"), not(any(target_os = "macos", windows))))'.dependencies]
+egui-winit = { workspace = true, default-features = false, features = ["clipboard"] }
+
+[target.'cfg(windows)'.dependencies.drill-windows]
+path = "../../crates/drill-windows"
+features = ["clipboard"]
+optional = true
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 egui-winit = { workspace = true, default-features = false }
@@ -162,8 +174,6 @@ egui-wgpu = { workspace = true, optional = true, features = [
 ] } # if wgpu is used, use it with winit
 pollster = { workspace = true, optional = true } # needed for wgpu
 
-glutin = { workspace = true, optional = true, default-features = false }
-glutin-winit = { workspace = true, optional = true, default-features = false }
 wgpu = { workspace = true, optional = true, features = [
   # Let's enable some backends so that users can use `eframe` out-of-the-box
   # without having to explicitly opt-in to backends

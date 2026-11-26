@@ -4,6 +4,7 @@ param(
     [string]$Source,
     [string]$Object,
     [string]$Archive,
+    [string]$Defines,
     [ValidateSet('/MD', '/MT')][string]$Crt,
     [string]$TargetArch,
     [string]$HostArch
@@ -26,7 +27,8 @@ if ($activeArch -ne $TargetArch -or !$env:INCLUDE -or !$env:LIB) {
     & $devShell -Arch $TargetArch -HostArch $HostArch -SkipAutomaticLocation | Out-Null
 }
 
-& $Compiler '/nologo' '/TC' '/O2' $Crt '/c' "/Fo$Object" $Source
+$defineArguments = @($Defines -split ',' | ForEach-Object { "/D$_" })
+& $Compiler '/nologo' '/TC' '/O2' $Crt '/c' @defineArguments "/Fo$Object" $Source
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 & $Librarian '/nologo' "/OUT:$Archive" $Object
 exit $LASTEXITCODE

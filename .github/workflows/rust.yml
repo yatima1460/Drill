@@ -211,11 +211,12 @@ jobs:
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: drill-windows-ui-tests
-      - name: Verify emoji, shell initialization and file-type icons on native Windows
+      - name: Verify clipboard, emoji, shell initialization and file-type icons on native Windows
         shell: pwsh
         run: |
           $tests = @(
             'result_date::tests::windows_results_follow_historical_daylight_saving_rules',
+            'ui_tests::windows_clipboard_preserves_shortcuts_and_write_order',
             'ui_tests::emoji_filenames_paint_colored_clusters_inside_their_columns',
             'shell_worker_balances_sta_after_failed_action',
             'icon_sample::tests::owns_only_the_file_it_created',
@@ -247,6 +248,8 @@ jobs:
       - run: cargo test --locked --workspace
       - name: Verify clipboard text and RGBA on a private macOS pasteboard
         run: scripts/test-macos-clipboard.sh
+      - name: Verify native OpenGL rendering, resize and viewport teardown
+        run: cargo run --locked -p drill --example macos_opengl
       - run: cargo build --release --locked
       - run: scripts/package-macos.sh
       - name: Hash the tested executable
