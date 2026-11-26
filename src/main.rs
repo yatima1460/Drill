@@ -7,6 +7,7 @@ use std::path::Path;
 use std::time::{Duration, Instant};
 mod appimage_icon;
 mod exe_icon;
+mod result_order;
 mod search_mode;
 use search_mode::{Mode, Results};
 #[cfg(target_os = "linux")]
@@ -69,6 +70,8 @@ fn resize_columns(widths: &mut [f32; 4], divider: usize, delta: f32, total: f32)
 }
 struct App {
     query: String,
+    prepared: Option<SearchQuery>,
+    query_error: Option<String>,
     changed: Option<Instant>,
     mode: Mode,
     selector_open: bool,
@@ -115,6 +118,8 @@ impl Default for App {
         let (terminal_sender, terminal_errors) = std::sync::mpsc::channel();
         Self {
             query: String::new(),
+            prepared: None,
+            query_error: None,
             changed: None,
             mode: Mode::Files,
             selector_open: false,
@@ -553,6 +558,7 @@ fn in_window_search_menu(ctx: &egui::Context, app: &mut App) {
 impl App {
     fn can_stop(&self) -> bool {
         self.changed.is_some()
+            || self.prepared.is_some()
             || self.starting.is_some()
             || (self.search.is_some() && !self.completed)
     }
@@ -562,6 +568,7 @@ impl App {
             return;
         }
         self.changed = None;
+        self.prepared = None;
         if let Some(cancel) = self.starting_cancel.take() {
             cancel.store(true, std::sync::atomic::Ordering::Relaxed);
         }
@@ -573,6 +580,8 @@ impl App {
     }
 
     fn clear_search(&mut self) {
+        self.prepared = None;
+        self.query_error = None;
         self.search = None;
         if let Some(cancel) = self.starting_cancel.take() {
             cancel.store(true, std::sync::atomic::Ordering::Relaxed);
@@ -637,14 +646,11 @@ impl App {
             }
         }
         if !exact.is_empty() {
-            if let Some(selected) = &mut self.selected {
-                if *selected >= self.exact_count {
-                    *selected += exact.len();
-                }
-            }
-            let boundary = self.exact_count;
-            self.exact_count += exact.len();
-            self.results.splice(boundary..boundary, exact);
+            let (inserted, selected) =
+                result_order::exact_batch(self.exact_count, self.selected, exact.len());
+            self.results.splice(inserted.start..inserted.start, exact);
+            self.exact_count = inserted.end;
+            self.selected = selected;
         }
     }
 
@@ -678,7 +684,7 @@ impl App {
             }
             Err(std::sync::mpsc::TryRecvError::Disconnected) => {
                 self.catalog_loading = None;
-                self.changed = None;
+                self.prepared = None;
                 self.action_error = Some("Could not load the desktop application list".into());
                 false
             }
@@ -848,14 +854,23 @@ impl App {
         let ready = self
             .changed
             .is_some_and(|t| t.elapsed() >= Duration::from_millis(250));
-        #[cfg(target_os = "linux")]
-        let ready = ready && (self.mode != Mode::Apps || self.catalog_ready());
         if ready {
             self.changed = None;
             self.clear_search();
             let query = SearchQuery::parse(&self.query);
+            if let Some(error) = query.error() {
+                self.query_error = Some(error.to_owned());
+            } else if !query.is_empty() || (self.mode == Mode::Apps && self.query.trim().is_empty())
+            {
+                self.prepared = Some(query);
+            }
+        }
+        let ready = self.prepared.is_some();
+        #[cfg(target_os = "linux")]
+        let ready = ready && (self.mode != Mode::Apps || self.catalog_ready());
+        if ready {
             let mode = self.mode;
-            if !query.is_empty() || (mode == Mode::Apps && self.query.trim().is_empty()) {
+            if let Some(query) = self.prepared.take() {
                 #[cfg(target_os = "linux")]
                 let catalog = self.catalog.clone();
                 #[cfg(target_os = "macos")]
@@ -929,7 +944,7 @@ impl App {
             } else {
                 format!("Drill - {} apps found", self.results.len())
             }
-        } else if self.starting.is_some() {
+        } else if self.prepared.is_some() || self.starting.is_some() {
             "Drill - starting search".into()
         } else {
             "Drill".into()
@@ -962,7 +977,7 @@ impl App {
                     egui::TextEdit::singleline(&mut self.query)
                         .font(egui::FontId::proportional(24.0))
                         .hint_text("Search..."),
-                );
+                ).on_hover_text("Search names, use a wildcard like *.md, or start with glob:, regex: or fuzzy:");
                 let selector = egui::ComboBox::from_id_salt("search_mode")
                     .width(combo_width)
                     .selected_text(self.mode.label())
@@ -989,6 +1004,9 @@ impl App {
                     self.catalog = None;
                 }
                 self.changed = (self.mode == Mode::Apps || !self.query.trim().is_empty()).then(Instant::now);
+            }
+            if let Some(error) = &self.query_error {
+                ui.colored_label(ui.visuals().error_fg_color, error);
             }
             let continued = self.next_hit.is_some() && ui.button("Continue searching").clicked();
             if continued {
@@ -1456,6 +1474,7 @@ impl App {
         if (self.search.is_some() && !self.completed && self.next_hit.is_none())
             || self.starting.is_some()
             || self.changed.is_some()
+            || self.prepared.is_some()
             || icons_pending
         {
             ctx.request_repaint_after(Duration::from_millis(30));
@@ -1831,6 +1850,10 @@ mod ui_tests {
             (MatchKind::Exact, entry("ROM.EXE", 3)),
         ]);
         assert_eq!(app.results[0].name, "ROM.EXE");
+        assert_eq!(app.results[app.selected.unwrap()].name, "rom.exe.bak");
+        app.append_hits([(MatchKind::Exact, entry("rom.exe", 4))]);
+        assert_eq!(app.results[0].name, "ROM.EXE");
+        assert_eq!(app.results[1].name, "rom.exe");
         assert_eq!(app.results[app.selected.unwrap()].name, "rom.exe.bak");
         // An explicit size ordering already has these entries in the correct order.
         let mut app = App {
@@ -2233,14 +2256,17 @@ mod ui_tests {
     fn visible_executable_row_loads_embedded_icon() {
         use std::io::Write;
         let mut file = tempfile::Builder::new().suffix(".exe").tempfile().unwrap();
-        file.write_all(include_bytes!("../tests/fixtures/icon-pe32.exe"))
-            .unwrap();
+        file.write_all(include_bytes!(
+            "../tools/exe-icon-wasm/tests/fixtures/icon-pe32.exe"
+        ))
+        .unwrap();
         assert_result_loads_embedded_icon(file.path().to_path_buf());
     }
     #[test]
     fn visible_appimage_rows_draw_their_embedded_png_and_svg() {
         let root = tempfile::tempdir().unwrap();
-        let fixtures = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/appimages");
+        let fixtures =
+            Path::new(env!("CARGO_MANIFEST_DIR")).join("tools/appimage-icon-wasm/tests/fixtures");
         for (name, fixture) in [
             ("linked.aPpImAgE", "linked-png.AppImage"),
             ("legacy.AppImage", "rock-ridge.AppImage"),
@@ -2256,7 +2282,7 @@ mod ui_tests {
     fn appimage_checkbox_invalidates_cached_icon_and_reloads_when_enabled() {
         let ctx = egui::Context::default();
         let path = Path::new(env!("CARGO_MANIFEST_DIR"))
-            .join("tests/fixtures/appimages/linked-png.AppImage");
+            .join("tools/appimage-icon-wasm/tests/fixtures/linked-png.AppImage");
         let mut item = entry("linked-png.AppImage", 1);
         item.path = path.clone();
         let mut app = App {
@@ -2320,6 +2346,26 @@ mod ui_tests {
         assert!(app.search.is_none());
         assert!(app.changed.is_none());
     }
+    #[test]
+    fn invalid_pattern_shows_inline_feedback_and_can_be_edited() {
+        let ctx = egui::Context::default();
+        let mut app = App::default();
+        let _ = frame(&ctx, &mut app, vec![]);
+        app.results.push(entry("stale", 0));
+        let _ = frame(&ctx, &mut app, vec![egui::Event::Text("regex:[".into())]);
+        app.changed = Some(Instant::now() - Duration::from_millis(250));
+        let output = frame(&ctx, &mut app, vec![]);
+        let error = app.query_error.as_deref().expect("expected a syntax error");
+        assert!(error.starts_with("Invalid regex"));
+        text_position(&output, error);
+        assert!(app.results.is_empty() && !app.can_stop());
+        assert!(app.starting.is_none() && app.search.is_none());
+        let _ = frame(&ctx, &mut app, vec![egui::Event::Text("abc]".into())]);
+        assert_eq!(app.query, "regex:[abc]");
+        assert!(app.query_error.is_none() && app.changed.is_some());
+        assert!(SearchQuery::parse(&app.query).classify("a").is_some());
+    }
+
     #[test]
     fn escape_requests_window_close() {
         let ctx = egui::Context::default();

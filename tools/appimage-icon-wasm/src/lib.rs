@@ -4,26 +4,24 @@ use lamfold::{BlockCache, BlockSource, FileKind, FoldError, FoldFrontend, Substr
 use lamfold_squash::SquashFs;
 use std::io::Cursor;
 
-#[link(wasm_import_module = "icon")]
-extern "C" {
-    fn read_at(offset: u64, dest: *mut u8, len: u32) -> i32;
-}
+mod bounds;
 
-struct Region {
-    start: u64,
-    len: u64,
-}
-impl BlockSource for Region {
+#[cfg(target_arch = "wasm32")]
+struct HostFile(u64);
+
+#[cfg(target_arch = "wasm32")]
+impl BlockSource for HostFile {
     fn len(&self) -> u64 {
-        self.len
+        self.0
     }
     fn read_at(&mut self, offset: u64, buf: &mut [u8]) -> lamfold::Result<()> {
-        let len = buf.len() as u32;
-        if offset > self.len || u64::from(len) > self.len - offset {
-            return Err(FoldError::Io("short AppImage read"));
+        #[link(wasm_import_module = "icon")]
+        extern "C" {
+            fn read_at(offset: u64, dest: *mut u8, len: u32) -> i32;
         }
-        // SAFETY: this import writes len bytes into the live destination or returns an error.
-        let count = unsafe { read_at(self.start + offset, buf.as_mut_ptr(), len) };
+        let len = buf.len() as u32;
+        // SAFETY: the host checks the destination and file bounds before writing.
+        let count = unsafe { read_at(offset, buf.as_mut_ptr(), len) };
         if count < 0 || count as u32 != len {
             return Err(FoldError::Io("short AppImage read"));
         }
@@ -31,15 +29,29 @@ impl BlockSource for Region {
     }
 }
 
-fn appimage_icon(len: u64) -> Option<Vec<u8>> {
-    let mut file = Region { start: 0, len };
+struct Region<S> {
+    file: S,
+    start: u64,
+}
+impl<S: BlockSource> BlockSource for Region<S> {
+    fn len(&self) -> u64 {
+        self.file.len() - self.start
+    }
+    fn read_at(&mut self, offset: u64, buf: &mut [u8]) -> lamfold::Result<()> {
+        let absolute = bounds::file_offset(self.start, self.file.len(), offset, buf.len() as u64)
+            .ok_or(FoldError::Io("AppImage region exceeded"))?;
+        self.file.read_at(absolute, buf)
+    }
+}
+
+fn appimage_icon<S: BlockSource>(mut file: S) -> Option<Vec<u8>> {
     let mut header = [0; 64];
     file.read_at(0, &mut header).ok()?;
     if &header[..4] != b"\x7fELF" || &header[8..10] != b"AI" {
         return None;
     }
     match header[10] {
-        1 => return icon_file::<lamfold_iso::Iso9660<_>>(file),
+        1 => return icon_file::<_, lamfold_iso::Iso9660<_>>(file),
         2 => (),
         _ => return None,
     }
@@ -89,15 +101,15 @@ fn appimage_icon(len: u64) -> Option<Vec<u8>> {
     let section_end = number(&last_section[off..off + width])
         .checked_add(number(&last_section[size..size + width]))?;
     let start = table_end.max(section_end);
-    icon_file::<SquashFs<_>>(Region {
-        start,
-        len: len.checked_sub(start)?,
-    })
+    if start > file.len() {
+        return None;
+    }
+    icon_file::<_, SquashFs<_>>(Region { file, start })
 }
 
 const MAX_ICON: u64 = 4 << 20;
 
-fn icon_file<F: FoldFrontend<Region>>(region: Region) -> Option<Vec<u8>> {
+fn icon_file<S: BlockSource, F: FoldFrontend<S>>(region: S) -> Option<Vec<u8>> {
     let mut ctx = SubstrateCtx {
         cache: &mut BlockCache::new(128 << 10),
         verifier: &lamfold::NoVerifier,
@@ -160,11 +172,34 @@ fn pixels(input: &[u8]) -> Option<Vec<u8>> {
     Some(rgba)
 }
 
+#[cfg(target_arch = "wasm32")]
 #[no_mangle]
 pub extern "C" fn decode(file_len: u64) -> *mut u8 {
-    appimage_icon(file_len)
+    appimage_icon(HostFile(file_len))
         .and_then(|data| pixels(&data))
         .map_or(std::ptr::null_mut(), |rgba| {
             Box::into_raw(rgba.into_boxed_slice()) as *mut u8
         })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn reads_both_formats_and_rejects_truncation_and_link_cycles() {
+        for fixture in [
+            &include_bytes!("../tests/fixtures/linked-png.AppImage")[..],
+            &include_bytes!("../tests/fixtures/direct-svg.AppImage")[..],
+            &include_bytes!("../tests/fixtures/rock-ridge.AppImage")[..],
+        ] {
+            let icon = appimage_icon(lamfold::SliceSource::new(fixture)).unwrap();
+            let rgba = pixels(&icon).unwrap();
+            assert_eq!(rgba.len(), 32 * 32 * 4);
+            assert!(rgba.chunks_exact(4).all(|p| p == [0, 255, 0, 255]));
+            assert!(appimage_icon(lamfold::SliceSource::new(&fixture[..64])).is_none());
+        }
+        let cycle = include_bytes!("../tests/fixtures/cyclic.AppImage");
+        assert!(appimage_icon(lamfold::SliceSource::new(cycle)).is_none());
+    }
 }
