@@ -43,6 +43,16 @@ def select(paths, event):
     return (ALL if release or event == "workflow_dispatch" else platforms), release
 
 
+def scans_source(path):
+    if path.startswith("vendor/") or path.rsplit("/", 1)[-1] == "Cargo.lock":
+        return False
+    if path in {"src/assets/wordsalpha.txt", "tools/website-ci/package-lock.json",
+                "src/assets/drill.svg", "src/assets/drill-macos.svg", "docs/drill.svg"}:
+        return False
+    return not path.lower().endswith((".png", ".ico", ".icns", ".ttf", ".woff", ".woff2",
+                                      ".wasm", ".exe", ".appimage", ".bin", ".jpg", ".webp"))
+
+
 def changed_paths(event):
     if event == "workflow_dispatch":
         return []
@@ -57,9 +67,11 @@ def changed_paths(event):
 
 if __name__ == "__main__":
     event = os.environ["GITHUB_EVENT_NAME"]
-    platforms, release = select(changed_paths(event), event)
+    paths = changed_paths(event)
+    platforms, release = select(paths, event)
     values = {platform: platform in platforms for platform in sorted(ALL)}
     values["release"] = release
+    values["duplicates"] = release or event == "workflow_dispatch" or any(map(scans_source, paths))
     outputs = "".join(f"{key}={str(value).lower()}\n" for key, value in values.items())
     print(outputs, end="")
     with Path(os.environ["GITHUB_OUTPUT"]).open("a") as output:
