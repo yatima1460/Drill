@@ -46,6 +46,18 @@ jobs:
       - run: cargo build --release --locked
       - run: target/release/drill --version
       - run: scripts/package-linux.sh
+      - name: Double-click AppImage results with Xed and Nemo
+        timeout-minutes: 8
+        run: |
+          docker run --rm --volume "$PWD/scripts/test-appimage-open.sh:/test.sh:ro" \
+            --volume "$PWD/dist/Drill-linux-x86_64.AppImage:/Drill.AppImage:ro" \
+            archlinux:base bash -euxo pipefail -c '
+              pacman -Syu --noconfirm --needed xed nemo xorg-server-xvfb xorg-xauth openbox xdotool wmctrl xdg-utils libxkbcommon-x11 mesa ttf-dejavu
+              useradd -m tester
+              install -d -m 700 -o tester /tmp/drill-session
+              runuser -u tester -- env XDG_RUNTIME_DIR=/tmp/drill-session \
+                xvfb-run -a dbus-run-session -- bash /test.sh /Drill.AppImage
+            '
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: drill-linux
