@@ -18,6 +18,7 @@ on:
       - 'vendor/**'
       - 'tools/appimage-icon-wasm/**'
       - 'tools/exe-icon-wasm/**'
+      - '!**/*.md'
   workflow_dispatch:
     inputs:
       scope:

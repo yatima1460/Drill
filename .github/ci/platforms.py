@@ -11,9 +11,13 @@ def select(paths, event):
     platforms = set()
     product = False
     for path in paths:
+        if path.endswith(".md"):
+            continue
         targets = ALL
         shipped = True
-        if path.startswith((".github/ci/", "tests/")) or path == ".github/workflows/rust.yml":
+        if path.startswith((".github/ci/", "tests/")) or path in {
+            ".github/workflows/rust.yml", "crates/drill-core/src/test_directory.rs",
+        }:
             shipped = False
         elif path.startswith(("scripts/test-native-ui-linux", "scripts/test-appimage-open", "scripts/test-wine-linux")):
             targets = {"windows"} if path == "scripts/test-wine-linux.sh" else {"linux"}
@@ -29,8 +33,9 @@ def select(paths, event):
         elif path.startswith(("tools/exe-icon-wasm/", "tools/appimage-icon-wasm/")):
             targets = ALL if "/tests/fixtures/" in path else {"linux"}
             shipped = False  # Desktop builds embed the checked-in Wasm files.
-        elif path.endswith(".md"):
-            continue
+        elif path.startswith("vendor/file_icon_provider/src/implementation/"):
+            platform = Path(path).stem
+            targets = {platform} if platform in ALL else ALL
         elif not (path.startswith(("src/", "crates/", "vendor/", ".cargo/")) or path in {
             "build.rs", "Cargo.lock", "Cargo.toml", "rust-toolchain.toml", "LICENSE",
             "scripts/wait-release-artifacts.sh",
