@@ -114,7 +114,7 @@ version = "1.1.0"
 version = "1.1.0"
 
 [features]
-__screenshot = []
+__screenshot = ["dep:image"]
 accesskit = [
     "egui/accesskit",
     "egui-winit/accesskit",
@@ -173,6 +173,9 @@ x11 = [
 [target.'cfg(any(target_os = "macos"))'.dependencies.objc2]
 version = "0.5.1"
 
+[target.'cfg(target_os = "macos")'.dependencies.drill-macos]
+path = "../../crates/drill-macos"
+
 [target.'cfg(any(target_os = "macos"))'.dependencies.objc2-app-kit]
 version = "0.2.0"
 features = [
@@ -213,9 +216,11 @@ default-features = false
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies.egui-winit]
 version = "0.31.1"
-features = [
-    "clipboard",
-]
+default-features = false
+
+[target.'cfg(all(not(target_arch = "wasm32"), not(target_os = "macos")))'.dependencies.egui-winit]
+version = "0.31.1"
+features = ["clipboard"]
 default-features = false
 
 [target.'cfg(target_os = "linux")'.dependencies.egui-winit]
@@ -241,10 +246,16 @@ features = [
 optional = true
 default-features = false
 
-[target.'cfg(not(target_arch = "wasm32"))'.dependencies.image]
+[target.'cfg(not(any(target_arch = "wasm32", target_os = "macos")))'.dependencies.image]
 version = "0.25"
 features = ["png"]
 default-features = false
+
+[target.'cfg(target_os = "macos")'.dependencies.image]
+version = "0.25"
+features = ["png"]
+default-features = false
+optional = true
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies.pollster]
 version = "0.4"

@@ -11,6 +11,7 @@ use std::time::{Duration, Instant};
 mod appearance;
 mod appimage_icon;
 mod exe_icon;
+mod platform_icon;
 mod result_date;
 mod result_emoji;
 mod result_order;
@@ -212,7 +213,7 @@ const RESULT_ROW_PITCH: f32 = 36.0;
 
 fn platform_icon_texture(
     ctx: &egui::Context,
-    icon: file_icon_provider::Icon,
+    icon: platform_icon::Icon,
     name: &str,
 ) -> Option<egui::TextureHandle> {
     let pixels = (icon.width as usize).checked_mul(icon.height as usize)?;
@@ -288,7 +289,7 @@ fn themed_icon_texture<'a>(
         {
             let width = u32::try_from(pixbuf.width()).ok()?;
             let height = u32::try_from(pixbuf.height()).ok()?;
-            let icon = file_icon_provider::Icon {
+            let icon = platform_icon::Icon {
                 width,
                 height,
                 pixels: pixbuf.read_pixel_bytes().to_vec(),
@@ -1381,7 +1382,7 @@ impl App {
                         } else if icon_budget > 0 {
                             icon_budget -= 1;
                             let path_label = entry.path.to_string_lossy();
-                            let fallback = || file_icon_provider::get_file_icon(&entry.path, NATIVE_ICON_PIXELS).ok()
+                            let fallback = || platform_icon::get_file_icon(&entry.path, NATIVE_ICON_PIXELS)
                                 .and_then(|icon| platform_icon_texture(ctx, icon, &path_label));
                             #[cfg(target_os = "linux")]
                             let icon = if self.mode == Mode::Apps {

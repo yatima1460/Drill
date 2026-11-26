@@ -117,7 +117,7 @@ x11 = [
 
 ## If set, eframe will look for the env-var `EFRAME_SCREENSHOT_TO` and write a screenshot to that location, and then quit.
 ## This is used to generate images for examples.
-__screenshot = []
+__screenshot = ["dep:image"]
 
 [dependencies]
 egui = { workspace = true, default-features = false, features = [
@@ -146,11 +146,12 @@ serde = { workspace = true, optional = true }
 [target.'cfg(target_os = "linux")'.dependencies]
 egui-winit = { workspace = true, default-features = false, features = ["links"] }
 
+[target.'cfg(all(not(target_arch = "wasm32"), not(target_os = "macos")))'.dependencies]
+egui-winit = { workspace = true, default-features = false, features = ["clipboard"] }
+image = { workspace = true, features = ["png"] }
+
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-egui-winit = { workspace = true, default-features = false, features = [
-  "clipboard",
-] }
-image = { workspace = true, features = ["png"] } # Needed for app icon
+egui-winit = { workspace = true, default-features = false }
 winit = { workspace = true, default-features = false, features = ["rwh_06"] }
 
 # optional native:
@@ -175,6 +176,10 @@ wgpu = { workspace = true, optional = true, features = [
 ] }
 
 # mac:
+[target.'cfg(target_os = "macos")'.dependencies]
+drill-macos = { path = "../../crates/drill-macos" }
+image = { workspace = true, optional = true, features = ["png"] }
+
 [target.'cfg(any(target_os = "macos"))'.dependencies]
 objc2 = "0.5.1"
 objc2-foundation = { version = "0.2.0", default-features = false, features = [

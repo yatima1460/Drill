@@ -1,4 +1,5 @@
 mod app_icon;
+mod clipboard;
 mod epi_integration;
 mod event_loop_context;
 pub mod run;

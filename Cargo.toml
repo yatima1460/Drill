@@ -1,5 +1,5 @@
 [workspace]
-members = ["crates/drill-core", "crates/drill-query", "crates/drill-windows"]
+members = ["crates/drill-core", "crates/drill-query", "crates/drill-macos", "crates/drill-windows"]
 exclude = ["vendor/eframe", "vendor/file_icon_provider"]
 resolver = "2"
 
@@ -27,7 +27,6 @@ image = { version = "0.25.10", default-features = false, features = ["png"] }
 [dependencies]
 eframe = { version = "0.31.1", default-features = false, features = ["default_fonts", "glow", "x11", "wayland", "persistence"] }
 drill-core = { path = "crates/drill-core" }
-file_icon_provider = "1.0.2"
 wasmi = { version = "0.51.3", default-features = false, features = ["std", "extra-checks"] }
 unicode-segmentation = "1.13.3"
 
@@ -38,14 +37,13 @@ libc = "0.2"
 gtk = "0.19.0"
 gio-unix = "0.22"
 
-[target.'cfg(target_os = "macos")'.dependencies]
-objc2 = "0.6.4"
-objc2-app-kit = { version = "0.3.2", default-features = false, features = ["NSApplication", "NSOpenPanel", "NSPanel", "NSResponder", "NSSavePanel", "NSWindow"] }
-objc2-foundation = { version = "0.3.2", default-features = false, features = ["std", "NSString", "NSURL", "NSUUID"] }
+[target.'cfg(not(target_os = "macos"))'.dependencies]
+file_icon_provider = "1.0.2"
 
-[target.'cfg(any(target_os = "macos", target_os = "windows"))'.dependencies]
-muda = { version = "0.21.2", default-features = false }
-raw-window-handle = "0.6.2"
+[target.'cfg(target_os = "macos")'.dependencies]
+drill-macos = { path = "crates/drill-macos" }
 
 [target.'cfg(target_os = "windows")'.dependencies]
+muda = { version = "0.21.2", default-features = false }
+raw-window-handle = "0.6.2"
 windows-sys = { version = "0.61.2", features = ["Win32_Foundation", "Win32_UI_Shell", "Win32_UI_WindowsAndMessaging", "Win32_System_Com", "Win32_Storage_FileSystem"] }

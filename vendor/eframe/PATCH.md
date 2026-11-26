@@ -18,7 +18,12 @@ desktop appearance change that happened during the override.
 
 The Linux integration uses egui-winit's browser launcher for the two HTTPS
 help links, including its handling of `$BROWSER` and desktop fallbacks. Drill
-uses native launchers on macOS and Windows. All three retain clipboard support.
+uses native launchers on macOS and Windows. The macOS integration uses AppKit for
+clipboard text and images and handles paste requests from keyboard shortcuts
+and context menus. Other native targets use egui-winit's clipboard feature.
+
+On macOS, AppKit decodes bundled icons and emoji into straight-alpha RGBA
+pixels and encodes the Dock icon. The optional screenshot feature uses `image`.
 
 Desktop persistence uses the standard library to locate the Unix home directory.
 On Windows, persistence and runtime window icons share Drill's `windows-sys`

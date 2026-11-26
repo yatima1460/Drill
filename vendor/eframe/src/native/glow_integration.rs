@@ -646,7 +646,7 @@ impl GlowWinitRunning<'_> {
         let gl_surface = viewport.gl_surface.as_ref().unwrap();
         let egui_winit = viewport.egui_winit.as_mut().unwrap();
 
-        egui_winit.handle_platform_output(&window, platform_output);
+        super::clipboard::handle_platform_output(egui_winit, &window, platform_output);
 
         let clipped_primitives = integration.egui_ctx.tessellate(shapes, pixels_per_point);
 
@@ -691,15 +691,7 @@ impl GlowWinitRunning<'_> {
                         egui_winit.egui_input_mut().events.push(egui::Event::Copy);
                     }
                     ActionRequested::Paste => {
-                        if let Some(contents) = egui_winit.clipboard_text() {
-                            let contents = contents.replace("\r\n", "\n");
-                            if !contents.is_empty() {
-                                egui_winit
-                                    .egui_input_mut()
-                                    .events
-                                    .push(egui::Event::Paste(contents));
-                            }
-                        }
+                        super::clipboard::request_paste(egui_winit);
                     }
                 }
             }
@@ -1571,7 +1563,7 @@ fn render_immediate_viewport(
         }
     }
 
-    egui_winit.handle_platform_output(window, platform_output);
+    super::clipboard::handle_platform_output(egui_winit, window, platform_output);
 
     event_loop_context::with_current_event_loop(|event_loop| {
         glutin.handle_viewport_output(event_loop, egui_ctx, &viewport_output);

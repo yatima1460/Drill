@@ -569,6 +569,7 @@ name = "drill"
 version = "2.0.0"
 dependencies = [
  "drill-core",
+ "drill-macos",
  "eframe",
  "file_icon_provider",
  "gio-unix",
@@ -576,9 +577,6 @@ dependencies = [
  "image",
  "libc",
  "muda",
- "objc2 0.6.5",
- "objc2-app-kit 0.3.2",
- "objc2-foundation 0.3.2",
  "raw-window-handle",
  "unicode-segmentation",
  "wasmi",
@@ -592,6 +590,10 @@ dependencies = [
  "drill-query",
  "drill-windows",
 ]
+
+[[package]]
+name = "drill-macos"
+version = "2.0.0"
 
 [[package]]
 name = "drill-query"
@@ -622,6 +624,7 @@ version = "0.31.1"
 dependencies = [
  "ahash",
  "bytemuck",
+ "drill-macos",
  "egui",
  "egui-wgpu",
  "egui-winit",

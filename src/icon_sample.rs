@@ -1,5 +1,6 @@
 //! Ask the operating system about an empty file with the same extension. The icon
 //! provider never receives the path to an untrusted executable.
+use crate::platform_icon;
 use std::fs::{self, File};
 use std::io;
 use std::path::{Path, PathBuf};
@@ -29,6 +30,27 @@ impl Drop for IconSample {
     fn drop(&mut self) {
         let _ = fs::remove_file(&self.path);
     }
+}
+
+#[cfg(target_os = "macos")]
+#[allow(unsafe_code)]
+fn macos_sample_name() -> Option<String> {
+    use std::ffi::{c_char, CStr};
+
+    unsafe extern "C" {
+        fn uuid_generate_random(uuid: *mut u8);
+        fn uuid_unparse_upper(uuid: *const u8, output: *mut c_char);
+    }
+
+    let mut uuid = [0u8; 16];
+    let mut output = [0u8; 37];
+    // SAFETY: uuid and output are writable buffers sized for Darwin's uuid_t and uuid_string_t.
+    unsafe {
+        uuid_generate_random(uuid.as_mut_ptr());
+        uuid_unparse_upper(uuid.as_ptr(), output.as_mut_ptr().cast());
+    }
+    let uuid = CStr::from_bytes_until_nul(&output).ok()?.to_str().ok()?;
+    Some(format!("drill-{uuid}"))
 }
 
 #[cfg(windows)]
@@ -67,15 +89,15 @@ fn windows_sample_name() -> Option<String> {
     ))
 }
 
-pub(super) fn icon(sample_name: &str, size: u16) -> Option<file_icon_provider::Icon> {
+pub(super) fn icon(sample_name: &str, size: u16) -> Option<platform_icon::Icon> {
     let extension = Path::new(sample_name).extension()?;
     #[cfg(target_os = "macos")]
-    let name = format!("drill-{}", objc2_foundation::NSUUID::UUID().UUIDString());
+    let name = macos_sample_name()?;
     #[cfg(windows)]
     let name = windows_sample_name()?;
     let path = std::env::temp_dir().join(name).with_extension(extension);
     let sample = IconSample::create(path).ok()?;
-    file_icon_provider::get_file_icon(&sample.path, size).ok()
+    platform_icon::get_file_icon(&sample.path, size)
 }
 
 #[cfg(test)]
@@ -116,7 +138,7 @@ mod tests {
         for name in ["sample.exe", "sample.AppImage"] {
             let previous = directory.path().join(name);
             let _file = File::create_new(&previous).unwrap();
-            let expected = file_icon_provider::get_file_icon(&previous, 64).unwrap();
+            let expected = platform_icon::get_file_icon(&previous, 64).unwrap();
             let actual = icon(name, 64).unwrap();
             assert_eq!((actual.width, actual.height), (64, 64));
             assert!(
