@@ -24,6 +24,8 @@ Development checks: `cargo fmt --check`, `cargo check --locked`, `cargo clippy -
 
 CI builds a macOS DMG, Windows x86-64 ZIP, and Linux Debian, Arch, and AppImage packages. Windows is cross-compiled on Linux; the archive is inspected there but still requires a native Windows runtime check. Local builds and PR artifacts contain a preview DMG. GitHub releases use the signed and notarized DMG described below. The AppImage relies on compatible system graphics libraries. After all platform checks pass, a push to `main` that matches the merge commit of a PR into `yatima1460/Drill:main` can request a production deployment. Direct pushes, tags, pull requests and manual runs cannot publish. The repository owner approves the deployment and can retry a failed release.
 
+Open the macOS disk image and drag Drill onto the Applications folder at the right. To build the preview locally, run `make package-macos`. Packaging installs the two hash-pinned Finder metadata wheels into a build-local Python 3 virtual environment. It creates an HFS+ image with fixed icon positions and an arrow background, then mounts the compressed preview to check its layout and executable. The production job signs the app in an identically staged image before compressing and signing the DMG.
+
 ### macOS production credentials
 
 The GitHub Actions environment `prod` allows only the branch `main` and requires approval from `yatima1460`. Before approving, verify the workflow, signing scripts and commit displayed for the deployment. Keep these credentials exclusively in that environment.
