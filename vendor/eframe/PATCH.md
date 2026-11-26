@@ -10,3 +10,8 @@ fail. Wine on macOS can reject the first two while supporting the compatibility
 context. This follows the approach later adopted upstream in
 <https://github.com/emilk/egui/pull/8655>. Remove the patch when updating to an
 eframe version that provides the fallback and verify the Wine launcher again.
+
+On macOS, the Glow integration refreshes the cached system appearance when an
+app removes a window theme override. AppKit can suppress change notifications
+while a window is forced light or dark. Refreshing on return to Auto covers a
+desktop appearance change that happened during the override.
