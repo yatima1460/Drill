@@ -139,6 +139,12 @@ impl SearchQuery {
         matches!(&self.0, Matcher::Text {filename, ..} if filename.is_empty())
     }
 
+    #[cfg(any(windows, test))]
+    pub(super) fn is_plain_executable_name(&self) -> bool {
+        matches!(&self.0, Matcher::Text { filename, tokens: Tokens::Plain(_) }
+            if filename.ends_with(".exe") && !filename.contains(['/', '\\', ':']))
+    }
+
     pub(super) fn exact_stem(&self, stem: &str) -> bool {
         matches!(&self.0, Matcher::Text {filename, ..} if !filename.is_empty() && *filename == normalized(stem))
     }

@@ -1,7 +1,9 @@
 #![cfg_attr(target_os = "windows", windows_subsystem = "windows")]
 #![deny(unsafe_code)]
 use chrono::{DateTime, Local};
-use drill_core::{default_roots_with_cancel, Entry, MatchKind, Search, SearchQuery};
+#[cfg(not(windows))]
+use drill_core::default_roots_with_cancel;
+use drill_core::{Entry, MatchKind, Search, SearchQuery};
 use eframe::egui::{self, Key};
 use std::path::Path;
 use std::time::{Duration, Instant};
@@ -67,6 +69,12 @@ fn resize_columns(widths: &mut [f32; 4], divider: usize, delta: f32, total: f32)
     widths[divider] = left;
     widths[divider + 1] = pair - left;
 }
+enum Startup {
+    #[cfg(any(windows, test))]
+    Exact(Entry),
+    Ready(Results),
+}
+
 struct App {
     query: String,
     prepared: Option<SearchQuery>,
@@ -79,7 +87,7 @@ struct App {
     #[cfg(target_os = "linux")]
     catalog_loading: Option<std::sync::mpsc::Receiver<linux_apps::Catalog>>,
     search: Option<Results>,
-    starting: Option<std::sync::mpsc::Receiver<Results>>,
+    starting: Option<std::sync::mpsc::Receiver<Startup>>,
     starting_cancel: Option<std::sync::Arc<std::sync::atomic::AtomicBool>>,
     completed: bool,
     results: Vec<Entry>,
@@ -864,36 +872,54 @@ impl App {
                     #[cfg(target_os = "linux")]
                     if let Some(apps) = catalog.filter(|_| mode == Mode::Apps) {
                         let hits = apps.search(&query, &cancel);
-                        let _ = tx.send(Results::Apps(hits.into_iter()));
+                        let _ = tx.send(Startup::Ready(Results::Apps(hits.into_iter())));
                         return;
                     }
                     #[cfg(feature = "ui-test-driver")]
-                    let roots = std::env::var_os("DRILL_UI_TEST_ROOT")
-                        .map(|p| vec![p.into()])
-                        .unwrap_or_else(|| default_roots_with_cancel(&cancel));
+                    let fixture =
+                        std::env::var_os("DRILL_UI_TEST_ROOT").map(std::path::PathBuf::from);
                     #[cfg(not(feature = "ui-test-driver"))]
-                    let roots = default_roots_with_cancel(&cancel);
-                    #[cfg(target_os = "macos")]
-                    let roots = {
-                        let mut roots = roots;
-                        roots.extend(additional_roots);
-                        roots
+                    let fixture = None::<std::path::PathBuf>;
+
+                    #[cfg(windows)]
+                    let search = if let Some(root) = fixture {
+                        Search::start_filtered(query, vec![root], cancel, mode.file_filter())
+                    } else {
+                        Search::start_windows_default(query, cancel, mode.file_filter(), |entry| {
+                            let _ = tx.send(Startup::Exact(entry));
+                        })
                     };
-                    let _ = tx.send(Results::Walk(Search::start_filtered(
-                        query,
-                        roots,
-                        cancel,
-                        mode.file_filter(),
-                    )));
+                    #[cfg(not(windows))]
+                    let search = {
+                        let roots = fixture
+                            .map(|root| vec![root])
+                            .unwrap_or_else(|| default_roots_with_cancel(&cancel));
+                        #[cfg(target_os = "macos")]
+                        let roots = {
+                            let mut roots = roots;
+                            roots.extend(additional_roots);
+                            roots
+                        };
+                        Search::start_filtered(query, roots, cancel, mode.file_filter())
+                    };
+                    let _ = tx.send(Startup::Ready(Results::Walk(search)));
                 });
             }
         }
+        let selected_before_batch = self.selected;
+        let mut results_changed = self.receive_results();
         if let Some(result) = self.starting.as_ref().map(|starting| starting.try_recv()) {
             match result {
-                Ok(search) => {
+                #[cfg(any(windows, test))]
+                Ok(Startup::Exact(entry)) => {
+                    self.append_hits([(MatchKind::Exact, entry)]);
+                    results_changed = true;
+                }
+                Ok(Startup::Ready(search)) => {
                     self.search = Some(search);
                     self.starting = None;
                     self.starting_cancel = None;
+                    results_changed |= self.receive_results();
                 }
                 Err(std::sync::mpsc::TryRecvError::Disconnected) => {
                     self.starting = None;
@@ -904,8 +930,6 @@ impl App {
                 Err(std::sync::mpsc::TryRecvError::Empty) => {}
             }
         }
-        let selected_before_batch = self.selected;
-        let mut results_changed = self.receive_results();
         let title = if self.stopped {
             format!("Drill - {} items found - stopped", self.results.len())
         } else if self.next_hit.is_some() {
@@ -1564,6 +1588,27 @@ mod ui_tests {
     }
 
     #[test]
+    fn exact_executable_is_visible_while_discovery_is_pending() {
+        let ctx = egui::Context::default();
+        let (tx, rx) = std::sync::mpsc::sync_channel(1);
+        let mut app = App {
+            starting: Some(rx),
+            sort: Some((SortColumn::Name, true)),
+            ..Default::default()
+        };
+        app.append_hits([(MatchKind::Partial, entry("z-demo.exe", 1))]);
+        app.selected = Some(0);
+        assert!(tx.send(Startup::Exact(entry("Demo.EXE", 2))).is_ok());
+        let output = frame(&ctx, &mut app, vec![]);
+        text_position(&output, "Demo.EXE");
+        assert_eq!(app.results[0].name, "Demo.EXE");
+        assert_eq!(app.results[app.selected.unwrap()].name, "z-demo.exe");
+        assert!(app.starting.is_some() && app.search.is_none());
+        app.stop_search();
+        assert!(tx.send(Startup::Exact(entry("stale.exe", 3))).is_err());
+    }
+
+    #[test]
     fn stop_revokes_pending_start_and_preserves_results() {
         use std::sync::{
             atomic::{AtomicBool, Ordering},
@@ -1585,7 +1630,7 @@ mod ui_tests {
         assert_eq!(app.results[0].name, "kept");
         assert_eq!(app.selected, Some(0));
         let stale = Search::start_with_cancel("stale".into(), vec![], cancel);
-        assert!(tx.send(Results::Walk(stale)).is_err());
+        assert!(tx.send(Startup::Ready(Results::Walk(stale))).is_err());
         assert!(app.search.is_none());
     }
 
