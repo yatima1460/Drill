@@ -37,6 +37,19 @@ jobs:
           name: decoder-rebuild
           path: tools/exe-icon-wasm/target/wasm32-unknown-unknown/release/drill_exe_icon_wasm.wasm
           if-no-files-found: ignore
+      - name: Verify isolated AppImage decoder
+        run: |
+          cargo fmt --manifest-path tools/appimage-icon-wasm/Cargo.toml -- --check
+          export RUSTFLAGS="--remap-path-prefix=${CARGO_HOME:-$HOME/.cargo}/registry/src=/cargo/registry/src --remap-path-prefix=$PWD=/workspace"
+          cargo build --manifest-path tools/appimage-icon-wasm/Cargo.toml --target wasm32-unknown-unknown --release --locked
+          cmp src/assets/appimage-icon.wasm tools/appimage-icon-wasm/target/wasm32-unknown-unknown/release/drill_appimage_icon_wasm.wasm
+      - name: Preserve AppImage decoder rebuild on failure
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: appimage-decoder-rebuild
+          path: tools/appimage-icon-wasm/target/wasm32-unknown-unknown/release/drill_appimage_icon_wasm.wasm
+          if-no-files-found: ignore
       - run: cargo fmt --all -- --check
       - run: cargo check --locked --workspace --all-targets
       - run: cargo clippy --locked --workspace --all-targets --all-features -- -D warnings -D clippy::undocumented_unsafe_blocks
@@ -46,6 +59,8 @@ jobs:
       - run: cargo build --release --locked
       - run: target/release/drill --version
       - run: scripts/package-linux.sh
+      - name: Decode the icon from the packaged AppImage
+        run: cargo test --locked --bin drill appimage_icon::tests::packaged_appimage_contains_drill_icon -- --ignored --exact
       - uses: actions/upload-artifact@v4
         with:
           name: drill-linux
