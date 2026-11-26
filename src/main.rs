@@ -2297,7 +2297,7 @@ mod ui_tests {
         click("More pattern syntax");
         for (label, expected) in [
             (
-                "Wax glob reference",
+                "Wax 0.7 glob syntax",
                 "https://github.com/olson-sean-k/wax/blob/v0.7.0/README.md#patterns",
             ),
             (

@@ -32,7 +32,7 @@ impl Reference {
     fn link(self) -> (&'static str, &'static str) {
         match self {
             Self::Glob => (
-                "Wax glob reference",
+                "Wax 0.7 glob syntax",
                 "https://github.com/olson-sean-k/wax/blob/v0.7.0/README.md#patterns",
             ),
             Self::Regex => (

@@ -10,4 +10,3 @@ windows-lookups = []
 
 [dependencies]
 regex = "1"
-wax = { version = "0.7", default-features = false }

@@ -26,7 +26,6 @@ image = { version = "0.25.10", default-features = false, features = ["png"], opt
 eframe = { version = "0.31.1", default-features = false, features = ["default_fonts", "glow", "persistence"] }
 drill-core = { path = "crates/drill-core" }
 wasmi = { version = "0.51.3", default-features = false, features = ["std", "extra-checks"] }
-unicode-segmentation = "1.13.3"
 
 [target.'cfg(unix)'.dependencies]
 libc = "0.2"

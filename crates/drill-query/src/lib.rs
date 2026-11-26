@@ -1,9 +1,9 @@
 #![forbid(unsafe_code)]
 //! Parse search queries and classify filenames independently of filesystem traversal.
 
+mod glob;
 mod normalization;
 use normalization::normalized;
-use wax::Program;
 
 // Ratcliff/Obershelp matching, as used by Python's difflib.SequenceMatcher.
 fn matching_chars(a: &[char], b: &[char]) -> usize {
@@ -28,37 +28,6 @@ fn matching_chars(a: &[char], b: &[char]) -> usize {
     }
 }
 
-// Wax parses alternation and repetition groups recursively. Check their depth
-// before handing a pasted expression to the parser on the UI thread.
-fn compile_glob(pattern: &str) -> Result<Matcher, String> {
-    const MAX_GROUP_DEPTH: usize = 8;
-    let mut depth = 0_usize;
-    let mut in_class = false;
-    let mut chars = pattern.chars();
-    while let Some(c) = chars.next() {
-        match c {
-            '\\' => {
-                chars.next();
-            }
-            '[' => in_class = true,
-            ']' => in_class = false,
-            '{' | '<' if !in_class => {
-                depth += 1;
-                if depth > MAX_GROUP_DEPTH {
-                    return Err(format!(
-                        "glob groups can nest up to {MAX_GROUP_DEPTH} levels"
-                    ));
-                }
-            }
-            '}' | '>' if !in_class => depth = depth.saturating_sub(1),
-            _ => {}
-        }
-    }
-    wax::Glob::new(&normalized(pattern))
-        .map(|glob| Matcher::Glob(glob.into_owned()))
-        .map_err(|e| e.to_string())
-}
-
 enum Tokens {
     Plain(Vec<String>),
     Fuzzy(Vec<Vec<char>>),
@@ -71,7 +40,7 @@ enum Matcher {
         #[cfg(any(windows, test, feature = "windows-lookups"))]
         literal_exe: Option<String>,
     },
-    Glob(wax::Glob<'static>),
+    Glob(regex::Regex),
     Regex(regex::Regex),
     Invalid(String),
 }
@@ -101,7 +70,11 @@ impl SearchQuery {
             .strip_prefix("glob:")
             .or_else(|| (fuzzy.is_none() && input.contains('*')).then_some(input.trim_end()))
         {
-            return Self::pattern("glob", pattern, compile_glob);
+            return Self::pattern("glob", pattern, |pattern| {
+                glob::compile(pattern)
+                    .map(Matcher::Glob)
+                    .map_err(str::to_owned)
+            });
         }
         let literal = fuzzy.unwrap_or(input).trim();
         let filename = normalized(literal);
@@ -275,6 +248,82 @@ mod tests {
         }
         assert!(matches("notes [v2]?.txt", "[v2]?"));
         assert!(!matches("notes v2A.txt", "[v2]?"));
+    }
+
+    #[test]
+    fn wildcard_groups_preserve_filename_glob_syntax() {
+        for (pattern, hit, miss) in [
+            ("{*.jpg,IMG_<[0-9]:4>.PNG}", "IMG_0123.png", "IMG_123.png"),
+            ("{doc,<é:2,3>}.txt", "ÉÉ.txt", "éééé.txt"),
+            ("report$[!0-9].txt", "Report-a.txt", "report-3.txt"),
+            (r"[a\-]foo\{bar\}", "-foo{bar}", "bfoo{bar}"),
+            ("**/report.txt", "subdir/Report.txt", "old-report.txt"),
+            ("report/**", "report", "reports"),
+            ("<?:0,2><a:2,>", "xyaaa", "abc"),
+            ("?", "\n", "/"),
+            ("**", "x/y", "x\ny"),
+            ("(?i)σ", "ς", "x"),
+            ("(?-i)σ", "σ", "ς"),
+        ] {
+            let query = SearchQuery::parse(&format!("glob:{pattern}"));
+            assert_eq!(query.error(), None, "{pattern:?}");
+            assert_eq!(query.classify(hit), Some(MatchKind::Partial), "{pattern:?}");
+            assert_eq!(query.classify(miss), None, "{pattern:?}");
+        }
+        assert_eq!(SearchQuery::parse("glob:[/]").error(), None);
+        assert!(!matches("/", "glob:[/]"));
+        assert_eq!(SearchQuery::parse("glob:[z-a]").error(), None);
+        assert!(!matches("a", "glob:[z-a]"));
+        assert!(!matches("a", "glob:[az-a]"));
+        assert!(!matches("b", "glob:[!az-a]"));
+        assert_eq!(matches("a\\b", "glob:a/b"), cfg!(windows));
+        assert_eq!(matches("\\", "glob:?"), !cfg!(windows));
+        assert_eq!(matches("ς", "glob:σ"), cfg!(windows));
+    }
+
+    #[test]
+    fn invalid_globs_report_errors_and_produce_no_matches() {
+        for pattern in [
+            "",
+            "[",
+            "[]",
+            "[a-]",
+            r"\a",
+            "a**b",
+            "a//b",
+            "*{a,*b}",
+            "{a,**}",
+            "{a,/b}",
+            "<*>",
+            "<a:0>",
+            "<a:2,1>",
+            "<a:65536>",
+            "<*/>a</*>",
+            "<a*:4294967296>",
+            "a(?i)",
+            "{{{{{{{{{a}}}}}}}}}",
+        ] {
+            let query = SearchQuery::parse(&format!("glob:{pattern}"));
+            assert!(
+                query
+                    .error()
+                    .is_some_and(|error| error.starts_with("Invalid glob:")),
+                "{pattern:?}",
+            );
+            assert_eq!(query.classify("a"), None);
+        }
+        let literal = "a".repeat(4096);
+        assert!(matches(&literal, &format!("glob:{literal}")));
+        assert!(SearchQuery::parse(&format!("glob:{literal}a"))
+            .error()
+            .is_some());
+        assert!(matches("a", "glob:{{{{{{{{a}}}}}}}}"));
+        let escaped_after_normalizing = "\\\u{301}{".repeat(9);
+        assert!(
+            SearchQuery::parse(&format!("glob:{escaped_after_normalizing}"))
+                .error()
+                .is_some()
+        );
     }
 
     #[test]

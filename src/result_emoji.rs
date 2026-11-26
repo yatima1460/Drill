@@ -1,6 +1,7 @@
 use eframe::egui::{self, Color32, FontId, Painter, Pos2, Rect, TextureHandle};
 use std::{collections::HashMap, sync::OnceLock};
-use unicode_segmentation::UnicodeSegmentation;
+mod boundaries;
+use boundaries::sprites;
 
 const PACK: &[u8] = include_bytes!("assets/emoji/twemoji.bin");
 const MAX_TEXTURES: usize = 256;
@@ -72,11 +73,7 @@ impl EmojiCache {
         font: FontId,
         color: Color32,
     ) {
-        if text.contains('\n')
-            && text
-                .graphemes(true)
-                .any(|g| !g.is_ascii() && sprite(g).is_some())
-        {
+        if text.contains('\n') && !text.is_ascii() && sprites(text).next().is_some() {
             let height = painter.fonts(|fonts| fonts.row_height(&font));
             let lines = text.split('\n');
             pos.y -= height * (lines.clone().count() - 1) as f32 / 2.0;
@@ -102,13 +99,7 @@ impl EmojiCache {
         // Most rows need a single normal galley. Keep kerning and shaping for contiguous text.
         let mut start = 0;
         if !text.is_ascii() {
-            for (offset, cluster) in text.grapheme_indices(true) {
-                if cluster.is_ascii() {
-                    continue;
-                }
-                let Some(sprite) = sprite(cluster) else {
-                    continue;
-                };
+            for (offset, cluster, sprite) in sprites(text) {
                 if start < offset {
                     pos.x = plain(pos, &text[start..offset]).right();
                 }
@@ -148,9 +139,48 @@ mod tests {
             assert!(sprite(text).is_none(), "{text}");
         }
         for emoji in ["😭", "🥀", "🇸🇮", "👩🏽‍💻", "1️⃣", "❤️"] {
-            assert_eq!(emoji.graphemes(true).count(), 1);
+            assert_eq!(
+                sprites(emoji).map(|(_, s, _)| s).collect::<Vec<_>>(),
+                [emoji]
+            );
             let entry = sprite(emoji).unwrap();
             assert!(PACK[entry.offset..entry.offset + entry.len].starts_with(b"\x89PNG"));
+        }
+    }
+
+    #[test]
+    fn every_index_key_is_a_complete_sprite() {
+        for line in include_str!("assets/emoji/index.tsv").lines() {
+            let (key, _) = line.split_once('\t').unwrap();
+            let mut matches = sprites(key);
+            assert_eq!(
+                matches.next().map(|(offset, k, _)| (offset, k)),
+                Some((0, key))
+            );
+            assert!(matches.next().is_none());
+        }
+    }
+
+    #[test]
+    fn sprites_preserve_boundaries_in_mixed_filenames() {
+        let cases: &[(&str, &[&str])] = &[
+            ("The fly 😭🥀.mp4", &["😭", "🥀"]),
+            ("👩\u{200d}🌲 and 🌲\u{301}", &[]),
+            ("🍇\u{301}\u{200d}🥀 and 🍇\u{903}\u{200d}🥀", &["🥀"]),
+            ("\u{600}🌲🌲 and 🥀\u{903}", &["🌲"]),
+            ("🏽.x🏽\r\n🏾", &["🏽", "🏾"]),
+            ("🇸🇮🇦 and 🇦🇸🇮", &["🇸🇮", "🇦🇸"]),
+            ("1️⃣.txt 1️⃣\u{301} 1︎", &["1️⃣"]),
+            ("가🌲क्क🍇", &["🌲", "🍇"]),
+        ];
+        for &(text, expected) in cases {
+            let actual: Vec<_> = sprites(text)
+                .map(|(offset, key, _)| {
+                    assert_eq!(&text[offset..offset + key.len()], key);
+                    key
+                })
+                .collect();
+            assert_eq!(actual, expected, "{text}");
         }
     }
 
