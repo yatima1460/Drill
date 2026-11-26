@@ -9,7 +9,6 @@ drill-query = { path = "../drill-query" }
 
 [dev-dependencies]
 drill-query = { path = "../drill-query", features = ["windows-lookups"] }
-tempfile = "3.23.0"
 
 [target.'cfg(windows)'.dependencies]
-winsafe = { version = "0.0.29", features = ["kernel"] }
+drill-windows = { path = "../drill-windows" }

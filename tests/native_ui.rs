@@ -1,15 +1,16 @@
 //! Drives an actual desktop window and real operating-system input. Run only in
 //! an isolated display or with the user's explicit permission (it moves the cursor).
 #![cfg(feature = "ui-test-driver")]
-#[cfg(not(target_os = "linux"))]
-use enigo::Coordinate;
-use enigo::{Button, Direction, Enigo, Key, Keyboard, Mouse, Settings};
 use std::fs;
 use std::process::{Child, Command, Stdio};
 use std::time::{Duration, Instant};
 
+#[path = "native_ui/input.rs"]
+mod input;
 #[path = "../crates/drill-core/src/test_directory.rs"]
 mod test_directory;
+
+use input::{Input, Key};
 
 struct AppProcess(Child);
 impl Drop for AppProcess {
@@ -54,98 +55,31 @@ fn native_typing_selection_and_escape() {
     let mut child = AppProcess(child);
     let initial = wait_for(&status, |s| s.contains("query=") && s.contains("x="));
     #[cfg(target_os = "linux")]
-    let window_id = {
-        let pid = child.0.id().to_string();
-        let found = Command::new("timeout")
-            .args([
-                "15s",
-                "xdotool",
-                "search",
-                "--sync",
-                "--onlyvisible",
-                "--pid",
-                &pid,
-            ])
-            .output()
-            .expect("xdotool is required for native UI tests on X11");
-        assert!(
-            found.status.success(),
-            "could not find the test window within 15 seconds: {}",
-            String::from_utf8_lossy(&found.stderr)
-        );
-        let ids = String::from_utf8(found.stdout).unwrap();
-        let id = ids
-            .lines()
-            .next()
-            .expect("missing X11 window id")
-            .to_string();
-        let focused = Command::new("timeout")
-            .args(["10s", "xdotool", "windowactivate", "--sync", &id])
-            .status()
-            .unwrap();
-        assert!(
-            focused.success(),
-            "could not focus the test window within 10 seconds"
-        );
-        id
-    };
+    let input = Input::for_process(child.0.id());
     #[cfg(not(target_os = "linux"))]
-    let origin = {
-        let field = |name: &str| {
-            initial
-                .lines()
-                .find_map(|line| line.strip_prefix(name))
-                .unwrap()
-                .parse::<f32>()
-                .unwrap() as i32
-        };
-        (field("x="), field("y="))
-    };
+    let input = Input::at_window_origin(&initial);
     #[cfg(target_os = "linux")]
     let _ = initial;
-    let mut input = Enigo::new(&Settings::default()).expect("Cannot create OS input driver; on macOS enable Accessibility permission for the app running this test");
-    #[cfg(target_os = "linux")]
-    assert!(Command::new("xdotool")
-        .args(["mousemove", "--window", &window_id, "90", "47"])
-        .status()
-        .unwrap()
-        .success());
-    #[cfg(not(target_os = "linux"))]
-    input
-        .move_mouse(origin.0 + 90, origin.1 + 25, Coordinate::Abs)
-        .unwrap();
-    input.button(Button::Left, Direction::Click).unwrap();
-    input
-        .text("drill_native_unique_test")
-        .expect("typing requires OS input permission");
+    input.click(90, 25);
+    input.text("drill_native_unique_test");
     wait_for(&status, |s| {
         s.contains("query=drill_native_unique_test") && s.contains("drill_native_unique_test.txt")
     });
-    input.text("*.txt").unwrap();
+    input.text("*.txt");
     wait_for(&status, |s| {
         s.contains("query=drill_native_unique_test*.txt\n")
             && s.contains("done=true")
             && s.contains("drill_native_unique_test-b.txt")
             && s.contains("drill_native_unique_test.txt")
     });
-    #[cfg(target_os = "linux")]
-    assert!(Command::new("xdotool")
-        .args(["mousemove", "--window", &window_id, "30", "88"])
-        .status()
-        .unwrap()
-        .success());
-    #[cfg(not(target_os = "linux"))]
-    input
-        .move_mouse(origin.0 + 30, origin.1 + 66, Coordinate::Abs)
-        .unwrap();
-    input.button(Button::Left, Direction::Click).unwrap();
+    input.click(30, 66);
     wait_for(&status, |s| {
         s.contains("sort=Some((Name, true))")
             && s.contains("drill_native_unique_test-b.txt|drill_native_unique_test.txt")
     });
-    input.key(Key::DownArrow, Direction::Click).unwrap();
+    input.key(Key::DownArrow);
     wait_for(&status, |s| s.contains("selected=0"));
-    input.key(Key::Escape, Direction::Click).unwrap();
+    input.key(Key::Escape);
     let deadline = Instant::now() + Duration::from_secs(10);
     loop {
         if let Some(exit) = child.0.try_wait().unwrap() {

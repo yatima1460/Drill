@@ -107,16 +107,25 @@ mod tests {
             &complete[..138],
             include_bytes!("../tools/appimage-icon-wasm/tests/fixtures/cyclic.AppImage").as_slice(),
         ] {
-            let mut f = tempfile::tempfile().unwrap();
-            f.write_all(data).unwrap();
-            assert!(decoder.decode(f, data.len() as u64).is_none());
+            let directory = crate::test_directory::private_temp_dir();
+            let path = directory.path().join("invalid.AppImage");
+            File::create_new(&path).unwrap().write_all(data).unwrap();
+            let file = File::open(path).unwrap();
+            assert!(decoder.decode(file, data.len() as u64).is_none());
         }
     }
 
     #[test]
     fn reads_a_large_sparse_image_without_snapshotting_it() {
         let decoder = Decoder::new().unwrap();
-        let mut f = tempfile::tempfile().unwrap();
+        let directory = crate::test_directory::private_temp_dir();
+        let path = directory.path().join("sparse.AppImage");
+        let mut f = File::options()
+            .read(true)
+            .write(true)
+            .create_new(true)
+            .open(path)
+            .unwrap();
         let bytes =
             include_bytes!("../tools/appimage-icon-wasm/tests/fixtures/linked-png.AppImage");
         let offset = 160u64 << 20;

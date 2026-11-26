@@ -1,6 +1,5 @@
 #![cfg_attr(target_os = "windows", windows_subsystem = "windows")]
 #![deny(unsafe_code)]
-use chrono::{DateTime, Local};
 #[cfg(not(windows))]
 use drill_core::default_roots_with_cancel;
 #[cfg(any(not(windows), test, feature = "ui-test-driver"))]
@@ -12,10 +11,14 @@ use std::time::{Duration, Instant};
 mod appearance;
 mod appimage_icon;
 mod exe_icon;
+mod result_date;
 mod result_emoji;
 mod result_order;
 mod search_mode;
 mod syntax_help;
+#[cfg(test)]
+#[path = "../crates/drill-core/src/test_directory.rs"]
+mod test_directory;
 use search_mode::{Mode, Results};
 #[cfg(target_os = "linux")]
 mod linux_apps;
@@ -201,16 +204,6 @@ fn size(entry: &Entry) -> String {
         n /= 1024.0;
     }
     format!("{n:.1} EB")
-}
-fn date(entry: &Entry) -> String {
-    entry
-        .modified
-        .map(|t| {
-            DateTime::<Local>::from(t)
-                .format("%Y/%m/%d %H:%M:%S")
-                .to_string()
-        })
-        .unwrap_or_else(|| "?".into())
 }
 // Qt's result list used 32 logical pixels. Keep native art sharp on a 2× display.
 const RESULT_ICON_SIZE: f32 = 32.0;
@@ -1347,7 +1340,7 @@ impl App {
                             .to_string_lossy()
                             .into_owned(),
                         size(entry),
-                        date(entry),
+                        result_date::display(entry.modified),
                     ];
                     let icon_pos = egui::pos2(rect.left() + 5.0, rect.center().y - RESULT_ICON_SIZE / 2.0);
                     let icon_rect = egui::Rect::from_min_size(icon_pos, egui::Vec2::splat(RESULT_ICON_SIZE));
@@ -1560,7 +1553,7 @@ impl App {
                             ui.close_menu();
                         }
                         if ui.button("Copy Date").clicked() {
-                            ui.ctx().copy_text(date(entry));
+                            ui.ctx().copy_text(result_date::display(entry.modified));
                             ui.close_menu();
                         }
                         if ui.button("Copy Size").clicked() {
@@ -1655,15 +1648,8 @@ fn main() -> eframe::Result {
     let icon_bytes: &[u8] = include_bytes!("assets/drill-macos.png");
     #[cfg(not(target_os = "macos"))]
     let icon_bytes: &[u8] = include_bytes!("assets/drill.png");
-    let icon = image::load_from_memory(icon_bytes)
-        .expect("embedded Drill icon must be valid PNG")
-        .into_rgba8();
-    let (width, height) = icon.dimensions();
-    let icon = egui::IconData {
-        rgba: icon.into_raw(),
-        width,
-        height,
-    };
+    let icon = eframe::icon_data::from_png_bytes(icon_bytes)
+        .expect("embedded Drill icon must be valid PNG");
     let options = eframe::NativeOptions {
         #[cfg(feature = "ui-test-driver")]
         persistence_path: std::env::var_os("DRILL_UI_TEST_STATUS")
@@ -1834,7 +1820,7 @@ mod ui_tests {
         }
 
         // Isolate PATH so parallel UI tests use their usual desktop environment.
-        let bin = tempfile::tempdir().unwrap();
+        let bin = crate::test_directory::private_temp_dir();
         let opener = bin.path().join("xdg-open");
         std::fs::write(&opener, "#!/bin/sh\nexit 4\n").unwrap();
         std::fs::set_permissions(&opener, std::fs::Permissions::from_mode(0o700)).unwrap();
@@ -1865,7 +1851,7 @@ mod ui_tests {
 
     #[test]
     fn streamed_exact_executable_renders_sorted_and_preserves_selection() {
-        let root = tempfile::tempdir().unwrap();
+        let root = crate::test_directory::private_temp_dir();
         std::fs::write(root.path().join("Demo.EXE"), b"file").unwrap();
         let (tx, rx) = std::sync::mpsc::sync_channel(1);
         let mut app = App {
@@ -2280,7 +2266,7 @@ mod ui_tests {
         assert_eq!(app.selected, Some(0));
         assert_eq!(app.query, "notes");
 
-        let folder = tempfile::tempdir().unwrap();
+        let folder = crate::test_directory::private_temp_dir();
         std::fs::write(folder.path().join("notes.txt"), b"new hit").unwrap();
         app.search = Some(Results::Walk(Search::start(
             "notes".into(),
@@ -2562,7 +2548,7 @@ mod ui_tests {
     #[test]
     fn full_last_page_finishes_and_continue_delivers_each_remaining_file_once() {
         for count in [2, 520] {
-            let root = tempfile::tempdir().unwrap();
+            let root = crate::test_directory::private_temp_dir();
             for n in 0..count {
                 std::fs::write(root.path().join(format!("item-{n}")), []).unwrap();
             }
@@ -2663,12 +2649,12 @@ mod ui_tests {
     }
     #[test]
     fn visible_executable_row_loads_embedded_icon() {
-        let file = exe_icon::temporary_pe32();
-        assert_result_loads_embedded_icon(file.path().to_path_buf());
+        let directory = crate::test_directory::private_temp_dir();
+        assert_result_loads_embedded_icon(exe_icon::write_pe32_fixture(&directory));
     }
     #[test]
     fn visible_appimage_rows_draw_their_embedded_png_and_svg() {
-        let root = tempfile::tempdir().unwrap();
+        let root = crate::test_directory::private_temp_dir();
         let fixtures =
             Path::new(env!("CARGO_MANIFEST_DIR")).join("tools/appimage-icon-wasm/tests/fixtures");
         for (name, fixture) in [

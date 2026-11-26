@@ -213,6 +213,7 @@ jobs:
         shell: pwsh
         run: |
           $tests = @(
+            'result_date::tests::windows_results_follow_historical_daylight_saving_rules',
             'ui_tests::emoji_filenames_paint_colored_clusters_inside_their_columns',
             'shell_worker_balances_sta_after_failed_action',
             'icon_sample::tests::owns_only_the_file_it_created',

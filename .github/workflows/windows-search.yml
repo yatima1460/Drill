@@ -13,6 +13,7 @@ on:
       - 'rust-toolchain.toml'
       - 'crates/drill-core/**'
       - 'crates/drill-query/**'
+      - 'crates/drill-windows/**'
       - 'vendor/*/Cargo.toml'
       # drill-core embeds all three root lists and the dictionary at compile time.
       - 'src/assets/roots_*.txt'

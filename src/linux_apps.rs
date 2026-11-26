@@ -110,7 +110,7 @@ mod tests {
         }
 
         // GIO caches XDG paths and the current desktop. Give it a fresh process.
-        let root = tempfile::tempdir().unwrap();
+        let root = crate::test_directory::private_temp_dir();
         let user = root.path().join("user/applications");
         let system = root.path().join("system/applications");
         fs::create_dir_all(user.join("suite")).unwrap();

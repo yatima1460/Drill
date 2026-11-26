@@ -9,7 +9,6 @@ edition = "2021"
 crate-type = ["cdylib"]
 
 [dependencies]
-icoextract_rs = "0.1.2"
 image = { version = "0.25.10", default-features = false, features = ["ico", "png"] }
 
 [profile.release]

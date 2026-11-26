@@ -248,14 +248,17 @@ impl Worker {
     }
 }
 #[cfg(test)]
-pub(super) fn temporary_pe32() -> tempfile::NamedTempFile {
+pub(super) fn write_pe32_fixture(directory: &crate::test_directory::TestDirectory) -> PathBuf {
     use std::io::Write;
-    let mut file = tempfile::Builder::new().suffix(".exe").tempfile().unwrap();
-    file.write_all(include_bytes!(
-        "../tools/exe-icon-wasm/tests/fixtures/icon-pe32.exe"
-    ))
-    .unwrap();
-    file
+
+    let path = directory.path().join("sample.exe");
+    std::fs::File::create_new(&path)
+        .unwrap()
+        .write_all(include_bytes!(
+            "../tools/exe-icon-wasm/tests/fixtures/icon-pe32.exe"
+        ))
+        .unwrap();
+    path
 }
 
 #[cfg(test)]
@@ -303,9 +306,9 @@ mod tests {
 
     #[test]
     fn worker_reads_and_decodes_resident_executable() {
-        let file = temporary_pe32();
+        let directory = crate::test_directory::private_temp_dir();
+        let path = write_pe32_fixture(&directory);
         let worker = Worker::new();
-        let path = file.path().to_path_buf();
         assert!(matches!(
             worker.request(0, path.clone(), egui::Context::default()),
             RequestState::Queued
@@ -335,8 +338,12 @@ mod tests {
     #[test]
     fn rejects_directory_and_large_file() {
         assert!(snapshot(&std::env::temp_dir()).is_none());
-        let file = tempfile::NamedTempFile::new().unwrap();
-        file.as_file().set_len(MAX_FILE + 1).unwrap();
-        assert!(snapshot(file.path()).is_none());
+        let directory = crate::test_directory::private_temp_dir();
+        let path = directory.path().join("large.exe");
+        std::fs::File::create_new(&path)
+            .unwrap()
+            .set_len(MAX_FILE + 1)
+            .unwrap();
+        assert!(snapshot(&path).is_none());
     }
 }

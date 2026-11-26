@@ -1,5 +1,5 @@
 [workspace]
-members = ["crates/drill-core", "crates/drill-query"]
+members = ["crates/drill-core", "crates/drill-query", "crates/drill-windows"]
 exclude = ["vendor/eframe", "vendor/file_icon_provider"]
 resolver = "2"
 
@@ -22,15 +22,12 @@ lto = "off"
 ui-test-driver = []
 
 [dev-dependencies]
-enigo = "0.6.1"
-tempfile = "3.23.0"
+image = { version = "0.25.10", default-features = false, features = ["png"] }
 
 [dependencies]
 eframe = { version = "0.31.1", default-features = false, features = ["default_fonts", "glow", "x11", "wayland", "persistence"] }
 drill-core = { path = "crates/drill-core" }
-chrono = "0.4.45"
 file_icon_provider = "1.0.2"
-image = { version = "0.25.10", default-features = false, features = ["png"] }
 wasmi = { version = "0.51.3", default-features = false, features = ["std", "extra-checks"] }
 unicode-segmentation = "1.13.3"
 
@@ -51,5 +48,4 @@ muda = { version = "0.21.2", default-features = false }
 raw-window-handle = "0.6.2"
 
 [target.'cfg(target_os = "windows")'.dependencies]
-windows-core = { version = "0.62.2", default-features = false }
 windows-sys = { version = "0.61.2", features = ["Win32_Foundation", "Win32_UI_Shell", "Win32_UI_WindowsAndMessaging", "Win32_System_Com", "Win32_Storage_FileSystem"] }

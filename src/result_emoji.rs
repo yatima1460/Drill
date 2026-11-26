@@ -40,12 +40,10 @@ impl EmojiCache {
             return texture.clone();
         }
         let png = &PACK[sprite.offset..sprite.offset + sprite.len];
-        let rgba = image::load_from_memory_with_format(png, image::ImageFormat::Png)
-            .expect("invalid bundled emoji PNG")
-            .into_rgba8();
+        let image = eframe::icon_data::from_png_bytes(png).expect("invalid bundled emoji PNG");
         let pixels = egui::ColorImage::from_rgba_unmultiplied(
-            [rgba.width() as usize, rgba.height() as usize],
-            rgba.as_raw(),
+            [image.width as usize, image.height as usize],
+            &image.rgba,
         );
         let texture =
             painter
