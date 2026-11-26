@@ -134,7 +134,6 @@ log.workspace = true
 parking_lot.workspace = true
 profiling.workspace = true
 raw-window-handle.workspace = true
-static_assertions = "1.1.0"
 web-time.workspace = true
 
 # Optional dependencies

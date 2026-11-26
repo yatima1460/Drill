@@ -38,7 +38,9 @@ Run the least expensive checks that exercise the changed behavior, followed by t
 | Rust integration | `make fmt-check check lint test` |
 | Scripts and packaging | `make shellcheck` and the affected packaging target. Inspect the artifact a user would download. |
 
-For a bug fix, demonstrate the regression against the previous revision when practical. For performance work, record the fixture, cache state, worker count and timing boundaries. Measure time to the first useful result as well as completion. For complicated investigations, record the hypothesis, the observation that would distinguish it, and the result alongside its commit or artifact. Reuse that evidence when choosing the next experiment. This adapts an approach explored in [Toward Generalist Autonomous Research via Hypothesis-Tree Refinement](https://arxiv.org/abs/2606.11926).
+For a bug fix, demonstrate the regression against the previous revision when practical. For performance work, record the fixture, cache state, worker count and timing boundaries. Measure time to the first useful result as well as completion.
+
+For investigations with competing explanations, keep a short hypothesis tree in the PR or investigation notes. Start with the objective and baseline. For each alternative, record its predicted outcome, the test that could disprove it, the revision or artifact, and the result. Use what you learn from unsuccessful trials to choose the next experiment. Before adopting a change, check it against an independent fixture, platform, or clean benchmark that was not used to tune it. This adapts the method in [Toward Generalist Autonomous Research via Hypothesis-Tree Refinement (PDF)](https://arxiv.org/pdf/2606.11926).
 
 Use property tests, mutation testing, fuzzing or bounded proofs for the contracts each can check. Record proof assumptions, input domains and unwinding bounds. Review surviving mutants and counterexamples. Preserve the meaning of tests, assertions and CI gates when making a change.
 

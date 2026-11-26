@@ -591,7 +591,6 @@ dependencies = [
  "raw-window-handle",
  "ron",
  "serde",
- "static_assertions",
  "wasm-bindgen",
  "wasm-bindgen-futures",
  "web-sys",

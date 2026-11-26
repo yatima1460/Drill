@@ -29,3 +29,6 @@ Desktop persistence uses the standard library to locate the Unix home directory.
 On Windows, persistence and runtime window icons share Drill's `windows-sys`
 bindings.
 The optional `document-features` feature generates the feature list for docs.rs.
+
+A native frame holds borrowed window handles. The local compile-time check by
+`Frame` rejects a `Clone` implementation without requiring an assertion crate.
