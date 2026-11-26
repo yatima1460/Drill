@@ -26,6 +26,13 @@ typedef void (*DrillHitCallback)(void *ctx, const uint8_t *path, size_t path_len
 DrillSearch *drill_search_start(const char *query, bool apps,
                                 const uint8_t *root, size_t root_len);
 
+/* Adds session directories to the search above. additional contains consecutive
+ * NUL-terminated, nonempty absolute filesystem paths in their original bytes.
+ * A zero additional_len means none. All paths are copied before returning. */
+DrillSearch *drill_search_start_with_roots(const char *query, bool apps,
+                                           const uint8_t *root, size_t root_len,
+                                           const uint8_t *additional, size_t additional_len);
+
 /* Borrowed until the next mutable call. NULL means no error. */
 const char *drill_search_error(const DrillSearch *search);
 

@@ -59,6 +59,22 @@ impl Handle {
         Self(unsafe { drill_search_start(query.as_ptr(), apps, root.as_ptr(), root.len()) })
     }
 
+    fn with_additional(query: &str, apps: bool, root: &Path, additional: &[u8]) -> Self {
+        let root = root.as_os_str().as_bytes();
+        let query = CString::new(query).unwrap();
+        // SAFETY: the C string and both borrowed buffers outlive this call.
+        Self(unsafe {
+            drill_search_start_with_roots(
+                query.as_ptr(),
+                apps,
+                root.as_ptr(),
+                root.len(),
+                additional.as_ptr(),
+                additional.len(),
+            )
+        })
+    }
+
     fn poll(&mut self, limit: u32, hits: &mut Vec<Hit>) -> bool {
         let before = hits.len();
         // SAFETY: self owns the live handle, and receive accesses hits only
@@ -105,8 +121,56 @@ impl Handle {
 
 impl Drop for Handle {
     fn drop(&mut self) {
-        // SAFETY: Handle uniquely owns this allocation from drill_search_start.
+        // SAFETY: Handle uniquely owns this allocation from the startup ABI.
         unsafe { drill_search_free(self.0) }
+    }
+}
+
+#[test]
+fn additional_roots_are_copied_and_combined_with_the_original_scan() {
+    let dir = private_temp_dir();
+    let base = dir.path().join("base");
+    let extra = dir.path().join("selected\nfolder");
+    let nested = extra.join("nested");
+    fs::create_dir(&base).unwrap();
+    fs::create_dir_all(&nested).unwrap();
+    let expected = [base.join("shared-a.app"), nested.join("shared-b.app")];
+    for path in &expected {
+        fs::create_dir(path).unwrap();
+    }
+    let file = extra.join("shared.txt");
+    fs::write(&file, []).unwrap();
+    // Duplicate and overlapping roots must not duplicate the matching files.
+    let mut paths = Vec::new();
+    for path in [&extra, &nested, &extra, &base] {
+        paths.extend_from_slice(path.as_os_str().as_bytes());
+        paths.push(0);
+    }
+    let mut cancelled = Handle::with_additional("shared", false, &base, &paths);
+    cancelled.pause(true);
+    drop(cancelled);
+
+    let mut apps = Handle::with_additional("shared", true, &base, &paths);
+    let mut files = Handle::with_additional("shared", false, &base, &paths);
+    paths.fill(0); // The asynchronous workers must already own both inputs.
+    let mut app_hits: Vec<_> = apps.drain(1).into_iter().map(|hit| hit.path).collect();
+    app_hits.sort();
+    assert_eq!(app_hits, expected);
+    let mut file_hits: Vec<_> = files.drain(2).into_iter().map(|hit| hit.path).collect();
+    file_hits.sort();
+    let mut expected_files = Vec::from(expected);
+    expected_files.push(file);
+    expected_files.sort();
+    assert_eq!(file_hits, expected_files);
+}
+
+#[test]
+fn malformed_additional_roots_report_an_error_before_startup() {
+    let dir = private_temp_dir();
+    for malformed in [b"/unterminated".as_slice(), b"/a\0\0", b"relative\0"] {
+        let mut search = Handle::with_additional("x", false, dir.path(), malformed);
+        assert!(search.error().is_some());
+        assert!(search.drain(10).is_empty());
     }
 }
 

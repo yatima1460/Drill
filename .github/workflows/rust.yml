@@ -302,6 +302,7 @@ jobs:
           version=$(cargo metadata --locked --no-deps --format-version=1 | jq -er '.packages[] | select(.name == "drill") | .version')
           app="$RUNNER_TEMP/extracted/Drill Swift.app"
           codesign --verify --strict "$app"
+          cmp LICENSE "$app/Contents/Resources/LICENSE"
           test "$("$app/Contents/MacOS/drill-swift" --version)" = "Drill $version"
       - name: Upload the PR prototype
         if: github.event_name == 'pull_request'

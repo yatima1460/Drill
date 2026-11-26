@@ -7,7 +7,7 @@ mod icons;
 use drill_core::{default_roots_with_cancel, Entry, FileFilter, MatchKind, Search, SearchQuery};
 use std::ffi::{c_char, c_void, CStr, CString, OsStr};
 use std::os::unix::ffi::OsStrExt;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::ptr;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::{self, Receiver, TryRecvError};
@@ -71,6 +71,7 @@ fn start(
     text: String,
     apps: bool,
     root: Option<PathBuf>,
+    additional: Vec<PathBuf>,
     cancel: Arc<AtomicBool>,
 ) -> Result<Option<Search>, String> {
     if cancel.load(Ordering::Relaxed) {
@@ -83,10 +84,11 @@ fn start(
     if query.is_empty() && !(apps && text.trim().is_empty()) {
         return Ok(None);
     }
-    let roots = match root {
+    let mut roots = match root {
         Some(root) => vec![root],
         None => default_roots_with_cancel(&cancel),
     };
+    roots.extend(additional);
     let filter = if apps {
         FileFilter::MacBundles
     } else {
@@ -108,6 +110,25 @@ pub unsafe extern "C" fn drill_search_start(
     root: *const u8,
     root_len: usize,
 ) -> *mut DrillSearch {
+    // SAFETY: the query and optional root have the same contract in both APIs.
+    unsafe { drill_search_start_with_roots(query, apps, root, root_len, ptr::null(), 0) }
+}
+
+/// Starts a search over the default or explicit root plus session directories.
+///
+/// # Safety
+/// The query and root must meet the requirements of `drill_search_start`. For
+/// `0 < additional_len <= isize::MAX`, non-null `additional` must reference
+/// that many readable bytes in a single allocation during this call.
+#[no_mangle]
+pub unsafe extern "C" fn drill_search_start_with_roots(
+    query: *const c_char,
+    apps: bool,
+    root: *const u8,
+    root_len: usize,
+    additional: *const u8,
+    additional_len: usize,
+) -> *mut DrillSearch {
     let cancel = Arc::new(AtomicBool::new(false));
     let mut handle = Box::new(DrillSearch {
         phase: Phase::Finished,
@@ -124,26 +145,45 @@ pub unsafe extern "C" fn drill_search_start(
             .to_str()
             .map_err(|_| "Search query must be UTF-8")?
             .to_owned();
-        let root = if root_len == 0 {
+        let path_bytes = |data: *const u8, len: usize| -> Result<&[u8], String> {
+            if len == 0 {
+                return Ok(&[]);
+            }
+            if data.is_null() || len > isize::MAX as usize {
+                return Err("Invalid search root buffer".into());
+            }
+            // SAFETY: both input buffers are borrowed under the ABI contract
+            // and the non-null pointer and maximum slice length were checked.
+            Ok(unsafe { std::slice::from_raw_parts(data, len) })
+        };
+        let bytes = path_bytes(root, root_len)?;
+        let root = if bytes.is_empty() {
             None
         } else {
-            if root.is_null() || root_len > isize::MAX as usize {
-                return Err("Invalid search root".into());
-            }
-            // SAFETY: input contract and length check above.
-            let bytes = unsafe { std::slice::from_raw_parts(root, root_len) };
             if bytes.contains(&0) {
                 return Err("Search root contains a NUL byte".into());
             }
             Some(PathBuf::from(OsStr::from_bytes(bytes)))
         };
+        let mut directories = Vec::new();
+        let paths = path_bytes(additional, additional_len)?;
+        if !paths.is_empty() {
+            let paths = paths.strip_suffix(&[0]).ok_or("Unterminated search root")?;
+            for bytes in paths.split(|byte| *byte == 0) {
+                let path = Path::new(OsStr::from_bytes(bytes));
+                if !path.is_absolute() {
+                    return Err("Additional search roots must be absolute paths".into());
+                }
+                directories.push(path.to_owned());
+            }
+        }
         let (sender, receiver) = mpsc::sync_channel(1);
         let paused = Arc::new(Mutex::new(false));
         let startup_pause = paused.clone();
         thread::Builder::new()
             .name("drill-swift-start".into())
             .spawn(move || {
-                let result = start(text, apps, root, cancel);
+                let result = start(text, apps, root, directories, cancel);
                 // Serialize this one-shot handoff with pause requests. Workers
                 // honor a pause during startup even if the UI stops polling.
                 let requested_pause = startup_pause.lock().unwrap();
@@ -167,7 +207,7 @@ pub unsafe extern "C" fn drill_search_start(
 /// Returns a borrowed UTF-8 error string or null.
 ///
 /// # Safety
-/// A non-null handle must come from `drill_search_start` and still be live.
+/// A non-null handle must come from a search startup function and still be live.
 /// The pointer returned is valid until the next mutable call on this handle.
 #[no_mangle]
 pub unsafe extern "C" fn drill_search_error(search: *const DrillSearch) -> *const c_char {
@@ -282,7 +322,7 @@ pub unsafe extern "C" fn drill_search_set_paused(search: *mut DrillSearch, pause
 /// Cancels and releases the handle without joining filesystem workers.
 ///
 /// # Safety
-/// A non-null handle must come from `drill_search_start`, must be freed exactly
+/// A non-null handle must come from a search startup function, must be freed exactly
 /// once, and must never be used again. All earlier callbacks must have returned.
 #[no_mangle]
 pub unsafe extern "C" fn drill_search_free(search: *mut DrillSearch) {

@@ -47,7 +47,6 @@ private struct SearchField: NSViewRepresentable {
             case #selector(NSResponder.moveDown(_:)): model.moveSelection(by: 1)
             case #selector(NSResponder.moveUp(_:)): model.moveSelection(by: -1)
             case #selector(NSResponder.insertNewline(_:)): model.openSelection()
-            case #selector(NSResponder.cancelOperation(_:)) where model.canStop: model.stop()
             default: return false
             }
             return true
@@ -76,40 +75,7 @@ struct SearchView: View {
             .padding(12)
 
             Divider()
-            ScrollViewReader { reader in
-                List(model.rows, selection: $model.selection) { row in
-                    HStack(spacing: 10) {
-                        ResultIcon(row: row)
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(row.name).lineLimit(1)
-                            Text(row.displayPath)
-                                .font(.caption).foregroundStyle(.secondary)
-                                .lineLimit(1).truncationMode(.middle)
-                        }
-                    }
-                    .tag(row.id)
-                    .help(row.displayPath)
-                }
-                .listStyle(.inset)
-                .accessibilityLabel("Search results")
-                .accessibilityIdentifier("search-results")
-                .contextMenu(forSelectionType: URL.self) { urls in
-                    if let url = urls.first {
-                        Button("Open") {
-                            model.selection = url
-                            model.openSelection()
-                        }
-                    }
-                } primaryAction: { urls in
-                    if let url = urls.first {
-                        model.selection = url
-                        model.openSelection()
-                    }
-                }
-                .onChange(of: model.selection) { url in
-                    if let url { reader.scrollTo(url) }
-                }
-            }
+            ResultsTable(model: model)
 
             Divider()
             HStack {
@@ -131,12 +97,33 @@ struct SearchView: View {
     }
 }
 
+private final class MainSearchWindow: NSWindow {
+    var stopSession: (() -> Void)?
+
+    override func sendEvent(_ event: NSEvent) {
+        // The field editor otherwise consumes Escape before it reaches the window.
+        if event.type == .keyDown, event.keyCode == 53, attachedSheet == nil,
+           event.modifierFlags.intersection([.command, .option, .control, .shift]).isEmpty,
+           (firstResponder as? NSTextInputClient)?.hasMarkedText() != true {
+            performClose(nil)
+            return
+        }
+        super.sendEvent(event)
+    }
+
+    override func close() {
+        stopSession?()
+        super.close()
+    }
+}
+
 @MainActor
 func makeSearchWindow(model: SearchModel, accessibilityEnabled: Bool = false) -> NSWindow {
-    let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 680, height: 470),
+    let window = MainSearchWindow(contentRect: NSRect(x: 0, y: 0, width: 680, height: 470),
                           styleMask: [.titled, .closable, .miniaturizable, .resizable],
                           backing: .buffered, defer: false)
     window.title = "Drill"
+    window.stopSession = { model.stop() }
     window.isReleasedWhenClosed = false
     let view = SearchView(model: model)
     if accessibilityEnabled {

@@ -1,19 +1,19 @@
 import AppKit
 import SwiftUI
 
-private struct WindowFailure: Error, CustomStringConvertible {
+struct WindowFailure: Error, CustomStringConvertible {
     let description: String
     init(_ message: String) { description = message }
 }
 
-private func require(_ condition: Bool, _ message: String) throws {
+func require(_ condition: Bool, _ message: String) throws {
     if !condition { throw WindowFailure(message) }
 }
 
 // AppKit table row proxies implement the attribute API. SwiftUI's virtual nodes
 // expose the protocol selectors without formally adopting NSAccessibilityProtocol.
 @MainActor
-private struct AccessibleNode {
+struct AccessibleNode {
     let object: NSObject
 
     private func read(_ getter: String, _ attribute: NSAccessibility.Attribute) -> Any? {
@@ -23,6 +23,7 @@ private struct AccessibleNode {
             return value
         }
         let legacy = NSSelectorFromString("accessibilityAttributeValue:")
+        guard object.responds(to: legacy) else { return nil }
         return object.perform(legacy, with: attribute.rawValue)?.takeUnretainedValue()
     }
 
@@ -55,7 +56,7 @@ private struct AccessibleNode {
 }
 
 @MainActor
-private struct WindowDriver {
+struct WindowDriver {
     let window: NSWindow
 
     var elements: [AccessibleNode] {
@@ -106,7 +107,10 @@ private struct WindowInteractionTest {
     static func main() {
         do {
             try exerciseWindow()
-            print("SwiftUI window passed typing, streaming, replacement, pagination, keyboard opening, and cancellation")
+            try checkStreamingBacklog()
+            try exerciseResultIcons()
+            try exercisePanels()
+            print("SwiftUI interaction checks passed for search, the results table, icons, menus and settings")
         } catch {
             FileHandle.standardError.write(Data("SwiftUI window test failed: \(error)\n".utf8))
             exit(EXIT_FAILURE)
@@ -129,9 +133,11 @@ private struct WindowInteractionTest {
         let app = NSApplication.shared
         app.setActivationPolicy(.prohibited)
         app.finishLaunching()
+        try checkResultActions()
         var opened: [URL] = []
         // One hit per UI tick makes the in-flight states observable on a tiny real filesystem.
         let model = SearchModel(root: root, pollBatchSize: 1, pageSize: 3) { opened.append($0) }
+        model.waitAfterPoll = { _ in try await Task.sleep(nanoseconds: 30_000_000) }
         let window = makeSearchWindow(model: model, accessibilityEnabled: true)
         defer { window.orderOut(nil) }
         let driver = WindowDriver(window: window)
@@ -188,16 +194,52 @@ private struct WindowInteractionTest {
         try driver.wait("Return did not open the second rendered result exactly once") {
             opened.map { $0.resolvingSymlinksInPath().path } == [secondPath]
         }
+        try checkResultsTable(window: window, model: model, opened: { opened })
 
         try driver.replaceQuery(with: oldKeys)
         try driver.wait("No cancellable search was visible", until: isPartialOldSearch)
-        try driver.key("\u{1b}", code: 53)
-        try driver.wait("Escape did not cancel the active scan") {
+        guard let stop = driver.elements.first(where: { $0.isNamed("Stop", role: .button) }),
+              stop.press() else { throw WindowFailure("Could not press the accessible Stop button") }
+        try driver.wait("Stop did not cancel the active scan") {
             !model.isSearching && !model.canContinue && driver.elements.contains { $0.isNamed("Stopped", role: .staticText) }
         }
         let stopped = driver.rows()
         try require(!stopped.isEmpty && stopped.count < oldNames.count, "Stop must keep the partial results")
         RunLoop.main.run(until: Date(timeIntervalSinceNow: 0.2))
-        try require(driver.rows() == stopped, "Rows continued changing after Escape")
+        try require(driver.rows() == stopped, "Rows continued changing after Stop")
+
+        // Escape closes the search window from either responder. Stop is a separate command.
+        try driver.replaceQuery(with: newKeys)
+        try driver.wait("No active search to close from the field") { model.isSearching }
+        try checkEscapeCloses(driver, model: model)
+
+        let idle = SearchModel(root: root)
+        let other = makeSearchWindow(model: idle, accessibilityEnabled: true)
+        let idleDriver = WindowDriver(window: other)
+        idle.query = "new"
+        try idleDriver.wait("Could not render results before testing Escape with table focus") {
+            !idle.isSearching && !idleDriver.rows().isEmpty
+        }
+        guard let content = other.contentView, let results = resultsTable(in: content),
+              other.makeFirstResponder(results), other.firstResponder === results
+        else { throw WindowFailure("Could not focus the results table") }
+        try checkEscapeCloses(idleDriver, model: idle)
+    }
+
+    @MainActor
+    private final class CloseWitness: NSObject {
+        var didClose = false
+        @objc func closed(_ notification: Notification) { didClose = true }
+    }
+
+    private static func checkEscapeCloses(_ driver: WindowDriver, model: SearchModel) throws {
+        let witness = CloseWitness()
+        NotificationCenter.default.addObserver(witness, selector: #selector(CloseWitness.closed(_:)),
+                                              name: NSWindow.willCloseNotification, object: driver.window)
+        defer { NotificationCenter.default.removeObserver(witness) }
+        try driver.key("\u{1b}", code: 53)
+        try driver.wait("Escape did not close the window and cancel its search") {
+            witness.didClose && !model.isSearching
+        }
     }
 }

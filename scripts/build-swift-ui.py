@@ -50,6 +50,7 @@ def stage_bundle(app, executable, version):
     resources.mkdir(exist_ok=True)
     shutil.copy2(executable, binaries / "drill-swift")
     shutil.copy2(ROOT / "src/assets/drill-macos.icns", resources / "Drill.icns")
+    shutil.copy2(ROOT / "LICENSE", resources / "LICENSE")
     info = {
         "CFBundleExecutable": "drill-swift", "CFBundleIdentifier": "software.drill.swift-preview",
         "CFBundlePackageType": "APPL", "CFBundleName": "Drill Swift",
