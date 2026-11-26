@@ -33,8 +33,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          main=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq .object.sha)
-          if ! git diff --quiet HEAD "$main" -- docs/; then
+          git fetch --no-tags origin refs/heads/main
+          if ! git diff --quiet HEAD FETCH_HEAD -- docs/; then
             echo 'A newer version of the site is already on main.' >&2
             exit 1
           fi
