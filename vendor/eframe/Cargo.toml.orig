@@ -144,6 +144,9 @@ serde = { workspace = true, optional = true }
 
 # -------------------------------------------
 # native:
+[target.'cfg(target_os = "linux")'.dependencies]
+egui-winit = { workspace = true, default-features = false, features = ["links"] }
+
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 egui-winit = { workspace = true, default-features = false, features = [
   "clipboard",

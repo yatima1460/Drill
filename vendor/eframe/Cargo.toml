@@ -220,6 +220,11 @@ features = [
 ]
 default-features = false
 
+[target.'cfg(target_os = "linux")'.dependencies.egui-winit]
+version = "0.31.1"
+features = ["links"]
+default-features = false
+
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies.glutin]
 version = "0.32.0"
 features = [

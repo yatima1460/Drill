@@ -23,12 +23,19 @@ const MODES: &[(&str, &str, &[&str])] = &[
     ),
 ];
 
+#[cfg(target_os = "linux")]
+fn reference_link(ui: &mut egui::Ui, label: &str, url: &'static str) {
+    ui.hyperlink_to(label, url);
+}
+
+#[cfg(not(target_os = "linux"))]
 fn reference_link(ui: &mut egui::Ui, label: &str, url: &'static str) {
     let response = ui.link(label);
     if response.clicked() || response.middle_clicked() {
         std::thread::spawn(move || {
             #[cfg(windows)]
-            let result = super::launch_windows_app(std::path::Path::new(url));
+            let result =
+                super::with_shell_sta(|| super::launch_windows_app(std::path::Path::new(url)));
             #[cfg(not(windows))]
             let result = {
                 let program = if cfg!(target_os = "macos") {

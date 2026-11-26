@@ -16,5 +16,6 @@ app removes a window theme override. AppKit can suppress change notifications
 while a window is forced light or dark. Refreshing on return to Auto covers a
 desktop appearance change that happened during the override.
 
-Drill opens its two HTTPS help links through the desktop. The native integration
-uses clipboard support from egui-winit and leaves its optional browser launcher disabled.
+The Linux integration uses egui-winit's browser launcher for the two HTTPS
+help links, including its handling of `$BROWSER` and desktop fallbacks. Drill
+uses native launchers on macOS and Windows. All three retain clipboard support.

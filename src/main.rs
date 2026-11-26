@@ -484,13 +484,69 @@ fn launch_windows_app(path: &Path) -> Result<(), String> {
     }
 }
 
-#[cfg(target_os = "windows")]
+#[cfg(windows)]
 #[allow(unsafe_code)]
-fn open_with(path: &Path) -> Result<(), String> {
-    use std::os::windows::ffi::OsStrExt;
+fn with_shell_sta(action: impl FnOnce() -> Result<(), String>) -> Result<(), String> {
     use windows_sys::Win32::System::Com::{
         CoInitializeEx, CoUninitialize, COINIT_APARTMENTTHREADED,
     };
+
+    struct Apartment;
+    impl Drop for Apartment {
+        fn drop(&mut self) {
+            // SAFETY: this guard stays on the thread where initialization succeeded.
+            unsafe { CoUninitialize() };
+        }
+    }
+    // SAFETY: both shell actions call this on a fresh worker thread.
+    let initialized = unsafe { CoInitializeEx(std::ptr::null(), COINIT_APARTMENTTHREADED as u32) };
+    if initialized < 0 {
+        return Err(format!(
+            "Cannot initialize Windows shell (0x{:08x})",
+            initialized as u32
+        ));
+    }
+    let _apartment = Apartment;
+    action()
+}
+
+#[cfg(all(windows, test))]
+#[test]
+fn shell_worker_balances_sta_after_failed_action() {
+    use windows_sys::Win32::System::Com::{CoGetApartmentType, APTTYPE_MAINSTA, APTTYPE_STA};
+
+    #[allow(unsafe_code)]
+    fn apartment() -> Result<(i32, i32), i32> {
+        let (mut kind, mut qualifier) = (0, 0);
+        // SAFETY: each output points to an initialized integer for the duration of the call.
+        let result = unsafe { CoGetApartmentType(&mut kind, &mut qualifier) };
+        if result < 0 {
+            Err(result)
+        } else {
+            Ok((kind, qualifier))
+        }
+    }
+
+    std::thread::spawn(|| {
+        let before = apartment();
+        let result = with_shell_sta(|| {
+            assert!(matches!(
+                apartment().unwrap().0,
+                APTTYPE_STA | APTTYPE_MAINSTA
+            ));
+            Err(String::from("test action failed"))
+        });
+        assert_eq!(result, Err(String::from("test action failed")));
+        assert_eq!(apartment(), before);
+    })
+    .join()
+    .unwrap();
+}
+
+#[cfg(windows)]
+#[allow(unsafe_code)]
+fn open_with(path: &Path) -> Result<(), String> {
+    use std::os::windows::ffi::OsStrExt;
     use windows_sys::Win32::UI::Shell::{SHOpenWithDialog, OAIF_EXEC, OPENASINFO};
     let wide: Vec<u16> = path.as_os_str().encode_wide().chain(Some(0)).collect();
     let info = OPENASINFO {
@@ -498,23 +554,15 @@ fn open_with(path: &Path) -> Result<(), String> {
         pcszClass: std::ptr::null(),
         oaifInFlags: OAIF_EXEC,
     };
-    // SAFETY: this fresh thread initializes COM as a single-threaded apartment.
-    let initialized = unsafe { CoInitializeEx(std::ptr::null(), COINIT_APARTMENTTHREADED as u32) };
-    if initialized < 0 {
-        return Err(format!(
-            "Cannot initialize application chooser (0x{:08x})",
-            initialized as u32
-        ));
-    }
-    // SAFETY: the NUL-terminated filename and OPENASINFO remain alive throughout the call.
-    let result = unsafe { SHOpenWithDialog(std::ptr::null_mut(), &info) };
-    // SAFETY: CoInitializeEx succeeded on this thread and is balanced exactly once.
-    unsafe { CoUninitialize() };
-    if result >= 0 || result as u32 == 0x8007_04c7 {
-        Ok(())
-    } else {
-        Err(format!("Open with failed (0x{:08x})", result as u32))
-    }
+    with_shell_sta(|| {
+        // SAFETY: the NUL-terminated filename and OPENASINFO remain alive throughout the call.
+        let result = unsafe { SHOpenWithDialog(std::ptr::null_mut(), &info) };
+        if result >= 0 || result as u32 == 0x8007_04c7 {
+            Ok(())
+        } else {
+            Err(format!("Open with failed (0x{:08x})", result as u32))
+        }
+    })
 }
 
 #[cfg(not(any(target_os = "macos", target_os = "windows", target_os = "linux")))]
