@@ -31,6 +31,37 @@ fn matching_chars(a: &[char], b: &[char]) -> usize {
     }
 }
 
+// Wax parses alternation and repetition groups recursively. Check their depth
+// before handing a pasted expression to the parser on the UI thread.
+fn compile_glob(pattern: &str) -> Result<Matcher, String> {
+    const MAX_GROUP_DEPTH: usize = 8;
+    let mut depth = 0_usize;
+    let mut in_class = false;
+    let mut chars = pattern.chars();
+    while let Some(c) = chars.next() {
+        match c {
+            '\\' => {
+                chars.next();
+            }
+            '[' => in_class = true,
+            ']' => in_class = false,
+            '{' | '<' if !in_class => {
+                depth += 1;
+                if depth > MAX_GROUP_DEPTH {
+                    return Err(format!(
+                        "glob groups can nest up to {MAX_GROUP_DEPTH} levels"
+                    ));
+                }
+            }
+            '}' | '>' if !in_class => depth = depth.saturating_sub(1),
+            _ => {}
+        }
+    }
+    wax::Glob::new(&normalized(pattern))
+        .map(|glob| Matcher::Glob(glob.into_owned()))
+        .map_err(|e| e.to_string())
+}
+
 enum Tokens {
     Plain(Vec<String>),
     Fuzzy(Vec<Vec<char>>),
@@ -68,11 +99,7 @@ impl SearchQuery {
             .strip_prefix("glob:")
             .or_else(|| (fuzzy.is_none() && input.contains('*')).then_some(input.trim_end()))
         {
-            return Self::pattern("glob", pattern, |pattern| {
-                wax::Glob::new(&normalized(pattern))
-                    .map(|glob| Matcher::Glob(glob.into_owned()))
-                    .map_err(|e| e.to_string())
-            });
+            return Self::pattern("glob", pattern, compile_glob);
         }
         let filename = normalized(fuzzy.unwrap_or(input).trim());
         let words = filename.split_whitespace();
