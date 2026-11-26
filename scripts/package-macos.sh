@@ -8,7 +8,7 @@ cat > 'build/dmg-root/Drill.app/Contents/Info.plist' <<'PLIST'
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0"><dict>
 <key>CFBundleExecutable</key><string>Drill</string>
-<key>CFBundleIdentifier</key><string>com.yatima1460.drill</string>
+<key>CFBundleIdentifier</key><string>software.drill</string>
 <key>CFBundleName</key><string>Drill</string>
 <key>CFBundleDisplayName</key><string>Drill</string>
 <key>CFBundleIconFile</key><string>Drill</string>
@@ -32,4 +32,6 @@ hdiutil verify "dist/Drill-macos-$(uname -m).dmg"
 mkdir -p build/dmg-check
 hdiutil attach -nobrowse -readonly -mountpoint "$PWD/build/dmg-check" "dist/Drill-macos-$(uname -m).dmg"
 trap 'hdiutil detach "$PWD/build/dmg-check" || true' EXIT
+bundle_id=$(/usr/bin/plutil -extract CFBundleIdentifier raw -o - 'build/dmg-check/Drill.app/Contents/Info.plist')
+[[ "$bundle_id" == 'software.drill' ]] || { echo "Unexpected bundle identifier: $bundle_id" >&2; exit 1; }
 'build/dmg-check/Drill.app/Contents/MacOS/Drill' --version
