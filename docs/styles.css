@@ -197,8 +197,7 @@ body {
 .app-shot img {
   display: block;
   width: 100%;
-  max-height: 44vh;
-  object-fit: contain;
+  height: auto;
 }
 
 .section {
@@ -382,23 +381,52 @@ code {
   }
 }
 
-@media (orientation: landscape) and (max-height: 560px) {
-  html,
+@media (min-width: 52rem) {
   body {
-    overflow-x: hidden;
+    display: grid;
+    grid-template-rows: 1fr auto;
+    min-height: 100vh;
+    min-height: 100svh;
   }
-
   .hero,
-  .section,
   .footer {
-    width: min(1080px, 96vw);
+    width: min(86rem, 94%);
   }
-
+  .hero {
+    display: grid;
+    grid-template-columns: minmax(0, 0.88fr) minmax(0, 1.12fr);
+    gap: clamp(1.5rem, 4vw, 4rem);
+    align-items: center;
+    padding-block: clamp(0.75rem, 3vh, 2rem);
+  }
+  .app-shot {
+    width: 100%;
+    max-width: calc((100svh - 7rem) * 1.39);
+    justify-self: center;
+  }
   .hero-actions {
-    margin-bottom: 0.8rem;
+    gap: 0.55rem;
+    margin-bottom: 0;
   }
+  .download-group-actions {
+    gap: 0.4rem;
+  }
+  .download-group .btn {
+    padding: 0.45rem 0.7rem;
+  }
+}
 
-  .app-shot img {
-    max-height: 38vh;
+@media (min-width: 52rem) and (max-height: 42rem) {
+  .hero-content h1 {
+    font-size: 2.25rem;
+  }
+  .hero-actions {
+    margin-top: 0.6rem;
+  }
+  .download-group {
+    padding: 0.45rem;
+  }
+  .footer {
+    padding-block: 0.55rem;
   }
 }
