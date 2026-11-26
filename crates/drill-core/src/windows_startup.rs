@@ -47,7 +47,7 @@ fn lookup(path: &Path, filter: FileFilter) -> Option<(PathBuf, Entry)> {
     #[cfg(not(windows))]
     let name = path.file_name()?.to_str()?.to_owned();
     // A short (8.3) alias may resolve to an unrelated long name.
-    if query::normalized(&name) != query::normalized(path.file_name()?.to_str()?) {
+    if !drill_query::equivalent_filenames(&name, path.file_name()?.to_str()?) {
         return None;
     }
     let actual_path = path.with_file_name(&name);

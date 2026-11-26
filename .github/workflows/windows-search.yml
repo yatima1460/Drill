@@ -12,6 +12,7 @@ on:
       - '.github/ci/windows_resource_smoke.py'
       - 'rust-toolchain.toml'
       - 'crates/drill-core/**'
+      - 'crates/drill-query/**'
       - 'vendor/*/Cargo.toml'
       # drill-core embeds all three root lists and the dictionary at compile time.
       - 'src/assets/roots_*.txt'

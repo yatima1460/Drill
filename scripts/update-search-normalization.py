@@ -6,7 +6,7 @@ from pathlib import Path
 import struct
 
 
-OUTPUT = Path(__file__).resolve().parents[1] / "crates/drill-core/src/normalization"
+OUTPUT = Path(__file__).resolve().parents[1] / "crates/drill-query/src/normalization"
 UCD_SHA256 = "0736451de439ae7baf1425136617da495e09ee5afbe6e394374db7009ea08950"
 
 

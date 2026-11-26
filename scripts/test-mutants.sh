@@ -2,11 +2,12 @@
 # Run from any directory. cargo-mutants builds its own temporary source copies.
 set -euo pipefail
 cd "$(dirname "$0")/.."
-scope=${1:?Choose core, desktop, guest or appimage}
+scope=${1:?Choose core, query, desktop, guest or appimage}
 campaign=${2:-smoke}
 cargo_bin=${CARGO:-cargo}
 args=(--cargo-arg=--locked --jobs 1 --build-timeout 900 --timeout 90 --caught)
 case "$scope" in
+  query) args+=(-p drill-query --all-features) ;;
   core) args+=(-p drill-core) ;;
   desktop) args+=(-p drill --all-features) ;;
   guest) args+=(--dir tools/exe-icon-wasm) ;;
@@ -16,6 +17,7 @@ esac
 case "$campaign" in
   smoke)
     case "$scope" in
+      query) args+=(--file lib.rs --re 'SearchQuery::exact_stem') ;;
       core) args+=(--file file_filter.rs) ;;
       desktop) args+=(--file result_order.rs --file exe_icon.rs --re 'exact_batch|icon_route|is_exe|is_appimage') ;;
       guest) args+=(--file resource.rs) ;;

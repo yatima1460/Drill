@@ -5,10 +5,10 @@ edition = "2021"
 license-file = "../../LICENSE"
 
 [dependencies]
-regex = "1"
-wax = { version = "0.7", default-features = false }
+drill-query = { path = "../drill-query" }
 
 [dev-dependencies]
+drill-query = { path = "../drill-query", features = ["windows-lookups"] }
 tempfile = "3.23.0"
 
 [target.'cfg(windows)'.dependencies]

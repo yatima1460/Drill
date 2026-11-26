@@ -26,7 +26,7 @@ edition = "2021"
 
 [[bin]]
 name = "oracle"
-path = "$PWD/crates/drill-core/src/normalization/oracle.rs"
+path = "$PWD/crates/drill-query/src/normalization/oracle.rs"
 
 [dependencies]
 unicode-normalization = "=0.1.26"

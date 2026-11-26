@@ -1,5 +1,5 @@
 [workspace]
-members = ["crates/drill-core"]
+members = ["crates/drill-core", "crates/drill-query"]
 exclude = ["vendor/eframe", "vendor/file_icon_provider"]
 resolver = "2"
 

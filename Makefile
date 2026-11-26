@@ -53,13 +53,14 @@ prove: ## Model-check the search filter, row insertion and Wasm read bounds
 
 test-mutants: export CARGO := $(CARGO)
 test-mutants: ## Run the focused mutation tests for all first-party Rust packages
+	scripts/test-mutants.sh query
 	scripts/test-mutants.sh core
 	scripts/test-mutants.sh desktop
 	scripts/test-mutants.sh guest
 	scripts/test-mutants.sh appimage
 
 test-core: ## Run search core tests without the UI
-	$(CARGO) test --locked -p drill-core
+	$(CARGO) test --locked -p drill-query -p drill-core
 
 test-doc: ## Run Rust documentation tests
 	$(CARGO) test --locked --workspace --doc

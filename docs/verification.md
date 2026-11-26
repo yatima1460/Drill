@@ -43,11 +43,12 @@ The filter proof begins after the filesystem supplies the entry type and pathnam
 
 ## Mutation campaigns
 
-`make test-mutants` runs all candidates in the search file-filter and both guests’ read-boundary modules, plus desktop exact-hit insertion and executable icon routing. Each run starts with unmutated tests and fails for a surviving mutation, timeout or failed baseline. The smoke campaign also requires at least one test-detected mutation per package. A candidate rejected by the Rust compiler counts as unviable.
+`make test-mutants` runs all candidates in query stem classification, the search file-filter and both guests’ read-boundary modules, plus desktop exact-hit insertion and executable icon routing. Each run starts with unmutated tests and fails for a surviving mutation, timeout or failed baseline. The smoke campaign also requires at least one test-detected mutation per package. A candidate rejected by the Rust compiler counts as unviable.
 
 For a broader run, choose one of these scopes. Each command uses the native platform's tests. Set `MUTATION_SHARD=0/32` to run the first of 32 disjoint shards at a fixed revision, then use `1/32` through `31/32` for the others. The **Rust verification** workflow dispatch accepts the same scope and shard and offers Linux, macOS and Windows runners.
 
 ```sh
+scripts/test-mutants.sh query full
 scripts/test-mutants.sh core full
 MUTATION_SHARD=0/32 scripts/test-mutants.sh desktop full
 scripts/test-mutants.sh guest full
@@ -56,7 +57,8 @@ scripts/test-mutants.sh appimage full
 
 | Scope | Candidates and test boundary |
 | --- | --- |
-| `core` | `drill-core` query parsing and matching, traversal, filters, ranking and worker control. Runs its tests against temporary filesystem fixtures. |
+| `query` | `drill-query` parsing, normalization, matching, stem classification and Windows lookup rules. Its tests run without filesystem fixtures or a window. |
+| `core` | `drill-core` traversal, filters, ranking and worker control. Runs its tests against temporary filesystem fixtures. |
 | `desktop` | Desktop state, search-mode adapter, headless egui logic, Windows executable and AppImage icon workers, Wasmi hosts and applicable native adapters. Linux includes the application catalog. macOS includes permissions and native menus. Windows includes its native menu and shell code. The ordinary suite leaves interactive OS-input tests to the dedicated window workflow. |
 | `guest` | The standalone `tools/exe-icon-wasm` crate. Native tests feed the actual extraction function PE32 and PE32+ fixtures, exercise truncated input, and check resource-range boundaries. The separate Linux Wasm rebuild and host tests cover the shipped guest. |
 | `appimage` | The `tools/appimage-icon-wasm` crate. Native tests exercise the same read-only parser and image decoder on ISO/Rock Ridge and SquashFS fixtures, including links, truncated inputs and a cycle. Desktop tests exercise the shipped Wasm ABI. Linux CI compares the icon from the packaged application with its source artwork. |
