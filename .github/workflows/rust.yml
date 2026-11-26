@@ -32,18 +32,37 @@ jobs:
     if: needs.platforms.outputs.duplicates == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 5
+    env:
+      JSCPD_VERSION: 5.4.3
+      JSCPD_SHA256: a19d719331b21a047a7537f982566dabcf6d6e5f51581c3b80d9c420979cc92c
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - name: Check for duplicate code
-        working-directory: ${{ runner.temp }}
+      - name: Restore jscpd release archive
+        id: archive
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ runner.temp }}/jscpd.tar.gz
+          key: jscpd-${{ runner.os }}-${{ runner.arch }}-${{ env.JSCPD_VERSION }}-${{ env.JSCPD_SHA256 }}
+      - name: Verify and extract jscpd
+        env:
+          CACHE_HIT: ${{ steps.archive.outputs.cache-hit }}
         run: |
-          curl --fail --location --retry 3 --output jscpd.tar.gz https://github.com/kucherenko/jscpd/releases/download/v5.4.3/jscpd-linux-x64-gnu.tar.gz
-          echo 'a19d719331b21a047a7537f982566dabcf6d6e5f51581c3b80d9c420979cc92c  jscpd.tar.gz' | sha256sum --check
-          tar -xzf jscpd.tar.gz jscpd
-          cd "$GITHUB_WORKSPACE"
-          "$RUNNER_TEMP/jscpd" .
+          url="https://github.com/kucherenko/jscpd/releases/download/v${JSCPD_VERSION}/jscpd-linux-x64-gnu.tar.gz"
+          bash .github/ci/prepare-jscpd.sh "$RUNNER_TEMP" "$CACHE_HIT" "$url"
+      - name: Check for duplicate code
+        run: '"$RUNNER_TEMP/jscpd" .'
+      - name: Test offline reuse and rejection of bad inputs
+        run: bash .github/ci/test-jscpd-cache.sh
+      - name: Save verified jscpd release archive
+        if: >-
+          github.repository == 'yatima1460/Drill' && github.event_name == 'push' &&
+          github.ref == 'refs/heads/main' && steps.archive.outputs.cache-hit != 'true'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ runner.temp }}/jscpd.tar.gz
+          key: ${{ steps.archive.outputs.cache-primary-key }}
   linux:
     needs: platforms
     if: needs.platforms.outputs.linux == 'true'

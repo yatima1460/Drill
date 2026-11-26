@@ -24,6 +24,8 @@ cargo install --locked --version 5.4.3 jscpd
 jscpd .
 ```
 
+CI caches the upstream Linux archive by version, SHA-256, operating system and architecture. It checks the digest before every extraction and scans the current checkout even on a cache hit. Only pushes to the main branch of the upstream repository save the archive. Pull requests limited to excluded files such as binary assets skip the duplicate scan.
+
 The detector reports repeated blocks of at least 50 tokens spanning at least five lines, including repeats within one file. It checks tests, shell launchers, workflows, website code and the other supported formats. The configuration excludes vendored dependencies, Cargo lockfiles, the generated website lint dependency lockfile, the word list and the three Potrace-generated Drill logos. jscpd respects Git ignore files for local build output.
 
 ## What Kani checks
