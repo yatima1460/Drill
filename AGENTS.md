@@ -13,8 +13,13 @@ Open a pull request and ask an independent reviewer selected by the same model a
 - Prefer a functional core. Keep matching and ranking deterministic where practical, pass inputs explicitly, and isolate filesystem, platform and rendering effects. Choose ownership and bounded work that make behavior easy to parallelize, test and verify.
 - `crates/drill-query` owns parsing, normalization and filename matching. `crates/drill-core` reexports its query API and owns app file filters, directory priority, traversal, and delivery of results. Keep filesystem calls outside the shared directory-queue lock. Changes to traversal should account for overlapping roots, symlinks, unreadable directories, and cancellation while paused or while the result queue is full.
 - `src/main.rs` and its sibling modules own the egui interface and platform integration. Exercise changes through the search box, Files/Apps selector, or other affected entry point. Preserve result identity through streaming, sorting and selection. Check that new queries discard stale results and that Continue resumes the same scan.
-- File names, icons and executable resources come from the filesystem. Keep parsing bounded and preserve fallback behavior for unreadable or malformed input. The executable icon decoder lives in [its own Wasm package](tools/exe-icon-wasm). Consult the local patch notes before changing vendored libraries.
-- Keep changes scoped. Reuse existing interfaces and extract a module or crate when it gives the project a concrete testing, ownership or build benefit.
+- Keep changes scoped. Reuse existing interfaces and extract a module or crate when it gives the project a concrete testing, ownership or build benefit. Consult the local patch notes before changing vendored libraries.
+
+### Why icon decoding uses WebAssembly
+
+Displaying a search result can make Drill parse an icon from an untrusted file before the user opens it. Keep this parsing in bundled WebAssembly (Wasm) decoders so a parser bug has limited access to the desktop process and a malformed icon has a bounded memory and execution budget. The search engine and desktop UI run natively.
+
+The [Windows executable decoder](tools/exe-icon-wasm) receives a size-limited copy of the file and imports no host functions. The [AppImage decoder](tools/appimage-icon-wasm) can request only bounded reads from the file Drill already opened. The host reads back a fixed-size RGBA icon without running the discovered executable or mounting the AppImage. If decoding fails or exceeds a limit, preserve the file-type icon or generic glyph fallback.
 
 ## Validation
 
