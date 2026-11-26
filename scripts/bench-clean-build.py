@@ -17,10 +17,11 @@ def output(command, cwd, **kwargs):
     return subprocess.check_output(command, cwd=cwd, text=True, **kwargs).strip()
 
 
-def measure(checkout, cargo, jobs):
+def measure(checkout, cargo, jobs, report):
     with tempfile.TemporaryDirectory(prefix="drill-clean-build-") as scratch:
         target = Path(scratch) / "target"
-        env = dict(os.environ, CARGO_TARGET_DIR=str(target), CARGO_INCREMENTAL="0",
+        env = dict(os.environ, CARGO_TARGET_DIR=str(target), CARGO_BUILD_BUILD_DIR=str(target),
+                   CARGO_INCREMENTAL="0",
                    RUSTC_WRAPPER="", RUSTC_WORKSPACE_WRAPPER="")
         subprocess.run([cargo, "clean", "--target-dir", str(target)], cwd=checkout,
                        env=env, check=True)
@@ -28,6 +29,8 @@ def measure(checkout, cargo, jobs):
             raise RuntimeError(f"Target directory still contains artifacts: {target}")
         cmd = [cargo, "build", "--release", "--frozen", "--jobs", str(jobs),
                "-p", "drill", "--bin", "drill", "--message-format=json-render-diagnostics"]
+        if report:
+            cmd.append("--timings")
         with tempfile.TemporaryFile(mode="w+") as messages:
             start = time.perf_counter()
             subprocess.run(cmd, cwd=checkout, env=env, stdout=messages, check=True)
@@ -37,6 +40,8 @@ def measure(checkout, cargo, jobs):
         if not artifacts or any(m["fresh"] for m in artifacts):
             raise RuntimeError("Cargo did not compile every reported unit from scratch")
         binary, = {m["executable"] for m in artifacts if m["target"]["name"] == "drill" and m["executable"]}
+        if report:
+            shutil.copyfile(target / "cargo-timings/cargo-timing.html", report)
         return {"seconds": round(elapsed, 3), "compiled_units": len(artifacts),
                 "compiled_packages": len({m["package_id"] for m in artifacts}),
                 "version": output([binary, "--version"], checkout, timeout=10)}
@@ -45,6 +50,7 @@ def measure(checkout, cargo, jobs):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("checkouts", nargs="*", type=Path, default=[Path.cwd()])
+    parser.add_argument("--timings-dir", type=Path, help="keep Cargo's per-unit HTML reports here")
     parser.add_argument("--runs", type=int, default=5, help="clean builds per checkout")
     parser.add_argument("--jobs", type=int, required=True, help="Cargo parallelism for every build")
     args = parser.parse_args()
@@ -67,10 +73,18 @@ def main():
                          "samples": []}
     if len(versions) != 1:
         parser.error("use the same Rust and Cargo versions for all checkouts")
+    if args.timings_dir:
+        # Create a new output directory so an earlier comparison cannot be overwritten.
+        args.timings_dir.mkdir(parents=True)
     for index in range(args.runs):
         # Alternate the order to reduce bias from system load and temperature.
         for path in (checkouts if index % 2 == 0 else reversed(checkouts)):
-            sample = measure(path, cargo, args.jobs)
+            report = None
+            if args.timings_dir:
+                slot = checkouts.index(path) + 1
+                sha = results[path]["commit"][:12]
+                report = args.timings_dir / f"{slot}-{sha}-run-{index + 1}.html"
+            sample = measure(path, cargo, args.jobs, report)
             results[path]["samples"].append(sample)
             print(f"{path.name} {index + 1}/{args.runs}: {sample['seconds']:.3f} s", file=sys.stderr)
     for result in results.values():
