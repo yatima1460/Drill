@@ -1561,6 +1561,42 @@ mod ui_tests {
         assert!(!embedded_icons_setting(Some(&storage)));
     }
 
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn unsuccessful_linux_opener_reports_target_and_exit_status() {
+        use std::os::unix::fs::PermissionsExt;
+
+        const CHILD: &str = "DRILL_TEST_FAILED_OPENER";
+        if std::env::var_os(CHILD).is_some() {
+            let target = Path::new("/example/folder with spaces");
+            let (errors, receiver) = std::sync::mpsc::channel();
+            open_linux_path(target, false, errors, egui::Context::default());
+            let error = receiver.recv_timeout(Duration::from_secs(5)).unwrap();
+            assert!(error.contains(&target.display().to_string()), "{error}");
+            assert!(error.contains("exit status: 4"), "{error}");
+            return;
+        }
+
+        // Isolate PATH so parallel UI tests use their usual desktop environment.
+        let bin = tempfile::tempdir().unwrap();
+        let opener = bin.path().join("xdg-open");
+        std::fs::write(&opener, "#!/bin/sh\nexit 4\n").unwrap();
+        std::fs::set_permissions(&opener, std::fs::Permissions::from_mode(0o700)).unwrap();
+        let output = std::process::Command::new(std::env::current_exe().unwrap())
+            .args([
+                "--exact",
+                "ui_tests::unsuccessful_linux_opener_reports_target_and_exit_status",
+            ])
+            .env("PATH", bin.path())
+            .env(CHILD, "1")
+            .output()
+            .unwrap();
+        assert!(
+            output.status.success() && String::from_utf8_lossy(&output.stdout).contains("1 passed"),
+            "{output:?}"
+        );
+    }
+
     #[test]
     fn terminal_uses_folder_itself_or_file_parent_even_if_missing() {
         let mut item = entry("report ' spaces.txt", 1);
