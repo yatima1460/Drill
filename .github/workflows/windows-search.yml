@@ -37,7 +37,9 @@ jobs:
       - name: Link the Windows SDK resource and check every Explorer icon frame
         run: python .github/ci/windows_resource_smoke.py
       - name: Build and test the Shell icon adapter with the native MSVC toolchain
-        run: cargo test --locked -p drill-windows --features shell-icons
+        run: cargo test --locked -p drill-windows --features shell-icons,clipboard
+      - name: Verify Unicode text, PNG and DIB on the hosted Windows clipboard
+        run: cargo test --locked -p drill-windows --features shell-icons,clipboard --test clipboard -- --ignored --test-threads=1
       - name: Verify startup ordering, cancellation and direct lookups
         run: cargo test --locked -p drill-core windows_startup
       - name: Measure Windows startup and verify the installed Notepad executable
