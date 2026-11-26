@@ -37,36 +37,28 @@ fn app_filters_require_the_right_kind_and_complete_extension() {
 }
 
 #[kani::proof]
-#[kani::unwind(10)]
-fn late_exact_hits_preserve_order_and_selection() {
-    // Distinct row IDs make deletion, duplication and wrong selection observable.
+fn late_exact_hits_preserve_row_coordinates() {
     let old_len: usize = kani::any();
-    let added: usize = kani::any();
     let boundary: usize = kani::any();
-    kani::assume(old_len <= 3 && added <= 2 && boundary <= old_len);
+    let added: usize = kani::any();
     let selected: Option<usize> = kani::any();
+    kani::assume(boundary <= old_len && added <= usize::MAX - old_len);
     kani::assume(selected.is_none_or(|i| i < old_len));
+    let (inserted, after) = result_order::exact_batch(boundary, selected, added);
 
-    let mut rows = vec![0u8, 1, 2];
-    rows.truncate(old_len);
-    let mut exact = vec![3u8, 4];
-    exact.truncate(added);
-    let mut exact_count = boundary;
-    let mut new_selection = selected;
-    result_order::insert_exact(&mut rows, &mut exact_count, &mut new_selection, exact);
-
-    assert_eq!(rows.len(), old_len + added);
-    assert_eq!(exact_count, boundary + added);
-    for (i, id) in rows.iter().enumerate() {
-        if i < boundary {
-            assert_eq!(usize::from(*id), i);
-        } else if i < exact_count {
-            assert_eq!(usize::from(*id), 3 + (i - boundary));
-        } else {
-            assert_eq!(usize::from(*id), i - added);
-        }
+    assert_eq!(inserted.start, boundary);
+    assert_eq!(inserted.end, boundary + added);
+    assert_eq!(inserted.len(), added);
+    assert!(inserted.end <= old_len + added);
+    if let Some(i) = after {
+        assert!(i < old_len + added);
+        assert!(!inserted.contains(&i));
+        // Reverse the insertion. The decoded old row index is the original selection.
+        let original = if i < inserted.start { i } else { i - added };
+        assert_eq!(Some(original), selected);
+    } else {
+        assert!(selected.is_none());
     }
-    assert_eq!(new_selection.map(|i| usize::from(rows[i])), selected);
 }
 
 #[kani::proof]
