@@ -1,0 +1,93 @@
+name: Publish GitHub Pages
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'docs/**'
+      - '.github/workflows/pages.yml'
+  workflow_dispatch:
+permissions: {}
+concurrency:
+  group: pages-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  build:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      pages: read
+      deployments: read
+    outputs:
+      validate: ${{ steps.changes.outputs.validate }}
+      publishing: ${{ steps.changes.outputs.publishing }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Check changes since the published site
+        id: changes
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          main=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq .object.sha)
+          if ! git diff --quiet HEAD "$main" -- docs/; then
+            echo 'A newer version of the site is already on main.' >&2
+            exit 1
+          fi
+          publishing=$(gh api "repos/$GITHUB_REPOSITORY/pages" --jq .build_type)
+          echo "publishing=$publishing" >> "$GITHUB_OUTPUT"
+          validate=true
+          if [[ "$GITHUB_EVENT_NAME" == push ]]; then
+            deployment=$(gh api "repos/$GITHUB_REPOSITORY/deployments?environment=github-pages&per_page=1" \
+              --jq '.[] | [.id, .sha] | @tsv')
+            if [[ -n "$deployment" ]]; then
+              read -r id base <<< "$deployment"
+              state=$(gh api "repos/$GITHUB_REPOSITORY/deployments/$id/statuses?per_page=1" --jq '.[0].state // ""')
+              if [[ "$state" == success ]] && git diff --quiet "$base" HEAD -- docs/ \
+                ':(exclude,icase,glob)docs/**/*.md' ':(exclude,icase,glob)docs/**/*.markdown' \
+                tools/website-ci/ .github/workflows/{website,pages}.yml; then
+                validate=false
+              fi
+            fi
+          fi
+          echo "validate=$validate" >> "$GITHUB_OUTPUT"
+      - uses: actions/jekyll-build-pages@44a6e6beabd48582f863aeeb6cb2151cc1716697 # v1.0.13
+        with:
+          source: ./docs
+          destination: ./_site
+      - name: Check the public homepage and documentation URLs
+        run: |
+          cmp docs/index.html _site/index.html
+          for page in rust-migration verification; do
+            cmp "docs/$page.md" "_site/$page.md"
+            test -s "_site/$page.html"
+          done
+      - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        with:
+          path: ./_site
+  validate:
+    needs: build
+    if: needs.build.outputs.validate == 'true'
+    permissions:
+      contents: read
+    uses: ./.github/workflows/website.yml
+  deploy:
+    needs: [build, validate]
+    if: >-
+      !cancelled() && needs.build.result == 'success' && needs.build.outputs.publishing == 'workflow' &&
+      (needs.validate.result == 'success' || (needs.build.outputs.validate == 'false' && needs.validate.result == 'skipped'))
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1
+        id: deployment
