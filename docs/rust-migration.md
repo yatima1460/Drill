@@ -6,6 +6,8 @@ Run `cargo run --release` or open `Start Drill.command` on macOS. The launcher r
 
 The Rust search code runs off the UI thread, scans the existing platform root lists without indexing, and skips directory symlinks. Queries are case and accent insensitive; prefix a query with `fuzzy:` for approximate word matching. Results can be opened or revealed from the context menu. Search → Stop cancels an active or starting search and retains the results already shown. macOS and Windows use native application menus; Linux shows the menu inside the window.
 
+Use the **Files / Apps** dropdown beside the search field to change scope and keep the current query. Files is the default. An empty Apps search lists applications. On macOS, Apps finds application bundles and treats each bundle as one result. On Windows, Apps finds executable files. On Linux, Apps searches the desktop menu by localized app name, launcher ID, filename or keywords. Enter or double-click launches the selected app. **Reveal launcher file** opens its containing folder. Files mode also searches the XDG applications directories for the original `.desktop` files.
+
 Among the results shown, exact filenames appear first by default. When more than 10,000 matches are available, click **Continue searching** to see the next 10,000 from the same scan. Any exact filenames in the new page move to the top when using the default ordering.
 
 Click a result column header to sort; drag the divider between headers to resize the adjacent columns. Column widths are retained for the current session.
