@@ -233,21 +233,16 @@ fn desktop_roots(
         .collect()
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum FileFilter {
-    All,
-    MacBundles,
-    WindowsExecutables,
-}
+mod file_filter;
+pub use file_filter::FileFilter;
 
 impl FileFilter {
     fn accepts(self, path: &Path, kind: fs::FileType) -> bool {
-        let ext = path.extension().unwrap_or_default();
-        match self {
-            Self::All => true,
-            Self::MacBundles => kind.is_dir() && ext.eq_ignore_ascii_case("app"),
-            Self::WindowsExecutables => kind.is_file() && ext.eq_ignore_ascii_case("exe"),
-        }
+        self.accepts_extension(
+            path.extension().unwrap_or_default(),
+            kind.is_dir(),
+            kind.is_file(),
+        )
     }
 }
 
