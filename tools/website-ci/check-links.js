@@ -44,16 +44,22 @@ const assets = [
 ];
 const aur = "https://aur.archlinux.org/packages/drill-search";
 const releases = "https://github.com/yatima1460/Drill/releases";
-const script = localFile("releases.js");
 for (const ok of [true, false]) {
   const { document } = parseHTML(localFile("index.html"));
+  const script = document.querySelector('script[src="releases.js"]');
+  assert.ok(script, "index.html must load releases.js");
+  let requested;
   const release = { tag_name: "test", assets: assets.map(name => ({ name })) };
-  runInNewContext(script, {
+  runInNewContext(localFile(script.getAttribute("src")), {
     document,
     navigator: { platform: "Linux", userAgent: "Linux" },
-    fetch: async () => ({ ok, json: async () => release }),
+    fetch: async url => {
+      requested = url;
+      return { ok, json: async () => release };
+    },
   });
   await setImmediate();
+  assert.equal(requested, "https://api.github.com/repos/yatima1460/Drill/releases/latest");
   const links = document.querySelectorAll("#release-actions a");
   const actual = Array.from(links, link => link.getAttribute("href")).sort();
   const expected = ok ? assets.map(name => `${releases}/download/test/${name}`) : [`${releases}/latest`];

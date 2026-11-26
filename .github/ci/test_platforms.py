@@ -20,13 +20,16 @@ class PlatformRouting(unittest.TestCase):
             ("src/linux_apps.rs", {"linux"}),
             ("src/native_menu.rs", {"windows", "macos"}),
             ("Cargo.lock", ALL),
+            ("vendor/file_icon_provider/src/implementation/macos.rs", {"macos"}),
+            ("tools/exe-icon-wasm/tests/fixtures/README.md", set()),
             ("src/result_emoji.rs", ALL),
             ("tools/exe-icon-wasm/src/lib.rs", {"linux"}),
             ("tools/exe-icon-wasm/tests/fixtures/icon-pe64.exe", ALL),
         ]:
             with self.subTest(path=path):
                 self.assertEqual(select([path], "pull_request"), (targets, False))
-        for path in ["tests/native_ui.rs", ".github/workflows/rust.yml", ".github/ci/platforms.py"]:
+        for path in ["tests/native_ui.rs", ".github/workflows/rust.yml", ".github/ci/platforms.py",
+                     "crates/drill-core/src/test_directory.rs"]:
             self.assertEqual(select([path], "push"), (ALL, False))
 
     def test_duplicate_scan_inputs(self):
