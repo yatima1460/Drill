@@ -85,6 +85,7 @@ jobs:
   macos:
     outputs:
       executable-id: ${{ steps.executable.outputs.artifact-id }}
+      executable-sha256: ${{ steps.digest.outputs.sha256 }}
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
@@ -97,6 +98,9 @@ jobs:
       - run: cargo test --locked
       - run: cargo build --release --locked
       - run: scripts/package-macos.sh
+      - name: Hash the tested executable
+        id: digest
+        run: echo "sha256=$(shasum -a 256 target/release/drill | cut -d' ' -f1)" >> "$GITHUB_OUTPUT"
       - name: Save tested executable for release signing
         id: executable
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
@@ -142,6 +146,8 @@ jobs:
     environment: prod
     outputs:
       signed-id: ${{ steps.signed.outputs.artifact-id }}
+      dmg-sha256: ${{ steps.notarized.outputs.sha256 }}
+      dmg-name: ${{ steps.notarized.outputs.filename }}
     runs-on: macos-latest
     permissions:
       contents: read
@@ -154,7 +160,13 @@ jobs:
           artifact-ids: ${{ needs.macos.outputs.executable-id }}
           merge-multiple: true
           path: target/release
-      - run: scripts/package-macos.sh --stage-only
+      - name: Verify and stage the tested executable
+        env:
+          EXPECTED_SHA256: ${{ needs.macos.outputs.executable-sha256 }}
+        run: |
+          [[ "$EXPECTED_SHA256" =~ ^[0-9a-f]{64}$ ]]
+          printf '%s  target/release/drill\n' "$EXPECTED_SHA256" | shasum -a 256 --check
+          scripts/package-macos.sh --stage-only
       - name: Sign and notarize the production DMG
         id: notarized
         env:
@@ -165,12 +177,14 @@ jobs:
           APPLE_NOTARY_ISSUER_ID: ${{ secrets.APPLE_NOTARY_ISSUER_ID }}
         run: |
           scripts/sign-macos.sh
-          echo "dmg=dist/Drill-macos-$(uname -m).dmg" >> "$GITHUB_OUTPUT"
+          filename="Drill-macos-$(uname -m).dmg"
+          echo "filename=$filename" >> "$GITHUB_OUTPUT"
+          echo "sha256=$(shasum -a 256 "dist/$filename" | cut -d' ' -f1)" >> "$GITHUB_OUTPUT"
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         id: signed
         with:
           name: drill-macos-signed
-          path: ${{ steps.notarized.outputs.dmg }}
+          path: dist/${{ steps.notarized.outputs.filename }}
           if-no-files-found: error
   release:
     needs: [sign-macos]
@@ -206,4 +220,9 @@ jobs:
           RUN_ID: ${{ github.run_id }}
           RUN_ATTEMPT: ${{ github.run_attempt }}
           COMMIT_SHA: ${{ github.sha }}
-        run: gh release create "rust-release-${RUN_ID}-${RUN_ATTEMPT}" dist/linux/*.deb dist/linux/*.AppImage dist/linux/*.pkg.tar.zst dist/macos/*.dmg dist/windows/*.zip --target "$COMMIT_SHA" --title "Rust release ${RUN_NUMBER}" --generate-notes
+          DMG_NAME: ${{ needs.sign-macos.outputs.dmg-name }}
+          EXPECTED_SHA256: ${{ needs.sign-macos.outputs.dmg-sha256 }}
+        run: |
+          [[ "$DMG_NAME" =~ ^Drill-macos-(arm64|x86_64)\.dmg$ && "$EXPECTED_SHA256" =~ ^[0-9a-f]{64}$ ]]
+          printf '%s  %s\n' "$EXPECTED_SHA256" "dist/macos/$DMG_NAME" | sha256sum --check
+          gh release create "rust-release-${RUN_ID}-${RUN_ATTEMPT}" dist/linux/*.deb dist/linux/*.AppImage dist/linux/*.pkg.tar.zst "dist/macos/$DMG_NAME" dist/windows/*.zip --target "$COMMIT_SHA" --title "Rust release ${RUN_NUMBER}" --generate-notes
