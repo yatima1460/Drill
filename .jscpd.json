@@ -10,6 +10,7 @@
   "ignore": [
     "vendor/**",
     "**/Cargo.lock",
+    "tools/website-ci/package-lock.json",
     "src/assets/wordsalpha.txt",
     "src/assets/drill.svg",
     "src/assets/drill-macos.svg",
