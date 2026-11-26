@@ -6,6 +6,10 @@ on:
       - '.cargo/**'
       - 'Cargo.toml'
       - 'Cargo.lock'
+      - 'build.rs'
+      - 'src/assets/drill.ico'
+      - 'src/assets/drill.rc'
+      - '.github/ci/windows_resource_smoke.py'
       - 'rust-toolchain.toml'
       - 'crates/drill-core/**'
       - 'vendor/*/Cargo.toml'
@@ -28,6 +32,8 @@ jobs:
       - uses: dtolnay/rust-toolchain@master
         with:
           toolchain: 1.100.0
+      - name: Link the Windows SDK resource and check every Explorer icon frame
+        run: python .github/ci/windows_resource_smoke.py
       - name: Verify startup ordering, cancellation and direct lookups
         run: cargo test --locked -p drill-core windows_startup
       - name: Measure Windows startup and verify the installed Notepad executable

@@ -46,6 +46,3 @@ raw-window-handle = "0.6.2"
 
 [target.'cfg(target_os = "windows")'.dependencies]
 windows-sys = { version = "0.61.2", features = ["Win32_Foundation", "Win32_UI_Shell", "Win32_UI_WindowsAndMessaging", "Win32_System_Com", "Win32_Storage_FileSystem"] }
-
-[build-dependencies]
-embed-resource = "3.0"
