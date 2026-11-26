@@ -48,23 +48,66 @@ fn matching_chars(a: &[char], b: &[char]) -> usize {
     }
 }
 
-pub fn matches(name: &str, query: &str) -> bool {
-    let (fuzzy, query) = query
-        .strip_prefix("fuzzy:")
-        .map_or((false, query), |q| (true, q));
-    let name = normalized(name);
-    let query = normalized(query);
-    if fuzzy {
-        query.split(' ').all(|token| {
-            name.split_whitespace().any(|word| {
-                let a: Vec<char> = token.chars().collect();
-                let b: Vec<char> = word.chars().collect();
-                !a.is_empty() && 4 * matching_chars(&b, &a) >= a.len() + b.len()
-            })
-        })
-    } else {
-        query.split(' ').all(|token| name.contains(token))
+enum Tokens {
+    Plain(Vec<String>),
+    Fuzzy(Vec<Vec<char>>),
+}
+
+pub struct SearchQuery {
+    filename: String,
+    tokens: Tokens,
+}
+
+impl SearchQuery {
+    pub fn parse(input: &str) -> Self {
+        let input = input.trim();
+        let fuzzy = input.strip_prefix("fuzzy:");
+        let filename = normalized(fuzzy.unwrap_or(input).trim());
+        let words = filename.split_whitespace();
+        let tokens = if fuzzy.is_some() {
+            Tokens::Fuzzy(words.map(|word| word.chars().collect()).collect())
+        } else {
+            Tokens::Plain(words.map(str::to_owned).collect())
+        };
+        Self { filename, tokens }
     }
+
+    pub fn is_empty(&self) -> bool {
+        self.filename.is_empty()
+    }
+
+    fn classify(&self, name: &str) -> Option<MatchKind> {
+        let name = normalized(name);
+        if !self.is_empty() && name == self.filename {
+            return Some(MatchKind::Exact);
+        }
+        let matched = match &self.tokens {
+            Tokens::Plain(tokens) => tokens.iter().all(|token| name.contains(token)),
+            Tokens::Fuzzy(tokens) => {
+                let words: Vec<Vec<char>> = name
+                    .split_whitespace()
+                    .map(|word| word.chars().collect())
+                    .collect();
+                !tokens.is_empty()
+                    && tokens.iter().all(|token| {
+                        words
+                            .iter()
+                            .any(|word| 4 * matching_chars(word, token) >= token.len() + word.len())
+                    })
+            }
+        };
+        matched.then_some(MatchKind::Partial)
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum MatchKind {
+    Exact,
+    Partial,
+}
+
+pub fn matches(name: &str, query: &str) -> bool {
+    SearchQuery::parse(query).classify(name).is_some()
 }
 
 // The platform root files are embedded, so running a binary from another directory works.
@@ -218,8 +261,23 @@ struct Work {
     outstanding: usize,
     visited: HashSet<PathBuf>,
 }
+// Pause only at cancellation-safe points, without holding the directory queue lock.
+fn wait_while_paused(paused: &AtomicBool, cancel: &AtomicBool, work: &(Mutex<Work>, Condvar)) {
+    if paused.load(Ordering::Relaxed) {
+        let guard = work.0.lock().unwrap();
+        drop(
+            work.1
+                .wait_while(guard, |_| {
+                    paused.load(Ordering::Relaxed) && !cancel.load(Ordering::Relaxed)
+                })
+                .unwrap(),
+        );
+    }
+}
+
 pub struct Search {
-    receiver: mpsc::Receiver<Entry>,
+    receiver: mpsc::Receiver<(MatchKind, Entry)>,
+    paused: Arc<AtomicBool>,
     cancel: Arc<AtomicBool>,
     work: Arc<(Mutex<Work>, Condvar)>,
     workers: Vec<JoinHandle<()>>,
@@ -236,6 +294,16 @@ impl Search {
         roots: Vec<PathBuf>,
         startup_cancel: Arc<AtomicBool>,
     ) -> Self {
+        Self::start_prepared_with_cancel(SearchQuery::parse(&query), roots, startup_cancel)
+    }
+
+    pub fn start_prepared_with_cancel(
+        query: SearchQuery,
+        roots: Vec<PathBuf>,
+        startup_cancel: Arc<AtomicBool>,
+    ) -> Self {
+        let query = Arc::new(query);
+        let paused = Arc::new(AtomicBool::new(false));
         let (tx, receiver) = mpsc::sync_channel(512);
         let cancel = Arc::new(AtomicBool::new(false));
         let mut visited = HashSet::new();
@@ -273,6 +341,7 @@ impl Search {
             }
             let (tx, cancel, work, query) =
                 (tx.clone(), cancel.clone(), work.clone(), query.clone());
+            let paused = paused.clone();
             workers.push(thread::spawn(move || loop {
                 let dir = {
                     let (lock, cv) = &*work;
@@ -281,14 +350,17 @@ impl Search {
                         if cancel.load(Ordering::Relaxed) || state.outstanding == 0 {
                             return;
                         }
-                        if let Some(Reverse((_, _, _, _, _, dir))) = state.queue.pop() {
-                            break dir;
+                        if !paused.load(Ordering::Relaxed) {
+                            if let Some(Reverse((_, _, _, _, _, dir))) = state.queue.pop() {
+                                break dir;
+                            }
                         }
                         state = cv.wait(state).unwrap();
                     }
                 };
                 if let Ok(entries) = fs::read_dir(dir) {
                     for item in entries.flatten() {
+                        wait_while_paused(&paused, &cancel, &work);
                         if cancel.load(Ordering::Relaxed) {
                             break;
                         }
@@ -307,23 +379,25 @@ impl Search {
                             }
                         }
                         let name = item.file_name().to_string_lossy().into_owned();
-                        if matches(&name, &query) {
+                        if let Some(rank) = query.classify(&name) {
                             let metadata = item.metadata().ok();
-                            let mut entry = Entry {
+                            let entry = Entry {
                                 path,
                                 name,
                                 size: metadata.as_ref().map(|m| m.len()),
                                 modified: metadata.and_then(|m| m.modified().ok()),
                                 is_dir: kind.is_dir(),
                             };
+                            let mut hit = (rank, entry);
                             loop {
+                                wait_while_paused(&paused, &cancel, &work);
                                 if cancel.load(Ordering::Relaxed) {
                                     return;
                                 }
-                                match tx.try_send(entry) {
+                                match tx.try_send(hit) {
                                     Ok(()) => break,
                                     Err(mpsc::TrySendError::Full(returned)) => {
-                                        entry = returned;
+                                        hit = returned;
                                         thread::sleep(std::time::Duration::from_millis(5));
                                     }
                                     Err(mpsc::TrySendError::Disconnected(_)) => return,
@@ -342,6 +416,7 @@ impl Search {
         }
         let search = Self {
             receiver,
+            paused,
             cancel,
             work,
             workers,
@@ -352,7 +427,17 @@ impl Search {
         search
     }
     pub fn try_recv(&self) -> Result<Entry, mpsc::TryRecvError> {
+        self.try_recv_hit().map(|(_, entry)| entry)
+    }
+    pub fn try_recv_hit(&self) -> Result<(MatchKind, Entry), mpsc::TryRecvError> {
         self.receiver.try_recv()
+    }
+    pub fn set_paused(&self, paused: bool) {
+        let _guard = self.work.0.lock().unwrap();
+        self.paused.store(paused, Ordering::Relaxed);
+        if !paused {
+            self.work.1.notify_all();
+        }
     }
     pub fn pending(&self) -> usize {
         self.work.0.lock().unwrap().outstanding
@@ -396,6 +481,30 @@ mod tests {
         assert!(matches("diet", "fuzzy:tide"));
     }
     #[test]
+    fn prepared_queries_handle_whitespace_and_rank_the_whole_filename() {
+        let query = SearchQuery::parse("  fuzzy:  röM.EXE  ");
+        assert_eq!(query.classify("rom.exe"), Some(MatchKind::Exact));
+        assert_eq!(query.classify("rom.exe.bak"), Some(MatchKind::Partial));
+        for text in [
+            "project  notes",
+            "fuzzy: project  notes",
+            "fuzzy:project\tnotes",
+            "project\u{2003}notes",
+        ] {
+            assert!(matches("Project Nôtés.txt", text), "{text:?}");
+        }
+        assert_eq!(
+            SearchQuery::parse("a  b").classify("a  b"),
+            Some(MatchKind::Exact)
+        );
+        assert_eq!(
+            SearchQuery::parse("a b").classify("b a"),
+            Some(MatchKind::Partial)
+        );
+        assert!(!matches("anything", "fuzzy:   "));
+        assert!(matches("anything", ""));
+    }
+    #[test]
     fn priorities_favor_dictionary_and_visible_directories() {
         let dictionary = priority(PathBuf::from("/home/user/music"));
         let nondictionary = priority(PathBuf::from("/home/user/zzzzqxyz"));
@@ -411,14 +520,22 @@ mod tests {
         for n in 0..700 {
             fs::write(root.join(format!("match-{n}")), "x").unwrap();
         }
-        let search = Search::start("match".into(), vec![root.to_path_buf()]);
-        std::thread::sleep(std::time::Duration::from_millis(300));
-        search.stop();
-        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(5);
-        while !search.done() && std::time::Instant::now() < deadline {
-            std::thread::yield_now();
+        for paused in [false, true] {
+            let search = Search::start("match".into(), vec![root.to_path_buf()]);
+            if paused {
+                search.set_paused(true);
+            }
+            std::thread::sleep(std::time::Duration::from_millis(300));
+            search.stop();
+            let deadline = std::time::Instant::now() + std::time::Duration::from_secs(5);
+            while !search.done() && std::time::Instant::now() < deadline {
+                std::thread::yield_now();
+            }
+            assert!(
+                search.done(),
+                "cancelled search did not stop (paused={paused})"
+            );
         }
-        assert!(search.done(), "cancelled search did not stop");
     }
     #[test]
     fn scan_finishes_and_finds_files_and_directories() {
@@ -436,7 +553,7 @@ mod tests {
                 .receiver
                 .recv_timeout(std::time::Duration::from_secs(5))
             {
-                Ok(e) => names.push(e.name),
+                Ok((_, e)) => names.push(e.name),
                 Err(mpsc::RecvTimeoutError::Disconnected) => break,
                 Err(mpsc::RecvTimeoutError::Timeout) => {
                     panic!("search did not complete within five seconds")

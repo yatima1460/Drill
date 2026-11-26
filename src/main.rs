@@ -1,7 +1,7 @@
 #![cfg_attr(target_os = "windows", windows_subsystem = "windows")]
 #![deny(unsafe_code)]
 use chrono::{DateTime, Local};
-use drill_core::{default_roots_with_cancel, Entry, Search};
+use drill_core::{default_roots_with_cancel, Entry, MatchKind, Search, SearchQuery};
 use eframe::egui::{self, Key};
 use std::path::Path;
 use std::time::{Duration, Instant};
@@ -71,7 +71,10 @@ struct App {
     completed: bool,
     results: Vec<Entry>,
     selected: Option<usize>,
-    limited: bool,
+    last_clicked_file: Option<std::path::PathBuf>,
+    exact_count: usize,
+    result_limit: usize,
+    next_hit: Option<(MatchKind, Entry)>,
     stopped: bool,
     focus_search: bool,
     scroll_offset: f32,
@@ -106,7 +109,10 @@ impl Default for App {
             completed: false,
             results: Vec::new(),
             selected: None,
-            limited: false,
+            last_clicked_file: None,
+            exact_count: 0,
+            result_limit: LIMIT,
+            next_hit: None,
             stopped: false,
             focus_search: true,
             scroll_offset: 0.0,
@@ -473,7 +479,7 @@ impl App {
     fn can_stop(&self) -> bool {
         self.changed.is_some()
             || self.starting.is_some()
-            || (self.search.is_some() && !self.completed && !self.limited)
+            || (self.search.is_some() && !self.completed)
     }
 
     fn stop_search(&mut self) {
@@ -487,10 +493,82 @@ impl App {
         self.starting = None;
         self.search = None;
         self.completed = false;
+        self.next_hit = None;
         self.stopped = true;
     }
 
+    fn reset_result_page(&mut self) {
+        self.last_clicked_file = None;
+        self.exact_count = 0;
+        self.result_limit = LIMIT;
+        self.next_hit = None;
+    }
+
+    fn receive_results(&mut self) -> bool {
+        let Some(search) = &self.search else {
+            return false;
+        };
+        if self.next_hit.is_some() || self.completed {
+            return false;
+        }
+        let mut batch = Vec::new();
+        for _ in 0..500 {
+            match search.try_recv_hit() {
+                Ok(hit) if self.results.len() + batch.len() == self.result_limit => {
+                    // The extra hit distinguishes a full last page from a page with more results.
+                    self.next_hit = Some(hit);
+                    search.set_paused(true);
+                    break;
+                }
+                Ok(hit) => batch.push(hit),
+                Err(std::sync::mpsc::TryRecvError::Empty) => break,
+                Err(std::sync::mpsc::TryRecvError::Disconnected) => {
+                    self.completed = true;
+                    break;
+                }
+            }
+        }
+        let changed = !batch.is_empty();
+        self.append_hits(batch);
+        changed
+    }
+
+    fn append_hits(&mut self, hits: impl IntoIterator<Item = (MatchKind, Entry)>) {
+        let mut exact = Vec::new();
+        for (kind, entry) in hits {
+            if self.sort.is_none() && kind == MatchKind::Exact {
+                exact.push(entry);
+            } else {
+                self.results.push(entry);
+            }
+        }
+        if !exact.is_empty() {
+            if let Some(selected) = &mut self.selected {
+                if *selected >= self.exact_count {
+                    *selected += exact.len();
+                }
+            }
+            let boundary = self.exact_count;
+            self.exact_count += exact.len();
+            self.results.splice(boundary..boundary, exact);
+        }
+    }
+
+    fn continue_search(&mut self) {
+        if let Some(hit) = self.next_hit.take() {
+            self.result_limit = self.result_limit.saturating_add(LIMIT);
+            self.append_hits([hit]);
+            if let Some(search) = &self.search {
+                search.set_paused(false);
+            }
+        }
+    }
+
     fn update_ui(&mut self, ctx: &egui::Context) {
+        self.update_ui_with_opener(ctx, &mut open);
+    }
+
+    fn update_ui_with_opener(&mut self, ctx: &egui::Context, open: &mut dyn FnMut(&Path, bool)) {
         #[cfg(any(target_os = "macos", target_os = "windows"))]
         if self
             .native_menu
@@ -621,10 +699,10 @@ impl App {
                 worker.invalidate(self.icon_generation);
             }
             self.selected = None;
-            self.limited = false;
+            self.reset_result_page();
             self.stopped = false;
-            if !self.query.trim().is_empty() {
-                let query = self.query.clone();
+            let query = SearchQuery::parse(&self.query);
+            if !query.is_empty() {
                 #[cfg(target_os = "macos")]
                 let additional_roots = self.permissions.roots();
                 let (tx, rx) = std::sync::mpsc::sync_channel(1);
@@ -644,7 +722,7 @@ impl App {
                         roots.extend(additional_roots);
                         roots
                     };
-                    let _ = tx.send(Search::start_with_cancel(query, roots, cancel));
+                    let _ = tx.send(Search::start_prepared_with_cancel(query, roots, cancel));
                 });
             }
         }
@@ -664,34 +742,15 @@ impl App {
                 Err(std::sync::mpsc::TryRecvError::Empty) => {}
             }
         }
-        let mut results_changed = false;
-        if let Some(search) = &self.search {
-            for _ in 0..500 {
-                match search.try_recv() {
-                    Ok(entry) => {
-                        self.results.push(entry);
-                        results_changed = true;
-                        if self.results.len() >= LIMIT {
-                            search.stop();
-                            self.limited = true;
-                            break;
-                        }
-                    }
-                    Err(std::sync::mpsc::TryRecvError::Disconnected) => {
-                        self.completed = true;
-                        break;
-                    }
-                    Err(std::sync::mpsc::TryRecvError::Empty) => break,
-                }
-            }
-        }
-        if self.limited {
-            self.search = None;
-        }
+        let selected_before_batch = self.selected;
+        let mut results_changed = self.receive_results();
         let title = if self.stopped {
             format!("Drill - {} items found - stopped", self.results.len())
-        } else if self.limited {
-            format!("Drill - {}+ items found, search stopped", LIMIT)
+        } else if self.next_hit.is_some() {
+            format!(
+                "Drill - {} results shown - more available",
+                self.results.len()
+            )
         } else if let Some(search) = &self.search {
             if self.completed {
                 format!("Drill - {} items found - done", self.results.len())
@@ -750,7 +809,7 @@ impl App {
                     worker.invalidate(self.icon_generation);
                 }
                 self.selected = None;
-                self.limited = false;
+                self.reset_result_page();
                 self.stopped = false;
                 self.changed = if self.query.trim().is_empty() {
                     None
@@ -758,7 +817,14 @@ impl App {
                     Some(Instant::now())
                 };
             }
-            let mut keyboard_selection_changed = false;
+            let continued = self.next_hit.is_some() && ui.button("Continue searching").clicked();
+            if continued {
+                // egui buttons activate on Enter without consuming the key.
+                ctx.input_mut(|input| input.consume_key(input.modifiers, Key::Enter));
+                self.continue_search();
+                results_changed = true;
+            }
+            let mut keyboard_selection_changed = self.selected != selected_before_batch;
             if background_input_allowed
                 && ctx.input(|i| i.key_pressed(Key::ArrowDown))
                 && !self.results.is_empty()
@@ -781,7 +847,7 @@ impl App {
                     }
                 }
             }
-            if background_input_allowed && ctx.input(|i| i.key_pressed(Key::Enter)) {
+            if background_input_allowed && !continued && ctx.input(|i| i.key_pressed(Key::Enter)) {
                 if let Some(entry) = self.selected.and_then(|n| self.results.get(n)) {
                     open(&entry.path, false);
                 }
@@ -920,16 +986,26 @@ impl App {
                     area = area.vertical_scroll_offset(offset);
                 }
             }
+            // egui counts double-clicks across widgets. A moving row must receive both clicks.
+            let previous_click = if ctx.input(|input| input.pointer.any_click()) {
+                self.last_clicked_file.take()
+            } else {
+                None
+            };
             let scroll = area.show_rows(ui, 25.0, self.results.len(), |ui, range| {
                 for index in range {
                     let entry = &self.results[index];
-                    let (rect, result) =
-                        ui.allocate_exact_size(egui::vec2(total, 25.0), egui::Sense::click());
+                    let (_, rect) = ui.allocate_space(egui::vec2(total, 25.0));
+                    // Keep open menus and pending clicks attached to the same file as rows move.
+                    let result = ui.interact(rect, ui.id().with(("result", &entry.path)), egui::Sense::click());
                     if result.clicked() || result.secondary_clicked() {
                         self.selected = Some(index);
                     }
-                    if result.double_clicked() {
-                        open(&entry.path, false);
+                    if result.clicked_by(egui::PointerButton::Primary) {
+                        if result.double_clicked() && previous_click.as_ref() == Some(&entry.path) {
+                            open(&entry.path, false);
+                        }
+                        self.last_clicked_file = Some(entry.path.clone());
                     }
                     if self.selected == Some(index) {
                         ui.painter()
@@ -1182,7 +1258,7 @@ impl App {
             let _ = std::fs::write(path, status);
             ctx.request_repaint_after(Duration::from_millis(50));
         }
-        if (self.search.is_some() && !self.completed)
+        if (self.search.is_some() && !self.completed && self.next_hit.is_none())
             || self.starting.is_some()
             || self.changed.is_some()
             || icons_pending
@@ -1529,6 +1605,213 @@ mod ui_tests {
             is_dir: false,
         }
     }
+    #[test]
+    fn late_exact_hits_preserve_selection_and_respect_manual_sort() {
+        let mut app = App::default();
+        app.append_hits([(MatchKind::Partial, entry("rom.exe.bak", 1))]);
+        app.selected = Some(0);
+        app.append_hits([
+            (MatchKind::Partial, entry("old-rom.exe", 2)),
+            (MatchKind::Exact, entry("ROM.EXE", 3)),
+        ]);
+        assert_eq!(app.results[0].name, "ROM.EXE");
+        assert_eq!(app.results[app.selected.unwrap()].name, "rom.exe.bak");
+        // An explicit size ordering already has these entries in the correct order.
+        let mut app = App {
+            sort: Some((SortColumn::Size, true)),
+            ..App::default()
+        };
+        app.append_hits([
+            (MatchKind::Partial, entry("rom.exe.bak", 1)),
+            (MatchKind::Exact, entry("rom.exe", 2)),
+        ]);
+        assert_eq!(app.results[0].name, "rom.exe.bak");
+    }
+
+    fn text_position(output: &egui::FullOutput, label: &str) -> egui::Pos2 {
+        output
+            .shapes
+            .iter()
+            .find_map(|shape| match &shape.shape {
+                egui::Shape::Text(text) if text.galley.text() == label => {
+                    Some(text.pos + text.galley.size() / 2.0)
+                }
+                _ => None,
+            })
+            .unwrap_or_else(|| panic!("missing label: {label}"))
+    }
+
+    #[test]
+    fn context_menu_copies_original_path_after_late_exact_hit() {
+        let ctx = egui::Context::default();
+        let mut app = App::default();
+        let original = entry("rom.exe.bak", 1);
+        let path = original.path.to_string_lossy().into_owned();
+        app.append_hits([(MatchKind::Partial, original)]);
+        let pos = text_position(&frame(&ctx, &mut app, vec![]), "rom.exe.bak");
+        let button = |pos, button, pressed| {
+            vec![
+                egui::Event::PointerMoved(pos),
+                egui::Event::PointerButton {
+                    pos,
+                    button,
+                    pressed,
+                    modifiers: egui::Modifiers::NONE,
+                },
+            ]
+        };
+        for pressed in [true, false] {
+            let _ = frame(
+                &ctx,
+                &mut app,
+                button(pos, egui::PointerButton::Secondary, pressed),
+            );
+        }
+        app.append_hits([(MatchKind::Exact, entry("rom.exe", 2))]);
+        let _ = frame(&ctx, &mut app, vec![]);
+        let copy = text_position(&frame(&ctx, &mut app, vec![]), "Copy Full Path");
+        let _ = frame(
+            &ctx,
+            &mut app,
+            button(copy, egui::PointerButton::Primary, true),
+        );
+        let output = frame(
+            &ctx,
+            &mut app,
+            button(copy, egui::PointerButton::Primary, false),
+        );
+        assert!(
+            output
+                .platform_output
+                .commands
+                .iter()
+                .any(|cmd| matches!(cmd, egui::OutputCommand::CopyText(value) if value == &path)),
+            "clipboard output: {:?}",
+            output.platform_output.commands
+        );
+    }
+
+    #[test]
+    fn both_clicks_must_target_the_same_file_to_open_it() {
+        for insert_exact in [false, true] {
+            let ctx = egui::Context::default();
+            let mut app = App::default();
+            app.append_hits([(MatchKind::Partial, entry("rom.exe.bak", 2))]);
+            let mut opened = Vec::new();
+            let mut render = |app: &mut App, events| {
+                let input = egui::RawInput {
+                    screen_rect: Some(egui::Rect::from_min_size(
+                        egui::Pos2::ZERO,
+                        egui::vec2(800.0, 600.0),
+                    )),
+                    events,
+                    ..Default::default()
+                };
+                ctx.run(input, |ctx| {
+                    app.update_ui_with_opener(ctx, &mut |path, _| opened.push(path.to_owned()))
+                })
+            };
+            let pos = text_position(&render(&mut app, vec![]), "rom.exe.bak");
+            for click in 0..2 {
+                if click == 1 && insert_exact {
+                    app.append_hits([(MatchKind::Exact, entry("rom.exe", 1))]);
+                    let _ = render(&mut app, vec![]);
+                }
+                for pressed in [true, false] {
+                    let _ = render(
+                        &mut app,
+                        vec![
+                            egui::Event::PointerMoved(pos),
+                            egui::Event::PointerButton {
+                                pos,
+                                button: egui::PointerButton::Primary,
+                                pressed,
+                                modifiers: egui::Modifiers::NONE,
+                            },
+                        ],
+                    );
+                }
+            }
+            if insert_exact {
+                assert!(opened.is_empty(), "unexpected open: {opened:?}");
+            } else {
+                assert_eq!(opened, vec![entry("rom.exe.bak", 2).path]);
+            }
+        }
+    }
+
+    #[test]
+    fn enter_on_continue_admits_and_ranks_the_next_hit_and_consumes_the_shortcut() {
+        let ctx = egui::Context::default();
+        let mut app = App {
+            results: vec![entry("rom.exe.bak", 2)],
+            next_hit: Some((MatchKind::Exact, entry("rom.exe", 1))),
+            ..App::default()
+        };
+        let _ = frame(&ctx, &mut app, vec![]);
+        let _ = frame(&ctx, &mut app, vec![key(Key::Tab)]);
+        let _ = frame(&ctx, &mut app, vec![key(Key::Enter)]);
+        assert!(app.next_hit.is_none());
+        assert_eq!(app.results[0].name, "rom.exe");
+        assert!(!ctx.input(|input| input.key_pressed(Key::Enter)));
+    }
+
+    #[test]
+    fn full_last_page_finishes_and_continue_delivers_each_remaining_file_once() {
+        for count in [2, 520] {
+            let root = tempfile::tempdir().unwrap();
+            for n in 0..count {
+                std::fs::write(root.path().join(format!("item-{n}")), []).unwrap();
+            }
+            let mut app = App {
+                search: Some(Search::start("item".into(), vec![root.path().to_owned()])),
+                result_limit: 2,
+                ..App::default()
+            };
+            let deadline = Instant::now() + Duration::from_secs(10);
+            let poll = |app: &mut App| {
+                while !app.completed && app.next_hit.is_none() {
+                    app.receive_results();
+                    assert!(Instant::now() < deadline, "search stalled");
+                    std::thread::yield_now();
+                }
+            };
+            poll(&mut app);
+            assert_eq!(app.results.len(), 2);
+            if count == 2 {
+                assert!(app.completed && app.next_hit.is_none());
+                continue;
+            }
+            assert!(app.can_stop() && !app.completed);
+            assert!(!app.receive_results(), "a paused search consumed hits");
+            let ctx = egui::Context::default();
+            let output = frame(&ctx, &mut app, vec![]);
+            let pos = text_position(&output, "Continue searching");
+            for pressed in [true, false] {
+                let _ = frame(
+                    &ctx,
+                    &mut app,
+                    vec![
+                        egui::Event::PointerMoved(pos),
+                        egui::Event::PointerButton {
+                            pos,
+                            button: egui::PointerButton::Primary,
+                            pressed,
+                            modifiers: egui::Modifiers::NONE,
+                        },
+                    ],
+                );
+            }
+            assert!(app.next_hit.is_none());
+            poll(&mut app);
+            assert!(app.completed);
+            let names: std::collections::HashSet<_> =
+                app.results.iter().map(|e| e.name.as_str()).collect();
+            assert_eq!(app.results.len(), count);
+            assert_eq!(names.len(), count);
+        }
+    }
+
     fn assert_result_loads_embedded_icon(path: PathBuf) {
         let ctx = egui::Context::default();
         let mut result = entry("program.exe", 1);
