@@ -2256,6 +2256,62 @@ mod ui_tests {
         assert!(!app.syntax_open, "the Close button takes keyboard focus");
     }
 
+    fn scroll_syntax_to_bottom(
+        render: &impl Fn(Vec<egui::Event>) -> egui::FullOutput,
+        pos: egui::Pos2,
+    ) {
+        render(vec![
+            egui::Event::PointerMoved(pos),
+            egui::Event::MouseWheel {
+                unit: egui::MouseWheelUnit::Point,
+                delta: egui::vec2(0.0, -3000.0),
+                modifiers: egui::Modifiers::NONE,
+            },
+        ]);
+        for _ in 0..30 {
+            render(vec![]);
+        }
+    }
+
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn syntax_reference_clicks_emit_the_documentation_urls() {
+        let ctx = egui::Context::default();
+        ctx.style_mut(|style| style.animation_time = 0.0);
+        let render = |events| {
+            let mut input = frame_input(events);
+            input.screen_rect = Some(egui::Rect::from_min_size(
+                egui::Pos2::ZERO,
+                egui::vec2(1024.0, 1000.0),
+            ));
+            ctx.run(input, |ctx| assert!(!syntax_help::show(ctx)))
+        };
+        let click = |label| {
+            render(vec![]);
+            let close = text_position(&render(vec![]), "Close");
+            scroll_syntax_to_bottom(&render, close - egui::vec2(0.0, 45.0));
+            let pos = text_position(&render(vec![]), label);
+            render(pointer_events(pos, egui::PointerButton::Primary, true));
+            render(pointer_events(pos, egui::PointerButton::Primary, false)).platform_output
+        };
+        click("More pattern syntax");
+        for (label, expected) in [
+            (
+                "Wax glob reference",
+                "https://github.com/olson-sean-k/wax/blob/v0.7.0/README.md#patterns",
+            ),
+            (
+                "Rust regex reference",
+                "https://docs.rs/regex/1/regex/#syntax",
+            ),
+        ] {
+            assert!(matches!(
+                click(label).commands.as_slice(),
+                [egui::OutputCommand::OpenUrl(link)] if link.url == expected
+            ));
+        }
+    }
+
     #[test]
     fn syntax_examples_scroll_in_a_small_window_with_close_always_visible() {
         let ctx = egui::Context::default();
@@ -2271,17 +2327,7 @@ mod ui_tests {
         assert!(screen.contains(words));
         let close = text_position(&opening, "Close");
         assert!(screen.contains(close));
-        render(vec![
-            egui::Event::PointerMoved(words),
-            egui::Event::MouseWheel {
-                unit: egui::MouseWheelUnit::Point,
-                delta: egui::vec2(0.0, -3000.0),
-                modifiers: egui::Modifiers::NONE,
-            },
-        ]);
-        for _ in 0..30 {
-            render(vec![]);
-        }
+        scroll_syntax_to_bottom(&render, words);
         let bottom = render(vec![]);
         assert!(screen.contains(text_position(&bottom, "More pattern syntax")));
         assert_eq!(text_position(&bottom, "Close"), close);

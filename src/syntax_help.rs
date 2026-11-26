@@ -23,13 +23,35 @@ const MODES: &[(&str, &str, &[&str])] = &[
     ),
 ];
 
+enum Reference {
+    Glob,
+    Regex,
+}
+
+impl Reference {
+    fn link(self) -> (&'static str, &'static str) {
+        match self {
+            Self::Glob => (
+                "Wax glob reference",
+                "https://github.com/olson-sean-k/wax/blob/v0.7.0/README.md#patterns",
+            ),
+            Self::Regex => (
+                "Rust regex reference",
+                "https://docs.rs/regex/1/regex/#syntax",
+            ),
+        }
+    }
+}
+
 #[cfg(target_os = "linux")]
-fn reference_link(ui: &mut egui::Ui, label: &str, url: &'static str) {
+fn reference_link(ui: &mut egui::Ui, reference: Reference) {
+    let (label, url) = reference.link();
     ui.hyperlink_to(label, url);
 }
 
 #[cfg(not(target_os = "linux"))]
-fn reference_link(ui: &mut egui::Ui, label: &str, url: &'static str) {
+fn reference_link(ui: &mut egui::Ui, reference: Reference) {
+    let (label, url) = reference.link();
     let response = ui.link(label);
     if response.clicked() || response.middle_clicked() {
         std::thread::spawn(move || {
@@ -96,9 +118,9 @@ pub(super) fn show(ctx: &egui::Context) -> bool {
                 ui.label("Invalid patterns show an error. Globs and regexes accept up to 4,096 bytes. Glob groups can nest up to eight levels.");
                 ui.collapsing("More pattern syntax", |ui| {
                     ui.label("In a glob, [!0-9] matches one character other than a digit. <[0-9]:4> matches exactly four digits. The $ wildcard is a lazy version of *.");
-                    reference_link(ui, "Wax glob reference", "https://github.com/olson-sean-k/wax/blob/v0.7.0/README.md#patterns");
+                    reference_link(ui, Reference::Glob);
                     ui.label("In a regex, use | for alternatives, parentheses for groups, and + to repeat the preceding item one or more times. Rust regexes exclude look-around and backreferences.");
-                    reference_link(ui, "Rust regex reference", "https://docs.rs/regex/1/regex/#syntax");
+                    reference_link(ui, Reference::Regex);
                 });
             });
         ui.separator();
@@ -114,8 +136,25 @@ pub(super) fn show(ctx: &egui::Context) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use super::MODES;
+    use super::{Reference, MODES};
     use drill_core::SearchQuery;
+
+    #[test]
+    fn help_urls_have_fixed_ascii_https_hosts() {
+        for (reference, host) in [
+            (Reference::Glob, "github.com"),
+            (Reference::Regex, "docs.rs"),
+        ] {
+            let (_, url) = reference.link();
+            assert!(url.bytes().all(|byte| byte.is_ascii_graphic()));
+            let (authority, _) = url
+                .strip_prefix("https://")
+                .unwrap()
+                .split_once('/')
+                .unwrap();
+            assert_eq!(authority, host);
+        }
+    }
 
     #[test]
     fn help_examples_match_their_intended_names() {
