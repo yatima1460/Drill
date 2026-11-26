@@ -1,0 +1,24 @@
+name: Windows system search
+on:
+  pull_request:
+    paths:
+      - 'crates/drill-core/**'
+      - 'src/main.rs'
+      - 'src/search_mode.rs'
+      - '.github/workflows/windows-search.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  notepad:
+    runs-on: windows-2025
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.100.0
+      - name: Verify startup ordering, cancellation and direct lookups
+        run: cargo test --locked -p drill-core windows_startup
+      - name: Measure Windows startup and verify the installed Notepad executable
+        run: cargo test --locked -p drill-core windows_startup -- --ignored --nocapture --test-threads=1
