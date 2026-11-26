@@ -8,6 +8,9 @@ use std::fs;
 use std::process::{Child, Command, Stdio};
 use std::time::{Duration, Instant};
 
+#[path = "../crates/drill-core/src/test_directory.rs"]
+mod test_directory;
+
 struct AppProcess(Child);
 impl Drop for AppProcess {
     fn drop(&mut self) {
@@ -36,16 +39,7 @@ fn wait_for(path: &std::path::Path, predicate: impl Fn(&str) -> bool) -> String 
 #[test]
 #[ignore = "moves the real mouse and types in a native window; run explicitly on a controlled desktop"]
 fn native_typing_selection_and_escape() {
-    #[cfg(unix)]
-    let mut builder = tempfile::Builder::new();
-    #[cfg(not(unix))]
-    let builder = tempfile::Builder::new();
-    #[cfg(unix)]
-    {
-        use std::os::unix::fs::PermissionsExt;
-        builder.permissions(fs::Permissions::from_mode(0o700));
-    }
-    let directory = builder.tempdir().unwrap();
+    let directory = test_directory::private_temp_dir();
     let root = directory.path();
     fs::write(root.join("drill_native_unique_test.txt"), "fixture").unwrap();
     fs::write(root.join("drill_native_unique_test-b.txt"), "fixture").unwrap();
