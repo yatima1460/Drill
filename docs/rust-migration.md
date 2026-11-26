@@ -12,6 +12,8 @@ The embedded Wasm icon decoders use separate size-focused release profiles.
 Linux builds use `pkg-config`, a C compiler and an archiver to compile the small
 GTK 3 and GIO adapter against the system development files. For cross-compilation
 set `CC` and `AR` for the target when the default tool names do not match.
+Use target-qualified `CFLAGS` to pass Clang's `--target` or a compiler sysroot.
+Quote paths that contain spaces.
 Set `PKG_CONFIG` to the target's executable or set `PKG_CONFIG_SYSROOT_DIR`
 with the target's `PKG_CONFIG_LIBDIR`.
 

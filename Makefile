@@ -15,7 +15,17 @@ start: ## Build and start Drill in release mode
 start_wine: ## Build the Windows version and run it with Wine
 	@command -v "$$WINE" >/dev/null 2>&1 || { echo 'Wine not found. Install Wine or set WINE to its executable.' >&2; exit 1; }
 	@command -v "$$WINDOWS_LINKER" >/dev/null 2>&1 || { echo 'Windows cross-linker not found. Install MinGW-w64 or set WINDOWS_LINKER.' >&2; exit 1; }
-	@if [ "$${CARGO_ENCODED_RUSTFLAGS+x}" = x ]; then \
+	@if [ -z "$${RC+x}$${RC_x86_64_pc_windows_gnu+x}" ] && \
+	    ! printenv RC_x86_64-pc-windows-gnu >/dev/null 2>&1; then \
+		linker=$$(command -v "$$WINDOWS_LINKER"); \
+		tools=$$(dirname "$$linker"); \
+		windres=$$("$$linker" -print-prog-name=windres 2>/dev/null) || windres=; \
+		if [ -x "$$windres" ]; then export RC="$$windres"; \
+		elif [ -n "$$windres" ] && [ -x "$$tools/$$windres" ]; then export RC="$$tools/$$windres"; \
+		elif [ -x "$$tools/x86_64-w64-mingw32-windres" ]; then export RC="$$tools/x86_64-w64-mingw32-windres"; \
+		fi; \
+	fi; \
+	if [ "$${CARGO_ENCODED_RUSTFLAGS+x}" = x ]; then \
 		sep=$$(printf '\037'); \
 		if [ -n "$$CARGO_ENCODED_RUSTFLAGS" ]; then CARGO_ENCODED_RUSTFLAGS="$$CARGO_ENCODED_RUSTFLAGS$$sep"; fi; \
 		export CARGO_ENCODED_RUSTFLAGS="$${CARGO_ENCODED_RUSTFLAGS}-C$${sep}target-feature=+crt-static"; \

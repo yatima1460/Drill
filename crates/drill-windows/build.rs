@@ -1,6 +1,6 @@
 use std::{
     env,
-    ffi::OsString,
+    ffi::{OsStr, OsString},
     path::{Path, PathBuf},
     process::Command,
 };
@@ -37,6 +37,13 @@ fn compile_msvc(host: &str, target: &str, source: &Path, out: &Path) {
     let object = out.join("drill_shell_icons.obj");
     let archive = out.join("drill_shell_icons.lib");
     let native = host.contains("-windows-");
+    let crt = if env::var("CARGO_CFG_TARGET_FEATURE")
+        .is_ok_and(|features| features.split(',').any(|feature| feature == "crt-static"))
+    {
+        "/MT"
+    } else {
+        "/MD"
+    };
     let compiler = tool("CC", target, || {
         if native { "cl.exe" } else { "clang-cl" }.into()
     });
@@ -61,6 +68,7 @@ fn compile_msvc(host: &str, target: &str, source: &Path, out: &Path) {
             .arg(object)
             .arg("-Archive")
             .arg(archive)
+            .args(["-Crt", crt])
             .args([
                 "-TargetArch",
                 msvc_arch(target),
@@ -72,13 +80,46 @@ fn compile_msvc(host: &str, target: &str, source: &Path, out: &Path) {
         output.push(&object);
         run(Command::new(compiler)
             .arg(format!("--target={target}"))
-            .args(["/nologo", "/TC", "/O2", "/c"])
+            .args(["/nologo", "/TC", "/O2", crt, "/c"])
             .arg(output)
             .arg(source));
         let mut output = OsString::from("/OUT:");
         output.push(archive);
         run(Command::new(librarian).arg(output).arg(object));
     }
+}
+
+fn mingw_archiver(compiler: &OsStr, fallback: OsString) -> OsString {
+    let reported = Command::new(compiler)
+        .arg("-print-prog-name=ar")
+        .output()
+        .ok()
+        .filter(|output| output.status.success())
+        .and_then(|output| String::from_utf8(output.stdout).ok());
+    let reported = reported.as_deref().map(str::trim).filter(|s| !s.is_empty());
+    if let Some(directory) = Path::new(compiler)
+        .parent()
+        .filter(|p| !p.as_os_str().is_empty())
+    {
+        for name in reported
+            .into_iter()
+            .map(OsStr::new)
+            .chain([fallback.as_os_str()])
+        {
+            let sibling = directory.join(name);
+            if sibling.is_file() {
+                return sibling.into();
+            }
+            if cfg!(windows) && sibling.with_extension("exe").is_file() {
+                return sibling.with_extension("exe").into();
+            }
+        }
+    }
+    // A bare "ar" means GCC did not locate its archiver. Avoid picking up
+    // the host archiver in a cross build.
+    reported
+        .filter(|&name| name != "ar")
+        .map_or(fallback, Into::into)
 }
 
 fn compile_mingw(host: &str, target: &str, source: &Path, out: &Path) {
@@ -90,8 +131,15 @@ fn compile_mingw(host: &str, target: &str, source: &Path, out: &Path) {
             format!("{arch}-w64-mingw32-{name}").into()
         }
     };
-    let compiler = tool("CC", target, || mingw_tool("gcc"));
-    let archiver = tool("AR", target, || mingw_tool("ar"));
+    // Cargo exposes the compiler driver chosen by make start_wine or target
+    // configuration. Explicit C compiler/archiver overrides still take priority.
+    println!("cargo:rerun-if-env-changed=RUSTC_LINKER");
+    let linker_env = target.replace('-', "_").to_ascii_uppercase();
+    println!("cargo:rerun-if-env-changed=CARGO_TARGET_{linker_env}_LINKER");
+    let compiler = tool("CC", target, || {
+        env::var_os("RUSTC_LINKER").unwrap_or_else(|| mingw_tool("gcc"))
+    });
+    let archiver = tool("AR", target, || mingw_archiver(&compiler, mingw_tool("ar")));
     let object = out.join("drill_shell_icons.o");
     run(Command::new(compiler)
         .args(["-std=c11", "-O2", "-c"])

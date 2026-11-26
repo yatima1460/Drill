@@ -23,27 +23,40 @@ fn setting(name: &str, target: &str, native: bool) -> Option<OsString> {
     })
 }
 
-// pkg-config escapes literal bytes with a backslash. Keep escaped spaces in
-// paths and pass each flag directly to the compiler, without a shell.
-fn flags(output: &str) -> Vec<String> {
+// pkg-config escapes literal bytes with a backslash. Compiler overrides can
+// also use shell-style quoting. Neither source is evaluated by a shell.
+fn arguments(output: &str, quoted: bool) -> Option<Vec<String>> {
     let mut words = Vec::new();
-    let mut word = String::new();
+    let mut word = None::<String>;
+    let mut quote = None;
     let mut chars = output.chars();
     while let Some(ch) = chars.next() {
-        if ch == '\\' {
-            word.push(chars.next().expect("unterminated pkg-config escape"));
-        } else if ch.is_ascii_whitespace() {
-            if !word.is_empty() {
-                words.push(std::mem::take(&mut word));
+        match (quote, ch) {
+            (Some(current), ch) if ch == current => quote = None,
+            (None, '\'' | '"') if quoted => {
+                quote = Some(ch);
+                word.get_or_insert_with(String::new);
             }
-        } else {
-            word.push(ch);
+            (None, ch) if ch.is_ascii_whitespace() => words.extend(word.take()),
+            (current, '\\') if current != Some('\'') => {
+                let next = chars.next()?;
+                if quoted && next == '\n' {
+                    continue;
+                }
+                let word = word.get_or_insert_with(String::new);
+                if current == Some('"') && !matches!(next, '\\' | '"' | '$' | '`') {
+                    word.push('\\');
+                }
+                word.push(next);
+            }
+            _ => word.get_or_insert_with(String::new).push(ch),
         }
     }
-    if !word.is_empty() {
-        words.push(word);
+    if quote.is_some() {
+        return None;
     }
-    words
+    words.extend(word);
+    Some(words)
 }
 
 fn pkg_config(option: &str, target: &str, native: bool) -> Vec<String> {
@@ -77,7 +90,11 @@ fn pkg_config(option: &str, target: &str, native: bool) -> Vec<String> {
         "pkg-config could not locate the GTK 3 and GIO development files: {}",
         String::from_utf8_lossy(&output.stderr)
     );
-    flags(std::str::from_utf8(&output.stdout).expect("UTF-8 pkg-config flags"))
+    arguments(
+        std::str::from_utf8(&output.stdout).expect("UTF-8 pkg-config flags"),
+        false,
+    )
+    .expect("unterminated pkg-config escape")
 }
 
 fn run(command: &mut Command) {
@@ -109,7 +126,11 @@ fn main() {
             format!("{prefix}-ar").into()
         }
     });
-    let cflags = pkg_config("--cflags", &target, native);
+    let sdk_flags = pkg_config("--cflags", &target, native);
+    let cflags = setting("CFLAGS", &target, native).map_or_else(Vec::new, |value| {
+        arguments(value.to_str().expect("UTF-8 CFLAGS"), true)
+            .expect("unterminated quote or escape in CFLAGS")
+    });
     let archive = out.join("libdrill_gtk.a");
     let mut objects = Vec::new();
 
@@ -120,6 +141,7 @@ fn main() {
         run(Command::new(&compiler)
             .args(["-fPIC", "-c"])
             .arg(format!("-O{}", env::var("OPT_LEVEL").unwrap()))
+            .args(&sdk_flags)
             .args(&cflags)
             .arg(&source)
             .arg("-o")

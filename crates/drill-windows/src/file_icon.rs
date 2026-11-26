@@ -56,6 +56,11 @@ pub fn file_icon(path: &Path, size: u16) -> Option<FileIcon> {
 }
 
 fn load(path: &Path, size: u16) -> Option<FileIcon> {
+    // The Shell can return a generic icon or resolve a namespace item even
+    // when the filesystem path is missing.
+    if !path.exists() {
+        return None;
+    }
     let mut path: Vec<_> = path.as_os_str().encode_wide().collect();
     if path.is_empty() || path.contains(&0) {
         return None;
@@ -85,4 +90,17 @@ fn load(path: &Path, size: u16) -> Option<FileIcon> {
         height,
         pixels,
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn missing_paths_do_not_get_shell_icons() {
+        let executable = std::env::current_exe().unwrap();
+        let missing = executable.join("missing-file.txt");
+        assert!(!missing.exists());
+        assert!(file_icon(&missing, 64).is_none());
+    }
 }
