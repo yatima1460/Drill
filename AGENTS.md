@@ -8,6 +8,12 @@ For each request involving the repository, assign planning to the strongest avai
 
 Open a pull request and ask an independent reviewer selected by the same model and effort rule to review the actual PR. Immediately before every merge, recheck the PR conversation, submitted reviews and inline review threads for comments from automated AI reviewers, including Codex. Address substantive findings, then confirm the reviewed head still matches and the required checks pass before merging. Respect requests for a draft or to leave a PR open. If a required review or GitHub operation is unavailable, report the blocker. Read-only questions can be answered directly.
 
+## External dependencies and platform bindings
+
+Use the standard library first. When Drill needs a platform API, write a small binding for the exact calls and data Drill uses. Keep it next to the feature that owns it. If a replacement would require recreating a general-purpose library, explain the tradeoff to the user.
+
+Use an external dependency only when it is strictly necessary. **Always ask the user and wait for explicit approval before adopting one.** Explain which behavior needs it and why the standard library or a narrow binding is insufficient. This also applies to build and test dependencies, vendored code, and direct use of a package already present transitively.
+
 ## Design and behavior
 
 - Prefer a functional core. Keep matching and ranking deterministic where practical, pass inputs explicitly, and isolate filesystem, platform and rendering effects. Choose ownership and bounded work that make behavior easy to parallelize, test and verify.
