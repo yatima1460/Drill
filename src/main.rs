@@ -6,6 +6,7 @@ use eframe::egui::{self, Key};
 use std::path::Path;
 use std::time::{Duration, Instant};
 mod exe_icon;
+mod result_order;
 mod search_mode;
 use search_mode::{Mode, Results};
 #[cfg(target_os = "linux")]
@@ -628,16 +629,12 @@ impl App {
                 self.results.push(entry);
             }
         }
-        if !exact.is_empty() {
-            if let Some(selected) = &mut self.selected {
-                if *selected >= self.exact_count {
-                    *selected += exact.len();
-                }
-            }
-            let boundary = self.exact_count;
-            self.exact_count += exact.len();
-            self.results.splice(boundary..boundary, exact);
-        }
+        result_order::insert_exact(
+            &mut self.results,
+            &mut self.exact_count,
+            &mut self.selected,
+            exact,
+        );
     }
 
     fn continue_search(&mut self) {
@@ -1786,6 +1783,10 @@ mod ui_tests {
         ]);
         assert_eq!(app.results[0].name, "ROM.EXE");
         assert_eq!(app.results[app.selected.unwrap()].name, "rom.exe.bak");
+        app.append_hits([(MatchKind::Exact, entry("rom.exe", 4))]);
+        assert_eq!(app.results[0].name, "ROM.EXE");
+        assert_eq!(app.results[1].name, "rom.exe");
+        assert_eq!(app.results[app.selected.unwrap()].name, "rom.exe.bak");
         // An explicit size ordering already has these entries in the correct order.
         let mut app = App {
             sort: Some((SortColumn::Size, true)),
@@ -2188,8 +2189,10 @@ mod ui_tests {
     fn visible_executable_row_loads_embedded_icon() {
         use std::io::Write;
         let mut file = tempfile::Builder::new().suffix(".exe").tempfile().unwrap();
-        file.write_all(include_bytes!("../tests/fixtures/icon-pe32.exe"))
-            .unwrap();
+        file.write_all(include_bytes!(
+            "../tools/exe-icon-wasm/tests/fixtures/icon-pe32.exe"
+        ))
+        .unwrap();
         assert_result_loads_embedded_icon(file.path().to_path_buf());
     }
     #[test]
