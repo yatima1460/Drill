@@ -494,7 +494,13 @@ mod tests {
 
     #[test]
     fn invalid_patterns_never_start_a_walk_or_match_their_own_text() {
-        for text in ["regex:", "glob:", "regex:(", "glob:bad["] {
+        for text in [
+            "regex:",
+            "glob:",
+            "regex:(",
+            "glob:bad[",
+            "glob:{{{{{{{{{a,b}}}}}}}}}",
+        ] {
             let query = SearchQuery::parse(text);
             assert!(query.error().is_some(), "{text}");
             assert_eq!(query.classify(text), None);
