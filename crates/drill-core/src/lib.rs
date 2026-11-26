@@ -7,7 +7,8 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{mpsc, Arc, Condvar, Mutex, OnceLock};
 use std::thread::{self, JoinHandle};
 use std::time::SystemTime;
-use unicode_normalization::{char::is_combining_mark, UnicodeNormalization};
+mod query;
+pub use query::{matches, MatchKind, SearchQuery};
 
 #[derive(Clone, Debug)]
 pub struct Entry {
@@ -16,98 +17,6 @@ pub struct Entry {
     pub size: Option<u64>,
     pub modified: Option<SystemTime>,
     pub is_dir: bool,
-}
-
-fn normalized(text: &str) -> String {
-    text.to_lowercase()
-        .nfd()
-        .filter(|c| !is_combining_mark(*c))
-        .collect()
-}
-
-// Ratcliff/Obershelp matching, as used by Python's difflib.SequenceMatcher.
-fn matching_chars(a: &[char], b: &[char]) -> usize {
-    let mut best = (0, 0, 0);
-    for i in 0..a.len() {
-        for j in 0..b.len() {
-            let mut n = 0;
-            while i + n < a.len() && j + n < b.len() && a[i + n] == b[j + n] {
-                n += 1;
-            }
-            if n > best.2 {
-                best = (i, j, n);
-            }
-        }
-    }
-    if best.2 == 0 {
-        0
-    } else {
-        best.2
-            + matching_chars(&a[..best.0], &b[..best.1])
-            + matching_chars(&a[best.0 + best.2..], &b[best.1 + best.2..])
-    }
-}
-
-enum Tokens {
-    Plain(Vec<String>),
-    Fuzzy(Vec<Vec<char>>),
-}
-
-pub struct SearchQuery {
-    filename: String,
-    tokens: Tokens,
-}
-
-impl SearchQuery {
-    pub fn parse(input: &str) -> Self {
-        let input = input.trim();
-        let fuzzy = input.strip_prefix("fuzzy:");
-        let filename = normalized(fuzzy.unwrap_or(input).trim());
-        let words = filename.split_whitespace();
-        let tokens = if fuzzy.is_some() {
-            Tokens::Fuzzy(words.map(|word| word.chars().collect()).collect())
-        } else {
-            Tokens::Plain(words.map(str::to_owned).collect())
-        };
-        Self { filename, tokens }
-    }
-
-    pub fn is_empty(&self) -> bool {
-        self.filename.is_empty()
-    }
-
-    pub fn classify(&self, name: &str) -> Option<MatchKind> {
-        let name = normalized(name);
-        if !self.is_empty() && name == self.filename {
-            return Some(MatchKind::Exact);
-        }
-        let matched = match &self.tokens {
-            Tokens::Plain(tokens) => tokens.iter().all(|token| name.contains(token)),
-            Tokens::Fuzzy(tokens) => {
-                let words: Vec<Vec<char>> = name
-                    .split_whitespace()
-                    .map(|word| word.chars().collect())
-                    .collect();
-                !tokens.is_empty()
-                    && tokens.iter().all(|token| {
-                        words
-                            .iter()
-                            .any(|word| 4 * matching_chars(word, token) >= token.len() + word.len())
-                    })
-            }
-        };
-        matched.then_some(MatchKind::Partial)
-    }
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum MatchKind {
-    Exact,
-    Partial,
-}
-
-pub fn matches(name: &str, query: &str) -> bool {
-    SearchQuery::parse(query).classify(name).is_some()
 }
 
 // The platform root files are embedded, so running a binary from another directory works.
@@ -233,21 +142,16 @@ fn desktop_roots(
         .collect()
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum FileFilter {
-    All,
-    MacBundles,
-    WindowsExecutables,
-}
+mod file_filter;
+pub use file_filter::FileFilter;
 
 impl FileFilter {
     fn accepts(self, path: &Path, kind: fs::FileType) -> bool {
-        let ext = path.extension().unwrap_or_default();
-        match self {
-            Self::All => true,
-            Self::MacBundles => kind.is_dir() && ext.eq_ignore_ascii_case("app"),
-            Self::WindowsExecutables => kind.is_file() && ext.eq_ignore_ascii_case("exe"),
-        }
+        self.accepts_extension(
+            path.extension().unwrap_or_default(),
+            kind.is_dir(),
+            kind.is_file(),
+        )
     }
 }
 
@@ -363,6 +267,11 @@ impl Search {
         startup_cancel: Arc<AtomicBool>,
         filter: FileFilter,
     ) -> Self {
+        let roots = if query.error().is_some() {
+            Vec::new()
+        } else {
+            roots
+        };
         let query = Arc::new(query);
         let paused = Arc::new(AtomicBool::new(false));
         let (tx, receiver) = mpsc::sync_channel(512);
@@ -397,7 +306,7 @@ impl Search {
             .clamp(1, 16);
         let mut workers = Vec::new();
         for _ in 0..count {
-            if startup_cancel.load(Ordering::Relaxed) {
+            if outstanding == 0 || startup_cancel.load(Ordering::Relaxed) {
                 break;
             }
             let (tx, cancel, work, query) =
@@ -448,10 +357,10 @@ impl Search {
                         }
                         let name = item.file_name().to_string_lossy().into_owned();
                         let rank = if filter != FileFilter::All
-                            && path.file_stem().is_some_and(|stem| {
-                                !query.is_empty()
-                                    && normalized(&stem.to_string_lossy()) == query.filename
-                            }) {
+                            && path
+                                .file_stem()
+                                .is_some_and(|stem| query.exact_stem(&stem.to_string_lossy()))
+                        {
                             Some(MatchKind::Exact)
                         } else {
                             query.classify(&name)
@@ -558,6 +467,45 @@ mod tests {
         assert!(matches("diet", "fuzzy:tide"));
     }
     #[test]
+    fn wildcard_and_regex_queries_match_filenames() {
+        for (query, hit, miss) in [
+            ("*.md", "Notes.MD", "notes.md.bak"),
+            ("myfile*", "myfile copy", "a-myfile"),
+            ("*myfile", "a-myfile", "myfile.bak"),
+            ("*myfile*", "a-myfile.bak", "my-file"),
+            ("glob:page[0-9]?.pdf", "Page3猫.pdf", "page32x.pdf"),
+            (r"glob:literal\*.txt", "literal*.txt", "literal1.txt"),
+            (r"regex:^IMG_[0-9]{4}\.jpg$", "img_0027.JPG", "IMG_27.jpg"),
+            (r"regex:\S+\.md$", "notes final.md", "notes finalXmd"),
+            ("regex:(?-i)^Z", "Zebra", "zebra"),
+            ("regex:^café$", "café", "cafe"),
+        ] {
+            assert!(matches(hit, query), "{query:?} should find {hit:?}");
+            assert!(!matches(miss, query), "{query:?} should skip {miss:?}");
+        }
+        assert!(matches("notes [v2]?.txt", "[v2]?"));
+        assert!(!matches("notes v2A.txt", "[v2]?"));
+    }
+
+    #[test]
+    fn invalid_patterns_never_start_a_walk_or_match_their_own_text() {
+        for text in [
+            "regex:",
+            "glob:",
+            "regex:(",
+            "glob:bad[",
+            "glob:{{{{{{{{{a,b}}}}}}}}}",
+        ] {
+            let query = SearchQuery::parse(text);
+            assert!(query.error().is_some(), "{text}");
+            assert_eq!(query.classify(text), None);
+            let search = Search::start(text.into(), vec![std::env::temp_dir()]);
+            assert!(search.done());
+            assert_eq!(search.pending(), 0);
+        }
+    }
+
+    #[test]
     fn prepared_queries_handle_whitespace_and_rank_the_whole_filename() {
         let query = SearchQuery::parse("  fuzzy:  röM.EXE  ");
         assert_eq!(query.classify("rom.exe"), Some(MatchKind::Exact));
@@ -598,6 +546,8 @@ mod tests {
                 ("", MatchKind::Partial),
                 ("real", MatchKind::Exact),
                 (expected, MatchKind::Exact),
+                ("real.*", MatchKind::Partial),
+                ("regex:^real[.]", MatchKind::Partial),
             ] {
                 let search = Search::start_filtered(
                     SearchQuery::parse(text),

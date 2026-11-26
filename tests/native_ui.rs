@@ -127,6 +127,13 @@ fn native_typing_selection_and_escape() {
     wait_for(&status, |s| {
         s.contains("query=drill_native_unique_test") && s.contains("drill_native_unique_test.txt")
     });
+    input.text("*.txt").unwrap();
+    wait_for(&status, |s| {
+        s.contains("query=drill_native_unique_test*.txt\n")
+            && s.contains("done=true")
+            && s.contains("drill_native_unique_test-b.txt")
+            && s.contains("drill_native_unique_test.txt")
+    });
     #[cfg(target_os = "linux")]
     assert!(Command::new("xdotool")
         .args(["mousemove", "--window", &window_id, "30", "88"])

@@ -99,12 +99,13 @@ mod tests {
     #[test]
     fn rejects_missing_archives_and_symlink_loops() {
         let decoder = Decoder::new().unwrap();
-        let complete = include_bytes!("../tests/fixtures/appimages/linked-png.AppImage");
+        let complete =
+            include_bytes!("../tools/appimage-icon-wasm/tests/fixtures/linked-png.AppImage");
         for data in [
             b"plain file".as_slice(),
             &complete[..48],
             &complete[..138],
-            include_bytes!("../tests/fixtures/appimages/cyclic.AppImage").as_slice(),
+            include_bytes!("../tools/appimage-icon-wasm/tests/fixtures/cyclic.AppImage").as_slice(),
         ] {
             let mut f = tempfile::tempfile().unwrap();
             f.write_all(data).unwrap();
@@ -116,7 +117,8 @@ mod tests {
     fn reads_a_large_sparse_image_without_snapshotting_it() {
         let decoder = Decoder::new().unwrap();
         let mut f = tempfile::tempfile().unwrap();
-        let bytes = include_bytes!("../tests/fixtures/appimages/linked-png.AppImage");
+        let bytes =
+            include_bytes!("../tools/appimage-icon-wasm/tests/fixtures/linked-png.AppImage");
         let offset = 160u64 << 20;
         let mut header = bytes[..128].to_vec();
         header[88..96].copy_from_slice(&offset.to_le_bytes());
