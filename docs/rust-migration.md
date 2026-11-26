@@ -22,6 +22,8 @@ On macOS, Settings → Permissions lets the user choose folders using the system
 
 The vendored eframe 0.31.1 includes a Windows OpenGL compatibility-context fallback for Wine on macOS. Its source and patch details are recorded in `vendor/eframe/PATCH.md`.
 
+Under Settings → Interface, choose Auto to follow system appearance changes, or select Light or Dark. Drill applies the choice immediately and remembers it across launches. Auto is the default.
+
 Settings → Interface controls embedded icons for Windows executables. The default is enabled. Executables are read as bounded snapshots and decoded in a bundled WebAssembly module with no host imports, bounded memory and fuel; they are never run. Oversized, unreadable or invalid executables use a system file-type icon, as do executables when the setting is disabled. On Linux the type lookup uses the extension alone; on macOS and Windows the system receives a private empty .exe sample, never the untrusted executable. A generic glyph is the final fallback. On macOS the icon worker avoids materializing cloud-only files. Other file types continue to use platform icon providers. The decoder is built from `tools/exe-icon-wasm`; Linux CI rebuilds it and compares the result with the shipped module.
 
 Development checks: `cargo fmt --check`, `cargo check --locked`, `cargo clippy --locked --all-targets -- -D warnings`, and `cargo test --locked`.

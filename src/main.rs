@@ -5,6 +5,7 @@ use drill_core::{default_roots_with_cancel, Entry, MatchKind, Search, SearchQuer
 use eframe::egui::{self, Key};
 use std::path::Path;
 use std::time::{Duration, Instant};
+mod appearance;
 mod exe_icon;
 mod result_order;
 mod search_mode;
@@ -98,6 +99,7 @@ struct App {
     icon_generation: u64,
     embedded_exe_icons: bool,
     interface_open: bool,
+    appearance: egui::ThemePreference,
     sort: Option<(SortColumn, bool)>,
     column_widths: [f32; 4],
     column_drag: Option<(usize, f32, [f32; 4])>,
@@ -144,6 +146,7 @@ impl Default for App {
             icon_generation: 0,
             embedded_exe_icons: true,
             interface_open: false,
+            appearance: egui::ThemePreference::System,
             sort: None,
             column_widths: [0.35, 0.35, 0.1, 0.2],
             column_drag: None,
@@ -766,6 +769,7 @@ impl App {
             egui::Window::new("Interface")
                 .open(&mut open)
                 .show(ctx, |ui| {
+                    appearance::controls(ui, &mut self.appearance);
                     ui.checkbox(&mut enabled, "Use embedded icons for Windows executables");
                 });
             self.interface_open = open;
@@ -1495,6 +1499,7 @@ impl eframe::App for App {
         self.update_ui(ctx);
     }
     fn save(&mut self, storage: &mut dyn eframe::Storage) {
+        appearance::save(storage, self.appearance);
         storage.set_string("embedded_exe_icons", self.embedded_exe_icons.to_string());
     }
     fn persist_egui_memory(&self) -> bool {
@@ -1534,16 +1539,19 @@ fn main() -> eframe::Result {
         "Drill",
         options,
         Box::new(|creation| {
-            creation.egui_ctx.set_theme(egui::ThemePreference::System);
+            let appearance = appearance::load(creation.storage);
+            appearance::apply(&creation.egui_ctx, appearance);
             let embedded_exe_icons = embedded_icons_setting(creation.storage);
             #[cfg(any(target_os = "macos", target_os = "windows"))]
             let app = App {
                 native_menu: Some(native_menu::NativeMenu::new(creation)?),
+                appearance,
                 embedded_exe_icons,
                 ..Default::default()
             };
             #[cfg(not(any(target_os = "macos", target_os = "windows")))]
             let app = App {
+                appearance,
                 embedded_exe_icons,
                 ..Default::default()
             };
@@ -1557,20 +1565,22 @@ mod ui_tests {
     use super::*;
     use std::path::PathBuf;
 
+    #[derive(Default)]
+    struct Memory(std::collections::HashMap<String, String>);
+    impl eframe::Storage for Memory {
+        fn get_string(&self, key: &str) -> Option<String> {
+            self.0.get(key).cloned()
+        }
+        fn set_string(&mut self, key: &str, value: String) {
+            self.0.insert(key.into(), value);
+        }
+        fn flush(&mut self) {}
+    }
+
     #[test]
     fn executable_icon_preference_defaults_on_and_round_trips() {
         use eframe::App as _;
-        struct Memory(Option<String>);
-        impl eframe::Storage for Memory {
-            fn get_string(&self, _: &str) -> Option<String> {
-                self.0.clone()
-            }
-            fn set_string(&mut self, _: &str, value: String) {
-                self.0 = Some(value);
-            }
-            fn flush(&mut self) {}
-        }
-        let mut storage = Memory(None);
+        let mut storage = Memory::default();
         assert!(embedded_icons_setting(Some(&storage)));
         let mut app = App {
             embedded_exe_icons: false,
@@ -1578,6 +1588,70 @@ mod ui_tests {
         };
         app.save(&mut storage);
         assert!(!embedded_icons_setting(Some(&storage)));
+    }
+
+    #[test]
+    fn interface_appearance_clicks_apply_and_restore_the_selected_mode() {
+        use eframe::App as _;
+        use egui::{SystemTheme, Theme, ThemePreference};
+
+        let ctx = egui::Context::default();
+        let mut storage = Memory::default();
+        assert_eq!(appearance::load(Some(&storage)), ThemePreference::System);
+        eframe::Storage::set_string(&mut storage, "appearance", "invalid".into());
+        let mut app = App {
+            interface_open: true,
+            appearance: appearance::load(Some(&storage)),
+            ..Default::default()
+        };
+        assert_eq!(app.appearance, ThemePreference::System);
+        let draw = |app: &mut App, events, system| {
+            let mut input = frame_input(events);
+            input.system_theme = Some(system);
+            ctx.run(input, |ctx| app.update_ui(ctx))
+        };
+        let _ = draw(&mut app, vec![], Theme::Light);
+        for (label, preference, native, system, expected) in [
+            (
+                "Dark",
+                ThemePreference::Dark,
+                SystemTheme::Dark,
+                Theme::Light,
+                Theme::Dark,
+            ),
+            (
+                "Light",
+                ThemePreference::Light,
+                SystemTheme::Light,
+                Theme::Dark,
+                Theme::Light,
+            ),
+            (
+                "Auto",
+                ThemePreference::System,
+                SystemTheme::SystemDefault,
+                Theme::Dark,
+                Theme::Dark,
+            ),
+        ] {
+            let point = text_position(&draw(&mut app, vec![], system), label);
+            let click = |pressed| pointer_events(point, egui::PointerButton::Primary, pressed);
+            let _ = draw(&mut app, click(true), system);
+            let output = draw(&mut app, click(false), system);
+            assert_eq!(app.appearance, preference);
+            assert!(output.viewport_output[&egui::ViewportId::ROOT]
+                .commands
+                .iter()
+                .any(
+                    |cmd| matches!(cmd, egui::ViewportCommand::SetTheme(theme) if *theme == native)
+                ));
+            let _ = draw(&mut app, vec![], system);
+            assert_eq!(ctx.style().visuals.dark_mode, expected == Theme::Dark);
+            app.save(&mut storage);
+            assert_eq!(appearance::load(Some(&storage)), preference);
+        }
+        let _ = draw(&mut app, vec![], Theme::Light);
+        assert!(!ctx.style().visuals.dark_mode);
     }
 
     #[cfg(target_os = "linux")]
