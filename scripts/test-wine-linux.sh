@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Always use a private display, including when invoked directly by a developer.
+if [[ ${1-} != '--inside-private-xvfb' ]]; then
+    exec xvfb-run -a "$0" --inside-private-xvfb
+fi
+
 # A disposable prefix and virtual display keep the smoke test away from real user sessions.
 export WINEPREFIX
 WINEPREFIX=$(mktemp -d)
@@ -26,7 +31,11 @@ if ! window_id=$(timeout 120s xdotool search --sync --onlyvisible --name '^Drill
     exit 1
 fi
 window_id=${window_id%%$'\n'*}
-xdotool windowactivate --sync "$window_id" key --clearmodifiers Escape
+if ! timeout 15s xdotool windowactivate --sync "$window_id" key --clearmodifiers Escape; then
+    cat "$log_file" >&2
+    echo 'Could not focus the Wine window for the exit check.' >&2
+    exit 1
+fi
 for _ in {1..30}; do
     if ! kill -0 "$app_pid" 2>/dev/null; then
         wait "$app_pid"
