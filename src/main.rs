@@ -810,7 +810,10 @@ impl App {
                     Some(Instant::now())
                 };
             }
-            if self.next_hit.is_some() && ui.button("Continue searching").clicked() {
+            let continued = self.next_hit.is_some() && ui.button("Continue searching").clicked();
+            if continued {
+                // egui buttons activate on Enter without consuming the key.
+                ctx.input_mut(|input| input.consume_key(input.modifiers, Key::Enter));
                 self.continue_search();
                 results_changed = true;
             }
@@ -837,7 +840,7 @@ impl App {
                     }
                 }
             }
-            if background_input_allowed && ctx.input(|i| i.key_pressed(Key::Enter)) {
+            if background_input_allowed && !continued && ctx.input(|i| i.key_pressed(Key::Enter)) {
                 if let Some(entry) = self.selected.and_then(|n| self.results.get(n)) {
                     open(&entry.path, false);
                 }
@@ -979,8 +982,9 @@ impl App {
             let scroll = area.show_rows(ui, 25.0, self.results.len(), |ui, range| {
                 for index in range {
                     let entry = &self.results[index];
-                    let (rect, result) =
-                        ui.allocate_exact_size(egui::vec2(total, 25.0), egui::Sense::click());
+                    let (_, rect) = ui.allocate_space(egui::vec2(total, 25.0));
+                    // Keep open menus and pending clicks attached to the same file as rows move.
+                    let result = ui.interact(rect, ui.id().with(("result", &entry.path)), egui::Sense::click());
                     if result.clicked() || result.secondary_clicked() {
                         self.selected = Some(index);
                     }
@@ -1608,6 +1612,85 @@ mod ui_tests {
         assert_eq!(app.results[0].name, "rom.exe.bak");
     }
 
+    fn text_position(output: &egui::FullOutput, label: &str) -> egui::Pos2 {
+        output
+            .shapes
+            .iter()
+            .find_map(|shape| match &shape.shape {
+                egui::Shape::Text(text) if text.galley.text() == label => {
+                    Some(text.pos + text.galley.size() / 2.0)
+                }
+                _ => None,
+            })
+            .unwrap_or_else(|| panic!("missing label: {label}"))
+    }
+
+    #[test]
+    fn context_menu_copies_original_path_after_late_exact_hit() {
+        let ctx = egui::Context::default();
+        let mut app = App::default();
+        let original = entry("rom.exe.bak", 1);
+        let path = original.path.to_string_lossy().into_owned();
+        app.append_hits([(MatchKind::Partial, original)]);
+        let pos = text_position(&frame(&ctx, &mut app, vec![]), "rom.exe.bak");
+        let button = |pos, button, pressed| {
+            vec![
+                egui::Event::PointerMoved(pos),
+                egui::Event::PointerButton {
+                    pos,
+                    button,
+                    pressed,
+                    modifiers: egui::Modifiers::NONE,
+                },
+            ]
+        };
+        for pressed in [true, false] {
+            let _ = frame(
+                &ctx,
+                &mut app,
+                button(pos, egui::PointerButton::Secondary, pressed),
+            );
+        }
+        app.append_hits([(MatchKind::Exact, entry("rom.exe", 2))]);
+        let _ = frame(&ctx, &mut app, vec![]);
+        let copy = text_position(&frame(&ctx, &mut app, vec![]), "Copy Full Path");
+        let _ = frame(
+            &ctx,
+            &mut app,
+            button(copy, egui::PointerButton::Primary, true),
+        );
+        let output = frame(
+            &ctx,
+            &mut app,
+            button(copy, egui::PointerButton::Primary, false),
+        );
+        assert!(
+            output
+                .platform_output
+                .commands
+                .iter()
+                .any(|cmd| matches!(cmd, egui::OutputCommand::CopyText(value) if value == &path)),
+            "clipboard output: {:?}",
+            output.platform_output.commands
+        );
+    }
+
+    #[test]
+    fn enter_on_continue_admits_and_ranks_the_next_hit_and_consumes_the_shortcut() {
+        let ctx = egui::Context::default();
+        let mut app = App {
+            results: vec![entry("rom.exe.bak", 2)],
+            next_hit: Some((MatchKind::Exact, entry("rom.exe", 1))),
+            ..App::default()
+        };
+        let _ = frame(&ctx, &mut app, vec![]);
+        let _ = frame(&ctx, &mut app, vec![key(Key::Tab)]);
+        let _ = frame(&ctx, &mut app, vec![key(Key::Enter)]);
+        assert!(app.next_hit.is_none());
+        assert_eq!(app.results[0].name, "rom.exe");
+        assert!(!ctx.input(|input| input.key_pressed(Key::Enter)));
+    }
+
     #[test]
     fn full_last_page_finishes_and_continue_delivers_each_remaining_file_once() {
         for count in [2, 520] {
@@ -1638,16 +1721,7 @@ mod ui_tests {
             assert!(!app.receive_results(), "a paused search consumed hits");
             let ctx = egui::Context::default();
             let output = frame(&ctx, &mut app, vec![]);
-            let pos = output
-                .shapes
-                .iter()
-                .find_map(|shape| match &shape.shape {
-                    egui::Shape::Text(text) if text.galley.text() == "Continue searching" => {
-                        Some(text.pos + text.galley.size() / 2.0)
-                    }
-                    _ => None,
-                })
-                .expect("missing Continue searching button");
+            let pos = text_position(&output, "Continue searching");
             for pressed in [true, false] {
                 let _ = frame(
                     &ctx,
