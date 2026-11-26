@@ -8,6 +8,8 @@ use std::sync::{mpsc, Arc, Condvar, Mutex, OnceLock};
 use std::thread::{self, JoinHandle};
 use std::time::SystemTime;
 mod query;
+#[cfg(any(windows, test))]
+mod windows_startup;
 pub use query::{matches, MatchKind, SearchQuery};
 
 #[derive(Clone, Debug)]
@@ -212,6 +214,16 @@ fn priority(path: PathBuf) -> Priority {
     ))
 }
 
+// Resolve the containing directory so overlapping roots agree, while keeping a
+// distinct directory entry for links to the same file.
+fn entry_key(path: &Path) -> Option<PathBuf> {
+    Some(
+        fs::canonicalize(path.parent()?)
+            .ok()?
+            .join(path.file_name()?),
+    )
+}
+
 struct Work {
     queue: BinaryHeap<Priority>,
     outstanding: usize,
@@ -267,6 +279,17 @@ impl Search {
         startup_cancel: Arc<AtomicBool>,
         filter: FileFilter,
     ) -> Self {
+        Self::start_remaining(query, roots, startup_cancel, filter, HashSet::new())
+    }
+
+    fn start_remaining(
+        query: SearchQuery,
+        roots: Vec<PathBuf>,
+        startup_cancel: Arc<AtomicBool>,
+        filter: FileFilter,
+        delivered: HashSet<PathBuf>,
+    ) -> Self {
+        let delivered = Arc::new(delivered);
         let roots = if query.error().is_some() {
             Vec::new()
         } else {
@@ -312,6 +335,7 @@ impl Search {
             let (tx, cancel, work, query) =
                 (tx.clone(), cancel.clone(), work.clone(), query.clone());
             let paused = paused.clone();
+            let delivered = delivered.clone();
             workers.push(thread::spawn(move || loop {
                 let dir = {
                     let (lock, cv) = &*work;
@@ -366,6 +390,12 @@ impl Search {
                             query.classify(&name)
                         };
                         if let Some(rank) = rank {
+                            if rank == MatchKind::Exact
+                                && !delivered.is_empty()
+                                && entry_key(&path).is_some_and(|key| delivered.contains(&key))
+                            {
+                                continue;
+                            }
                             let metadata = item.metadata().ok();
                             let entry = Entry {
                                 path,

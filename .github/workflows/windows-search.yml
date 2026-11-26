@@ -1,0 +1,21 @@
+name: Windows system search
+on:
+  pull_request:
+    paths:
+      - 'crates/drill-core/**'
+      - 'src/main.rs'
+      - '.github/workflows/windows-search.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  notepad:
+    runs-on: windows-2025
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.100.0
+      - name: Verify early results for the installed Notepad executable
+        run: cargo test --locked -p drill-core default_windows_search_finds_installed_notepad -- --ignored --nocapture
