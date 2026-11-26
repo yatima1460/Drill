@@ -44,8 +44,15 @@ fn resize_columns(widths: &mut [f32; 4], divider: usize, delta: f32, total: f32)
     let minima = [80.0, 80.0, 60.0, 90.0];
     let scale = (total / 310.0_f32).min(1.0);
     let pair = widths[divider] + widths[divider + 1];
-    let left_min = minima[divider] * scale / total;
-    let right_min = minima[divider + 1] * scale / total;
+    let mut left_min = minima[divider] * scale / total;
+    let mut right_min = minima[divider + 1] * scale / total;
+    if left_min + right_min > pair {
+        // Leave room to move the divider when the pair is already too narrow
+        // to satisfy both preferred minima.
+        let factor = 0.8 * pair / (left_min + right_min);
+        left_min *= factor;
+        right_min *= factor;
+    }
     // Existing proportions can be below the preferred minima after a window
     // resize. Never move the divider merely to enforce a new minimum.
     let current = widths[divider];
@@ -798,7 +805,16 @@ impl App {
                     ui.id().with(("column-divider", divider)),
                     egui::Sense::drag(),
                 ).on_hover_cursor(egui::CursorIcon::ResizeHorizontal);
-                let pointer_x = ctx.input(|input| input.pointer.latest_pos().map(|pos| pos.x));
+                let pointer_x = ctx.input(|input| {
+                    if response.drag_stopped() {
+                        input.events.iter().rev().find_map(|event| match event {
+                            egui::Event::PointerButton { pos, button: egui::PointerButton::Primary, pressed: false, .. } => Some(pos.x),
+                            _ => None,
+                        }).or_else(|| input.pointer.latest_pos().map(|pos| pos.x))
+                    } else {
+                        input.pointer.latest_pos().map(|pos| pos.x)
+                    }
+                });
                 if response.drag_started() {
                     if let Some(x) = ctx.input(|input| input.pointer.press_origin().map(|pos| pos.x)) {
                         self.column_drag = Some((divider, x, hit_widths));
@@ -1629,7 +1645,11 @@ mod ui_tests {
         let _ = frame(
             &ctx,
             &mut app,
-            vec![egui::Event::PointerMoved(release), button(release, false)],
+            vec![
+                egui::Event::PointerMoved(release),
+                button(release, false),
+                egui::Event::PointerMoved(release + egui::vec2(20.0, 0.0)),
+            ],
         );
         assert!((app.column_widths[0] - (0.35 + 60.0 / 784.0)).abs() < 0.001);
         assert!(app.column_widths[0] > 0.40, "{:?}", app.column_widths);
@@ -1665,6 +1685,9 @@ mod ui_tests {
                 let movement = (widths[2] - 0.1) * total;
                 assert!(movement.abs() <= 1.001, "unexpected jump: {movement}");
                 assert!(movement * delta >= 0.0);
+                if delta != 0.0 {
+                    assert!(movement * delta > 0.0, "divider did not move");
+                }
             }
         }
     }
