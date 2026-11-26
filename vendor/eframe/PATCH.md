@@ -15,3 +15,6 @@ On macOS, the Glow integration refreshes the cached system appearance when an
 app removes a window theme override. AppKit can suppress change notifications
 while a window is forced light or dark. Refreshing on return to Auto covers a
 desktop appearance change that happened during the override.
+
+Drill opens its two HTTPS help links through the desktop. The native integration
+uses clipboard support from egui-winit and leaves its optional browser launcher disabled.

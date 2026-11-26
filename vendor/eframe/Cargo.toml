@@ -217,7 +217,6 @@ default-features = false
 version = "0.31.1"
 features = [
     "clipboard",
-    "links",
 ]
 default-features = false
 
