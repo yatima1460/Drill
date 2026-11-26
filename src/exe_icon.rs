@@ -18,6 +18,10 @@ pub fn is_exe(path: &Path) -> bool {
     path.extension()
         .is_some_and(|ext| ext.eq_ignore_ascii_case("exe"))
 }
+pub fn is_appimage(path: &Path) -> bool {
+    path.extension()
+        .is_some_and(|ext| ext.eq_ignore_ascii_case("AppImage"))
+}
 #[derive(Debug, PartialEq, Eq)]
 pub enum IconRoute {
     Platform,
@@ -26,7 +30,7 @@ pub enum IconRoute {
     Decode,
 }
 pub fn icon_route(path: &Path, is_dir: bool, enabled: bool) -> IconRoute {
-    if !is_exe(path) {
+    if !is_exe(path) && !is_appimage(path) {
         IconRoute::Platform
     } else if is_dir {
         IconRoute::Folder
@@ -36,7 +40,7 @@ pub fn icon_route(path: &Path, is_dir: bool, enabled: bool) -> IconRoute {
         IconRoute::TypeIcon
     }
 }
-fn snapshot(path: &Path) -> Option<Vec<u8>> {
+fn resident_file(path: &Path) -> Option<(std::fs::File, u64)> {
     let mut options = std::fs::OpenOptions::new();
     options.read(true);
     #[cfg(unix)]
@@ -54,7 +58,7 @@ fn snapshot(path: &Path) -> Option<Vec<u8>> {
     }
     let file = options.open(path).ok()?;
     let metadata = file.metadata().ok()?;
-    if !metadata.is_file() || metadata.len() > MAX_FILE {
+    if !metadata.is_file() {
         return None;
     }
     #[cfg(windows)]
@@ -73,6 +77,14 @@ fn snapshot(path: &Path) -> Option<Vec<u8>> {
         {
             return None;
         }
+    }
+    Some((file, metadata.len()))
+}
+
+fn snapshot(path: &Path) -> Option<Vec<u8>> {
+    let (file, len) = resident_file(path)?;
+    if len > MAX_FILE {
+        return None;
     }
     let mut bytes = Vec::new();
     file.take(MAX_FILE + 1).read_to_end(&mut bytes).ok()?;
@@ -172,24 +184,35 @@ impl Worker {
         let generation = Arc::new(AtomicU64::new(0));
         let current = generation.clone();
         std::thread::spawn(move || {
-            let decoder = if prevent_cloud_materialization() {
-                Decoder::new()
-            } else {
-                None
-            };
+            let resident_reads = prevent_cloud_materialization();
+            let exe_decoder = std::cell::OnceCell::new();
+            let appimage_decoder = std::cell::OnceCell::new();
             while let Ok(request) = requests.recv() {
                 if current.load(Ordering::Relaxed) != request.generation {
                     continue;
                 }
-                let pixels = decoder.as_ref().and_then(|d| {
-                    snapshot(&request.path).and_then(|bytes| {
-                        if current.load(Ordering::Relaxed) == request.generation {
-                            d.decode(&bytes)
-                        } else {
-                            None
-                        }
-                    })
-                });
+                let pixels = if !resident_reads {
+                    None
+                } else if is_appimage(&request.path) {
+                    appimage_decoder
+                        .get_or_init(crate::appimage_icon::Decoder::new)
+                        .as_ref()
+                        .and_then(|decoder| {
+                            let (file, len) = resident_file(&request.path)?;
+                            decoder.decode(file, len)
+                        })
+                } else {
+                    exe_decoder
+                        .get_or_init(Decoder::new)
+                        .as_ref()
+                        .and_then(|decoder| {
+                            let bytes = snapshot(&request.path)?;
+                            if current.load(Ordering::Relaxed) != request.generation {
+                                return None;
+                            }
+                            decoder.decode(&bytes)
+                        })
+                };
                 if response
                     .send(Response {
                         generation: request.generation,
@@ -233,6 +256,14 @@ mod tests {
         assert!(decoder.decode(b"MZ not an executable").is_none());
         assert!(is_exe(Path::new("APP.EXE")));
         assert!(!is_exe(Path::new("APP.EXE.txt")));
+        assert_eq!(
+            icon_route(Path::new("folder.AppImage"), true, true),
+            IconRoute::Folder
+        );
+        assert_eq!(
+            icon_route(Path::new("build.AppImage.txt"), false, true),
+            IconRoute::Platform
+        );
         assert_eq!(
             icon_route(Path::new("folder.exe"), true, true),
             IconRoute::Folder
