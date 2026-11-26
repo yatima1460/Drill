@@ -1,7 +1,9 @@
 # Common development commands. Run `make help` to list them.
 CARGO ?= $(if $(wildcard $(HOME)/.cargo/bin/cargo),$(HOME)/.cargo/bin/cargo,cargo)
+WINE ?= wine
+WINDOWS_LINKER ?= $(if $(CARGO_TARGET_X86_64_PC_WINDOWS_GNU_LINKER),$(CARGO_TARGET_X86_64_PC_WINDOWS_GNU_LINKER),x86_64-w64-mingw32-gcc)
 
-.PHONY: help start build check fmt fmt-check lint shellcheck test test-core test-doc test-ui test-ui-headless test-ui-native package-linux package-macos clean
+.PHONY: help start start_wine build check fmt fmt-check lint shellcheck test test-core test-doc test-ui test-ui-headless test-ui-native package-linux package-macos clean
 .DEFAULT_GOAL := help
 
 help: ## Show available commands
@@ -9,6 +11,14 @@ help: ## Show available commands
 
 start: ## Build and start Drill in release mode
 	$(CARGO) run --release --locked
+
+start_wine: ## Build the Windows version and run it with Wine
+	@command -v "$$WINE" >/dev/null 2>&1 || { echo 'Wine not found. Install Wine or set WINE to its executable.' >&2; exit 1; }
+	@command -v "$$WINDOWS_LINKER" >/dev/null 2>&1 || { echo 'Windows cross-linker not found. Install MinGW-w64 or set WINDOWS_LINKER.' >&2; exit 1; }
+	CARGO_TARGET_X86_64_PC_WINDOWS_GNU_LINKER="$$WINDOWS_LINKER" CARGO_TARGET_X86_64_PC_WINDOWS_GNU_RUNNER=./scripts/wine-runner.sh RUSTFLAGS="$${RUSTFLAGS-} -C target-feature=+crt-static" $(CARGO) run --locked --release -p drill --bin drill --target x86_64-pc-windows-gnu
+start_wine: export WINE := $(WINE)
+start_wine: export WINDOWS_LINKER := $(WINDOWS_LINKER)
+start_wine: export RUSTFLAGS := $(RUSTFLAGS)
 
 build: ## Build the release application
 	$(CARGO) build --release --locked
