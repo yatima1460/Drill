@@ -68,7 +68,7 @@ jobs:
       - name: Install Wine test dependencies
         run: sudo apt-get install -y --no-install-recommends wine wine64 xvfb xauth openbox xdotool libgl1 libgl1-mesa-dri libglx-mesa0
       - name: Open the Windows app under Wine
-        run: xvfb-run -a scripts/test-wine-linux.sh
+        run: scripts/test-wine-linux.sh
       - name: Package and inspect Windows executable
         run: |
           mkdir -p dist build/windows
