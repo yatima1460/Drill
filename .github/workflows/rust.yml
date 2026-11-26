@@ -102,22 +102,35 @@ jobs:
           toolchain: 1.100.0
           targets: x86_64-pc-windows-gnu
       - run: sudo apt-get update && sudo apt-get install -y gcc-mingw-w64-x86-64 zip file icoutils
-      - name: Cross-compile Windows executable
+      - name: Cross-compile the Windows app and its UI test executable
         env:
           CARGO_TARGET_X86_64_PC_WINDOWS_GNU_LINKER: x86_64-w64-mingw32-gcc
           RUSTFLAGS: -C target-feature=+crt-static
-        run: cargo build --release --locked --target x86_64-pc-windows-gnu
+        run: |
+          cargo build --release --locked --target x86_64-pc-windows-gnu
+          cargo test --no-run --locked --release --target x86_64-pc-windows-gnu -p drill --bin drill \
+            --message-format=json-render-diagnostics > "$RUNNER_TEMP/windows-ui-build.jsonl"
+          test_exe=$(jq -ers 'map(select(.reason == "compiler-artifact" and .target.name == "drill" and .profile.test and .executable))
+            | select(length == 1) | .[0].executable' "$RUNNER_TEMP/windows-ui-build.jsonl")
+          cp -- "$test_exe" "$RUNNER_TEMP/drill-ui-tests.exe"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: drill-windows-ui-tests
+          path: ${{ runner.temp }}/drill-ui-tests.exe
+          if-no-files-found: error
+          retention-days: 1
       - name: Install Wine test dependencies
         run: sudo apt-get install -y --no-install-recommends wine wine64 xvfb xauth openbox xdotool wmctrl libgl1 libgl1-mesa-dri libglx-mesa0
       - name: Open the Windows app under Wine
         run: scripts/test-wine-linux.sh
       - name: Package and inspect Windows executable
         run: |
-          mkdir -p dist build/windows
+          mkdir -p dist build/windows/licenses/emoji
           cp target/x86_64-pc-windows-gnu/release/drill.exe build/windows/Drill.exe
           file build/windows/Drill.exe | grep -q 'PE32+'
           cp LICENSE build/windows/
-          (cd build/windows && zip -q ../../dist/Drill-windows-x86_64.zip Drill.exe LICENSE)
+          cp src/assets/emoji/{NOTICE,LICENSE-TWEMOJI,LICENSE-UNICODE} build/windows/licenses/emoji/
+          (cd build/windows && zip -q ../../dist/Drill-windows-x86_64.zip Drill.exe LICENSE licenses/emoji/*)
           unzip -t dist/Drill-windows-x86_64.zip
           unzip -p dist/Drill-windows-x86_64.zip Drill.exe > build/windows/packaged.exe
           wrestool --extract --type=14 --name=1 build/windows/packaged.exe > build/windows/embedded.ico
@@ -131,6 +144,22 @@ jobs:
           name: drill-windows
           path: dist/*
           if-no-files-found: error
+  windows-ui:
+    needs: windows-cross
+    runs-on: windows-2025
+    timeout-minutes: 5
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: drill-windows-ui-tests
+      - name: Verify result-row emoji on native Windows
+        shell: pwsh
+        run: |
+          $test = 'ui_tests::emoji_filenames_paint_colored_clusters_inside_their_columns'
+          & .\drill-ui-tests.exe $test --exact --color never | Tee-Object -Variable result
+          if ($LASTEXITCODE -ne 0 -or $result -cnotcontains "test $test ... ok") {
+            throw "The native Windows emoji regression did not pass."
+          }
   macos:
     outputs:
       executable-id: ${{ steps.executable.outputs.artifact-id }}
@@ -188,7 +217,7 @@ jobs:
                     .base.ref == "main" and .merge_commit_sha == $sha)')
           echo "eligible=$matched" >> "$GITHUB_OUTPUT"
   sign-macos:
-    needs: [merged-main, jscpd, linux, windows-cross, macos]
+    needs: [merged-main, jscpd, linux, windows-cross, windows-ui, macos]
     if: >-
       needs.merged-main.outputs.eligible == 'true' && needs.macos.outputs.executable-id != '' &&
       (github.run_attempt == 1 || github.triggering_actor == 'yatima1460')

@@ -11,6 +11,7 @@ use std::path::Path;
 use std::time::{Duration, Instant};
 mod appimage_icon;
 mod exe_icon;
+mod result_emoji;
 mod result_order;
 mod search_mode;
 use search_mode::{Mode, Results};
@@ -97,6 +98,7 @@ struct App {
     focus_search: bool,
     scroll_offset: f32,
     icons: std::collections::HashMap<std::path::PathBuf, Option<egui::TextureHandle>>,
+    emoji: result_emoji::EmojiCache,
     icon_worker: Option<exe_icon::Worker>,
     pending_icons: std::collections::HashSet<std::path::PathBuf>,
     exe_type_icon: Option<Option<egui::TextureHandle>>,
@@ -145,6 +147,7 @@ impl Default for App {
             focus_search: true,
             scroll_offset: 0.0,
             icons: std::collections::HashMap::new(),
+            emoji: result_emoji::EmojiCache::default(),
             icon_worker: None,
             pending_icons: Default::default(),
             exe_type_icon: None,
@@ -1405,10 +1408,10 @@ impl App {
                             egui::pos2(x, rect.top()),
                             egui::pos2(x + column_width - 4.0, rect.bottom()),
                         );
-                        ui.painter().with_clip_rect(clip).text(
+                        self.emoji.paint(
+                            &ui.painter().with_clip_rect(clip),
                             egui::pos2(if column == 0 { icon_rect.right() + 6.0 } else { x + 4.0 }, rect.center().y),
-                            egui::Align2::LEFT_CENTER,
-                            value,
+                            &value,
                             egui::TextStyle::Body.resolve(ui.style()),
                             if self.selected == Some(index) {
                                 ui.visuals().selection.stroke.color
@@ -1951,6 +1954,67 @@ mod ui_tests {
             modified: None,
             is_dir: false,
         }
+    }
+
+    #[test]
+    fn emoji_filenames_paint_colored_clusters_inside_their_columns() {
+        let ctx = egui::Context::default();
+        let mut app = App::default();
+        let name = "Notes 😭🥀.txt";
+        let mut result = entry(name, 0);
+        result.path = PathBuf::from("work👩🏽‍💻").join(name);
+        app.icons.insert(result.path.clone(), None);
+        app.results.push(result);
+        app.selected = Some(0);
+        let output = frame(&ctx, &mut app, vec![]);
+        let mut emoji = Vec::new();
+        for clipped in &output.shapes {
+            let egui::Shape::Mesh(mesh) = &clipped.shape else {
+                continue;
+            };
+            let Some((_, delta)) = output
+                .textures_delta
+                .set
+                .iter()
+                .find(|(id, _)| *id == mesh.texture_id)
+            else {
+                continue;
+            };
+            let egui::ImageData::Color(image) = &delta.image else {
+                continue;
+            };
+            if image.size == [72, 72] {
+                assert!(mesh
+                    .vertices
+                    .iter()
+                    .all(|v| v.color == egui::Color32::WHITE));
+                let bounds = mesh.calc_bounds();
+                assert!(clipped.clip_rect.contains_rect(bounds));
+                emoji.push((bounds, clipped.clip_rect, &image.pixels));
+            }
+        }
+        assert_eq!(
+            emoji.len(),
+            3,
+            "two filename emoji and a single joined emoji in the path"
+        );
+        let (face, rose, coder) = (&emoji[0], &emoji[1], &emoji[2]);
+        assert_eq!(face.1, rose.1);
+        assert!(face.0.right() <= rose.0.left());
+        assert!(rose.1.right() < coder.1.left());
+        assert!(text_position(&output, ".txt").x > rose.0.right());
+        assert!(face
+            .2
+            .iter()
+            .any(|p| p.r() > 190 && p.g() > 130 && p.b() < 100));
+        assert!(face.2.iter().any(|p| p.b() > 180 && p.r() < 140));
+        assert!(rose.2.iter().any(|p| p.r() > 140 && p.g() < 100));
+        assert!(rose
+            .2
+            .iter()
+            .any(|p| p.g() > 75 && p.g() > p.r() && p.g() > p.b()));
+        assert_eq!(app.results[0].name, name);
+        assert_eq!(app.results[0].path, PathBuf::from("work👩🏽‍💻").join(name));
     }
     #[test]
     fn late_exact_hits_preserve_selection_and_respect_manual_sort() {
