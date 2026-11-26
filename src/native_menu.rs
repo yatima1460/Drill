@@ -4,9 +4,55 @@ mod macos;
 mod windows;
 
 #[cfg(target_os = "macos")]
-pub use macos::NativeMenu;
+use macos as platform;
 #[cfg(target_os = "windows")]
-pub use windows::NativeMenu;
+use windows as platform;
+
+use std::{cell::RefCell, rc::Rc};
+
+pub struct NativeMenu {
+    menu: platform::Menu,
+    state: Rc<RefCell<MenuState>>,
+}
+
+impl NativeMenu {
+    pub fn new(creation: &eframe::CreationContext<'_>) -> Result<Self, String> {
+        let state = Rc::new(RefCell::new(MenuState::default()));
+        let target = Rc::clone(&state);
+        let context = creation.egui_ctx.clone();
+        let menu = platform::install(creation, move |action| {
+            let command = match action {
+                platform::NativeCommand::Stop => Command::Stop,
+                platform::NativeCommand::Interface => Command::Interface,
+                platform::NativeCommand::Syntax => Command::Syntax,
+                #[cfg(target_os = "macos")]
+                platform::NativeCommand::Permissions => Command::Permissions,
+            };
+            if target.borrow_mut().request(command) {
+                context.request_repaint();
+            }
+        })?;
+        Ok(Self { menu, state })
+    }
+
+    pub fn set_enabled(&self, can_stop: bool) {
+        let settings = !self.state.borrow().reading_syntax;
+        self.menu.set_enabled(can_stop && settings, settings);
+    }
+
+    #[cfg(windows)]
+    pub fn set_dark(&self, dark: bool) {
+        self.menu.set_dark(dark);
+    }
+
+    pub fn take_requests(&self) -> Requests {
+        self.state.borrow_mut().take_requests()
+    }
+
+    pub fn syntax_closed(&self) {
+        self.state.borrow_mut().syntax_closed();
+    }
+}
 
 #[derive(Default)]
 pub(super) struct Requests {

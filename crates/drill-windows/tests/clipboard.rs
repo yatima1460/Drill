@@ -1,33 +1,18 @@
 #![cfg(all(windows, feature = "clipboard"))]
 
 use drill_windows::clipboard;
-use std::ffi::c_void;
 use std::io;
-use std::num::NonZeroIsize;
 use std::ptr::null_mut;
 use std::time::{Duration, Instant};
 
-type Handle = *mut c_void;
+mod support;
+use support::{Handle, Window};
+
 const CF_DIBV5: u32 = 17;
 const DIB_HEADER_SIZE: usize = 124;
 
 #[link(name = "user32")]
 unsafe extern "system" {
-    fn CreateWindowExW(
-        extended_style: u32,
-        class: *const u16,
-        name: *const u16,
-        style: u32,
-        x: i32,
-        y: i32,
-        width: i32,
-        height: i32,
-        parent: Handle,
-        menu: Handle,
-        instance: Handle,
-        param: Handle,
-    ) -> Handle;
-    fn DestroyWindow(window: Handle) -> i32;
     fn OpenClipboard(window: Handle) -> i32;
     fn CloseClipboard() -> i32;
     fn RegisterClipboardFormatW(name: *const u16) -> u32;
@@ -40,44 +25,6 @@ unsafe extern "system" {
     fn GlobalSize(memory: Handle) -> usize;
     fn GlobalLock(memory: Handle) -> Handle;
     fn GlobalUnlock(memory: Handle) -> i32;
-}
-
-struct Window(NonZeroIsize);
-
-impl Window {
-    fn hidden() -> Self {
-        let class: Vec<u16> = "STATIC\0".encode_utf16().collect();
-        // SAFETY: The terminated class names a system control. The window has no visible style.
-        let window = unsafe {
-            CreateWindowExW(
-                0,
-                class.as_ptr(),
-                std::ptr::null(),
-                0,
-                0,
-                0,
-                1,
-                1,
-                null_mut(),
-                null_mut(),
-                null_mut(),
-                null_mut(),
-            )
-        };
-        Self(NonZeroIsize::new(window as isize).unwrap_or_else(|| {
-            panic!(
-                "could not create clipboard owner: {}",
-                io::Error::last_os_error()
-            )
-        }))
-    }
-}
-
-impl Drop for Window {
-    fn drop(&mut self) {
-        // SAFETY: This thread created and owns this live window.
-        unsafe { DestroyWindow(self.0.get() as Handle) };
-    }
 }
 
 struct OpenClipboardGuard;

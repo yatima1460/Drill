@@ -6,6 +6,10 @@
 #[allow(unsafe_code)]
 pub mod clipboard;
 
+#[cfg(feature = "menu")]
+#[allow(unsafe_code)]
+pub mod menu;
+
 #[cfg(feature = "shell-icons")]
 #[allow(unsafe_code)]
 mod file_icon;

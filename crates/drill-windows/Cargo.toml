@@ -6,4 +6,5 @@ license-file = "../../LICENSE"
 
 [features]
 clipboard = []
+menu = []
 shell-icons = []

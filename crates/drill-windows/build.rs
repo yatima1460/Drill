@@ -162,10 +162,12 @@ fn main() {
         return;
     }
     let clipboard = env::var_os("CARGO_FEATURE_CLIPBOARD").is_some();
+    let menu = env::var_os("CARGO_FEATURE_MENU").is_some();
     let shell_icons = env::var_os("CARGO_FEATURE_SHELL_ICONS").is_some();
     let mut defines = Vec::new();
     for (enabled, define, file) in [
         (clipboard, "DRILL_CLIPBOARD", "src/clipboard.c"),
+        (menu, "DRILL_MENU", "src/menu.c"),
         (shell_icons, "DRILL_SHELL_ICONS", "src/file_icon.c"),
     ] {
         if enabled {
@@ -191,7 +193,12 @@ fn main() {
 
     println!("cargo:rustc-link-search=native={}", out.display());
     println!("cargo:rustc-link-lib=static=drill_windows_native");
-    if clipboard {
+    if menu {
+        println!("cargo:rerun-if-changed=src/menu_appearance.c");
+        println!("cargo:rustc-link-lib=comctl32");
+        println!("cargo:rustc-link-lib=gdi32");
+    }
+    if clipboard || menu {
         println!("cargo:rustc-link-lib=user32");
     }
     if shell_icons {

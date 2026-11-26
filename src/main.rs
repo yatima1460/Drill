@@ -1022,6 +1022,8 @@ impl App {
                 menu.syntax_closed();
             }
             menu.set_enabled(self.can_stop());
+            #[cfg(windows)]
+            menu.set_dark(ctx.theme() == egui::Theme::Dark);
         }
         #[cfg(not(any(target_os = "macos", target_os = "windows")))]
         in_window_search_menu(ctx, self);
