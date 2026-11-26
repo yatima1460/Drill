@@ -86,6 +86,21 @@ body {
   font-size: 1rem;
 }
 
+.release-feed {
+  margin: 0.2rem 0 0;
+  font-size: 0.9rem;
+}
+
+.release-feed a,
+.release-date a {
+  color: var(--ink-muted);
+  text-underline-offset: 0.15em;
+}
+
+.hero-actions > a {
+  justify-self: start;
+}
+
 .hero-actions {
   display: grid;
   gap: 0.75rem;
