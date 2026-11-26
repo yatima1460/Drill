@@ -242,15 +242,19 @@ fn platform_icon_texture(
     let image = egui::ColorImage::from_rgba_unmultiplied(dimensions, &rgba);
     Some(ctx.load_texture(name, image, egui::TextureOptions::LINEAR))
 }
-#[cfg(not(target_os = "linux"))]
+#[cfg(any(target_os = "macos", windows))]
+mod icon_sample;
+
+#[cfg(any(target_os = "macos", windows))]
 fn executable_type_icon(ctx: &egui::Context, sample_name: &str) -> Option<egui::TextureHandle> {
-    // Ask the OS about a private, empty sample; never pass it the untrusted executable.
-    let sample = tempfile::Builder::new()
-        .suffix(sample_name)
-        .tempfile()
-        .ok()?;
-    let icon = file_icon_provider::get_file_icon(sample.path(), NATIVE_ICON_PIXELS).ok()?;
+    let icon = icon_sample::icon(sample_name, NATIVE_ICON_PIXELS)?;
     platform_icon_texture(ctx, icon, sample_name)
+}
+
+#[cfg(not(any(target_os = "linux", target_os = "macos", windows)))]
+fn executable_type_icon(_: &egui::Context, _: &str) -> Option<egui::TextureHandle> {
+    // The icon provider has no native backend on other platforms.
+    None
 }
 #[cfg(target_os = "linux")]
 fn executable_type_icon(ctx: &egui::Context, sample_name: &str) -> Option<egui::TextureHandle> {

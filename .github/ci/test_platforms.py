@@ -20,6 +20,7 @@ class PlatformRouting(unittest.TestCase):
             ("src/assets/roots_windows.txt", {"windows"}),
             ("src/linux_apps.rs", {"linux"}),
             ("src/native_menu.rs", {"windows", "macos"}),
+            ("src/icon_sample.rs", {"windows", "macos"}),
             ("Cargo.lock", ALL),
             ("vendor/file_icon_provider/src/implementation/macos.rs", {"macos"}),
             ("tools/exe-icon-wasm/tests/fixtures/README.md", set()),

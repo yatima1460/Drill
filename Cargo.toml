@@ -30,9 +30,6 @@ image = { version = "0.25.10", default-features = false, features = ["png"] }
 wasmi = { version = "0.51.3", default-features = false, features = ["std", "extra-checks"] }
 unicode-segmentation = "1.13.3"
 
-[target.'cfg(not(target_os = "linux"))'.dependencies]
-tempfile = "3.23.0"
-
 [target.'cfg(unix)'.dependencies]
 libc = "0.2"
 
@@ -43,11 +40,12 @@ gio-unix = "0.22"
 [target.'cfg(target_os = "macos")'.dependencies]
 objc2 = "0.6.4"
 objc2-app-kit = { version = "0.3.2", default-features = false, features = ["NSApplication", "NSOpenPanel", "NSPanel", "NSResponder", "NSSavePanel", "NSWindow"] }
-objc2-foundation = { version = "0.3.2", default-features = false, features = ["std", "NSString", "NSURL"] }
+objc2-foundation = { version = "0.3.2", default-features = false, features = ["std", "NSString", "NSURL", "NSUUID"] }
 
 [target.'cfg(any(target_os = "macos", target_os = "windows"))'.dependencies]
 muda = { version = "0.21.2", default-features = false }
 raw-window-handle = "0.6.2"
 
 [target.'cfg(target_os = "windows")'.dependencies]
+windows-core = { version = "0.62.2", default-features = false }
 windows-sys = { version = "0.61.2", features = ["Win32_Foundation", "Win32_UI_Shell", "Win32_UI_WindowsAndMessaging", "Win32_System_Com", "Win32_Storage_FileSystem"] }

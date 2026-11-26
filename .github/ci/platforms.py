@@ -29,7 +29,7 @@ def select(paths, event):
             targets = {"linux"}
         elif path in {"src/assets/drill.ico", "src/assets/drill.rc", "src/assets/roots_windows.txt"}:
             targets = {"windows"}
-        elif path == "src/native_menu.rs":
+        elif path in {"src/native_menu.rs", "src/icon_sample.rs"}:
             targets = {"macos", "windows"}
         elif path.startswith(("tools/exe-icon-wasm/", "tools/appimage-icon-wasm/")):
             targets = ALL if "/tests/fixtures/" in path else {"linux"}
