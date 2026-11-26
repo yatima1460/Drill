@@ -17,7 +17,7 @@ def output(command, cwd, **kwargs):
     return subprocess.check_output(command, cwd=cwd, text=True, **kwargs).strip()
 
 
-def measure(checkout, cargo, jobs, report):
+def measure(checkout, cargo, jobs, report, linker):
     with tempfile.TemporaryDirectory(prefix="drill-clean-build-") as scratch:
         target = Path(scratch) / "target"
         env = dict(os.environ, CARGO_TARGET_DIR=str(target), CARGO_BUILD_BUILD_DIR=str(target),
@@ -27,10 +27,16 @@ def measure(checkout, cargo, jobs, report):
                        env=env, check=True)
         if target.exists() and any(target.iterdir()):
             raise RuntimeError(f"Target directory still contains artifacts: {target}")
-        cmd = [cargo, "build", "--release", "--frozen", "--jobs", str(jobs),
+        cmd = [cargo, "rustc" if linker else "build", "--release", "--frozen", "--jobs", str(jobs),
                "-p", "drill", "--bin", "drill", "--message-format=json-render-diagnostics"]
         if report:
             cmd.append("--timings")
+        if linker:
+            link_log = Path(scratch) / "link-seconds"
+            env.update(DRILL_BENCH_LINKER=linker, DRILL_BENCH_LINK_LOG=str(link_log))
+            wrapper = Path(__file__).resolve().with_name("bench-linker.py")
+            # cargo rustc applies these flags only to the final Drill executable.
+            cmd.extend(["--", "-C", f"linker={wrapper}"])
         with tempfile.TemporaryFile(mode="w+") as messages:
             start = time.perf_counter()
             subprocess.run(cmd, cwd=checkout, env=env, stdout=messages, check=True)
@@ -42,9 +48,13 @@ def measure(checkout, cargo, jobs, report):
         binary, = {m["executable"] for m in artifacts if m["target"]["name"] == "drill" and m["executable"]}
         if report:
             shutil.copyfile(target / "cargo-timings/cargo-timing.html", report)
-        return {"seconds": round(elapsed, 3), "compiled_units": len(artifacts),
-                "compiled_packages": len({m["package_id"] for m in artifacts}),
-                "version": output([binary, "--version"], checkout, timeout=10)}
+        sample = {"seconds": round(elapsed, 3), "compiled_units": len(artifacts),
+                  "compiled_packages": len({m["package_id"] for m in artifacts}),
+                  "version": output([binary, "--version"], checkout, timeout=10)}
+        if linker:
+            duration, = link_log.read_text().splitlines()
+            sample["final_link_seconds"] = round(float(duration), 4)
+        return sample
 
 
 def main():
@@ -53,12 +63,16 @@ def main():
     parser.add_argument("--timings-dir", type=Path, help="keep Cargo's per-unit HTML reports here")
     parser.add_argument("--runs", type=int, default=5, help="clean builds per checkout")
     parser.add_argument("--jobs", type=int, required=True, help="Cargo parallelism for every build")
+    parser.add_argument("--linker", help="time the final link using this Unix C compiler driver (e.g. cc)")
     args = parser.parse_args()
     if min(args.runs, args.jobs) < 1:
         parser.error("runs and jobs must be positive")
     cargo = shutil.which("cargo")
     if not cargo:
         parser.error("cargo must be on PATH")
+    linker = shutil.which(args.linker) if args.linker else None
+    if args.linker and (os.name != "posix" or not linker):
+        parser.error("--linker requires an executable Unix C compiler driver")
     checkouts = [p.resolve() for p in args.checkouts]
     if len(set(checkouts)) != len(checkouts):
         parser.error("specify each checkout once")
@@ -77,21 +91,24 @@ def main():
         # Create a new output directory so an earlier comparison cannot be overwritten.
         args.timings_dir.mkdir(parents=True)
     for index in range(args.runs):
-        # Alternate the order to reduce bias from system load and temperature.
-        for path in (checkouts if index % 2 == 0 else reversed(checkouts)):
+        # Rotate the first checkout so each version runs in each position.
+        offset = index % len(checkouts)
+        for path in checkouts[offset:] + checkouts[:offset]:
             report = None
             if args.timings_dir:
                 slot = checkouts.index(path) + 1
                 sha = results[path]["commit"][:12]
                 report = args.timings_dir / f"{slot}-{sha}-run-{index + 1}.html"
-            sample = measure(path, cargo, args.jobs, report)
+            sample = measure(path, cargo, args.jobs, report, linker)
             results[path]["samples"].append(sample)
             print(f"{path.name} {index + 1}/{args.runs}: {sample['seconds']:.3f} s", file=sys.stderr)
     for result in results.values():
         result["median_seconds"] = statistics.median(s["seconds"] for s in result["samples"])
+        if linker:
+            result["median_final_link_seconds"] = statistics.median(s["final_link_seconds"] for s in result["samples"])
     rustc, cargo_version = versions.pop()
     print(json.dumps({"platform": platform.platform(), "jobs": args.jobs, "rustc": rustc,
-                      "cargo": cargo_version, "checkouts": list(results.values())}, indent=2))
+                      "cargo": cargo_version, "linker": linker, "checkouts": list(results.values())}, indent=2))
 
 
 if __name__ == "__main__":

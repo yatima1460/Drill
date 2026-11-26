@@ -4,6 +4,21 @@ The `rust` branch introduces a native Rust desktop application. The former Pytho
 
 Run `cargo run --release` or open `Start Drill.command` on macOS. The launcher requires Rust installed through rustup. The first build may download dependencies.
 
+To compare clean desktop builds, give the benchmark a fresh output directory and
+the paths to clean checkouts. Fetch their locked dependencies first. On macOS
+or Linux, pass the same C compiler driver that Rust normally uses to also
+measure the final executable link.
+
+```sh
+python3 scripts/bench-clean-build.py --runs 6 --jobs 12 --linker cc \
+  --timings-dir /tmp/drill-cargo-timings /path/to/baseline /path/to/candidate
+```
+
+The JSON output records full build time, time inside the final linker driver,
+and counts of compiled packages and units. Each run uses empty build directories
+and executes the linked binary. Cargo's HTML reports show overlapping work per
+unit. Build scripts and procedural macros can cost time before the final link.
+
 The Rust search code runs off the UI thread, scans the existing platform root lists without indexing, and skips directory symlinks. Plain and `fuzzy:` searches ignore case and accents. Plain search requires every word to occur in the name. Results can be opened or revealed from the context menu. Search → Stop cancels an active or starting search and retains the results already shown. macOS and Windows use native application menus; Linux shows the menu inside the window.
 
 Wildcard searches match the whole name and ignore case and accents. A bare asterisk selects wildcard search, so `*.md`, `myfile*`, `*myfile` and `*myfile*` find a suffix, prefix, ending and substring respectively. Use `glob:` for patterns with single-character wildcards or character classes, such as `glob:page[0-9]?.pdf`. Escape a literal asterisk with a backslash, as in `glob:report\*.txt`. Other punctuation in plain searches stays literal.
