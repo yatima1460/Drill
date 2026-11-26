@@ -16,7 +16,7 @@ case "$campaign" in
   smoke)
     case "$scope" in
       core) args+=(--file file_filter.rs) ;;
-      desktop) args+=(--file result_order.rs --file exe_icon.rs --re 'insert_exact|icon_route|is_exe') ;;
+      desktop) args+=(--file result_order.rs --file exe_icon.rs --re 'exact_batch|icon_route|is_exe') ;;
       guest) args+=(--file resource.rs) ;;
     esac ;;
   full)

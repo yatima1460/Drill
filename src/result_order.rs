@@ -1,19 +1,12 @@
-/// Insert new exact hits after older exact hits, keeping the selected row's identity.
-pub(super) fn insert_exact<T>(
-    rows: &mut Vec<T>,
-    exact_count: &mut usize,
-    selected: &mut Option<usize>,
-    exact: Vec<T>,
-) {
-    if exact.is_empty() {
-        return;
-    }
-    let boundary = *exact_count;
-    if let Some(index) = selected {
-        if *index >= boundary {
-            *index += exact.len();
-        }
-    }
-    *exact_count += exact.len();
-    rows.splice(boundary..boundary, exact);
+use std::ops::Range;
+
+/// New exact hits occupy this range immediately before the old partial hits.
+/// The caller splices at its start and keeps its end as the new exact prefix.
+pub(super) fn exact_batch(
+    boundary: usize,
+    selected: Option<usize>,
+    count: usize,
+) -> (Range<usize>, Option<usize>) {
+    let selected = selected.map(|i| if i >= boundary { i + count } else { i });
+    (boundary..boundary + count, selected)
 }

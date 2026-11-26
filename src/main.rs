@@ -629,12 +629,13 @@ impl App {
                 self.results.push(entry);
             }
         }
-        result_order::insert_exact(
-            &mut self.results,
-            &mut self.exact_count,
-            &mut self.selected,
-            exact,
-        );
+        if !exact.is_empty() {
+            let (inserted, selected) =
+                result_order::exact_batch(self.exact_count, self.selected, exact.len());
+            self.results.splice(inserted.start..inserted.start, exact);
+            self.exact_count = inserted.end;
+            self.selected = selected;
+        }
     }
 
     fn continue_search(&mut self) {
