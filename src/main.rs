@@ -6,6 +6,7 @@ use eframe::egui::{self, Key};
 use std::path::Path;
 use std::time::{Duration, Instant};
 mod appearance;
+mod appimage_icon;
 mod exe_icon;
 mod result_order;
 mod search_mode;
@@ -18,9 +19,9 @@ mod native_menu;
 mod permissions;
 
 const LIMIT: usize = 10_000;
-fn embedded_icons_setting(storage: Option<&dyn eframe::Storage>) -> bool {
+fn embedded_icons_setting(storage: Option<&dyn eframe::Storage>, key: &str) -> bool {
     storage
-        .and_then(|storage| storage.get_string("embedded_exe_icons"))
+        .and_then(|storage| storage.get_string(key))
         .and_then(|value| value.parse().ok())
         .unwrap_or(true)
 }
@@ -98,8 +99,12 @@ struct App {
     exe_type_icon: Option<Option<egui::TextureHandle>>,
     icon_generation: u64,
     embedded_exe_icons: bool,
+    embedded_appimage_icons: bool,
+    appimage_type_icon: Option<Option<egui::TextureHandle>>,
     interface_open: bool,
     appearance: egui::ThemePreference,
+    #[cfg(target_os = "linux")]
+    desktop_theme: Option<appearance::linux::DesktopTheme>,
     sort: Option<(SortColumn, bool)>,
     column_widths: [f32; 4],
     column_drag: Option<(usize, f32, [f32; 4])>,
@@ -145,8 +150,12 @@ impl Default for App {
             exe_type_icon: None,
             icon_generation: 0,
             embedded_exe_icons: true,
+            embedded_appimage_icons: true,
+            appimage_type_icon: None,
             interface_open: false,
             appearance: egui::ThemePreference::System,
+            #[cfg(target_os = "linux")]
+            desktop_theme: None,
             sort: None,
             column_widths: [0.35, 0.35, 0.1, 0.2],
             column_drag: None,
@@ -224,25 +233,28 @@ fn platform_icon_texture(
     Some(ctx.load_texture(name, image, egui::TextureOptions::LINEAR))
 }
 #[cfg(not(target_os = "linux"))]
-fn executable_type_icon(ctx: &egui::Context) -> Option<egui::TextureHandle> {
+fn executable_type_icon(ctx: &egui::Context, sample_name: &str) -> Option<egui::TextureHandle> {
     // Ask the OS about a private, empty sample; never pass it the untrusted executable.
-    let sample = tempfile::Builder::new().suffix(".exe").tempfile().ok()?;
+    let sample = tempfile::Builder::new()
+        .suffix(sample_name)
+        .tempfile()
+        .ok()?;
     let icon = file_icon_provider::get_file_icon(sample.path(), NATIVE_ICON_PIXELS).ok()?;
-    platform_icon_texture(ctx, icon, "exe-type-icon")
+    platform_icon_texture(ctx, icon, sample_name)
 }
 #[cfg(target_os = "linux")]
-fn executable_type_icon(ctx: &egui::Context) -> Option<egui::TextureHandle> {
+fn executable_type_icon(ctx: &egui::Context, sample_name: &str) -> Option<egui::TextureHandle> {
     use gtk::prelude::*;
     if !gtk::is_initialized() {
         gtk::init().ok()?;
     }
-    let (content_type, _) = gtk::gio::content_type_guess(Some(Path::new("application.exe")), None);
+    let (content_type, _) = gtk::gio::content_type_guess(Some(Path::new(sample_name)), None);
     let icon = gtk::gio::content_type_get_icon(&content_type);
     let themed = icon.dynamic_cast_ref::<gtk::gio::ThemedIcon>()?;
     themed_icon_texture(
         ctx,
         themed.names().iter().map(|name| name.as_str()),
-        "exe-type-icon",
+        sample_name,
     )
 }
 
@@ -765,17 +777,28 @@ impl App {
         let interface_was_open = self.interface_open;
         if self.interface_open {
             let mut open = self.interface_open;
-            let mut enabled = self.embedded_exe_icons;
+            let mut exe_enabled = self.embedded_exe_icons;
+            let mut appimage_enabled = self.embedded_appimage_icons;
             egui::Window::new("Interface")
                 .open(&mut open)
                 .show(ctx, |ui| {
                     appearance::controls(ui, &mut self.appearance);
-                    ui.checkbox(&mut enabled, "Use embedded icons for Windows executables");
+                    ui.checkbox(
+                        &mut exe_enabled,
+                        "Use embedded icons for Windows executables",
+                    );
+                    ui.checkbox(&mut appimage_enabled, "Use embedded icons for AppImages");
                 });
             self.interface_open = open;
-            if enabled != self.embedded_exe_icons {
-                self.embedded_exe_icons = enabled;
-                self.icons.retain(|path, _| !exe_icon::is_exe(path));
+            let exe_changed = exe_enabled != self.embedded_exe_icons;
+            let appimage_changed = appimage_enabled != self.embedded_appimage_icons;
+            if exe_changed || appimage_changed {
+                self.embedded_exe_icons = exe_enabled;
+                self.embedded_appimage_icons = appimage_enabled;
+                self.icons.retain(|path, _| {
+                    !(exe_changed && exe_icon::is_exe(path)
+                        || appimage_changed && exe_icon::is_appimage(path))
+                });
                 self.pending_icons.clear();
                 self.icon_generation = self.icon_generation.wrapping_add(1);
                 if let Some(worker) = &self.icon_worker {
@@ -1233,11 +1256,13 @@ impl App {
                     ];
                     let icon_pos = egui::pos2(rect.left() + 5.0, rect.center().y - RESULT_ICON_SIZE / 2.0);
                     let icon_rect = egui::Rect::from_min_size(icon_pos, egui::Vec2::splat(RESULT_ICON_SIZE));
+                    let is_appimage = exe_icon::is_appimage(&entry.path);
+                    let embedded_enabled = if is_appimage { self.embedded_appimage_icons } else { self.embedded_exe_icons };
                     if !self.icons.contains_key(&entry.path) {
                         let route = exe_icon::icon_route(
                             &entry.path,
                             entry.is_dir,
-                            self.embedded_exe_icons,
+                            embedded_enabled,
                         );
                         if route != exe_icon::IconRoute::Platform {
                             if route != exe_icon::IconRoute::Decode {
@@ -1295,9 +1320,13 @@ impl App {
                             );
                         }
                         Some(None) => {
-                            let type_icon = if !entry.is_dir && exe_icon::is_exe(&entry.path) {
+                            let type_icon = if !entry.is_dir && is_appimage {
+                                self.appimage_type_icon
+                                    .get_or_insert_with(|| executable_type_icon(ctx, "sample.AppImage"))
+                                    .as_ref()
+                            } else if !entry.is_dir && exe_icon::is_exe(&entry.path) {
                                 self.exe_type_icon
-                                    .get_or_insert_with(|| executable_type_icon(ctx))
+                                    .get_or_insert_with(|| executable_type_icon(ctx, "sample.exe"))
                                     .as_ref()
                             } else {
                                 None
@@ -1343,9 +1372,9 @@ impl App {
                         }
                         None => {}
                     }
-                    if self.embedded_exe_icons
+                    if embedded_enabled
                         && !entry.is_dir
-                        && exe_icon::is_exe(&entry.path)
+                        && (is_appimage || exe_icon::is_exe(&entry.path))
                         && matches!(self.icons.get(&entry.path), Some(None))
                     {
                         result.clone().on_hover_text(
@@ -1495,12 +1524,27 @@ impl App {
     }
 }
 impl eframe::App for App {
+    #[cfg(any(target_os = "linux", windows))]
+    fn raw_input_hook(&mut self, ctx: &egui::Context, input: &mut egui::RawInput) {
+        #[cfg(target_os = "linux")]
+        if let Some(desktop) = &self.desktop_theme {
+            input.system_theme = desktop.current().or(input.system_theme);
+        }
+        if input.system_theme != ctx.system_theme() {
+            appearance::update_window(ctx, self.appearance, input.system_theme);
+        }
+    }
+
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         self.update_ui(ctx);
     }
     fn save(&mut self, storage: &mut dyn eframe::Storage) {
         appearance::save(storage, self.appearance);
         storage.set_string("embedded_exe_icons", self.embedded_exe_icons.to_string());
+        storage.set_string(
+            "embedded_appimage_icons",
+            self.embedded_appimage_icons.to_string(),
+        );
     }
     fn persist_egui_memory(&self) -> bool {
         false
@@ -1541,18 +1585,26 @@ fn main() -> eframe::Result {
         Box::new(|creation| {
             let appearance = appearance::load(creation.storage);
             appearance::apply(&creation.egui_ctx, appearance);
-            let embedded_exe_icons = embedded_icons_setting(creation.storage);
+            let embedded_exe_icons = embedded_icons_setting(creation.storage, "embedded_exe_icons");
+            let embedded_appimage_icons =
+                embedded_icons_setting(creation.storage, "embedded_appimage_icons");
             #[cfg(any(target_os = "macos", target_os = "windows"))]
             let app = App {
                 native_menu: Some(native_menu::NativeMenu::new(creation)?),
                 appearance,
                 embedded_exe_icons,
+                embedded_appimage_icons,
                 ..Default::default()
             };
             #[cfg(not(any(target_os = "macos", target_os = "windows")))]
             let app = App {
+                #[cfg(target_os = "linux")]
+                desktop_theme: Some(appearance::linux::DesktopTheme::new(
+                    creation.egui_ctx.clone(),
+                )),
                 appearance,
                 embedded_exe_icons,
+                embedded_appimage_icons,
                 ..Default::default()
             };
             Ok(Box::new(app))
@@ -1578,16 +1630,28 @@ mod ui_tests {
     }
 
     #[test]
-    fn executable_icon_preference_defaults_on_and_round_trips() {
+    fn embedded_icon_preferences_default_on_and_round_trip_independently() {
         use eframe::App as _;
         let mut storage = Memory::default();
-        assert!(embedded_icons_setting(Some(&storage)));
+        eframe::Storage::set_string(&mut storage, "embedded_exe_icons", "false".into());
+        assert!(embedded_icons_setting(
+            Some(&storage),
+            "embedded_appimage_icons"
+        ));
+        assert!(!embedded_icons_setting(
+            Some(&storage),
+            "embedded_exe_icons"
+        ));
         let mut app = App {
-            embedded_exe_icons: false,
+            embedded_appimage_icons: false,
             ..Default::default()
         };
         app.save(&mut storage);
-        assert!(!embedded_icons_setting(Some(&storage)));
+        assert!(!embedded_icons_setting(
+            Some(&storage),
+            "embedded_appimage_icons"
+        ));
+        assert!(embedded_icons_setting(Some(&storage), "embedded_exe_icons"));
     }
 
     #[test]
@@ -1629,7 +1693,11 @@ mod ui_tests {
             (
                 "Auto",
                 ThemePreference::System,
-                SystemTheme::SystemDefault,
+                if cfg!(target_os = "linux") {
+                    SystemTheme::Dark
+                } else {
+                    SystemTheme::SystemDefault
+                },
                 Theme::Dark,
                 Theme::Dark,
             ),
@@ -2228,7 +2296,8 @@ mod ui_tests {
 
     fn assert_result_loads_embedded_icon(path: PathBuf) {
         let ctx = egui::Context::default();
-        let mut result = entry("program.exe", 1);
+        let name = path.file_name().unwrap().to_str().unwrap().to_owned();
+        let mut result = entry(&name, 1);
         result.path = path.clone();
         let mut app = App {
             results: vec![result],
@@ -2265,9 +2334,7 @@ mod ui_tests {
                     .shapes
                     .iter()
                     .find_map(|shape| match &shape.shape {
-                        egui::Shape::Text(text) if text.galley.text() == "program.exe" => {
-                            Some(text.pos)
-                        }
+                        egui::Shape::Text(text) if text.galley.text() == name => Some(text.pos),
                         _ => None,
                     })
                     .expect("row did not draw the filename");
@@ -2283,6 +2350,75 @@ mod ui_tests {
         let file = exe_icon::temporary_pe32();
         assert_result_loads_embedded_icon(file.path().to_path_buf());
     }
+    #[test]
+    fn visible_appimage_rows_draw_their_embedded_png_and_svg() {
+        let root = tempfile::tempdir().unwrap();
+        let fixtures =
+            Path::new(env!("CARGO_MANIFEST_DIR")).join("tools/appimage-icon-wasm/tests/fixtures");
+        for (name, fixture) in [
+            ("linked.aPpImAgE", "linked-png.AppImage"),
+            ("legacy.AppImage", "rock-ridge.AppImage"),
+            ("direct.AppImage", "direct-svg.AppImage"),
+        ] {
+            let path = root.path().join(name);
+            std::fs::copy(fixtures.join(fixture), &path).unwrap();
+            assert_result_loads_embedded_icon(path);
+        }
+    }
+
+    #[test]
+    fn appimage_checkbox_invalidates_cached_icon_and_reloads_when_enabled() {
+        let ctx = egui::Context::default();
+        let path = Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("tools/appimage-icon-wasm/tests/fixtures/linked-png.AppImage");
+        let mut item = entry("linked-png.AppImage", 1);
+        item.path = path.clone();
+        let mut app = App {
+            results: vec![item],
+            interface_open: true,
+            appimage_type_icon: Some(None), // exercise the generic fallback without a window server
+            ..Default::default()
+        };
+        let render_until_loaded = |app: &mut App| {
+            let deadline = Instant::now() + Duration::from_secs(10);
+            while !matches!(app.icons.get(&path), Some(Some(_))) {
+                frame(&ctx, app, vec![]);
+                assert!(Instant::now() < deadline, "AppImage icon did not arrive");
+                std::thread::sleep(Duration::from_millis(10));
+            }
+        };
+        let toggle = |app: &mut App| {
+            let point = text_position(
+                &frame(&ctx, app, vec![]),
+                "Use embedded icons for AppImages",
+            );
+            for pressed in [true, false] {
+                frame(
+                    &ctx,
+                    app,
+                    vec![
+                        egui::Event::PointerMoved(point),
+                        egui::Event::PointerButton {
+                            pos: point,
+                            button: egui::PointerButton::Primary,
+                            pressed,
+                            modifiers: egui::Modifiers::NONE,
+                        },
+                    ],
+                );
+            }
+        };
+        render_until_loaded(&mut app);
+        let first = app.icons[&path].as_ref().unwrap().id();
+        toggle(&mut app);
+        assert!(!app.embedded_appimage_icons && app.embedded_exe_icons);
+        assert!(matches!(app.icons.get(&path), Some(None)));
+        assert!(app.pending_icons.is_empty());
+        toggle(&mut app);
+        render_until_loaded(&mut app);
+        assert_ne!(first, app.icons[&path].as_ref().unwrap().id());
+    }
+
     #[test]
     fn typing_starts_debounce_and_clearing_resets_the_window() {
         let ctx = egui::Context::default();
