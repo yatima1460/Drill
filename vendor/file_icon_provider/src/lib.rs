@@ -189,11 +189,11 @@ mod tests {
     use std::assert_matches;
     use std::rc::Rc;
 
+    const MANIFEST: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/Cargo.toml");
+
     #[test]
     fn test_get_file_icon() {
-        let file_path = locate_cargo_manifest::locate_manifest().expect("locate Cargo.toml");
-
-        assert!(get_file_icon(file_path, 32).is_ok());
+        assert!(get_file_icon(MANIFEST, 32).is_ok());
     }
 
     #[test]
@@ -203,34 +203,30 @@ mod tests {
 
     #[test]
     fn test_null_icon_size() {
-        let file_path = locate_cargo_manifest::locate_manifest().expect("locate Cargo.toml");
-
-        assert_matches!(get_file_icon(file_path, 0), Err(Error::NullIconSize));
+        assert_matches!(get_file_icon(MANIFEST, 0), Err(Error::NullIconSize));
     }
 
     #[test]
     fn test_get_file_icon_provider() {
-        let file_path = locate_cargo_manifest::locate_manifest().expect("locate Cargo.toml");
         let provider =
             Provider::<Rc<Icon>>::new(32, |icon| Rc::new(icon)).expect("create provider");
 
-        assert!(provider.get_file_icon(file_path).is_ok());
+        assert!(provider.get_file_icon(MANIFEST).is_ok());
     }
 
     #[test]
     fn test_mixed_usages() {
-        let file_path = locate_cargo_manifest::locate_manifest().expect("locate Cargo.toml");
         let provider =
             Provider::<Rc<Icon>>::new(32, |icon| Rc::new(icon)).expect("create provider");
 
-        let result = provider.get_file_icon(&file_path);
+        let result = provider.get_file_icon(MANIFEST);
 
         if let Err(error) = &result {
             println!("error: {}", error);
         }
 
         assert!(result.is_ok());
-        assert!(get_file_icon(&file_path, 32).is_ok());
+        assert!(get_file_icon(MANIFEST, 32).is_ok());
     }
 
     #[cfg(target_os = "windows")]
