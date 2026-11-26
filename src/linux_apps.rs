@@ -46,7 +46,8 @@ impl Application {
                 None => {}
             }
         }
-        (partial || query.classify(&self.keywords).is_some()).then_some(MatchKind::Partial)
+        (partial || (!self.keywords.is_empty() && query.classify(&self.keywords).is_some()))
+            .then_some(MatchKind::Partial)
     }
 }
 
@@ -162,12 +163,16 @@ mod tests {
             ("suite-editor.desktop", MatchKind::Exact),
             ("editor.desktop", MatchKind::Exact),
             ("writing", MatchKind::Partial),
+            ("*editor.desktop", MatchKind::Partial),
+            ("regex:^urej", MatchKind::Partial),
+            ("glob:*writing*", MatchKind::Partial),
         ] {
             let hits = search(query);
             assert_eq!(hits.len(), 1, "{query}");
             assert_eq!((hits[0].0, &hits[0].1.path), (kind, path), "{query}");
         }
         assert!(search("fuzzy:").is_empty());
+        assert!(search("regex:^$").is_empty());
         assert!(catalog
             .icon_names(path)
             .iter()
