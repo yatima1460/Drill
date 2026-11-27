@@ -1,0 +1,12 @@
+[package]
+name = "drill-query"
+version = "2.0.0"
+edition = "2021"
+license-file = "../../LICENSE"
+
+[features]
+# Exercise Windows lookup rules when running the search core's tests on other hosts.
+windows-lookups = []
+
+[dependencies]
+regex = "1"

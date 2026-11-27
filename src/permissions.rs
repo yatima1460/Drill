@@ -1,3 +1,4 @@
+use drill_macos::permissions::pick_folder;
 use eframe::egui;
 use std::path::{Path, PathBuf};
 use std::sync::mpsc;
@@ -78,11 +79,7 @@ impl Permissions {
         self.roots.clone()
     }
     fn choose(&mut self, starting_folder: Option<PathBuf>, ctx: &egui::Context) -> bool {
-        let mut dialog = rfd::FileDialog::new().set_title("Choose a folder for Drill to search");
-        if let Some(path) = starting_folder {
-            dialog = dialog.set_directory(path);
-        }
-        if let Some(path) = dialog.pick_folder() {
+        if let Some(path) = pick_folder(starting_folder.as_deref()) {
             if !self.roots.contains(&path) {
                 self.roots.push(path.clone());
             }

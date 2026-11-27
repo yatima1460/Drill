@@ -7,10 +7,9 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{mpsc, Arc, Condvar, Mutex, OnceLock};
 use std::thread::{self, JoinHandle};
 use std::time::SystemTime;
-mod query;
 #[cfg(any(windows, test))]
 mod windows_startup;
-pub use query::{matches, MatchKind, SearchQuery};
+pub use drill_query::{matches, MatchKind, SearchQuery};
 #[cfg(windows)]
 pub use windows_startup::WindowsSearch;
 
@@ -515,35 +514,6 @@ mod tests {
     use super::test_directory::private_temp_dir;
     use super::*;
     #[test]
-    fn matching() {
-        assert!(matches("Project Nôtés.txt", "project notes"));
-        assert!(!matches("Project Notes.txt", "projecx notes"));
-        assert!(matches("Project Notes.txt", "fuzzy:projecx notes"));
-        assert!(!matches("Project Notes.txt", "fuzzy:unrelated"));
-        assert!(matches("diet", "fuzzy:tide"));
-    }
-    #[test]
-    fn wildcard_and_regex_queries_match_filenames() {
-        for (query, hit, miss) in [
-            ("*.md", "Notes.MD", "notes.md.bak"),
-            ("myfile*", "myfile copy", "a-myfile"),
-            ("*myfile", "a-myfile", "myfile.bak"),
-            ("*myfile*", "a-myfile.bak", "my-file"),
-            ("glob:page[0-9]?.pdf", "Page3猫.pdf", "page32x.pdf"),
-            (r"glob:literal\*.txt", "literal*.txt", "literal1.txt"),
-            (r"regex:^IMG_[0-9]{4}\.jpg$", "img_0027.JPG", "IMG_27.jpg"),
-            (r"regex:\S+\.md$", "notes final.md", "notes finalXmd"),
-            ("regex:(?-i)^Z", "Zebra", "zebra"),
-            ("regex:^café$", "café", "cafe"),
-        ] {
-            assert!(matches(hit, query), "{query:?} should find {hit:?}");
-            assert!(!matches(miss, query), "{query:?} should skip {miss:?}");
-        }
-        assert!(matches("notes [v2]?.txt", "[v2]?"));
-        assert!(!matches("notes v2A.txt", "[v2]?"));
-    }
-
-    #[test]
     fn invalid_patterns_never_start_a_walk_or_match_their_own_text() {
         for text in [
             "regex:",
@@ -561,30 +531,6 @@ mod tests {
         }
     }
 
-    #[test]
-    fn prepared_queries_handle_whitespace_and_rank_the_whole_filename() {
-        let query = SearchQuery::parse("  fuzzy:  röM.EXE  ");
-        assert_eq!(query.classify("rom.exe"), Some(MatchKind::Exact));
-        assert_eq!(query.classify("rom.exe.bak"), Some(MatchKind::Partial));
-        for text in [
-            "project  notes",
-            "fuzzy: project  notes",
-            "fuzzy:project\tnotes",
-            "project\u{2003}notes",
-        ] {
-            assert!(matches("Project Nôtés.txt", text), "{text:?}");
-        }
-        assert_eq!(
-            SearchQuery::parse("a  b").classify("a  b"),
-            Some(MatchKind::Exact)
-        );
-        assert_eq!(
-            SearchQuery::parse("a b").classify("b a"),
-            Some(MatchKind::Partial)
-        );
-        assert!(!matches("anything", "fuzzy:   "));
-        assert!(matches("anything", ""));
-    }
     #[test]
     fn app_filters_use_file_type_and_ignore_case_before_delivering_results() {
         let root = private_temp_dir();

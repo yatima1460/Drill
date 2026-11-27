@@ -6,8 +6,14 @@ on:
       - '.cargo/**'
       - 'Cargo.toml'
       - 'Cargo.lock'
+      - 'build.rs'
+      - 'src/assets/drill.ico'
+      - 'src/assets/drill.rc'
+      - '.github/ci/windows_resource_smoke.py'
       - 'rust-toolchain.toml'
       - 'crates/drill-core/**'
+      - 'crates/drill-query/**'
+      - 'crates/drill-windows/**'
       - 'vendor/*/Cargo.toml'
       # drill-core embeds all three root lists and the dictionary at compile time.
       - 'src/assets/roots_*.txt'
@@ -28,6 +34,12 @@ jobs:
       - uses: dtolnay/rust-toolchain@master
         with:
           toolchain: 1.100.0
+      - name: Link the Windows SDK resource and check every Explorer icon frame
+        run: python .github/ci/windows_resource_smoke.py
+      - name: Test native Windows menu, Shell icon and clipboard adapters with MSVC
+        run: cargo test --locked -p drill-windows --features shell-icons,clipboard,menu
+      - name: Verify Unicode text, PNG and DIB on the hosted Windows clipboard
+        run: cargo test --locked -p drill-windows --features shell-icons,clipboard --test clipboard -- --ignored --test-threads=1
       - name: Verify startup ordering, cancellation and direct lookups
         run: cargo test --locked -p drill-core windows_startup
       - name: Measure Windows startup and verify the installed Notepad executable

@@ -43,6 +43,8 @@ On macOS, double-click `Start Drill.command` to build and start Drill. The first
 
 Run `make help` to see common commands, including `make start`, `make test-core`, and `make test-ui`. The native UI tests drive a real window and may move the mouse or type; on macOS they require Accessibility permission. Linux UI tests use Xvfb and Openbox.
 
+On macOS 13 or newer, `make start-swift` opens the experimental SwiftUI search window. See the [native macOS experiment](docs/swift-ui.md) for its scope and clean-build comparison.
+
 See [Rust migration notes](docs/rust-migration.md) for development checks and platform status. Existing downloadable releases predate this Rust version.
 
 ## What happened to the old code?

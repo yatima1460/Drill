@@ -7,16 +7,42 @@ from pathlib import Path
 ALL = {"linux", "windows", "macos"}
 
 
+def swift_ui_only(path):
+    return path.startswith(("native/macos/", "crates/drill-swift/")) or path in {
+        "scripts/build-swift-ui.py", "scripts/bench-swift-ui.py",
+    }
+
+
+def checks_swift_ui(path):
+    if path.endswith(".md"):
+        return False
+    return swift_ui_only(path) or path.startswith((
+        "crates/drill-core/", "crates/drill-query/", "crates/drill-icons/", ".cargo/",
+        "tools/exe-icon-wasm/tests/fixtures/", "tools/appimage-icon-wasm/tests/fixtures/",
+    )) or path in {
+        "Cargo.toml", "Cargo.lock", "rust-toolchain.toml", "Makefile",
+        ".github/workflows/rust.yml", ".github/ci/platforms.py", ".github/ci/test_platforms.py",
+        "src/assets/exe-icon.wasm", "src/assets/appimage-icon.wasm", "src/assets/drill-macos.icns",
+        "src/assets/wordsalpha.txt", "src/assets/roots_mac.txt", "src/assets/roots_linux.txt",
+        "src/assets/roots_windows.txt",
+    }
+
+
 def select(paths, event):
     platforms = set()
     product = False
     for path in paths:
-        if path.endswith(".md"):
+        if path.endswith(".md") or swift_ui_only(path):
             continue
         targets = ALL
         shipped = True
-        if path.startswith((".github/ci/", "tests/")) or path in {
-            ".github/workflows/rust.yml", "crates/drill-core/src/test_directory.rs",
+        if path in {"scripts/test-macos-clipboard.sh", "tests/macos_clipboard.rs",
+                    "examples/macos_opengl.rs"}:
+            targets = {"macos"}
+            shipped = False
+        elif path.startswith("tests/") or path in {
+            ".github/workflows/rust.yml", ".github/ci/platforms.py",
+            ".github/ci/test_platforms.py", "crates/drill-core/src/test_directory.rs",
         }:
             shipped = False
         elif path.startswith(("scripts/test-native-ui-linux", "scripts/test-appimage-open", "scripts/test-wine-linux")):
@@ -28,12 +54,22 @@ def select(paths, event):
             targets = {"linux"}
         elif path in {"src/assets/drill.ico", "src/assets/drill.rc", "src/assets/roots_windows.txt"}:
             targets = {"windows"}
-        elif path == "src/native_menu.rs":
+        elif path in {"src/native_menu.rs", "src/icon_sample.rs"}:
             targets = {"macos", "windows"}
+        elif path.startswith("crates/drill-gtk/"):
+            targets = {"linux"}
+            shipped = not (path.startswith("crates/drill-gtk/tests/") or
+                           path == "crates/drill-gtk/src/desktop_theme_test.c")
+        elif path.startswith("crates/drill-macos/"):
+            targets = {"macos"}
+            shipped = not path.startswith("crates/drill-macos/tests/")
+        elif path.startswith("crates/drill-windows/"):
+            targets = {"windows"}
+            shipped = not path.startswith("crates/drill-windows/tests/")
         elif path.startswith(("tools/exe-icon-wasm/", "tools/appimage-icon-wasm/")):
             targets = ALL if "/tests/fixtures/" in path else {"linux"}
             shipped = False  # Desktop builds embed the checked-in Wasm files.
-        elif path.startswith("vendor/file_icon_provider/src/implementation/"):
+        elif path.startswith(("src/platform_icon/", "src/native_menu/", "vendor/file_icon_provider/src/implementation/")):
             platform = Path(path).stem
             targets = {platform} if platform in ALL else ALL
         elif not (path.startswith(("src/", "crates/", "vendor/", ".cargo/")) or path in {
@@ -70,13 +106,20 @@ def changed_paths(event):
     return [os.fsdecode(path) for path in raw.split(b"\0") if path]
 
 
-if __name__ == "__main__":
-    event = os.environ["GITHUB_EVENT_NAME"]
-    paths = changed_paths(event)
+def check_outputs(paths, event):
     platforms, release = select(paths, event)
     values = {platform: platform in platforms for platform in sorted(ALL)}
     values["release"] = release
-    values["duplicates"] = release or event == "workflow_dispatch" or any(map(scans_source, paths))
+    values["swift_ui"] = event == "workflow_dispatch" or (
+        event == "pull_request" and any(map(checks_swift_ui, paths))
+    )
+    values["duplicates"] = bool(platforms) or values["swift_ui"] or any(map(scans_source, paths))
+    return values
+
+
+if __name__ == "__main__":
+    event = os.environ["GITHUB_EVENT_NAME"]
+    values = check_outputs(changed_paths(event), event)
     outputs = "".join(f"{key}={str(value).lower()}\n" for key, value in values.items())
     print(outputs, end="")
     with Path(os.environ["GITHUB_OUTPUT"]).open("a") as output:

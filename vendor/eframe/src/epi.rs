@@ -18,8 +18,6 @@ use raw_window_handle::{
     DisplayHandle, HandleError, HasDisplayHandle, HasWindowHandle, RawDisplayHandle,
     RawWindowHandle, WindowHandle,
 };
-#[cfg(not(target_arch = "wasm32"))]
-use static_assertions::assert_not_impl_any;
 
 #[cfg(not(target_arch = "wasm32"))]
 #[cfg(any(feature = "glow", feature = "wgpu"))]
@@ -653,7 +651,14 @@ pub struct Frame {
 
 // Implementing `Clone` would violate the guarantees of `HasWindowHandle` and `HasDisplayHandle`.
 #[cfg(not(target_arch = "wasm32"))]
-assert_not_impl_any!(Frame: Clone);
+const _: () = {
+    #[allow(dead_code)]
+    trait FrameMustNotClone {}
+
+    // These implementations would overlap if Frame implemented Clone.
+    impl<T: Clone> FrameMustNotClone for T {}
+    impl FrameMustNotClone for Frame {}
+};
 
 #[allow(unsafe_code)]
 #[cfg(not(target_arch = "wasm32"))]

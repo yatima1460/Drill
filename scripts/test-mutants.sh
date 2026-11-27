@@ -2,11 +2,12 @@
 # Run from any directory. cargo-mutants builds its own temporary source copies.
 set -euo pipefail
 cd "$(dirname "$0")/.."
-scope=${1:?Choose core, desktop, guest or appimage}
+scope=${1:?Choose core, query, desktop, guest or appimage}
 campaign=${2:-smoke}
 cargo_bin=${CARGO:-cargo}
 args=(--cargo-arg=--locked --jobs 1 --build-timeout 900 --timeout 90 --caught)
 case "$scope" in
+  query) args+=(-p drill-query --all-features) ;;
   core) args+=(-p drill-core) ;;
   desktop) args+=(-p drill --all-features) ;;
   guest) args+=(--dir tools/exe-icon-wasm) ;;
@@ -16,6 +17,7 @@ esac
 case "$campaign" in
   smoke)
     case "$scope" in
+      query) args+=(--file lib.rs --re 'SearchQuery::exact_stem') ;;
       core) args+=(--file file_filter.rs) ;;
       desktop) args+=(--file result_order.rs --file exe_icon.rs --re 'exact_batch|icon_route|is_exe|is_appimage') ;;
       guest) args+=(--file resource.rs) ;;
@@ -23,10 +25,19 @@ case "$campaign" in
     esac ;;
   full)
     if [[ "$scope" == desktop ]]; then
+      # The desktop exercises its shared Wasm hosts through the icon workers.
+      args+=(-p drill-icons --test-package drill --test-package drill-icons)
       case "$(uname -s)" in
-        Linux) args+=(--exclude native_menu.rs --exclude permissions.rs) ;;
-        Darwin) args+=(--exclude linux_apps.rs) ;;
-        MINGW*|MSYS*) args+=(--exclude linux_apps.rs --exclude permissions.rs) ;;
+        Linux)
+          args+=(--exclude native_menu.rs --exclude 'src/native_menu/*.rs' --exclude permissions.rs
+                 --exclude 'src/platform_icon/macos.rs' --exclude 'src/platform_icon/windows.rs') ;;
+        Darwin)
+          args+=(--exclude linux_apps.rs --exclude 'src/appearance/linux.rs' --exclude 'src/native_menu/windows.rs'
+                 --exclude 'src/platform_icon/linux.rs' --exclude 'src/platform_icon/windows.rs') ;;
+        MINGW*|MSYS*)
+          args+=(--exclude linux_apps.rs --exclude 'src/appearance/linux.rs' --exclude permissions.rs
+                 --exclude 'src/native_menu/macos.rs' --exclude 'src/platform_icon/linux.rs'
+                 --exclude 'src/platform_icon/macos.rs') ;;
       esac
     fi ;;
   *) echo "Unknown mutation campaign: $campaign" >&2; exit 2 ;;

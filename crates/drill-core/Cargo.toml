@@ -5,12 +5,10 @@ edition = "2021"
 license-file = "../../LICENSE"
 
 [dependencies]
-regex = "1"
-unicode-normalization = "0.1.25"
-wax = { version = "0.7", default-features = false }
+drill-query = { path = "../drill-query" }
 
 [dev-dependencies]
-tempfile = "3.23.0"
+drill-query = { path = "../drill-query", features = ["windows-lookups"] }
 
 [target.'cfg(windows)'.dependencies]
-winsafe = { version = "0.0.29", features = ["kernel"] }
+drill-windows = { path = "../drill-windows" }

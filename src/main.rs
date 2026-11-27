@@ -1,6 +1,5 @@
 #![cfg_attr(target_os = "windows", windows_subsystem = "windows")]
 #![deny(unsafe_code)]
-use chrono::{DateTime, Local};
 #[cfg(not(windows))]
 use drill_core::default_roots_with_cancel;
 #[cfg(any(not(windows), test, feature = "ui-test-driver"))]
@@ -12,10 +11,15 @@ use std::time::{Duration, Instant};
 mod appearance;
 mod appimage_icon;
 mod exe_icon;
+mod platform_icon;
+mod result_date;
 mod result_emoji;
 mod result_order;
 mod search_mode;
 mod syntax_help;
+#[cfg(test)]
+#[path = "../crates/drill-core/src/test_directory.rs"]
+mod test_directory;
 use search_mode::{Mode, Results};
 #[cfg(target_os = "linux")]
 mod linux_apps;
@@ -202,16 +206,6 @@ fn size(entry: &Entry) -> String {
     }
     format!("{n:.1} EB")
 }
-fn date(entry: &Entry) -> String {
-    entry
-        .modified
-        .map(|t| {
-            DateTime::<Local>::from(t)
-                .format("%Y/%m/%d %H:%M:%S")
-                .to_string()
-        })
-        .unwrap_or_else(|| "?".into())
-}
 // Qt's result list used 32 logical pixels. Keep native art sharp on a 2× display.
 const RESULT_ICON_SIZE: f32 = 32.0;
 const NATIVE_ICON_PIXELS: u16 = 64;
@@ -219,7 +213,7 @@ const RESULT_ROW_PITCH: f32 = 36.0;
 
 fn platform_icon_texture(
     ctx: &egui::Context,
-    icon: file_icon_provider::Icon,
+    icon: platform_icon::Icon,
     name: &str,
 ) -> Option<egui::TextureHandle> {
     let pixels = (icon.width as usize).checked_mul(icon.height as usize)?;
@@ -242,30 +236,24 @@ fn platform_icon_texture(
     let image = egui::ColorImage::from_rgba_unmultiplied(dimensions, &rgba);
     Some(ctx.load_texture(name, image, egui::TextureOptions::LINEAR))
 }
-#[cfg(not(target_os = "linux"))]
+#[cfg(any(target_os = "macos", windows))]
+mod icon_sample;
+
+#[cfg(any(target_os = "macos", windows))]
 fn executable_type_icon(ctx: &egui::Context, sample_name: &str) -> Option<egui::TextureHandle> {
-    // Ask the OS about a private, empty sample; never pass it the untrusted executable.
-    let sample = tempfile::Builder::new()
-        .suffix(sample_name)
-        .tempfile()
-        .ok()?;
-    let icon = file_icon_provider::get_file_icon(sample.path(), NATIVE_ICON_PIXELS).ok()?;
+    let icon = icon_sample::icon(sample_name, NATIVE_ICON_PIXELS)?;
     platform_icon_texture(ctx, icon, sample_name)
+}
+
+#[cfg(not(any(target_os = "linux", target_os = "macos", windows)))]
+fn executable_type_icon(_: &egui::Context, _: &str) -> Option<egui::TextureHandle> {
+    // The icon provider has no native backend on other platforms.
+    None
 }
 #[cfg(target_os = "linux")]
 fn executable_type_icon(ctx: &egui::Context, sample_name: &str) -> Option<egui::TextureHandle> {
-    use gtk::prelude::*;
-    if !gtk::is_initialized() {
-        gtk::init().ok()?;
-    }
-    let (content_type, _) = gtk::gio::content_type_guess(Some(Path::new(sample_name)), None);
-    let icon = gtk::gio::content_type_get_icon(&content_type);
-    let themed = icon.dynamic_cast_ref::<gtk::gio::ThemedIcon>()?;
-    themed_icon_texture(
-        ctx,
-        themed.names().iter().map(|name| name.as_str()),
-        sample_name,
-    )
+    let icon = platform_icon::mime_type_icon(Path::new(sample_name), NATIVE_ICON_PIXELS)?;
+    platform_icon_texture(ctx, icon, sample_name)
 }
 
 #[cfg(target_os = "linux")]
@@ -274,34 +262,8 @@ fn themed_icon_texture<'a>(
     names: impl Iterator<Item = &'a str>,
     key: &str,
 ) -> Option<egui::TextureHandle> {
-    use gtk::prelude::*;
-    if !gtk::is_initialized() {
-        gtk::init().ok()?;
-    }
-    let theme = gtk::IconTheme::default()?;
-    for name in names {
-        if let Some(pixbuf) = theme
-            .load_icon(
-                name,
-                i32::from(NATIVE_ICON_PIXELS),
-                gtk::IconLookupFlags::empty(),
-            )
-            .ok()
-            .flatten()
-        {
-            let width = u32::try_from(pixbuf.width()).ok()?;
-            let height = u32::try_from(pixbuf.height()).ok()?;
-            let icon = file_icon_provider::Icon {
-                width,
-                height,
-                pixels: pixbuf.read_pixel_bytes().to_vec(),
-            };
-            if let Some(texture) = platform_icon_texture(ctx, icon, key) {
-                return Some(texture);
-            }
-        }
-    }
-    None
+    let icon = platform_icon::themed_icon(names, NATIVE_ICON_PIXELS)?;
+    platform_icon_texture(ctx, icon, key)
 }
 #[cfg(not(target_os = "linux"))]
 fn open(path: &Path, reveal: bool) {
@@ -436,27 +398,8 @@ fn open_with(path: &Path) -> Result<(), String> {
 }
 
 #[cfg(target_os = "linux")]
-#[allow(unsafe_code)]
 fn open_with(path: &Path) -> Result<(), String> {
-    use gtk::prelude::*;
-    gtk::init().map_err(|e| e.to_string())?;
-    let file = gtk::gio::File::for_path(path);
-    let dialog = gtk::AppChooserDialog::new(None::<&gtk::Window>, gtk::DialogFlags::MODAL, &file);
-    let response = dialog.run();
-    let result = if response == gtk::ResponseType::Ok || response == gtk::ResponseType::Accept {
-        match dialog.app_info() {
-            Some(app) => app
-                .launch(&[file], None::<&gtk::gio::AppLaunchContext>)
-                .map_err(|e| e.to_string()),
-            None => Err("No application was selected".into()),
-        }
-    } else {
-        Ok(())
-    };
-    dialog.hide();
-    // SAFETY: the dialog has returned from its modal loop and is not queried or reused after destruction.
-    unsafe { dialog.destroy() };
-    result
+    platform_icon::open_with(path)
 }
 
 #[cfg(windows)]
@@ -484,13 +427,69 @@ fn launch_windows_app(path: &Path) -> Result<(), String> {
     }
 }
 
-#[cfg(target_os = "windows")]
+#[cfg(windows)]
 #[allow(unsafe_code)]
-fn open_with(path: &Path) -> Result<(), String> {
-    use std::os::windows::ffi::OsStrExt;
+fn with_shell_sta(action: impl FnOnce() -> Result<(), String>) -> Result<(), String> {
     use windows_sys::Win32::System::Com::{
         CoInitializeEx, CoUninitialize, COINIT_APARTMENTTHREADED,
     };
+
+    struct Apartment;
+    impl Drop for Apartment {
+        fn drop(&mut self) {
+            // SAFETY: this guard stays on the thread where initialization succeeded.
+            unsafe { CoUninitialize() };
+        }
+    }
+    // SAFETY: both shell actions call this on a fresh worker thread.
+    let initialized = unsafe { CoInitializeEx(std::ptr::null(), COINIT_APARTMENTTHREADED as u32) };
+    if initialized < 0 {
+        return Err(format!(
+            "Cannot initialize Windows shell (0x{:08x})",
+            initialized as u32
+        ));
+    }
+    let _apartment = Apartment;
+    action()
+}
+
+#[cfg(all(windows, test))]
+#[test]
+fn shell_worker_balances_sta_after_failed_action() {
+    use windows_sys::Win32::System::Com::{CoGetApartmentType, APTTYPE_MAINSTA, APTTYPE_STA};
+
+    #[allow(unsafe_code)]
+    fn apartment() -> Result<(i32, i32), i32> {
+        let (mut kind, mut qualifier) = (0, 0);
+        // SAFETY: each output points to an initialized integer for the duration of the call.
+        let result = unsafe { CoGetApartmentType(&mut kind, &mut qualifier) };
+        if result < 0 {
+            Err(result)
+        } else {
+            Ok((kind, qualifier))
+        }
+    }
+
+    std::thread::spawn(|| {
+        let before = apartment();
+        let result = with_shell_sta(|| {
+            assert!(matches!(
+                apartment().unwrap().0,
+                APTTYPE_STA | APTTYPE_MAINSTA
+            ));
+            Err(String::from("test action failed"))
+        });
+        assert_eq!(result, Err(String::from("test action failed")));
+        assert_eq!(apartment(), before);
+    })
+    .join()
+    .unwrap();
+}
+
+#[cfg(windows)]
+#[allow(unsafe_code)]
+fn open_with(path: &Path) -> Result<(), String> {
+    use std::os::windows::ffi::OsStrExt;
     use windows_sys::Win32::UI::Shell::{SHOpenWithDialog, OAIF_EXEC, OPENASINFO};
     let wide: Vec<u16> = path.as_os_str().encode_wide().chain(Some(0)).collect();
     let info = OPENASINFO {
@@ -498,23 +497,15 @@ fn open_with(path: &Path) -> Result<(), String> {
         pcszClass: std::ptr::null(),
         oaifInFlags: OAIF_EXEC,
     };
-    // SAFETY: this fresh thread initializes COM as a single-threaded apartment.
-    let initialized = unsafe { CoInitializeEx(std::ptr::null(), COINIT_APARTMENTTHREADED as u32) };
-    if initialized < 0 {
-        return Err(format!(
-            "Cannot initialize application chooser (0x{:08x})",
-            initialized as u32
-        ));
-    }
-    // SAFETY: the NUL-terminated filename and OPENASINFO remain alive throughout the call.
-    let result = unsafe { SHOpenWithDialog(std::ptr::null_mut(), &info) };
-    // SAFETY: CoInitializeEx succeeded on this thread and is balanced exactly once.
-    unsafe { CoUninitialize() };
-    if result >= 0 || result as u32 == 0x8007_04c7 {
-        Ok(())
-    } else {
-        Err(format!("Open with failed (0x{:08x})", result as u32))
-    }
+    with_shell_sta(|| {
+        // SAFETY: the NUL-terminated filename and OPENASINFO remain alive throughout the call.
+        let result = unsafe { SHOpenWithDialog(std::ptr::null_mut(), &info) };
+        if result >= 0 || result as u32 == 0x8007_04c7 {
+            Ok(())
+        } else {
+            Err(format!("Open with failed (0x{:08x})", result as u32))
+        }
+    })
 }
 
 #[cfg(not(any(target_os = "macos", target_os = "windows", target_os = "linux")))]
@@ -1031,6 +1022,8 @@ impl App {
                 menu.syntax_closed();
             }
             menu.set_enabled(self.can_stop());
+            #[cfg(windows)]
+            menu.set_dark(ctx.theme() == egui::Theme::Dark);
         }
         #[cfg(not(any(target_os = "macos", target_os = "windows")))]
         in_window_search_menu(ctx, self);
@@ -1295,7 +1288,7 @@ impl App {
                             .to_string_lossy()
                             .into_owned(),
                         size(entry),
-                        date(entry),
+                        result_date::display(entry.modified),
                     ];
                     let icon_pos = egui::pos2(rect.left() + 5.0, rect.center().y - RESULT_ICON_SIZE / 2.0);
                     let icon_rect = egui::Rect::from_min_size(icon_pos, egui::Vec2::splat(RESULT_ICON_SIZE));
@@ -1336,7 +1329,7 @@ impl App {
                         } else if icon_budget > 0 {
                             icon_budget -= 1;
                             let path_label = entry.path.to_string_lossy();
-                            let fallback = || file_icon_provider::get_file_icon(&entry.path, NATIVE_ICON_PIXELS).ok()
+                            let fallback = || platform_icon::get_file_icon(&entry.path, NATIVE_ICON_PIXELS)
                                 .and_then(|icon| platform_icon_texture(ctx, icon, &path_label));
                             #[cfg(target_os = "linux")]
                             let icon = if self.mode == Mode::Apps {
@@ -1508,7 +1501,7 @@ impl App {
                             ui.close_menu();
                         }
                         if ui.button("Copy Date").clicked() {
-                            ui.ctx().copy_text(date(entry));
+                            ui.ctx().copy_text(result_date::display(entry.modified));
                             ui.close_menu();
                         }
                         if ui.button("Copy Size").clicked() {
@@ -1603,15 +1596,8 @@ fn main() -> eframe::Result {
     let icon_bytes: &[u8] = include_bytes!("assets/drill-macos.png");
     #[cfg(not(target_os = "macos"))]
     let icon_bytes: &[u8] = include_bytes!("assets/drill.png");
-    let icon = image::load_from_memory(icon_bytes)
-        .expect("embedded Drill icon must be valid PNG")
-        .into_rgba8();
-    let (width, height) = icon.dimensions();
-    let icon = egui::IconData {
-        rgba: icon.into_raw(),
-        width,
-        height,
-    };
+    let icon = eframe::icon_data::from_png_bytes(icon_bytes)
+        .expect("embedded Drill icon must be valid PNG");
     let options = eframe::NativeOptions {
         #[cfg(feature = "ui-test-driver")]
         persistence_path: std::env::var_os("DRILL_UI_TEST_STATUS")
@@ -1659,6 +1645,13 @@ fn main() -> eframe::Result {
 mod ui_tests {
     use super::*;
     use std::path::PathBuf;
+
+    #[cfg(windows)]
+    #[test]
+    fn windows_clipboard_preserves_shortcuts_and_write_order() {
+        eframe::clipboard_test_cases::windows_paste_shortcuts_preserve_copy_precedence();
+        eframe::clipboard_test_cases::windows_clipboard_commands_keep_output_order();
+    }
 
     #[derive(Default)]
     struct Memory(std::collections::HashMap<String, String>);
@@ -1782,7 +1775,7 @@ mod ui_tests {
         }
 
         // Isolate PATH so parallel UI tests use their usual desktop environment.
-        let bin = tempfile::tempdir().unwrap();
+        let bin = crate::test_directory::private_temp_dir();
         let opener = bin.path().join("xdg-open");
         std::fs::write(&opener, "#!/bin/sh\nexit 4\n").unwrap();
         std::fs::set_permissions(&opener, std::fs::Permissions::from_mode(0o700)).unwrap();
@@ -1813,7 +1806,7 @@ mod ui_tests {
 
     #[test]
     fn streamed_exact_executable_renders_sorted_and_preserves_selection() {
-        let root = tempfile::tempdir().unwrap();
+        let root = crate::test_directory::private_temp_dir();
         std::fs::write(root.path().join("Demo.EXE"), b"file").unwrap();
         let (tx, rx) = std::sync::mpsc::sync_channel(1);
         let mut app = App {
@@ -2228,7 +2221,7 @@ mod ui_tests {
         assert_eq!(app.selected, Some(0));
         assert_eq!(app.query, "notes");
 
-        let folder = tempfile::tempdir().unwrap();
+        let folder = crate::test_directory::private_temp_dir();
         std::fs::write(folder.path().join("notes.txt"), b"new hit").unwrap();
         app.search = Some(Results::Walk(Search::start(
             "notes".into(),
@@ -2265,6 +2258,62 @@ mod ui_tests {
         assert!(!app.syntax_open, "the Close button takes keyboard focus");
     }
 
+    fn scroll_syntax_to_bottom(
+        render: &impl Fn(Vec<egui::Event>) -> egui::FullOutput,
+        pos: egui::Pos2,
+    ) {
+        render(vec![
+            egui::Event::PointerMoved(pos),
+            egui::Event::MouseWheel {
+                unit: egui::MouseWheelUnit::Point,
+                delta: egui::vec2(0.0, -3000.0),
+                modifiers: egui::Modifiers::NONE,
+            },
+        ]);
+        for _ in 0..30 {
+            render(vec![]);
+        }
+    }
+
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn syntax_reference_clicks_emit_the_documentation_urls() {
+        let ctx = egui::Context::default();
+        ctx.style_mut(|style| style.animation_time = 0.0);
+        let render = |events| {
+            let mut input = frame_input(events);
+            input.screen_rect = Some(egui::Rect::from_min_size(
+                egui::Pos2::ZERO,
+                egui::vec2(1024.0, 1000.0),
+            ));
+            ctx.run(input, |ctx| assert!(!syntax_help::show(ctx)))
+        };
+        let click = |label| {
+            render(vec![]);
+            let close = text_position(&render(vec![]), "Close");
+            scroll_syntax_to_bottom(&render, close - egui::vec2(0.0, 45.0));
+            let pos = text_position(&render(vec![]), label);
+            render(pointer_events(pos, egui::PointerButton::Primary, true));
+            render(pointer_events(pos, egui::PointerButton::Primary, false)).platform_output
+        };
+        click("More pattern syntax");
+        for (label, expected) in [
+            (
+                "Wax 0.7 glob syntax",
+                "https://github.com/olson-sean-k/wax/blob/v0.7.0/README.md#patterns",
+            ),
+            (
+                "Rust regex reference",
+                "https://docs.rs/regex/1/regex/#syntax",
+            ),
+        ] {
+            assert!(matches!(
+                click(label).commands.as_slice(),
+                [egui::OutputCommand::OpenUrl(link)] if link.url == expected
+            ));
+        }
+    }
+
     #[test]
     fn syntax_examples_scroll_in_a_small_window_with_close_always_visible() {
         let ctx = egui::Context::default();
@@ -2280,17 +2329,7 @@ mod ui_tests {
         assert!(screen.contains(words));
         let close = text_position(&opening, "Close");
         assert!(screen.contains(close));
-        render(vec![
-            egui::Event::PointerMoved(words),
-            egui::Event::MouseWheel {
-                unit: egui::MouseWheelUnit::Point,
-                delta: egui::vec2(0.0, -3000.0),
-                modifiers: egui::Modifiers::NONE,
-            },
-        ]);
-        for _ in 0..30 {
-            render(vec![]);
-        }
+        scroll_syntax_to_bottom(&render, words);
         let bottom = render(vec![]);
         assert!(screen.contains(text_position(&bottom, "More pattern syntax")));
         assert_eq!(text_position(&bottom, "Close"), close);
@@ -2510,7 +2549,7 @@ mod ui_tests {
     #[test]
     fn full_last_page_finishes_and_continue_delivers_each_remaining_file_once() {
         for count in [2, 520] {
-            let root = tempfile::tempdir().unwrap();
+            let root = crate::test_directory::private_temp_dir();
             for n in 0..count {
                 std::fs::write(root.path().join(format!("item-{n}")), []).unwrap();
             }
@@ -2611,12 +2650,12 @@ mod ui_tests {
     }
     #[test]
     fn visible_executable_row_loads_embedded_icon() {
-        let file = exe_icon::temporary_pe32();
-        assert_result_loads_embedded_icon(file.path().to_path_buf());
+        let directory = crate::test_directory::private_temp_dir();
+        assert_result_loads_embedded_icon(exe_icon::write_pe32_fixture(&directory));
     }
     #[test]
     fn visible_appimage_rows_draw_their_embedded_png_and_svg() {
-        let root = tempfile::tempdir().unwrap();
+        let root = crate::test_directory::private_temp_dir();
         let fixtures =
             Path::new(env!("CARGO_MANIFEST_DIR")).join("tools/appimage-icon-wasm/tests/fixtures");
         for (name, fixture) in [

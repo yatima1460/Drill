@@ -8,8 +8,12 @@ Creative Commons Attribution 4.0 International (CC BY 4.0)
 https://creativecommons.org/licenses/by/4.0/
 Full license in LICENSE-TWEMOJI.
 
-Emoji sequence data derived from Unicode Emoji 17.0, © 2025 Unicode, Inc.
+Emoji sequence and sprite boundary data derived from Unicode 17.0, © 2025 Unicode, Inc.
 https://www.unicode.org/reports/tr51/
 Unicode License v3 (Unicode-3.0)
 https://www.unicode.org/license.txt
 Full license in LICENSE-UNICODE.
+
+Search normalization tables derived from the Unicode Character Database 18.0.0,
+© 2026 Unicode, Inc. https://www.unicode.org/Public/18.0.0/ucd/
+Unicode License v3 (Unicode-3.0), included in LICENSE-UNICODE.

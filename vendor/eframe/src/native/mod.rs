@@ -1,4 +1,5 @@
 mod app_icon;
+pub(crate) mod clipboard;
 mod epi_integration;
 mod event_loop_context;
 pub mod run;
@@ -9,6 +10,8 @@ pub mod file_storage;
 
 pub(crate) mod winit_integration;
 
+#[cfg(feature = "glow")]
+mod glow_context;
 #[cfg(feature = "glow")]
 mod glow_integration;
 

@@ -15,6 +15,14 @@ make test-mutants
 
 Kani runs on pull requests that change the proof workspace, its imported modules or its build inputs. Mutation checks cover changes to the packages they exercise. The platform workflow tests shared application changes on Linux, macOS and Windows under Wine. A change specific to one platform runs its corresponding build. After an application change merges to main, the release workflow rebuilds all three platforms together.
 
+To check the packaged AppImage icon locally, build the Linux package or set `DRILL_PACKAGED_APPIMAGE` to a built AppImage. Run the check with its reference decoder enabled.
+
+```sh
+cargo test --locked --bin drill --features verify-packaged-appimage appimage_icon::tests::packaged_appimage_contains_drill_icon -- --ignored --exact
+```
+
+This check uses the original artwork and an independent PNG decoder as its reference.
+
 ## Duplicate code
 
 Source changes run jscpd 5.4.3 on the full checkout. Each release also requires this check on its integrated main commit. Any reported clone fails the job and blocks release signing. To reproduce it, install the pinned version and run from the repository root.
@@ -23,6 +31,8 @@ Source changes run jscpd 5.4.3 on the full checkout. Each release also requires 
 cargo install --locked --version 5.4.3 jscpd
 jscpd .
 ```
+
+CI caches the upstream Linux archive by version, SHA-256, operating system and architecture. It checks the digest before every extraction and scans the current checkout even on a cache hit. Only pushes to the main branch of the upstream repository save the archive. Pull requests limited to excluded files such as binary assets skip the duplicate scan.
 
 The detector reports repeated blocks of at least 50 tokens spanning at least five lines, including repeats within one file. It checks tests, shell launchers, workflows, website code and the other supported formats. The configuration excludes vendored dependencies, Cargo lockfiles, the generated website lint dependency lockfile, the word list and the three Potrace-generated Drill logos. jscpd respects Git ignore files for local build output.
 
@@ -41,11 +51,12 @@ The filter proof begins after the filesystem supplies the entry type and pathnam
 
 ## Mutation campaigns
 
-`make test-mutants` runs all candidates in the search file-filter and both guests’ read-boundary modules, plus desktop exact-hit insertion and executable icon routing. Each run starts with unmutated tests and fails for a surviving mutation, timeout or failed baseline. The smoke campaign also requires at least one test-detected mutation per package. A candidate rejected by the Rust compiler counts as unviable.
+`make test-mutants` runs all candidates in query stem classification, the search file-filter and both guests’ read-boundary modules, plus desktop exact-hit insertion and executable icon routing. Each run starts with unmutated tests and fails for a surviving mutation, timeout or failed baseline. The smoke campaign also requires at least one test-detected mutation per scope. A candidate rejected by the Rust compiler counts as unviable.
 
 For a broader run, choose one of these scopes. Each command uses the native platform's tests. Set `MUTATION_SHARD=0/32` to run the first of 32 disjoint shards at a fixed revision, then use `1/32` through `31/32` for the others. The **Rust verification** workflow dispatch accepts the same scope and shard and offers Linux, macOS and Windows runners.
 
 ```sh
+scripts/test-mutants.sh query full
 scripts/test-mutants.sh core full
 MUTATION_SHARD=0/32 scripts/test-mutants.sh desktop full
 scripts/test-mutants.sh guest full
@@ -54,11 +65,12 @@ scripts/test-mutants.sh appimage full
 
 | Scope | Candidates and test boundary |
 | --- | --- |
-| `core` | `drill-core` query parsing and matching, traversal, filters, ranking and worker control. Runs its tests against temporary filesystem fixtures. |
-| `desktop` | Desktop state, search-mode adapter, headless egui logic, Windows executable and AppImage icon workers, Wasmi hosts and applicable native adapters. Linux includes the application catalog. macOS includes permissions and native menus. Windows includes its native menu and shell code. The ordinary suite leaves interactive OS-input tests to the dedicated window workflow. |
+| `query` | `drill-query` parsing, normalization, matching, stem classification and Windows lookup rules. Its tests run without filesystem fixtures or a window. |
+| `core` | `drill-core` traversal, filters, ranking and worker control. Runs its tests against temporary filesystem fixtures. |
+| `desktop` | The `drill` package’s desktop state, search-mode adapter, headless egui logic, icon workers and Rust platform integration. Full campaigns also mutate the shared Wasmi hosts in `drill-icons` and run both packages’ tests. The candidate list filters the platform-specific icon, menu, appearance and catalog modules for the selected runner. The dedicated window workflow drives interactive OS input. |
 | `guest` | The standalone `tools/exe-icon-wasm` crate. Native tests feed the actual extraction function PE32 and PE32+ fixtures, exercise truncated input, and check resource-range boundaries. The separate Linux Wasm rebuild and host tests cover the shipped guest. |
 | `appimage` | The `tools/appimage-icon-wasm` crate. Native tests exercise the same read-only parser and image decoder on ISO/Rock Ridge and SquashFS fixtures, including links, truncated inputs and a cycle. Desktop tests exercise the shipped Wasm ABI. Linux CI compares the icon from the packaged application with its source artwork. |
 
 The full campaigns preserve all candidate outcomes, including surviving changes in OS effects or branches inactive on the selected target. Use the appropriate native runner when investigating them. A survivor can expose a missing assertion or a behaviorally equivalent change. Inspect `target/mutations/<scope>/mutants.out/` for test logs, diffs, `missed.txt`, `timeout.txt`, and `outcomes.json`. CI uploads these reports even on failures. Each mutation gets a 90-second test budget and a 15-minute build budget. Each CI mutation job has a 90-minute limit; choose smaller shards for desktop work.
 
-The vendored eframe and file-icon-provider dependency patches are exercised by the application builds and platform checks. Third-party dependencies, the website, packaging and signing scripts are outside the Rust mutation inventory.
+The native SDK adapter crates and their C and Objective-C code are exercised through their consumers and platform checks. This includes the Windows filename lookup in the startup tests, the Windows icon fixture on a native runner, the Linux appearance observer on a private D-Bus session, and the macOS clipboard fixture on a private pasteboard. The mutation campaigns target the Rust code in the packages named above. Application builds and platform checks also exercise the vendored eframe patches. Third-party dependencies, the website, packaging and signing scripts are outside the Rust mutation inventory.

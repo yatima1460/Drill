@@ -23,6 +23,70 @@ const MODES: &[(&str, &str, &[&str])] = &[
     ),
 ];
 
+enum Reference {
+    Glob,
+    Regex,
+}
+
+impl Reference {
+    fn link(self) -> (&'static str, &'static str) {
+        match self {
+            Self::Glob => (
+                "Wax 0.7 glob syntax",
+                "https://github.com/olson-sean-k/wax/blob/v0.7.0/README.md#patterns",
+            ),
+            Self::Regex => (
+                "Rust regex reference",
+                "https://docs.rs/regex/1/regex/#syntax",
+            ),
+        }
+    }
+}
+
+#[cfg(target_os = "linux")]
+fn reference_link(ui: &mut egui::Ui, reference: Reference) {
+    let (label, url) = reference.link();
+    ui.hyperlink_to(label, url);
+}
+
+#[cfg(not(target_os = "linux"))]
+fn reference_link(ui: &mut egui::Ui, reference: Reference) {
+    let (label, url) = reference.link();
+    let response = ui.link(label);
+    if response.clicked() || response.middle_clicked() {
+        std::thread::spawn(move || {
+            #[cfg(windows)]
+            let result =
+                super::with_shell_sta(|| super::launch_windows_app(std::path::Path::new(url)));
+            #[cfg(not(windows))]
+            let result = {
+                let program = if cfg!(target_os = "macos") {
+                    "/usr/bin/open"
+                } else {
+                    "xdg-open"
+                };
+                std::process::Command::new(program)
+                    .arg(url)
+                    .status()
+                    .map_err(|e| e.to_string())
+                    .and_then(|status| {
+                        if status.success() {
+                            Ok(())
+                        } else {
+                            Err(status.to_string())
+                        }
+                    })
+            };
+            if let Err(error) = result {
+                eprintln!("Could not open {url}: {error}");
+            }
+        });
+    }
+    if ui.style().url_in_tooltip {
+        response.on_hover_text(url);
+    }
+}
+
 /// Returns true when the reader dismisses the dialog.
 pub(super) fn show(ctx: &egui::Context) -> bool {
     let modal = egui::Modal::new(egui::Id::new("syntax_help"));
@@ -54,9 +118,9 @@ pub(super) fn show(ctx: &egui::Context) -> bool {
                 ui.label("Invalid patterns show an error. Globs and regexes accept up to 4,096 bytes. Glob groups can nest up to eight levels.");
                 ui.collapsing("More pattern syntax", |ui| {
                     ui.label("In a glob, [!0-9] matches one character other than a digit. <[0-9]:4> matches exactly four digits. The $ wildcard is a lazy version of *.");
-                    ui.hyperlink_to("Wax glob reference", "https://github.com/olson-sean-k/wax/blob/v0.7.0/README.md#patterns");
+                    reference_link(ui, Reference::Glob);
                     ui.label("In a regex, use | for alternatives, parentheses for groups, and + to repeat the preceding item one or more times. Rust regexes exclude look-around and backreferences.");
-                    ui.hyperlink_to("Rust regex reference", "https://docs.rs/regex/1/regex/#syntax");
+                    reference_link(ui, Reference::Regex);
                 });
             });
         ui.separator();
@@ -72,8 +136,25 @@ pub(super) fn show(ctx: &egui::Context) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use super::MODES;
+    use super::{Reference, MODES};
     use drill_core::SearchQuery;
+
+    #[test]
+    fn help_urls_have_fixed_ascii_https_hosts() {
+        for (reference, host) in [
+            (Reference::Glob, "github.com"),
+            (Reference::Regex, "docs.rs"),
+        ] {
+            let (_, url) = reference.link();
+            assert!(url.bytes().all(|byte| byte.is_ascii_graphic()));
+            let (authority, _) = url
+                .strip_prefix("https://")
+                .unwrap()
+                .split_once('/')
+                .unwrap();
+            assert_eq!(authority, host);
+        }
+    }
 
     #[test]
     fn help_examples_match_their_intended_names() {

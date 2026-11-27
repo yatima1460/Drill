@@ -658,7 +658,7 @@ impl WgpuWinitRunning<'_> {
             return Ok(EventResult::Wait);
         };
 
-        egui_winit.handle_platform_output(window, platform_output);
+        super::clipboard::handle_platform_output(egui_winit, window, platform_output);
 
         let clipped_primitives = egui_ctx.tessellate(shapes, pixels_per_point);
 
@@ -692,15 +692,7 @@ impl WgpuWinitRunning<'_> {
                     egui_winit.egui_input_mut().events.push(egui::Event::Copy);
                 }
                 ActionRequested::Paste => {
-                    if let Some(contents) = egui_winit.clipboard_text() {
-                        let contents = contents.replace("\r\n", "\n");
-                        if !contents.is_empty() {
-                            egui_winit
-                                .egui_input_mut()
-                                .events
-                                .push(egui::Event::Paste(contents));
-                        }
-                    }
+                    super::clipboard::request_paste(egui_winit);
                 }
             }
         }
@@ -1023,7 +1015,7 @@ fn render_immediate_viewport(
         vec![],
     );
 
-    egui_winit.handle_platform_output(window, platform_output);
+    super::clipboard::handle_platform_output(egui_winit, window, platform_output);
 
     handle_viewport_output(
         &egui_ctx,
