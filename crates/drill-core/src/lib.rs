@@ -161,6 +161,17 @@ impl FileFilter {
 type Priority = Reverse<(bool, bool, usize, usize, Reverse<u64>, PathBuf)>;
 
 fn priority(path: PathBuf) -> Priority {
+    #[cfg(windows)]
+    let (system_attribute, metadata) = {
+        use std::os::windows::fs::MetadataExt;
+
+        let metadata = fs::metadata(&path);
+        let system_attribute = metadata
+            .as_ref()
+            .is_ok_and(|m| m.file_attributes() & 0x6 != 0);
+        // If the attributes lookup failed, still give modification time its own lookup.
+        (system_attribute, metadata.or_else(|_| fs::metadata(&path)))
+    };
     static DICTIONARY: OnceLock<HashSet<&'static str>> = OnceLock::new();
     let words = DICTIONARY.get_or_init(|| {
         include_str!("../../../src/assets/wordsalpha.txt")
@@ -173,13 +184,6 @@ fn priority(path: PathBuf) -> Priority {
         .to_string_lossy()
         .to_lowercase();
     let text = path.to_string_lossy();
-    #[cfg(windows)]
-    let system_attribute = {
-        use std::os::windows::fs::MetadataExt;
-        fs::metadata(&path)
-            .map(|m| m.file_attributes() & 0x6 != 0)
-            .unwrap_or(false)
-    };
     #[cfg(not(windows))]
     let system_attribute = false;
     let hidden = system_attribute
@@ -200,7 +204,9 @@ fn priority(path: PathBuf) -> Priority {
         .any(|p| text.starts_with(p));
     let depth = path.components().count();
     let len = text.len();
-    let modified = fs::metadata(&path)
+    #[cfg(not(windows))]
+    let metadata = fs::metadata(&path);
+    let modified = metadata
         .and_then(|m| m.modified())
         .ok()
         .and_then(|t| t.duration_since(SystemTime::UNIX_EPOCH).ok())
@@ -602,6 +608,37 @@ mod tests {
         let hidden = priority(PathBuf::from("/home/user/.zzzzqxyz"));
         assert!(visible > hidden);
     }
+
+    #[cfg(windows)]
+    #[test]
+    fn priorities_use_windows_attributes_and_modification_time() {
+        use std::os::windows::fs::OpenOptionsExt;
+
+        let directory = private_temp_dir();
+        let root = fs::canonicalize(directory.path()).unwrap();
+        let timestamp = 1_700_000_000;
+        let modified = SystemTime::UNIX_EPOCH + std::time::Duration::from_secs(timestamp);
+        for (name, attributes, expected_hidden) in [
+            ("hidden", 0x2, true),
+            ("system", 0x4, true),
+            ("normal", 0x80, false),
+        ] {
+            let path = root.join(name);
+            fs::OpenOptions::new()
+                .write(true)
+                .create_new(true)
+                .attributes(attributes)
+                .open(&path)
+                .unwrap()
+                .set_modified(modified)
+                .unwrap();
+            let Reverse((_, hidden, _, _, Reverse(modified), _)) = priority(path);
+            assert_eq!((hidden, modified), (expected_hidden, timestamp), "{name}");
+        }
+        let Reverse((_, hidden, _, _, Reverse(modified), _)) = priority(root.join("absent"));
+        assert_eq!((hidden, modified), (false, 0));
+    }
+
     #[test]
     fn cancellation_completes_even_when_results_are_not_consumed() {
         let directory = private_temp_dir();
