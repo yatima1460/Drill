@@ -17,6 +17,10 @@ on:
       - 'crates/drill-windows/**'
       - 'crates/drill-desktop/**'
       - 'crates/drill-icons/**'
+      - 'tests/native_ui/fixtures/mac-bundles/**'
+      - 'src/assets/exe-icon.wasm'
+      - 'src/assets/appimage-icon.wasm'
+      - 'src/assets/drill-macos.png'
       # drill-core embeds all three root lists and the dictionary at compile time.
       - 'src/assets/roots_*.txt'
       - 'src/assets/wordsalpha.txt'
@@ -36,7 +40,7 @@ jobs:
       - name: Link the Windows SDK resource and check every Explorer icon frame
         run: python .github/ci/windows_resource_smoke.py
       - name: Link and run standalone Windows adapter tests with all features on MSVC
-        run: cargo test --locked -p drill-windows --all-features
+        run: cargo test --locked --no-fail-fast -p drill-windows -p drill-icons --all-features
       - name: Verify Unicode text, PNG and DIB on the hosted Windows clipboard
         run: cargo test --locked -p drill-windows --features shell-icons,clipboard --test clipboard -- --ignored --test-threads=1
       - name: Verify startup ordering, cancellation and direct lookups
