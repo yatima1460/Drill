@@ -2,7 +2,10 @@
 use crate::RGBA_BYTES;
 use wasmi::{Linker, Module, Store, StoreLimits};
 
-const FUEL: u64 = 80_000_000;
+const PE_FUEL: u64 = 80_000_000;
+// Some ICNS files contain only a 1024px PNG. Inflating and resizing the
+// single frame in LM Studio's icon used 328 million fuel on the shipped guest.
+const ICNS_FUEL: u64 = 400_000_000;
 
 pub(super) struct Decoder {
     module: Module,
@@ -20,7 +23,12 @@ impl Decoder {
         let limits = crate::guest_limits();
         let mut store = Store::new(self.module.engine(), limits);
         store.limiter(|limits: &mut StoreLimits| limits);
-        store.set_fuel(FUEL).ok()?;
+        let fuel = if export == "decode_icns" {
+            ICNS_FUEL
+        } else {
+            PE_FUEL
+        };
+        store.set_fuel(fuel).ok()?;
         let linker = Linker::new(self.module.engine());
         let instance = linker
             .instantiate_and_start(&mut store, &self.module)
@@ -66,6 +74,21 @@ mod tests {
             assert_eq!(pixels.len(), RGBA_BYTES);
             assert_eq!(&pixels[..4], &[0, 255, 0, 255]);
         }
+    }
+
+    #[test]
+    fn decodes_an_icns_with_only_a_1024_pixel_frame() {
+        let png = include_bytes!("../../../src/assets/drill-macos.png");
+        let mut icon = b"icns".to_vec();
+        icon.extend_from_slice(&((16 + png.len()) as u32).to_be_bytes());
+        icon.extend_from_slice(b"ic10");
+        icon.extend_from_slice(&((8 + png.len()) as u32).to_be_bytes());
+        icon.extend_from_slice(png);
+
+        let decoder = Decoder::new().unwrap();
+        let pixels = decoder.decode(&icon, "decode_icns").expect("1024 px ICNS");
+        assert_eq!(pixels.len(), RGBA_BYTES);
+        assert!(pixels.as_chunks::<4>().0.iter().any(|pixel| pixel[3] != 0));
     }
 
     #[test]

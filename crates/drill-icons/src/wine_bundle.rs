@@ -7,8 +7,7 @@ use std::io::{self, Read, Write};
 use std::os::windows::ffi::OsStrExt;
 use std::os::windows::io::{AsRawHandle, FromRawHandle};
 use std::path::{Component, Path, Prefix};
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{mpsc, OnceLock};
+use std::sync::{mpsc, Arc, Mutex, OnceLock};
 use std::time::{Duration, Instant};
 use windows_sys::Win32::Foundation::{SetHandleInformation, HANDLE, HANDLE_FLAG_INHERIT};
 use windows_sys::Win32::Storage::FileSystem::{GetFileType, FILE_TYPE_PIPE};
@@ -44,7 +43,7 @@ struct Request {
 
 struct Client {
     requests: mpsc::SyncSender<Request>,
-    timed_out: AtomicBool,
+    in_flight: Arc<Mutex<Option<Instant>>>,
 }
 
 static CLIENT: OnceLock<Option<Client>> = OnceLock::new();
@@ -95,48 +94,52 @@ impl Client {
     fn start(mut input: File, mut output: File) -> Option<Self> {
         // Only this thread ever touches the pipes. An abandoned reply is consumed
         // completely before it accepts another request, including after cancellation.
-        let (requests, jobs) = mpsc::sync_channel::<Request>(0);
+        let (requests, jobs) = mpsc::sync_channel::<Request>(1);
+        let in_flight = Arc::new(Mutex::new(None));
+        let worker_flight = Arc::clone(&in_flight);
         std::thread::Builder::new()
             .name("Drill Wine icons".into())
             .spawn(move || {
                 while let Ok(request) = jobs.recv() {
-                    let Ok(pixels) = exchange(&request.frame, &mut input, &mut output) else {
-                        break;
-                    };
+                    let response = exchange(&request.frame, &mut input, &mut output);
+                    *worker_flight.lock().expect("Wine icon request") = None;
+                    let Ok(pixels) = response else { break };
                     let _ = request.reply.send(pixels);
                 }
             })
             .ok()?;
         Some(Self {
             requests,
-            timed_out: AtomicBool::new(false),
+            in_flight,
         })
     }
 
-    fn request(&self, frame: Vec<u8>, current: &impl Fn() -> bool) -> Option<Vec<u8>> {
-        let deadline = Instant::now() + IO_TIMEOUT;
+    fn request(
+        &self,
+        frame: Vec<u8>,
+        current: &impl Fn() -> bool,
+        timeout: Duration,
+    ) -> Option<Vec<u8>> {
+        let deadline = Instant::now() + timeout;
         let interval = || {
-            if !current() || self.timed_out.load(Ordering::Relaxed) {
-                return None;
-            }
             let left = deadline.saturating_duration_since(Instant::now());
-            if left.is_zero() {
-                // A stalled peer can occupy at most the single pipe worker. All
-                // subsequent rows immediately use their file-type fallback.
-                self.timed_out.store(true, Ordering::Relaxed);
-                return None;
-            }
-            Some(left.min(CANCEL_POLL))
+            (current() && !left.is_zero()).then_some(left.min(CANCEL_POLL))
         };
         let (reply, result) = mpsc::sync_channel(1);
-        let mut request = Request { frame, reply };
         loop {
             let wait = interval()?;
-            match self.requests.try_send(request) {
-                Ok(()) => break,
-                Err(mpsc::TrySendError::Disconnected(_)) => return None,
-                Err(mpsc::TrySendError::Full(pending)) => {
-                    request = pending;
+            let mut in_flight = self.in_flight.lock().ok()?;
+            match *in_flight {
+                None => {
+                    self.requests.try_send(Request { frame, reply }).ok()?;
+                    *in_flight = Some(deadline);
+                    break;
+                }
+                // The host still owes a reply for another row. Once its deadline
+                // has passed, subsequent rows fall back until the worker drains it.
+                Some(previous) if Instant::now() >= previous => return None,
+                Some(_) => {
+                    drop(in_flight);
                     std::thread::sleep(wait);
                 }
             }
@@ -153,10 +156,10 @@ impl Client {
 
 pub(super) fn decode(path: &Path, current: &impl Fn() -> bool) -> Option<Vec<u8>> {
     let client = CLIENT.get()?.as_ref()?;
-    if !current() || client.timed_out.load(Ordering::Relaxed) {
+    if !current() {
         return None;
     }
-    client.request(frame(path)?, current)
+    client.request(frame(path)?, current, IO_TIMEOUT)
 }
 
 fn frame(path: &Path) -> Option<Vec<u8>> {
@@ -222,6 +225,56 @@ mod tests {
         let max = format!(r"C:\{}", "a".repeat(MAX_PATH_UNITS as usize - 3));
         assert!(frame(Path::new(&max)).is_some());
         assert!(frame(Path::new(&(max + "a"))).is_none());
+    }
+
+    #[test]
+    fn a_timed_out_bundle_releases_the_pipe_after_its_entire_reply() {
+        use std::os::windows::io::OwnedHandle;
+
+        let (responses, mut host_output) = io::pipe().unwrap();
+        let (mut host_input, requests) = io::pipe().unwrap();
+        let client = Client::start(
+            File::from(OwnedHandle::from(responses)),
+            File::from(OwnedHandle::from(requests)),
+        )
+        .unwrap();
+        let bundle = |name| frame(Path::new(name)).unwrap();
+        let slow = r"C:\Slow.app";
+        let next = r"C:\Next.app";
+        let (release, withheld) = mpsc::channel();
+        std::thread::scope(move |scope| {
+            scope.spawn(move || {
+                for (path, color) in [(slow, 33), (next, 44)] {
+                    let expected = bundle(path);
+                    let mut received = vec![0; expected.len()];
+                    host_input.read_exact(&mut received).unwrap();
+                    assert_eq!(received, expected);
+                    host_output.write_all(&[1]).unwrap();
+                    if path == slow {
+                        withheld.recv_timeout(IO_TIMEOUT).unwrap();
+                    }
+                    host_output.write_all(&[color; crate::RGBA_BYTES]).unwrap();
+                }
+            });
+            let timeout = Duration::from_millis(30);
+            assert!(client.request(bundle(slow), &|| true, timeout).is_none());
+            assert!(client
+                .request(bundle(r"C:\Skip.app"), &|| true, timeout)
+                .is_none());
+            release.send(()).unwrap();
+            let deadline = Instant::now() + IO_TIMEOUT;
+            while client.in_flight.lock().unwrap().is_some() {
+                assert!(
+                    Instant::now() < deadline,
+                    "the late reply was never drained"
+                );
+                std::thread::yield_now();
+            }
+            assert_eq!(
+                client.request(bundle(next), &|| true, IO_TIMEOUT).unwrap(),
+                vec![44; crate::RGBA_BYTES]
+            );
+        });
     }
 
     #[test]

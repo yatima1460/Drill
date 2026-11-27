@@ -175,6 +175,10 @@ impl Drop for EmbeddedIcons {
 }
 
 #[cfg(test)]
+#[path = "../../../tests/native_ui/bundle_fixture.rs"]
+mod bundle_fixture;
+
+#[cfg(test)]
 mod tests {
     use super::*;
     use std::time::{Duration, Instant};
@@ -205,31 +209,28 @@ mod tests {
             .ancestors()
             .nth(2)
             .unwrap();
+        let temp = crate::test_directory::private_temp_dir();
+        let bundles = super::bundle_fixture::stage(temp.path());
         let mut icons = EmbeddedIcons::new();
-        for (fixture, directory, valid) in [
+        for (path, directory, valid) in [
             (
-                "tools/exe-icon-wasm/tests/fixtures/icon-pe32.exe",
+                workspace.join("tools/exe-icon-wasm/tests/fixtures/icon-pe32.exe"),
                 false,
                 true,
             ),
             (
-                "tools/appimage-icon-wasm/tests/fixtures/linked-png.AppImage",
+                workspace.join("tools/appimage-icon-wasm/tests/fixtures/linked-png.AppImage"),
                 false,
                 true,
             ),
             (
-                "tools/appimage-icon-wasm/tests/fixtures/cyclic.AppImage",
+                workspace.join("tools/appimage-icon-wasm/tests/fixtures/cyclic.AppImage"),
                 false,
                 false,
             ),
-            ("tests/native_ui/fixtures/mac-bundles/Jade.app", true, true),
-            (
-                "tests/native_ui/fixtures/mac-bundles/Missing.app",
-                true,
-                false,
-            ),
+            (bundles.join("Jade.app"), true, true),
+            (bundles.join("Missing.app"), true, false),
         ] {
-            let path = workspace.join(fixture);
             // Bundle artwork is independent of the PE and AppImage preferences.
             let (exe, appimage) = (!directory, !directory);
             assert!(matches!(

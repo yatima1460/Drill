@@ -20,11 +20,17 @@ const MAX_PLIST: usize = 256 * 1024;
 const MAX_ICON: usize = 16 * 1024 * 1024;
 
 pub(super) fn snapshot(path: &Path, is_current: &impl Fn() -> bool) -> Option<Vec<u8>> {
-    if !is_current()
-        || !path.extension()?.eq_ignore_ascii_case("app")
-        || path.as_os_str().as_encoded_bytes().len() > 32_767
-        || path.components().count() > 128
-    {
+    if !is_current() || !path.extension()?.eq_ignore_ascii_case("app") {
+        return None;
+    }
+    #[cfg(windows)]
+    let path_length = {
+        use std::os::windows::ffi::OsStrExt;
+        path.as_os_str().encode_wide().take(32_768).count()
+    };
+    #[cfg(not(windows))]
+    let path_length = path.as_os_str().as_encoded_bytes().len();
+    if path_length > 32_767 || path.components().count() > 128 {
         return None;
     }
     #[cfg(target_os = "macos")]
@@ -75,8 +81,11 @@ fn resource_name(mut name: String) -> Option<String> {
 // Validate the plist's filename using the same rules on each platform. The
 // Win32 aliases are reserved even with an extension (including superscript digits).
 fn safe_name(name: &str) -> bool {
+    name.len() <= 255 && safe_component_text(name)
+}
+
+fn safe_component_text(name: &str) -> bool {
     if name.is_empty()
-        || name.len() > 255
         || name.ends_with(['.', ' '])
         || name
             .chars()

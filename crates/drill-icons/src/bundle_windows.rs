@@ -108,11 +108,15 @@ fn disk_volume_root(current: &[u16]) -> Option<Vec<u16>> {
 }
 
 pub(super) fn child(parent: &File, name: &OsStr, directory: bool) -> Option<File> {
-    if !super::safe_name(name.to_str()?) {
-        return None;
-    }
-    let mut wide: Vec<_> = name.encode_wide().collect();
+    let mut wide = component_name(name)?;
     open(parent.as_raw_handle(), &mut wide, directory)
+}
+
+fn component_name(name: &OsStr) -> Option<Vec<u16>> {
+    let wide: Vec<_> = name.encode_wide().take(256).collect();
+    // NT counts UTF-16 units and preserves unpaired surrogates. The lossy view
+    // only identifies forbidden characters and DOS aliases; open the original units.
+    (wide.len() <= 255 && super::safe_component_text(&name.to_string_lossy())).then_some(wide)
 }
 
 fn open(parent: HANDLE, name: &mut [u16], directory: bool) -> Option<File> {
@@ -192,6 +196,38 @@ fn open(parent: HANDLE, name: &mut [u16], directory: bool) -> Option<File> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::ffi::OsString;
+    use std::os::windows::ffi::OsStringExt;
+
+    #[test]
+    fn counts_native_units_and_preserves_unpaired_surrogates() {
+        let mut units = vec![0x754c; 254];
+        units.push(0xd800);
+        assert_eq!(
+            component_name(&OsString::from_wide(&units)),
+            Some(units.clone())
+        );
+        units.push(0x754c);
+        assert!(component_name(&OsString::from_wide(&units)).is_none());
+        assert!(component_name(OsStr::new(&"🌳".repeat(128))).is_none());
+        for name in ["CON .txt", "lpt²", "PRN", "a:b", r"a\b", "..", "name."] {
+            assert!(component_name(OsStr::new(name)).is_none(), "{name}");
+        }
+    }
+
+    #[test]
+    fn opens_contents_below_a_long_unicode_directory() {
+        let temp = crate::test_directory::private_temp_dir();
+        let ancestor = "界".repeat(128);
+        let app = temp
+            .path()
+            .canonicalize()
+            .unwrap()
+            .join(ancestor)
+            .join("Example.app");
+        std::fs::create_dir_all(app.join("Contents")).unwrap();
+        assert!(contents(&app, &|| true).is_some());
+    }
 
     #[test]
     fn accepts_only_direct_nt_disk_volume_targets() {

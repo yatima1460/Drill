@@ -1,9 +1,11 @@
+#[path = "../../../../../tests/native_ui/bundle_fixture.rs"]
+mod bundle_fixture;
+
 use super::host::{mapped_path, serve};
 use crate::test_directory::private_temp_dir;
 use std::fs;
 use std::io::ErrorKind;
 use std::os::unix::fs::symlink;
-use std::path::Path;
 
 fn frame(path: &[u16]) -> Vec<u8> {
     let mut bytes = b"DRILICON".to_vec();
@@ -59,10 +61,7 @@ fn framed_pipe_serves_repeated_requests_and_skips_symlinks() {
     let prefix = temp.path().canonicalize().unwrap();
     let drives = prefix.join("dosdevices");
     fs::create_dir(&drives).unwrap();
-    let fixtures = Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("../../tests/native_ui/fixtures/mac-bundles")
-        .canonicalize()
-        .unwrap();
+    let fixtures = bundle_fixture::stage(&prefix);
     symlink(&fixtures, drives.join("z:")).unwrap();
     symlink(&fixtures, drives.join("d:")).unwrap();
     symlink("../drive_c", drives.join("c:")).unwrap();

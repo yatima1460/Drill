@@ -243,9 +243,20 @@ static HICON rgba_result_icon(const uint8_t *rgba) {
 static int stock_list_icon(HIMAGELIST images, SHSTOCKICONID id) {
     SHSTOCKICONINFO info = {0};
     info.cbSize = sizeof(info);
-    if (SUCCEEDED(SHGetStockIconInfo(id, SHGSI_ICON | SHGSI_LARGEICON, &info)) && info.hIcon) {
-        int index = ImageList_AddIcon(images, info.hIcon);
-        DestroyIcon(info.hIcon);
+    HICON icon = NULL;
+    if (SUCCEEDED(SHGetStockIconInfo(id, SHGSI_ICON | SHGSI_LARGEICON, &info))) icon = info.hIcon;
+    if (!icon && id == SIID_FOLDER) {
+        // Wine versions that expose no stock HICON still supply the Shell's
+        // folder image for a synthetic name with directory attributes.
+        SHFILEINFOW folder = {0};
+        if (SHGetFileInfoW(L"folder", FILE_ATTRIBUTE_DIRECTORY, &folder, sizeof(folder),
+                           SHGFI_ICON | SHGFI_LARGEICON | SHGFI_USEFILEATTRIBUTES)) {
+            icon = folder.hIcon;
+        }
+    }
+    if (icon) {
+        int index = ImageList_AddIcon(images, icon);
+        DestroyIcon(icon);
         if (index >= 0) return index;
     }
     return ImageList_AddIcon(images, LoadIconW(NULL, MAKEINTRESOURCEW(32512))); // IDI_APPLICATION
