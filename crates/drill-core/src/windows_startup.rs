@@ -19,17 +19,18 @@ impl Drop for Permit {
 }
 
 #[cfg(windows)]
-fn system_dirs() -> Vec<PathBuf> {
+fn startup_dirs() -> (Vec<PathBuf>, Option<PathBuf>) {
     let root = std::env::var_os("SystemRoot").map(PathBuf::from);
     let apps = std::env::var_os("LOCALAPPDATA").map(PathBuf::from);
-    root.filter(|p| p.is_absolute())
+    let system = root
+        .filter(|p| p.is_absolute())
         .into_iter()
         .flat_map(|p| [p.join("System32"), p])
-        .chain(
-            apps.filter(|p| p.is_absolute())
-                .map(|p| p.join("Microsoft/WindowsApps")),
-        )
-        .collect()
+        .collect();
+    let windows_apps = apps
+        .filter(|p| p.is_absolute())
+        .map(|p| p.join("Microsoft/WindowsApps"));
+    (system, windows_apps)
 }
 
 // The path argument always contains exactly one validated filename below a known directory.
@@ -75,7 +76,7 @@ impl WindowsSearch {
             filter,
             default_roots_with_cancel,
             || Permit::acquire(ACTIVE.get_or_init(Default::default).clone()),
-            system_dirs,
+            startup_dirs,
             lookup,
         )
     }
@@ -86,7 +87,7 @@ impl WindowsSearch {
         filter: FileFilter,
         discover: impl FnOnce(&AtomicBool) -> Vec<PathBuf> + Send + 'static,
         permit: impl FnOnce() -> Option<Permit>,
-        dirs: impl FnOnce() -> Vec<PathBuf>,
+        dirs: impl FnOnce() -> (Vec<PathBuf>, Option<PathBuf>),
         lookup: impl Fn(&Path, FileFilter) -> Option<(PathBuf, Entry)> + Send + 'static,
     ) -> Self {
         let eligible = !cancel.load(Ordering::Relaxed) && filter != FileFilter::MacBundles;
@@ -94,15 +95,17 @@ impl WindowsSearch {
             .executable_filename()
             .filter(|_| eligible)
             .and_then(|name| Some((name.to_owned(), permit()?)));
-        let seeds = if eligible && query.error().is_none() {
+        let (seeds, windows_apps) = if eligible && query.error().is_none() {
             dirs()
         } else {
-            Vec::new()
+            (Vec::new(), None)
         };
         let (preview, previews) = if let Some((filename, permit)) = probe {
             let paths = Arc::new(Mutex::new(PreviewPaths::default()));
             let probe_paths = paths.clone();
-            let probe_dirs = seeds.clone();
+            // LocalAppData can be redirected. A WindowsApps lookup must use the
+            // capped optional probe so it cannot hold the ordinary walk open.
+            let probe_dirs = seeds.clone().into_iter().chain(windows_apps);
             let probe_cancel = cancel.clone();
             let (send, receive) = mpsc::channel();
             thread::spawn(move || {
@@ -229,7 +232,7 @@ mod tests {
                         }
                     },
                     || panic!("an extensionless query attempted to start a probe"),
-                    || seeds,
+                    || (seeds, None),
                     |_, _| panic!("an extensionless query performed a literal lookup"),
                 );
                 let _ = ready.send(scan);
@@ -281,7 +284,7 @@ mod tests {
                 FileFilter::All,
                 |_| Vec::new(),
                 || panic!("ordinary query attempted to start a probe"),
-                || vec![root],
+                || (vec![root], None),
                 |_, _| panic!("inspected an executable"),
             );
             assert_eq!(poll(|| scan.try_recv_hit()).unwrap().1.name, "report.txt");
@@ -319,7 +322,12 @@ mod tests {
                 vec![root]
             },
             permit,
-            move || vec![probe_dir.clone(), probe_dir, system.join("blocked")],
+            move || {
+                (
+                    vec![probe_dir.clone(), probe_dir, system.join("blocked")],
+                    None,
+                )
+            },
             move |path, filter| {
                 if path == probe_candidate {
                     // Redirect the lookup to a file that the seeded walk cannot reach.
@@ -353,6 +361,69 @@ mod tests {
     }
 
     #[test]
+    fn redirected_windows_apps_probe_does_not_hold_up_ordinary_searches() {
+        let temp = crate::test_directory::private_temp_dir();
+        let ordinary = temp.path().join("ordinary");
+        let redirected = temp.path().join("redirected/Microsoft/WindowsApps");
+        for dir in [&ordinary, &redirected] {
+            fs::create_dir_all(dir).unwrap();
+            fs::write(dir.join("tool.exe"), b"").unwrap();
+        }
+
+        let (release_discovery, discovery_gate) = mpsc::channel();
+        let (entered, probe_started) = mpsc::channel();
+        let (release_probe, probe_gate) = mpsc::channel();
+        let (exited, probe_finished) = mpsc::channel();
+        let root = ordinary.clone();
+        let windows_apps = redirected.clone();
+        let filter = FileFilter::WindowsExecutables;
+        let mut exact = WindowsSearch::start_with(
+            SearchQuery::parse("tool.exe"),
+            token(),
+            filter,
+            move |_| {
+                discovery_gate.recv_timeout(TIMEOUT).unwrap();
+                vec![root]
+            },
+            permit,
+            || (vec![], Some(windows_apps)),
+            move |path, filter| {
+                entered.send(path.to_owned()).unwrap();
+                probe_gate.recv_timeout(TIMEOUT).unwrap();
+                let hit = lookup(path, filter);
+                exited.send(()).unwrap();
+                hit
+            },
+        );
+        assert_eq!(
+            probe_started.recv_timeout(TIMEOUT).unwrap(),
+            redirected.join("tool.exe")
+        );
+
+        let root = ordinary.clone();
+        let mut extensionless = WindowsSearch::start_with(
+            SearchQuery::parse("tool"),
+            token(),
+            filter,
+            move |_| vec![root],
+            || panic!("an extensionless query attempted to start a probe"),
+            || (vec![], Some(redirected)),
+            |_, _| panic!("an extensionless query performed a literal lookup"),
+        );
+        let expected = ordinary.join("tool.exe");
+        let (kind, hit) = poll(|| extensionless.try_recv_hit()).unwrap();
+        assert_eq!((kind, &hit.path), (MatchKind::Exact, &expected));
+        assert!(poll(|| extensionless.try_recv_hit()).is_none());
+
+        release_discovery.send(()).unwrap();
+        let (kind, hit) = poll(|| exact.try_recv_hit()).unwrap();
+        assert_eq!((kind, hit.path), (MatchKind::Exact, expected));
+        assert!(poll(|| exact.try_recv_hit()).is_none());
+        release_probe.send(()).unwrap();
+        probe_finished.recv_timeout(TIMEOUT).unwrap();
+    }
+
+    #[test]
     fn system_lookup_uses_the_literal_accented_and_mixed_case_filename() {
         let temp = crate::test_directory::private_temp_dir();
         let root = temp.path().to_owned();
@@ -370,7 +441,7 @@ mod tests {
                 vec![]
             },
             permit,
-            move || vec![root],
+            move || (vec![root], None),
             move |p, filter| {
                 called.send(p.to_owned()).unwrap();
                 lookup(p, filter)
@@ -402,7 +473,7 @@ mod tests {
                 FileFilter::All,
                 move |_| vec![root],
                 permit,
-                move || vec![dir],
+                move || (vec![dir], None),
                 move |path, filter| {
                     entered.send(()).unwrap();
                     gate.recv_timeout(TIMEOUT).unwrap();
@@ -442,7 +513,7 @@ mod tests {
                 vec![base]
             },
             permit,
-            move || dirs.to_vec(),
+            move || (dirs.to_vec(), None),
             move |p, filter| {
                 sent.send(p.to_owned()).unwrap();
                 lookup(p, filter)
@@ -556,7 +627,7 @@ mod tests {
                             FileFilter::All,
                             discover,
                             permit,
-                            || vec![seed],
+                            || (vec![seed], None),
                             lookup,
                         );
                         collect(&mut || search.try_recv_hit())
@@ -592,8 +663,10 @@ mod tests {
     #[test]
     #[ignore = "requires an installed Windows Notepad"]
     fn installed_notepad_in_both_modes() {
-        let expected: Vec<_> = system_dirs()
+        let (system, windows_apps) = startup_dirs();
+        let expected: Vec<_> = system
             .into_iter()
+            .chain(windows_apps)
             .filter_map(|dir| fs::canonicalize(dir.join("notepad.exe")).ok())
             .collect();
         assert!(

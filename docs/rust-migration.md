@@ -39,7 +39,7 @@ Use `regex:` to search the original name with a Rust regular expression. Regex s
 
 Use the **Files / Apps** dropdown beside the search field to change scope and keep the current query. Files is the default. An empty Apps search lists applications. On macOS, Apps finds application bundles and treats each bundle as one result.
 
-On Windows, Apps finds executable files. Both Files and Apps searches with default roots give the top level of System32, the Windows directory and the current user’s WindowsApps alias directory an early pass. A full executable filename also gets a direct lookup in those directories. The same filename matching and ranking rules apply to these entries, so a bare query such as `notepad` can bring up `notepad.exe` while drive discovery and the rest of the walk continue in the background. With `--root`, the search stays within the chosen root.
+On Windows, Apps finds executable files. Both Files and Apps searches with default roots give the top level of System32 and the Windows directory an early pass. A full executable filename also gets a direct lookup in those directories and in the current user’s WindowsApps alias directory. The same filename matching and ranking rules apply to these entries, so a bare query such as `notepad` can bring up `notepad.exe` while drive discovery and the rest of the walk continue in the background. With `--root`, the search stays within the chosen root.
 
 On Linux, Apps searches the desktop menu by localized app name, launcher ID, filename or keywords. Enter or double-click launches the selected app. **Reveal launcher file** opens its containing folder. Files mode also searches the XDG applications directories for the original `.desktop` files.
 
