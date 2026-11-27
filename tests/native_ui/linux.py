@@ -39,6 +39,12 @@ def wait(description, read, expected, timeout=30):
         time.sleep(0.1)
 
 
+# Values of the AT-SPI Role enumeration are stable across desktop versions.
+# Newer ATK releases call the old "push button" role "button".
+ROLE_FRAME = 23
+ROLE_BUTTON = 43
+
+
 class Desktop:
     registry = ("org.a11y.atspi.Registry", "/org/a11y/atspi/accessible/root")
 
@@ -67,7 +73,7 @@ class Desktop:
             node = pending.popleft()
             label = self.name(node)
             if label == name:
-                matches_role = not role or self.call(node, "Accessible", "GetRoleName") == role
+                matches_role = role is None or self.call(node, "Accessible", "GetRole") == role
                 matches_interface = not interface or "org.a11y.atspi." + interface in self.call(
                     node, "Accessible", "GetInterfaces")
                 if matches_role and matches_interface:
@@ -78,12 +84,18 @@ class Desktop:
 
     def widget(self, root, name, interface=None, role=None):
         deadline = time.monotonic() + 20
+        last_error = None
         while time.monotonic() < deadline:
-            node = self.find(root, name, interface, role)
-            if node:
-                return node
+            try:
+                node = self.find(root, name, interface, role)
+                if node:
+                    return node
+            except subprocess.CalledProcessError as error:
+                # GTK can destroy a popup or tooltip while we enumerate its children.
+                last_error = (error.stderr or str(error)).strip()
             time.sleep(0.1)
-        raise AssertionError(f"Could not find accessible widget {name!r} in {root}")
+        raise AssertionError(f"Could not find accessible widget {name!r} in {root}; "
+                             f"last D-Bus error: {last_error}")
 
     def click(self, node, count=1):
         x, y, w, h = self.call(node, "Component", "GetExtents", "u", 0)
@@ -96,7 +108,7 @@ class Window:
         window = xdotool("search", "--sync", "--onlyvisible", "--name", "^Drill$").splitlines()[0]
         xdotool("windowactivate", "--sync", window)
         self.desktop = Desktop()
-        self.frame = self.desktop.widget(self.desktop.registry, "Drill", role="frame")
+        self.frame = self.desktop.widget(self.desktop.registry, "Drill", role=ROLE_FRAME)
         self.entry = self.desktop.widget(self.frame, "Search", "EditableText")
         self.table = self.desktop.widget(self.frame, "Search results", "Table")
 
@@ -201,7 +213,7 @@ def check_window(root, marker):
         wait("first page", window.row_count, 10000)
         # The same operation also appears in the Search menu. Select the button
         # by role so a hidden menu item cannot satisfy the test.
-        control = api.widget(window.frame, button, role="push button")
+        control = api.widget(window.frame, button, role=ROLE_BUTTON)
         if button == "Continue":
             # A fresh walk would find only 10,000 files. The original scan
             # already delivered this row and must retain it when resumed.

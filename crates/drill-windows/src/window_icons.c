@@ -78,6 +78,26 @@ static bool icon_source_extension(const WCHAR *extension) {
     return false;
 }
 
+// The Shell can return a transparent placeholder, particularly under Wine.
+static bool shell_bitmap_visible(HBITMAP color, LONG width, LONG height) {
+    RGBQUAD pixels[ICON_SIDE * ICON_SIDE];
+    BITMAPINFO layout = {0};
+    layout.bmiHeader.biSize = sizeof(layout.bmiHeader);
+    layout.bmiHeader.biWidth = width;
+    layout.bmiHeader.biHeight = -height;
+    layout.bmiHeader.biPlanes = 1;
+    layout.bmiHeader.biBitCount = 32;
+    layout.bmiHeader.biCompression = BI_RGB;
+    HDC dc = CreateCompatibleDC(NULL);
+    if (!dc) return false;
+    int rows = GetDIBits(dc, color, 0, (UINT)height, pixels, &layout, DIB_RGB_COLORS);
+    DeleteDC(dc);
+    if (rows != height) return false;
+    for (LONG i = 0; i < width * height; ++i)
+        if (pixels[i].rgbReserved) return true;
+    return false;
+}
+
 static HICON cached_shell_icon(const WCHAR *path) {
     IShellItemImageFactory *factory = NULL;
     if (FAILED(SHCreateItemFromParsingName(path, NULL, &IID_IShellItemImageFactory,
@@ -92,7 +112,8 @@ static HICON cached_shell_icon(const WCHAR *path) {
     HICON icon = NULL;
     if (SUCCEEDED(hr) && color && GetObjectW(color, sizeof(bitmap), &bitmap) == sizeof(bitmap) &&
         bitmap.bmWidth > 0 && bitmap.bmWidth <= ICON_SIDE &&
-        bitmap.bmHeight > 0 && bitmap.bmHeight <= ICON_SIDE) {
+        bitmap.bmHeight > 0 && bitmap.bmHeight <= ICON_SIDE &&
+        shell_bitmap_visible(color, bitmap.bmWidth, bitmap.bmHeight)) {
         BYTE bits[ICON_SIDE * ICON_SIDE / 8] = {0};
         HBITMAP mask = CreateBitmap(bitmap.bmWidth, bitmap.bmHeight, 1, 1, bits);
         if (mask) {
