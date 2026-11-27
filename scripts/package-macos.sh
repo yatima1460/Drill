@@ -20,7 +20,7 @@ version=$(/usr/bin/plutil -extract CFBundleShortVersionString raw -o - "$plist")
 [[ "$(plutil -extract CFBundleIdentifier raw -o - "$plist")" == software.drill ]]
 [[ "$(plutil -extract CFBundleExecutable raw -o - "$plist")" == Drill ]]
 [[ "$(plutil -extract LSMinimumSystemVersion raw -o - "$plist")" == 13.0 ]]
-lipo -verify_arch "$arch" "$source_app/Contents/MacOS/Drill"
+lipo "$source_app/Contents/MacOS/Drill" -verify_arch "$arch"
 otool -L "$source_app/Contents/MacOS/Drill" | grep -F '/SwiftUI.framework/' >/dev/null
 codesign --verify --strict -R='identifier "software.drill"' "$source_app"
 cmp LICENSE "$source_app/Contents/Resources/LICENSE"
