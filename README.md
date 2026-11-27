@@ -65,7 +65,7 @@ knowing this it's time to design a future-proof file searcher that doesn't care 
 * Heuristics:
 The first change was the algorithm, a lot of file searchers use depth-first algorithms, this is a very stupid choice and everyone that implemented it is a moron, why? 
 You see, normal humans don't create nested folders too much and you will probably get lost inside "black hole folders" or artificial archives (created by software); a breadth-first algorithm that scans your hard disks by depth has a higher chance to find the files you need.
-Second change is excluding some obvious folders while crawling like `Windows` and `node_modules`, the average user doesn't care about .dlls and all the system files, and generally even devs too don't care, and if you need to find a system file you already know what you are doing and you should not use a UI tool.
+Drill gives ordinary folders priority over dependency trees, version-control metadata and generated caches. Files inside those folders still appear as the search continues. On Windows, Drill looks for matching tools directly in System32 at startup, then searches the rest of the Windows installation at lower priority.
 
 * Clever multithreading: The second change is clever multithreading, I've never seen a file searcher that starts a thread *per disk* and it's 2019. The limitation for file searchers is 99% of the time just the disk speed, not the CPU or RAM, then why everyone just scans the disks sequentially????
 

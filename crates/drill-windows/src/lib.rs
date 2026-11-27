@@ -16,10 +16,10 @@ mod file_icon;
 #[cfg(feature = "shell-icons")]
 pub use file_icon::{file_icon, FileIcon};
 
-use std::ffi::c_void;
+use std::ffi::{c_void, OsString};
 use std::mem::MaybeUninit;
-use std::os::windows::ffi::OsStrExt;
-use std::path::Path;
+use std::os::windows::ffi::{OsStrExt, OsStringExt};
+use std::path::{Path, PathBuf};
 
 // WIN32_FIND_DATAW in the Windows SDK's minwinbase.h. Each FILETIME is two DWORDs.
 // The obsolete _MAC fields in legacy headers are absent from the Windows ABI.
@@ -51,6 +51,7 @@ const INVALID_HANDLE_VALUE: *mut c_void = std::ptr::without_provenance_mut(usize
 unsafe extern "system" {
     fn FindFirstFileW(path: *const u16, data: *mut Win32FindData) -> *mut c_void;
     fn FindClose(handle: *mut c_void) -> i32;
+    fn GetSystemWindowsDirectoryW(path: *mut u16, size: u32) -> u32;
 }
 
 /// Look up a literal path and return the filename stored in its directory entry.
@@ -73,4 +74,30 @@ pub fn find_filename(path: &Path) -> Option<String> {
     let data = unsafe { data.assume_init() };
     let name_end = data.file_name.iter().position(|&unit| unit == 0)?;
     String::from_utf16(&data.file_name[..name_end]).ok()
+}
+
+/// Return the shared Windows installation directory reported by the operating system.
+#[allow(unsafe_code)]
+pub fn system_windows_directory() -> Option<PathBuf> {
+    fn fill(path: &mut [u16]) -> usize {
+        // SAFETY: the writable buffer contains the declared number of UTF-16 code units.
+        unsafe { GetSystemWindowsDirectoryW(path.as_mut_ptr(), path.len() as u32) as usize }
+    }
+
+    let mut short_path = [0; 260];
+    let mut len = fill(&mut short_path);
+    // Windows returns the required buffer size (including the NUL) if the buffer is too small.
+    let mut long_path;
+    let path = if len >= short_path.len() {
+        long_path = vec![0; len];
+        len = fill(&mut long_path);
+        long_path.as_slice()
+    } else {
+        short_path.as_slice()
+    };
+    if len == 0 || len >= path.len() {
+        return None;
+    }
+    let path = PathBuf::from(OsString::from_wide(&path[..len]));
+    path.is_absolute().then_some(path)
 }

@@ -7,11 +7,15 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{mpsc, Arc, Condvar, Mutex, OnceLock};
 use std::thread::{self, JoinHandle};
 use std::time::SystemTime;
+mod directory_policy;
+use directory_policy::DirectoryPolicy;
 #[cfg(any(windows, test))]
 mod windows_startup;
-pub use drill_query::{matches, MatchKind, SearchQuery};
 #[cfg(windows)]
 pub use windows_startup::WindowsSearch;
+mod windows_tools;
+pub use drill_query::{matches, MatchKind, SearchQuery};
+use windows_tools::ToolExtensions;
 
 #[derive(Clone, Debug)]
 pub struct Entry {
@@ -158,9 +162,9 @@ impl FileFilter {
     }
 }
 
-type Priority = Reverse<(bool, bool, usize, usize, Reverse<u64>, PathBuf)>;
+type Priority = Reverse<(bool, bool, bool, usize, usize, Reverse<u64>, PathBuf)>;
 
-fn priority(path: PathBuf) -> Priority {
+fn priority(path: PathBuf, deferred: bool) -> Priority {
     static DICTIONARY: OnceLock<HashSet<&'static str>> = OnceLock::new();
     let words = DICTIONARY.get_or_init(|| {
         include_str!("../../../src/assets/wordsalpha.txt")
@@ -193,7 +197,6 @@ fn priority(path: PathBuf) -> Priority {
             "/usr",
             "/bin",
             "/sbin",
-            "C:\\Windows",
             "C:\\ProgramData",
         ]
         .iter()
@@ -206,6 +209,7 @@ fn priority(path: PathBuf) -> Priority {
         .and_then(|t| t.duration_since(SystemTime::UNIX_EPOCH).ok())
         .map_or(0, |d| d.as_secs());
     Reverse((
+        deferred,
         !words.contains(name.as_str()),
         hidden,
         depth,
@@ -215,53 +219,58 @@ fn priority(path: PathBuf) -> Priority {
     ))
 }
 
-// Resolve the containing directory so overlapping roots agree, while keeping a
-// distinct directory entry for links to the same file.
-fn entry_key(path: &Path) -> Option<PathBuf> {
-    Some(
-        fs::canonicalize(path.parent()?)
-            .ok()?
-            .join(path.file_name()?),
-    )
+type RootDiscovery = Box<dyn FnOnce(&AtomicBool) -> Vec<PathBuf> + Send>;
+
+#[derive(Clone, Copy)]
+enum Pass {
+    Tools,
+    Remainder { replay_tools: bool },
+    Full { deferred: bool },
 }
 
-// Keep only a bounded window of ordinary exact hits while a system lookup is
-// outstanding. Once there are already many exact hits, the walk owns all new ones.
-#[derive(Default)]
-struct PreviewPaths {
-    early: HashSet<PathBuf>,
-    walked: HashSet<PathBuf>,
-    finished: bool,
-}
-impl PreviewPaths {
-    fn admit_walk(shared: &Mutex<Self>, path: &Path) -> bool {
-        {
-            let state = shared.lock().unwrap();
-            if state.finished && state.early.is_empty() {
-                return true;
-            }
-        }
-        let Some(key) = entry_key(path) else {
-            return true;
-        };
-        let mut state = shared.lock().unwrap();
-        let already_sent = state.early.remove(&key);
-        if !state.finished {
-            state.walked.insert(key);
-            if state.walked.len() >= 32 {
-                state.finished = true;
-                state.walked.clear();
-            }
-        }
-        !already_sent
+impl Pass {
+    fn defers_children(self) -> bool {
+        !matches!(self, Self::Full { deferred: false })
     }
 }
 
 struct Work {
+    seed: Option<PathBuf>,
+    remainder: Option<(PathBuf, bool)>,
+    discovering: bool,
     queue: BinaryHeap<Priority>,
     outstanding: usize,
     visited: HashSet<PathBuf>,
 }
+
+impl Work {
+    fn next_directory(&mut self) -> Option<(PathBuf, Pass)> {
+        if let Some(seed) = self.seed.take() {
+            return Some((seed, Pass::Tools));
+        }
+        if let Some(Reverse((deferred, ..))) = self.queue.peek() {
+            if !deferred || !self.discovering {
+                let Reverse((deferred, _, _, _, _, _, path)) = self.queue.pop().unwrap();
+                return Some((path, Pass::Full { deferred }));
+            }
+        }
+        if !self.discovering {
+            if let Some((path, replay_tools)) = self.remainder.take() {
+                return Some((path, Pass::Remainder { replay_tools }));
+            }
+        }
+        None
+    }
+}
+
+fn complete_directory((lock, cv): &(Mutex<Work>, Condvar)) {
+    let mut state = lock.lock().unwrap();
+    state.outstanding -= 1;
+    if state.outstanding == 0 {
+        cv.notify_all();
+    }
+}
+
 // Pause only at cancellation-safe points, without holding the directory queue lock.
 fn wait_while_paused(paused: &AtomicBool, cancel: &AtomicBool, work: &(Mutex<Work>, Condvar)) {
     if paused.load(Ordering::Relaxed) {
@@ -312,53 +321,89 @@ impl Search {
         startup_cancel: Arc<AtomicBool>,
         filter: FileFilter,
     ) -> Self {
-        Self::start_remaining(query, roots, startup_cancel, filter, None)
+        Self::start_walk(query, roots, None, None, startup_cancel, filter)
     }
 
-    fn start_remaining(
+    #[cfg(any(windows, test))]
+    fn start_seeded(
         query: SearchQuery,
-        roots: Vec<PathBuf>,
+        seed: Option<(PathBuf, ToolExtensions)>,
+        discover: impl FnOnce(&AtomicBool) -> Vec<PathBuf> + Send + 'static,
         startup_cancel: Arc<AtomicBool>,
         filter: FileFilter,
-        previews: Option<Arc<Mutex<PreviewPaths>>>,
     ) -> Self {
-        let roots = if query.error().is_some() {
-            Vec::new()
-        } else {
-            roots
-        };
+        Self::start_walk(
+            query,
+            Vec::new(),
+            seed,
+            Some(Box::new(discover)),
+            startup_cancel,
+            filter,
+        )
+    }
+
+    fn start_walk(
+        query: SearchQuery,
+        roots: Vec<PathBuf>,
+        seed: Option<(PathBuf, ToolExtensions)>,
+        discover: Option<RootDiscovery>,
+        startup_cancel: Arc<AtomicBool>,
+        filter: FileFilter,
+    ) -> Self {
+        let valid = query.error().is_none();
+        let seeded = discover.is_some();
+        let discover = discover.filter(|_| valid && !startup_cancel.load(Ordering::Relaxed));
         let query = Arc::new(query);
         let paused = Arc::new(AtomicBool::new(false));
         let (tx, receiver) = mpsc::sync_channel(512);
-        let cancel = Arc::new(AtomicBool::new(false));
+        let cancel = if seeded {
+            startup_cancel.clone()
+        } else {
+            Arc::new(AtomicBool::new(false))
+        };
+        let policy = Arc::new(if valid && !startup_cancel.load(Ordering::Relaxed) {
+            DirectoryPolicy::current()
+        } else {
+            DirectoryPolicy::default()
+        });
         let mut visited = HashSet::new();
-        let roots: Vec<PathBuf> = roots
+        // Reserve the local System32 directory before the discovered roots can claim
+        // it through an overlapping drive root or an alias.
+        let (seed, extensions) = seed
+            .filter(|_| discover.is_some())
+            .and_then(|(path, extensions)| {
+                let canonical = fs::canonicalize(&path).ok()?;
+                visited.insert(canonical);
+                Some((Some(path), Some(Arc::new(extensions))))
+            })
+            .unwrap_or_default();
+        let queue: BinaryHeap<_> = roots
             .into_iter()
-            .filter(|p| {
-                !startup_cancel.load(Ordering::Relaxed)
-                    && fs::canonicalize(p)
-                        .ok()
-                        .is_some_and(|canonical| visited.insert(canonical))
+            .take_while(|_| valid && !startup_cancel.load(Ordering::Relaxed))
+            .filter_map(|path| {
+                let canonical = fs::canonicalize(&path).ok()?;
+                let deferred = policy.root(&canonical);
+                visited.insert(canonical).then(|| priority(path, deferred))
             })
             .collect();
-        let queue: BinaryHeap<Priority> = roots
-            .iter()
-            .take_while(|_| !startup_cancel.load(Ordering::Relaxed))
-            .cloned()
-            .map(priority)
-            .collect();
-        let outstanding = queue.len();
+        // Leave a worker for ordinary traversal if opening the seed blocks.
+        let count = thread::available_parallelism()
+            .map_or(4, |v| v.get())
+            .max(if seed.is_some() { 2 } else { 1 })
+            .min(16);
+        let outstanding =
+            usize::from(seed.is_some()) + queue.len() + usize::from(discover.is_some());
         let work = Arc::new((
             Mutex::new(Work {
+                remainder: None,
+                discovering: discover.is_some(),
+                seed,
                 queue,
                 outstanding,
                 visited,
             }),
             Condvar::new(),
         ));
-        let count = thread::available_parallelism()
-            .map_or(4, |v| v.get())
-            .clamp(1, 16);
         let mut workers = Vec::new();
         for _ in 0..count {
             if outstanding == 0 || startup_cancel.load(Ordering::Relaxed) {
@@ -367,9 +412,10 @@ impl Search {
             let (tx, cancel, work, query) =
                 (tx.clone(), cancel.clone(), work.clone(), query.clone());
             let paused = paused.clone();
-            let previews = previews.clone();
+            let policy = policy.clone();
+            let extensions = extensions.clone();
             workers.push(thread::spawn(move || loop {
-                let dir = {
+                let (dir, pass) = {
                     let (lock, cv) = &*work;
                     let mut state = lock.lock().unwrap();
                     loop {
@@ -377,14 +423,17 @@ impl Search {
                             return;
                         }
                         if !paused.load(Ordering::Relaxed) {
-                            if let Some(Reverse((_, _, _, _, _, dir))) = state.queue.pop() {
-                                break dir;
+                            if let Some(job) = state.next_directory() {
+                                break job;
                             }
                         }
                         state = cv.wait(state).unwrap();
                     }
                 };
-                if let Ok(entries) = fs::read_dir(dir) {
+                let tools = matches!(pass, Pass::Tools);
+                let entries = fs::read_dir(&dir);
+                let replay_tools = entries.is_err();
+                if let Ok(entries) = entries {
                     for item in entries.flatten() {
                         wait_while_paused(&paused, &cancel, &work);
                         if cancel.load(Ordering::Relaxed) {
@@ -392,14 +441,26 @@ impl Search {
                         }
                         let path = item.path();
                         let Ok(kind) = item.file_type() else { continue };
-                        let accepted = filter.accepts(&path, kind);
+                        let launchable = !matches!(pass, Pass::Full { .. })
+                            && extensions
+                                .as_deref()
+                                .is_some_and(|extensions| extensions.matches(&path, kind));
+                        match pass {
+                            Pass::Tools if !launchable => continue,
+                            Pass::Remainder {
+                                replay_tools: false,
+                            } if launchable => continue,
+                            _ => {}
+                        }
+                        let accepted = launchable || filter.accepts(&path, kind);
                         if kind.is_dir()
                             && !kind.is_symlink()
                             && !(filter == FileFilter::MacBundles && accepted)
                         {
                             let canonical =
                                 fs::canonicalize(&path).unwrap_or_else(|_| path.clone());
-                            let ranked = priority(path.clone());
+                            let deferred = pass.defers_children() || policy.child(&canonical);
+                            let ranked = priority(path.clone(), deferred);
                             let (lock, cv) = &*work;
                             let mut state = lock.lock().unwrap();
                             if state.visited.insert(canonical) {
@@ -422,13 +483,6 @@ impl Search {
                             query.classify(&name)
                         };
                         if let Some(rank) = rank {
-                            if rank == MatchKind::Exact {
-                                if let Some(previews) = &previews {
-                                    if !PreviewPaths::admit_walk(previews, &path) {
-                                        continue;
-                                    }
-                                }
-                            }
                             let metadata = item.metadata().ok();
                             let entry = Entry {
                                 path,
@@ -455,13 +509,54 @@ impl Search {
                         }
                     }
                 }
-                let (lock, cv) = &*work;
-                let mut state = lock.lock().unwrap();
-                state.outstanding -= 1;
-                if state.outstanding == 0 {
-                    cv.notify_all();
+                if tools {
+                    let (lock, cv) = &*work;
+                    // The first enumeration owns launchable files. An open failure
+                    // gives the ordinary phase a full second attempt; read errors
+                    // within either iterator retain ordinary best-effort behavior.
+                    lock.lock().unwrap().remainder = Some((dir, replay_tools));
+                    cv.notify_one();
+                } else {
+                    complete_directory(&work);
                 }
             }));
+        }
+        if let Some(discover) = discover {
+            if !cancel.load(Ordering::Relaxed) {
+                let (cancel, work) = (cancel.clone(), work.clone());
+                workers.push(thread::spawn(move || {
+                    let (lock, cv) = &*work;
+                    if !cancel.load(Ordering::Relaxed) {
+                        for root in discover(&cancel) {
+                            if cancel.load(Ordering::Relaxed) {
+                                break;
+                            }
+                            let Ok(canonical) = fs::canonicalize(&root) else {
+                                continue;
+                            };
+                            if cancel.load(Ordering::Relaxed) {
+                                break;
+                            }
+                            let deferred = policy.root(&canonical);
+                            let ranked = priority(root, deferred);
+                            let mut state = lock.lock().unwrap();
+                            if !cancel.load(Ordering::Relaxed) && state.visited.insert(canonical) {
+                                state.queue.push(ranked);
+                                state.outstanding += 1;
+                                cv.notify_one();
+                            }
+                        }
+                    }
+                    let mut state = lock.lock().unwrap();
+                    state.discovering = false;
+                    state.outstanding -= 1;
+                    cv.notify_all();
+                }));
+            } else {
+                let mut state = work.0.lock().unwrap();
+                state.discovering = false;
+                state.outstanding -= 1;
+            }
         }
         let search = Self {
             receiver,
@@ -595,13 +690,58 @@ mod tests {
 
     #[test]
     fn priorities_favor_dictionary_and_visible_directories() {
-        let dictionary = priority(PathBuf::from("/home/user/music"));
-        let nondictionary = priority(PathBuf::from("/home/user/zzzzqxyz"));
+        let dictionary = priority(PathBuf::from("/home/user/music"), false);
+        let nondictionary = priority(PathBuf::from("/home/user/zzzzqxyz"), false);
         assert!(dictionary > nondictionary);
-        let visible = priority(PathBuf::from("/home/user/zzzzqxyz"));
-        let hidden = priority(PathBuf::from("/home/user/.zzzzqxyz"));
+        let visible = priority(PathBuf::from("/home/user/zzzzqxyz"), false);
+        let hidden = priority(PathBuf::from("/home/user/.zzzzqxyz"), false);
         assert!(visible > hidden);
     }
+    #[test]
+    fn ordinary_directories_win_over_deferred_dictionary_names_in_the_heap() {
+        let policy = DirectoryPolicy::default();
+        let parent = Path::new("project/node_modules");
+        let deferred = parent.join("music");
+        let ordinary = PathBuf::from("project/zzzzqxyz");
+        assert!(priority(deferred.clone(), false) > priority(ordinary.clone(), false));
+        let mut queue = BinaryHeap::from([
+            priority(
+                deferred.clone(),
+                policy.root(parent) || policy.child(&deferred),
+            ),
+            priority(ordinary.clone(), policy.root(&ordinary)),
+        ]);
+        assert_eq!(queue.pop(), Some(priority(ordinary, false)));
+        assert_eq!(queue.pop(), Some(priority(deferred, true)));
+    }
+
+    #[test]
+    fn deferred_explicit_roots_and_discovered_children_are_searchable_once() {
+        let fixture = private_temp_dir();
+        let root = fixture.path();
+        let normal = root.join("build/source");
+        let deferred = root.join("node_modules/dependency");
+        fs::create_dir_all(&normal).unwrap();
+        fs::create_dir_all(&deferred).unwrap();
+        let mut expected = [normal.join("needle-code"), deferred.join("needle-package")];
+        for path in &expected {
+            fs::write(path, []).unwrap();
+        }
+        let search = Search::start("needle".into(), vec![root.into(), deferred]);
+        let timeout = std::time::Duration::from_secs(5);
+        let mut paths = Vec::new();
+        loop {
+            match search.receiver.recv_timeout(timeout) {
+                Ok((_, entry)) => paths.push(entry.path),
+                Err(mpsc::RecvTimeoutError::Disconnected) => break,
+                Err(mpsc::RecvTimeoutError::Timeout) => panic!("search stalled"),
+            }
+        }
+        paths.sort();
+        expected.sort();
+        assert_eq!(paths, expected);
+    }
+
     #[test]
     fn cancellation_completes_even_when_results_are_not_consumed() {
         let directory = private_temp_dir();
@@ -626,6 +766,96 @@ mod tests {
             );
         }
     }
+    #[test]
+    fn seed_results_arrive_during_discovery_and_overlapping_roots_share_the_walk() {
+        let fixture = private_temp_dir();
+        let root = fixture.path().to_owned();
+        let seed = root.join("seed");
+        fs::create_dir_all(seed.join("nested")).unwrap();
+        fs::write(seed.join("needle-seed.exe"), []).unwrap();
+        fs::write(seed.join("nested/needle-nested"), []).unwrap();
+        fs::write(root.join("needle-discovered"), []).unwrap();
+        let (release, blocked) = mpsc::channel();
+        let timeout = std::time::Duration::from_secs(5);
+        let search = Search::start_seeded(
+            SearchQuery::parse("needle"),
+            Some((seed.clone(), ToolExtensions::from_pathext(None))),
+            move |_| {
+                if blocked.recv_timeout(timeout).is_err() {
+                    return Vec::new();
+                }
+                vec![root, seed]
+            },
+            Arc::default(),
+            FileFilter::All,
+        );
+        let (_, first) = search.receiver.recv_timeout(timeout).unwrap();
+        assert_eq!(first.name, "needle-seed.exe");
+        assert!(search.pending() > 0);
+        assert!(matches!(
+            search.try_recv_hit(),
+            Err(mpsc::TryRecvError::Empty)
+        ));
+
+        release.send(()).unwrap();
+        let mut remaining = Vec::new();
+        loop {
+            match search.receiver.recv_timeout(timeout) {
+                Ok((_, entry)) => remaining.push(entry.name),
+                Err(mpsc::RecvTimeoutError::Disconnected) => break,
+                Err(error) => panic!("{error}"),
+            }
+        }
+        remaining.sort();
+        assert_eq!(remaining, ["needle-discovered", "needle-nested"]);
+        assert_eq!(search.pending(), 0);
+    }
+
+    #[test]
+    fn stopping_a_paused_seeded_search_cancels_discovery_and_wakes_the_walk() {
+        let (entered, started) = mpsc::channel();
+        let (cancelled, observed) = mpsc::channel();
+        let timeout = std::time::Duration::from_secs(5);
+        let search = Search::start_seeded(
+            SearchQuery::parse("needle"),
+            None,
+            move |cancel| {
+                let deadline = std::time::Instant::now() + timeout;
+                entered.send(()).unwrap();
+                while !cancel.load(Ordering::Relaxed) && std::time::Instant::now() < deadline {
+                    thread::yield_now();
+                }
+                cancelled.send(cancel.load(Ordering::Relaxed)).unwrap();
+                vec![]
+            },
+            Arc::default(),
+            FileFilter::All,
+        );
+        started.recv_timeout(timeout).unwrap();
+        search.set_paused(true);
+        search.stop();
+        assert!(observed.recv_timeout(timeout).unwrap());
+        assert!(matches!(
+            search.receiver.recv_timeout(timeout),
+            Err(mpsc::RecvTimeoutError::Disconnected)
+        ));
+    }
+
+    #[test]
+    fn invalid_or_precancelled_seeded_searches_skip_discovery() {
+        for (text, cancelled) in [("regex:(", false), ("needle", true)] {
+            let search = Search::start_seeded(
+                SearchQuery::parse(text),
+                Some((std::env::temp_dir(), ToolExtensions::from_pathext(None))),
+                |_| panic!("discovery ran without an active query"),
+                Arc::new(AtomicBool::new(cancelled)),
+                FileFilter::All,
+            );
+            assert!(search.done());
+            assert_eq!(search.pending(), 0);
+        }
+    }
+
     #[test]
     fn scan_finishes_and_finds_files_and_directories() {
         let directory = private_temp_dir();
