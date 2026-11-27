@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Time offline release builds of one or more native Drill checkouts."""
+"""Time offline builds of the Rust egui executable across Drill checkouts."""
 import argparse
 import json
 import os
@@ -11,6 +11,8 @@ import subprocess
 import sys
 import tempfile
 import time
+
+from bench_egui import egui_features
 
 
 def output(command, cwd, **kwargs):
@@ -29,6 +31,7 @@ def measure(checkout, cargo, jobs, report, linker):
             raise RuntimeError(f"Target directory still contains artifacts: {target}")
         cmd = [cargo, "rustc" if linker else "build", "--release", "--frozen", "--jobs", str(jobs),
                "-p", "drill", "--bin", "drill", "--message-format=json-render-diagnostics"]
+        cmd.extend(egui_features(cargo, checkout, env))
         if report:
             cmd.append("--timings")
         if linker:

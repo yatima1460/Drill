@@ -1,6 +1,6 @@
 #![cfg(unix)]
 #![deny(unsafe_op_in_unsafe_fn)]
-//! C interface to Drill's search core for the experimental macOS frontend.
+//! C interface between the native macOS app and Drill's Rust search core.
 
 mod icons;
 

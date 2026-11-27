@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
-"""Compare clean release builds of macOS egui Drill and the SwiftUI prototype."""
+"""Compare a clean egui baseline against the native macOS SwiftUI app."""
 import argparse
 import hashlib
 import json
 import os
 from pathlib import Path
 import platform
+import plistlib
 import re
 import shutil
 import statistics
@@ -13,6 +14,8 @@ import subprocess
 import sys
 import tempfile
 import time
+
+from bench_egui import egui_features
 
 
 # Rotate build positions, then reverse the order for the next three rounds.
@@ -64,6 +67,7 @@ def egui_build(checkout, dest, jobs, env):
     env = dict(env, CARGO_TARGET_DIR=str(target), CARGO_BUILD_BUILD_DIR=str(target))
     command = [env["CARGO"], "build", "--release", "--frozen", "-p", "drill", "--bin", "drill",
                "--jobs", str(jobs), "--timings", "--message-format=json-render-diagnostics"]
+    command.extend(egui_features(env["CARGO"], checkout, env))
     start = time.perf_counter()
     messages = output(command, checkout, env=env)
     elapsed = time.perf_counter() - start
@@ -88,7 +92,10 @@ def swift_build(checkout, dest, cache, jobs, env, arch):
         raise ValueError("SwiftUI build must include the search and Wasm crates and exclude egui/eframe")
     if stats["swift_target"] != f"{arch}-apple-macosx13.0":
         raise ValueError(f"unexpected Swift target: {stats['swift_target']}")
-    binary = dest / "Drill Swift.app/Contents/MacOS/drill-swift"
+    # The checkout under test owns the bundle and executable names.
+    app, = dest.glob("*.app")
+    with (app / "Contents/Info.plist").open("rb") as info:
+        binary = app / "Contents/MacOS" / plistlib.load(info)["CFBundleExecutable"]
     return elapsed, binary, stats
 
 

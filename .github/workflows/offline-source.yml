@@ -3,6 +3,7 @@ on:
   pull_request:
     paths:
       - 'scripts/package-offline-source.sh'
+      - 'scripts/build-swift-ui.py'
       - '.github/workflows/offline-source.yml'
       - '**/Cargo.toml'
       - '**/Cargo.lock'
@@ -46,6 +47,8 @@ jobs:
             bash -euo pipefail -c '
               cargo build --frozen --release --bin drill
               "$CARGO_TARGET_DIR/release/drill" --version
+              # Verify that the Rust dependencies for the Mac app are vendored.
+              cargo tree --frozen --target aarch64-apple-darwin -p drill-swift -e normal,build > /dev/null
               cargo metadata --frozen --format-version 1 --manifest-path verification/Cargo.toml > /dev/null
               registry=/cargo/registry/src/index.crates.io-1949cf8c6b5b557f
               export CARGO_ENCODED_RUSTFLAGS

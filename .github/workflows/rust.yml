@@ -15,7 +15,7 @@ jobs:
       linux: ${{ steps.select.outputs.linux }}
       windows: ${{ steps.select.outputs.windows }}
       macos: ${{ steps.select.outputs.macos }}
-      swift_ui: ${{ steps.select.outputs.swift_ui }}
+      macos_legacy: ${{ steps.select.outputs.macos_legacy }}
       release: ${{ steps.select.outputs.release }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -120,7 +120,10 @@ jobs:
       - run: target/release/drill --version
       - run: scripts/package-linux.sh
       - name: Decode the icon from the packaged AppImage
-        run: cargo test --locked --bin drill --features verify-packaged-appimage appimage_icon::tests::packaged_appimage_contains_drill_icon -- --ignored --exact
+        run: |
+          test_name=egui_app::appimage_icon::tests::packaged_appimage_contains_drill_icon
+          cargo test --locked --bin drill --features verify-packaged-appimage "$test_name" -- --ignored --exact | tee "$RUNNER_TEMP/appimage-test"
+          grep -Fx "test $test_name ... ok" "$RUNNER_TEMP/appimage-test"
       - name: Double-click AppImage results with Xed and Nemo
         timeout-minutes: 8
         run: |
@@ -230,88 +233,81 @@ jobs:
             'icon_sample::tests::owns_only_the_file_it_created',
             'icon_sample::tests::associated_icons_match_direct_native_lookup'
           )
-          foreach ($test in $tests) {
+          foreach ($name in $tests) {
+            $test = "egui_app::$name"
             & .\drill-ui-tests.exe $test --exact --color never | Tee-Object -Variable result
             if ($LASTEXITCODE -ne 0 -or $result -cnotcontains "test $test ... ok") {
               throw "The native Windows test $test did not pass."
             }
           }
   macos:
+    name: macOS Swift app
     needs: platforms
     if: needs.platforms.outputs.macos == 'true'
     outputs:
-      executable-id: ${{ steps.executable.outputs.artifact-id }}
-      executable-sha256: ${{ steps.digest.outputs.sha256 }}
+      stage-id: ${{ steps.stage.outputs.artifact-id }}
+      stage-sha256: ${{ steps.digest.outputs.sha256 }}
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - uses: dtolnay/rust-toolchain@master
         with:
           toolchain: 1.100.0
           components: clippy, rustfmt
       - if: needs.platforms.outputs.linux != 'true'
         run: cargo fmt --all -- --check
-      - run: cargo check --locked --workspace --all-targets
-      - run: cargo clippy --locked --workspace --all-targets --all-features -- -D warnings -D clippy::undocumented_unsafe_blocks
-      - run: cargo test --locked --workspace
-      - name: Verify clipboard text and RGBA on a private macOS pasteboard
-        run: scripts/test-macos-clipboard.sh
-      - name: Verify native OpenGL rendering, resize and viewport teardown
-        run: cargo run --locked -p drill --example macos_opengl
-      - run: cargo build --release --locked
-      - run: scripts/package-macos.sh
-      - name: Hash the tested executable
+      - name: Check the Rust packages used by the macOS app
+        run: |
+          packages=(-p drill-swift -p drill-core -p drill-query -p drill-icons)
+          cargo clippy --locked "${packages[@]}" --all-targets --all-features -- -D warnings -D clippy::undocumented_unsafe_blocks
+          cargo test --locked "${packages[@]}"
+      - name: Drive the native macOS window
+        run: make test-swift-ui
+      - name: Build and verify the macOS app and installer
+        run: |
+          make package-macos
+          version=$(cargo metadata --locked --no-deps --format-version=1 | jq -er '.packages[] | select(.name == "drill") | .version')
+          test "$(target/swift-ui/Drill.app/Contents/MacOS/Drill --version)" = "Drill $version"
+          test "$(cargo run --locked --release -p drill -- --version)" = "Drill $version"
+      - name: Hash the tested writable disk image
+        if: needs.platforms.outputs.release == 'true'
         id: digest
-        run: echo "sha256=$(shasum -a 256 target/release/drill | cut -d' ' -f1)" >> "$GITHUB_OUTPUT"
-      - name: Save tested executable for release signing
-        id: executable
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: echo "sha256=$(shasum -a 256 build/Drill-stage.dmg | cut -d' ' -f1)" >> "$GITHUB_OUTPUT"
+      - name: Save the tested disk image for production signing
+        id: stage
+        if: needs.platforms.outputs.release == 'true'
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: drill-macos-executable
-          path: target/release/drill
+          name: drill-macos-stage
+          path: build/Drill-stage.dmg
           if-no-files-found: error
-      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+      - name: Upload the ad-hoc-signed macOS DMG
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: drill-macos-preview
-          path: dist/*.dmg
+          path: dist/Drill-macos-*.dmg
           if-no-files-found: error
-  swift-ui:
-    name: macOS SwiftUI prototype
+  macos-legacy:
+    name: macOS egui comparison checks
     needs: platforms
-    if: needs.platforms.outputs.swift_ui == 'true'
+    if: needs.platforms.outputs.macos_legacy == 'true'
     runs-on: macos-latest
-    timeout-minutes: 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - name: Check the Swift search adapter
-        run: |
-          cargo fmt -p drill-swift -- --check
-          cargo clippy --locked -p drill-swift --all-targets -- -D warnings -D clippy::undocumented_unsafe_blocks
-          cargo test --locked -p drill-swift
-      - name: Drive the native SwiftUI window
-        run: make test-swift-ui
-      - name: Build and verify the prototype app archive
-        shell: bash
-        run: |
-          make build-swift-ui
-          ditto -c -k --keepParent 'target/swift-ui/Drill Swift.app' "$RUNNER_TEMP/Drill-Swift-preview.zip"
-          ditto -x -k "$RUNNER_TEMP/Drill-Swift-preview.zip" "$RUNNER_TEMP/extracted"
-          version=$(cargo metadata --locked --no-deps --format-version=1 | jq -er '.packages[] | select(.name == "drill") | .version')
-          app="$RUNNER_TEMP/extracted/Drill Swift.app"
-          codesign --verify --strict "$app"
-          cmp LICENSE "$app/Contents/Resources/LICENSE"
-          test "$("$app/Contents/MacOS/drill-swift" --version)" = "Drill $version"
-      - name: Upload the PR prototype
-        if: github.event_name == 'pull_request'
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+      - uses: dtolnay/rust-toolchain@master
         with:
-          name: drill-swiftui-macos-prototype
-          path: ${{ runner.temp }}/Drill-Swift-preview.zip
-          if-no-files-found: error
-          retention-days: 7
+          toolchain: 1.100.0
+          components: clippy
+      - run: cargo clippy --locked -p drill -p drill-macos --all-targets --all-features -- -D warnings -D clippy::undocumented_unsafe_blocks
+      - run: cargo test --locked -p drill -p drill-macos --features macos-egui
+      - name: Verify clipboard text and RGBA on a private macOS pasteboard
+        run: scripts/test-macos-clipboard.sh
+      - name: Verify native OpenGL rendering, resize and viewport teardown
+        run: cargo run --locked -p drill --features macos-egui --example macos_opengl
   merged-main:
     needs: platforms
     if: >-
@@ -346,7 +342,7 @@ jobs:
   sign-macos:
     needs: [merged-main, jscpd, linux, windows-cross, windows-ui, macos]
     if: >-
-      needs.merged-main.outputs.eligible == 'true' && needs.macos.outputs.executable-id != '' &&
+      needs.merged-main.outputs.eligible == 'true' && needs.macos.outputs.stage-id != '' &&
       (github.run_attempt == 1 || github.triggering_actor == 'yatima1460')
     environment: prod
     outputs:
@@ -362,16 +358,15 @@ jobs:
           persist-credentials: false
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
-          artifact-ids: ${{ needs.macos.outputs.executable-id }}
+          artifact-ids: ${{ needs.macos.outputs.stage-id }}
           merge-multiple: true
-          path: target/release
-      - name: Verify and stage the tested executable
+          path: build
+      - name: Verify the tested writable disk image
         env:
-          EXPECTED_SHA256: ${{ needs.macos.outputs.executable-sha256 }}
+          EXPECTED_SHA256: ${{ needs.macos.outputs.stage-sha256 }}
         run: |
           [[ "$EXPECTED_SHA256" =~ ^[0-9a-f]{64}$ ]]
-          printf '%s  target/release/drill\n' "$EXPECTED_SHA256" | shasum -a 256 --check
-          scripts/package-macos.sh --stage-only
+          printf '%s  build/Drill-stage.dmg\n' "$EXPECTED_SHA256" | shasum -a 256 --check
       - name: Sign and notarize the production DMG
         id: notarized
         env:

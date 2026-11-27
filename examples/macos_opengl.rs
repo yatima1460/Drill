@@ -1,5 +1,5 @@
 //! Runs a real macOS window without generating keyboard or pointer events.
-//! Use `cargo run --locked --example macos_opengl` on a GUI session.
+//! Use `cargo run --locked --features macos-egui --example macos_opengl` on a GUI session.
 
 #[cfg(target_os = "macos")]
 #[path = "../crates/drill-core/src/test_directory.rs"]

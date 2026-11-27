@@ -10,6 +10,7 @@ private func press(_ name: String, in driver: WindowDriver) throws {
 
 @MainActor
 func exercisePanels() throws {
+    try exercisePreferenceMigration()
     let rootBytes = Array("/tmp/drill-".utf8) + [0xFF]
     let parsed = (rootBytes + [0]).withUnsafeBytes {
         commandLineRoot($0.bindMemory(to: CChar.self).baseAddress)

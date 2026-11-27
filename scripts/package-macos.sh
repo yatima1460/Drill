@@ -13,35 +13,21 @@ cleanup() {
   rm -rf "$work"
 }
 trap cleanup EXIT
-app="$work/root/Drill.app"
-mkdir -p "$app/Contents/MacOS" "$app/Contents/Resources" "$mount"
-licenses="$app/Contents/Resources/licenses/emoji"
-mkdir -p "$licenses"
-cp src/assets/emoji/{NOTICE,LICENSE-TWEMOJI,LICENSE-UNICODE} "$licenses/"
-install -m 755 target/release/drill "$app/Contents/MacOS/Drill"
-cp src/assets/drill-macos.icns "$app/Contents/Resources/Drill.icns"
-cat > "$app/Contents/Info.plist" <<'PLIST'
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0"><dict>
-<key>CFBundleExecutable</key><string>Drill</string>
-<key>CFBundleIdentifier</key><string>software.drill</string>
-<key>CFBundleName</key><string>Drill</string>
-<key>CFBundleDisplayName</key><string>Drill</string>
-<key>CFBundleIconFile</key><string>Drill</string>
-<key>CFBundlePackageType</key><string>APPL</string>
-<key>CFBundleShortVersionString</key><string>2.0.0</string>
-<key>CFBundleVersion</key><string>1</string>
-<key>NSHighResolutionCapable</key><true/>
-<key>NSDesktopFolderUsageDescription</key><string>Drill searches your Desktop for filenames.</string>
-<key>NSDocumentsFolderUsageDescription</key><string>Drill searches your Documents for filenames.</string>
-<key>NSDownloadsFolderUsageDescription</key><string>Drill searches your Downloads for filenames.</string>
-<key>NSNetworkVolumesUsageDescription</key><string>Drill searches network volumes for filenames.</string>
-<key>NSRemovableVolumesUsageDescription</key><string>Drill searches removable volumes for filenames.</string>
-<key>NSFileProviderDomainUsageDescription</key><string>Drill searches cloud folders for filenames.</string>
-</dict></plist>
-PLIST
-/usr/bin/plutil -lint "$app/Contents/Info.plist"
+source_app=target/swift-ui/Drill.app
+arch=$(uname -m)
+plist="$source_app/Contents/Info.plist"
+version=$(/usr/bin/plutil -extract CFBundleShortVersionString raw -o - "$plist")
+[[ "$(plutil -extract CFBundleIdentifier raw -o - "$plist")" == software.drill ]]
+[[ "$(plutil -extract CFBundleExecutable raw -o - "$plist")" == Drill ]]
+[[ "$(plutil -extract LSMinimumSystemVersion raw -o - "$plist")" == 13.0 ]]
+lipo -verify_arch "$arch" "$source_app/Contents/MacOS/Drill"
+otool -L "$source_app/Contents/MacOS/Drill" | grep -F '/SwiftUI.framework/' >/dev/null
+codesign --verify --strict -R='identifier "software.drill"' "$source_app"
+cmp LICENSE "$source_app/Contents/Resources/LICENSE"
+cmp src/assets/drill-macos.icns "$source_app/Contents/Resources/Drill.icns"
+
+mkdir -p "$work/root" "$mount"
+ditto "$source_app" "$work/root/Drill.app"
 ln -s /Applications "$work/root/Applications"
 cp scripts/macos-dmg/background.png "$work/root/.background.png"
 python3 -m venv build/dmg-tools
@@ -56,24 +42,24 @@ hdiutil create -volname Drill -fs HFS+ -srcfolder "$work/root" -size "$((root_ki
 hdiutil attach -nobrowse -readwrite -mountpoint "$mount" "$stage"
 mounted=true
 "$python" -I scripts/macos-dmg/layout.py "$mount"
-if [[ ${1:-} == '--stage-only' ]]; then
-  cmp target/release/drill "$mount/Drill.app/Contents/MacOS/Drill"
+verify_volume() {
   "$python" -I scripts/macos-dmg/check-layout.py "$mount"
-fi
+  cmp scripts/macos-dmg/background.png "$mount/.background.png"
+  diff -qr "$source_app" "$mount/Drill.app"
+  codesign --verify --strict "$mount/Drill.app"
+  [[ "$("$mount/Drill.app/Contents/MacOS/Drill" --version)" == "Drill $version" ]]
+}
+verify_volume
 hdiutil detach "$mount"
 mounted=false
-if [[ ${1:-} == '--stage-only' ]]; then
-  mv -f "$stage" build/Drill-stage.dmg
-  exit 0
-fi
 
-dmg="dist/Drill-macos-$(uname -m).dmg"
-hdiutil convert "$stage" -format UDZO -ov -o "$dmg"
-hdiutil verify "$dmg"
-hdiutil attach -nobrowse -readonly -mountpoint "$mount" "$dmg"
-mounted=true
-"$python" -I scripts/macos-dmg/check-layout.py "$mount"
-cmp scripts/macos-dmg/background.png "$mount/.background.png"
-bundle_id=$(/usr/bin/plutil -extract CFBundleIdentifier raw -o - "$mount/Drill.app/Contents/Info.plist")
-[[ "$bundle_id" == 'software.drill' ]] || { echo "Unexpected bundle identifier: $bundle_id" >&2; exit 1; }
-"$mount/Drill.app/Contents/MacOS/Drill" --version
+if [[ ${1:-} != '--stage-only' ]]; then
+  dmg="dist/Drill-macos-$arch.dmg"
+  hdiutil convert "$stage" -format UDZO -ov -o "$dmg"
+  hdiutil verify "$dmg"
+  hdiutil attach -nobrowse -readonly -mountpoint "$mount" "$dmg"
+  mounted=true
+  verify_volume
+fi
+# Production signs this exact writable image after verifying its build-job digest.
+mv -f "$stage" build/Drill-stage.dmg
