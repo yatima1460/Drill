@@ -169,6 +169,13 @@ static void selected(int index) {
     fail("unexpected selected row");
 }
 
+static void activate_main(void) {
+    if (GetForegroundWindow() == window) return;
+    SetForegroundWindow(window);
+    ULONGLONG deadline = GetTickCount64() + 5000;
+    while (GetForegroundWindow() != window) REQUIRE(retry(deadline));
+}
+
 static void send_events(INPUT *events, UINT count) {
     DWORD pid = 0;
     GetWindowThreadProcessId(GetForegroundWindow(), &pid);
@@ -244,7 +251,7 @@ static void key(WORD vk, bool ctrl) {
     for (UINT i = 0; i < count; ++i) {
         events[i].type = INPUT_KEYBOARD;
         WORD code = events[i].ki.wVk;
-        if (code == VK_UP || code == VK_DOWN || code == VK_HOME || code == VK_END) {
+        if (code == VK_UP || code == VK_DOWN || code == VK_RIGHT || code == VK_HOME || code == VK_END) {
             events[i].ki.dwFlags |= KEYEVENTF_EXTENDEDKEY;
         }
     }
@@ -343,9 +350,7 @@ static void filter_and_launch(void) {
         REQUIRE(retry(deadline));
     }
     // The fixture process may briefly own focus while its console closes.
-    SetForegroundWindow(window);
-    deadline = GetTickCount64() + 5000;
-    while (GetForegroundWindow() != window) REQUIRE(retry(deadline));
+    activate_main();
 
     click(combo);
     key(VK_HOME, false);
@@ -360,13 +365,14 @@ static void filter_and_launch(void) {
 }
 
 static HWND open_panel(int menu_index, const WCHAR *title) {
-    HMENU bar = GetMenu(window);
-    REQUIRE(bar && GetMenuItemCount(bar) == 3);
-    HMENU popup = GetSubMenu(bar, menu_index);
-    REQUIRE(popup && GetMenuItemCount(popup) == 1);
-    UINT command = GetMenuItemID(popup, 0);
-    REQUIRE(command && command != (UINT)-1);
-    REQUIRE(PostMessageW(window, WM_COMMAND, MAKEWPARAM(command, 0), 0));
+    // An HMENU from a different process is not a portable inspection handle
+    // under Wine. Use the visible menu bar's ordinary keyboard navigation.
+    activate_main();
+    key(VK_F10, false);
+    key(VK_HOME, false);
+    for (int i = 0; i < menu_index; ++i) key(VK_RIGHT, false);
+    key(VK_DOWN, false);
+    key(VK_RETURN, false);
     HWND panel = find_window(L"#32770", title);
     REQUIRE(GetWindow(panel, GW_OWNER) == window);
     return panel;
@@ -400,7 +406,8 @@ int wmain(int argc, WCHAR **argv) {
     REQUIRE(n && n < ARRAYSIZE(self));
     WCHAR *name = wcsrchr(self, L'\\');
     if (argc == 1 && name && _wcsicmp(name + 1, files[2]) == 0) {
-        // The copied fixture is only launched by the app's normal Open action.
+        // Let Windows release the fixture console before reporting that Open ran.
+        FreeConsole();
         lstrcpyW(name + 1, files[3]);
         create_file(self);
         return 0;
@@ -424,9 +431,7 @@ int wmain(int argc, WCHAR **argv) {
     header = (HWND)message(list, LVM_GETHEADER, 0, 0);
     REQUIRE(header && message(header, HDM_GETITEMCOUNT, 0, 0) == 4);
     REQUIRE(message(combo, CB_GETCOUNT, 0, 0) == 2 && message(combo, CB_GETCURSEL, 0, 0) == 0);
-    SetForegroundWindow(window);
-    ULONGLONG deadline = GetTickCount64() + 5000;
-    while (GetForegroundWindow() != window) REQUIRE(retry(deadline));
+    activate_main();
     expect_text(status, L"Type to search");
     REQUIRE(!IsWindowEnabled(control(window, 105, L"Button")));
     REQUIRE(!IsWindowVisible(control(window, 106, L"Button")));

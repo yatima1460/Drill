@@ -3,6 +3,11 @@
 #include <windows.h>
 #include "../../drill-desktop/include/DrillDesktop.h"
 
+/* Windows SDK dwmapi.h defines DWMWA_USE_IMMERSIVE_DARK_MODE as 20.
+ * Older MinGW-w64 headers omit the name. Unsupported Windows versions
+ * simply reject this optional title-bar appearance attribute. */
+enum { DRILL_DWM_DARK_TITLE = 20 };
+
 #define DRILL_WM_PREFERENCES  (WM_APP + 41)
 #define DRILL_WM_SET_PREF     (WM_APP + 42)
 #define DRILL_WM_PANEL_CLOSED (WM_APP + 43)

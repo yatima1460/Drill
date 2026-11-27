@@ -88,7 +88,7 @@ static void search_changed(DrillWindow *ui) {
 static void apply_colors(DrillWindow *ui) {
     ui->dark = ui->actions && drill_win_dark(ui->actions);
     BOOL dark_title = ui->dark;
-    DwmSetWindowAttribute(ui->hwnd, DWMWA_USE_IMMERSIVE_DARK_MODE, &dark_title, sizeof(dark_title));
+    DwmSetWindowAttribute(ui->hwnd, DRILL_DWM_DARK_TITLE, &dark_title, sizeof(dark_title));
     ui->text_color = ui->dark ? RGB(242,242,242) : GetSysColor(COLOR_WINDOWTEXT);
     ui->list_color = ui->dark ? RGB(30,30,30) : GetSysColor(COLOR_WINDOW);
     ui->face_color = ui->dark ? RGB(40,40,40) : GetSysColor(COLOR_BTNFACE);

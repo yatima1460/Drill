@@ -113,7 +113,7 @@ void drill_panel_apply(HWND dialog, bool dark) {
     if (!dialog) return;
     SetWindowLongPtrW(dialog, DWLP_USER, dark);
     BOOL title_dark = dark;
-    DwmSetWindowAttribute(dialog, DWMWA_USE_IMMERSIVE_DARK_MODE, &title_dark, sizeof(title_dark));
+    DwmSetWindowAttribute(dialog, DRILL_DWM_DARK_TITLE, &title_dark, sizeof(title_dark));
     // Classic check/radio controls honor WM_CTLCOLORSTATIC when the app supplies colors.
     for (int i = PANEL_AUTO; i <= PANEL_DETAILS; ++i) {
         HWND child = GetDlgItem(dialog, i);
