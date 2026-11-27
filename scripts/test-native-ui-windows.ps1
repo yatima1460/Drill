@@ -14,10 +14,14 @@ try {
     }
     if (!$Driver) {
         $Driver = Join-Path $temp 'drill-native-window.exe'
+        $fixture = Join-Path $temp 'drill-launch-fixture.exe'
         $source = Join-Path $PSScriptRoot '..\crates\drill-windows\tests\native_window.c'
+        $fixtureSource = Join-Path $PSScriptRoot '..\crates\drill-windows\tests\launch_fixture.c'
         $hostTriple = ((& rustc -vV) -match '^host: ') -replace '^host: ', ''
         if ($hostTriple -like '*-windows-gnu*') {
             & gcc -std=c11 -municode -Wall -Wextra -Werror $source -o $Driver -lgdi32 -ladvapi32 -loleacc -loleaut32 -lole32 -luuid
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+            & gcc -std=c11 -municode -mwindows -Wall -Wextra -Werror $fixtureSource -o $fixture
         } else {
             if (!$env:INCLUDE -or !(Get-Command cl.exe -ErrorAction SilentlyContinue)) {
                 $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\vswhere.exe'
@@ -28,6 +32,9 @@ try {
             }
             $obj = Join-Path $temp 'driver.obj'
             & cl.exe /nologo /W4 /WX /std:c11 /MT $source "/Fo$obj" "/Fe$Driver" user32.lib gdi32.lib advapi32.lib oleacc.lib oleaut32.lib ole32.lib uuid.lib
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+            $fixtureObj = Join-Path $temp 'fixture.obj'
+            & cl.exe /nologo /W4 /WX /std:c11 /MT $fixtureSource "/Fo$fixtureObj" "/Fe$fixture" /link /SUBSYSTEM:WINDOWS
         }
         if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
     }

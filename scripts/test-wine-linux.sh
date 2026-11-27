@@ -36,6 +36,8 @@ else
     driver="$WINEPREFIX/drill-native-window.exe"
     "$linker" -std=c11 -municode -Wall -Wextra -Werror crates/drill-windows/tests/native_window.c \
         -o "$driver" -lgdi32 -ladvapi32 -loleacc -loleaut32 -lole32 -luuid
+    "$linker" -std=c11 -municode -mwindows -Wall -Wextra -Werror crates/drill-windows/tests/launch_fixture.c \
+        -o "$WINEPREFIX/drill-launch-fixture.exe"
 fi
 windows_app=$(timeout 120s winepath -w "$(realpath -- "$application")")
 # MSAA row annotations are checked by this driver on native Windows.

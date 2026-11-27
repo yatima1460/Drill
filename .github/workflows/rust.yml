@@ -165,7 +165,7 @@ jobs:
             lld-link /dll /noentry /machine:x64 "/out:$resource.dll" "$resource"
             wrestool --list --type=14 "$resource.dll" | grep -- '--name=1'
           done
-      - name: Cross-compile the Windows app and its UI test executable
+      - name: Cross-compile the Windows app and its UI test executables
         env:
           CARGO_TARGET_X86_64_PC_WINDOWS_GNU_LINKER: x86_64-w64-mingw32-gcc
           RUSTFLAGS: -C target-feature=+crt-static
@@ -174,6 +174,8 @@ jobs:
           cargo test --no-run --locked --target x86_64-pc-windows-gnu -p drill-windows --all-features
           x86_64-w64-mingw32-gcc -municode -Wall -Wextra -Werror crates/drill-windows/tests/native_window.c \
             -o "$RUNNER_TEMP/drill-native-window.exe" -lgdi32 -ladvapi32 -loleacc -loleaut32 -lole32 -luuid
+          x86_64-w64-mingw32-gcc -municode -mwindows -Wall -Wextra -Werror crates/drill-windows/tests/launch_fixture.c \
+            -o "$RUNNER_TEMP/drill-launch-fixture.exe"
           x86_64-w64-mingw32-gcc -Wall -Wextra -Werror crates/drill-windows/tests/menu_accessibility.c \
             crates/drill-windows/src/menu.c -o "$RUNNER_TEMP/drill-menu-accessibility.exe" \
             -lcomctl32 -lgdi32 -loleacc -loleaut32 -lole32 -luuid
@@ -184,6 +186,7 @@ jobs:
           name: drill-windows-ui-tests
           path: |
             ${{ runner.temp }}/drill-native-window.exe
+            ${{ runner.temp }}/drill-launch-fixture.exe
             ${{ runner.temp }}/drill-menu-accessibility.exe
             ${{ runner.temp }}/drill-icon-path.exe
           if-no-files-found: error

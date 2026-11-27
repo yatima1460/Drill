@@ -90,7 +90,15 @@ static void create_file(const WCHAR *path) {
     CloseHandle(file);
 }
 
-static void fixture(const WCHAR *self) {
+static void fixture(void) {
+    WCHAR helper[MAX_PATH];
+    DWORD length = GetModuleFileNameW(NULL, helper, ARRAYSIZE(helper));
+    REQUIRE(length && length < ARRAYSIZE(helper));
+    WCHAR *base = wcsrchr(helper, L'\\');
+    static const WCHAR helper_name[] = L"drill-launch-fixture.exe";
+    REQUIRE(base && (size_t)(base + 1 - helper) + ARRAYSIZE(helper_name) <= ARRAYSIZE(helper));
+    memcpy(base + 1, helper_name, sizeof(helper_name));
+
     WCHAR temp[MAX_PATH], candidate[MAX_PATH];
     DWORD n = GetTempPathW(ARRAYSIZE(temp), temp);
     REQUIRE(n && n < ARRAYSIZE(temp));
@@ -106,13 +114,13 @@ static void fixture(const WCHAR *self) {
     }
     create_file(paths[1]);
     create_file(paths[0]);
-    REQUIRE(CopyFileW(self, paths[2], TRUE));
+    if (!CopyFileW(helper, paths[2], TRUE)) fail("could not copy the sibling drill-launch-fixture.exe");
     REQUIRE(CopyFileW(L"tools\\exe-icon-wasm\\tests\\fixtures\\icon-pe32.exe", paths[4], TRUE));
 }
 
 // The host wrapper gives this driver the protocol streams for its final
 // bundle test. Keep them out of the standard handles of the ordinary app and
-// the harmless executable it launches during the shell-action test.
+// the GUI fixture it launches during the shell-action test.
 static void reserve_bridge(void) {
     WCHAR enabled[2];
     REQUIRE(GetEnvironmentVariableW(bridge_marker, enabled, ARRAYSIZE(enabled)) == 1 && enabled[0] == L'1');
@@ -760,23 +768,6 @@ static void check_geometry(const WCHAR *executable) {
 }
 
 int wmain(int argc, WCHAR **argv) {
-    WCHAR self[MAX_PATH];
-    DWORD n = GetModuleFileNameW(NULL, self, ARRAYSIZE(self));
-    REQUIRE(n && n < ARRAYSIZE(self));
-    WCHAR *name = wcsrchr(self, L'\\');
-    if (argc == 1 && name && _wcsicmp(name + 1, files[2]) == 0) {
-        REQUIRE(GetEnvironmentVariableW(bridge_marker, NULL, 0) == 0);
-        // Let Windows release the fixture console before reporting that Open ran.
-        FreeConsole();
-        lstrcpyW(name + 1, files[3]);
-        HANDLE marker = CreateFileW(self, FILE_APPEND_DATA, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL,
-                                    OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
-        REQUIRE(marker != INVALID_HANDLE_VALUE);
-        DWORD written = 0;
-        REQUIRE(WriteFile(marker, "1", 1, &written, NULL) && written == 1);
-        CloseHandle(marker);
-        return 0;
-    }
     use_msaa = !(argc == 3 && wcscmp(argv[2], L"--wine") == 0);
     if (argc != 2 && use_msaa) {
         fputs("Usage on a controlled desktop: drill-native-window.exe <path-to-Drill.exe>\n", stderr);
@@ -792,7 +783,7 @@ int wmain(int argc, WCHAR **argv) {
     atexit(clean_up);
     preserve_value(L"Software\\Drill\\Interface", L"WindowPlacement");
     preserve_value(L"Software\\Drill\\Interface", L"ShowExeIcons");
-    fixture(self);
+    fixture();
     launch(argv[1], root, false);
     bind_window();
     REQUIRE(message(combo, CB_GETCOUNT, 0, 0) == 2 && message(combo, CB_GETCURSEL, 0, 0) == 0);
