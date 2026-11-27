@@ -145,7 +145,9 @@ static void launch(const WCHAR *path, const WCHAR *directory, bool with_bridge) 
     WCHAR executable[MAX_PATH], command[2 * MAX_PATH + 32];
     DWORD n = GetFullPathNameW(path, ARRAYSIZE(executable), executable, NULL);
     REQUIRE(n && n < ARRAYSIZE(executable));
-    int chars = swprintf(command, ARRAYSIZE(command), L"\"%ls\" --root \"%ls\"", executable, directory);
+    int chars = directory
+        ? swprintf(command, ARRAYSIZE(command), L"\"%ls\" --root \"%ls\"", executable, directory)
+        : swprintf(command, ARRAYSIZE(command), L"\"%ls\"", executable);
     REQUIRE(chars > 0 && (size_t)chars < ARRAYSIZE(command));
     STARTUPINFOW startup = {0};
     startup.cb = sizeof(startup);
@@ -352,6 +354,11 @@ static POINT first_row(void) {
     return point;
 }
 
+static bool description_matches_directory(const WCHAR *description, const WCHAR *directory) {
+    size_t length = wcslen(directory);
+    return _wcsnicmp(description, directory, length) == 0 && description[length] == L',';
+}
+
 static void accessible_first_row(const WCHAR *filename) {
     if (!use_msaa) return;
     IAccessible *owner = NULL;
@@ -363,7 +370,7 @@ static void accessible_first_row(const WCHAR *filename) {
     REQUIRE(IAccessible_get_accName(owner, child, &name) == S_OK && name);
     REQUIRE(wcscmp(name, filename) == 0);
     REQUIRE(IAccessible_get_accDescription(owner, child, &description) == S_OK && description);
-    REQUIRE(_wcsnicmp(description, root, wcslen(root)) == 0 && description[wcslen(root)] == L',');
+    REQUIRE(description_matches_directory(description, root));
     SysFreeString(description);
     SysFreeString(name);
     VariantClear(&role);
@@ -679,6 +686,65 @@ static void bind_window(void) {
     activate_main();
 }
 
+static bool system_notepad_row(IAccessible *table, LONG index, const WCHAR *system, const WCHAR *windows) {
+    VARIANT child = {0};
+    child.vt = VT_I4;
+    child.lVal = index + 1;
+    BSTR name = NULL, description = NULL;
+    bool found = IAccessible_get_accName(table, child, &name) == S_OK && name &&
+                 _wcsicmp(name, L"notepad.exe") == 0 &&
+                 IAccessible_get_accDescription(table, child, &description) == S_OK && description &&
+                 (description_matches_directory(description, system) ||
+                  description_matches_directory(description, windows));
+    SysFreeString(description);
+    SysFreeString(name);
+    return found;
+}
+
+static void wait_for_system_notepad(const WCHAR *system, const WCHAR *windows) {
+    IAccessible *table = NULL;
+    REQUIRE(AccessibleObjectFromWindow(list, (DWORD)OBJID_CLIENT, &IID_IAccessible, (void **)&table) == S_OK && table);
+    ULONGLONG deadline = GetTickCount64() + 10000;
+    do {
+        LONG count = (LONG)message(list, LVM_GETITEMCOUNT, 0, 0);
+        for (LONG i = 0; i < count && GetTickCount64() < deadline; ++i) {
+            if (system_notepad_row(table, i, system, windows)) {
+                IAccessible_Release(table);
+                return;
+            }
+        }
+    } while (retry(deadline));
+    IAccessible_Release(table);
+    fwprintf(stderr, L"Expected a notepad.exe result in '%ls' or '%ls'.\n", system, windows);
+    fail("system Notepad did not stream into the result list");
+}
+
+static void default_root_search(const WCHAR *executable) {
+    stage = "finding system Notepad in default Files search";
+    WCHAR system[MAX_PATH], windows[MAX_PATH];
+    UINT n = GetSystemDirectoryW(system, ARRAYSIZE(system));
+    REQUIRE(n && n < ARRAYSIZE(system));
+    n = GetSystemWindowsDirectoryW(windows, ARRAYSIZE(windows));
+    REQUIRE(n && n < ARRAYSIZE(windows));
+
+    launch(executable, NULL, false);
+    bind_window();
+    expect_text(status, L"Type to search");
+    REQUIRE(message(combo, CB_GETCURSEL, 0, 0) == 0);
+    click(edit);
+    type_text(L"notepad");
+    expect_text(edit, L"notepad");
+    wait_for_system_notepad(system, windows);
+
+    stage = "finding system Notepad after switching default search to Apps";
+    choose_mode(1);
+    expect_text(edit, L"notepad");
+    wait_for_system_notepad(system, windows);
+    message(window, WM_CLOSE, 0, 0);
+    wait_for_exit();
+    puts("Default Files and Apps search found Windows Notepad with the query 'notepad'.");
+}
+
 static void check_first_bundle(const WCHAR *directory, const WCHAR *name, COLORREF color) {
     WCHAR expected[MAX_PATH];
     int n = swprintf(expected, ARRAYSIZE(expected), L"%ls\\%ls", directory, name);
@@ -793,6 +859,10 @@ int wmain(int argc, WCHAR **argv) {
     stage = "typing and sorting";
     search_and_sort();
     filter_and_launch();
+    if (use_msaa) {
+        stage = "keeping system Notepad out of explicit-root search";
+        search_fixture(L"notepad", 0);
+    }
     stage = "settings and icon rendering";
     panels();
     stage = "restoring window geometry";
@@ -800,7 +870,10 @@ int wmain(int argc, WCHAR **argv) {
     REQUIRE(launches() == 2);
     stage = "displaying macOS bundle icons";
     bundle_icons(argv[1]);
-    if (use_msaa) CoUninitialize();
+    if (use_msaa) {
+        default_root_search(argv[1]);
+        CoUninitialize();
+    }
     fputs("Native Windows search, selection, clipboard, sorting, launch shortcuts, panels, geometry and bundle icons passed.\n",
           use_msaa ? stdout : stderr);
     return 0;

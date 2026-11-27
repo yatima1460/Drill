@@ -60,13 +60,10 @@ fn lookup(path: &Path, filter: FileFilter) -> Option<(PathBuf, Entry)> {
     ))
 }
 
-/// Merges the ordinary search with an optional bounded set of direct system lookups.
+/// Starts the ordinary walk at system directories while discovering the remaining roots.
 pub struct WindowsSearch {
-    starting: Option<mpsc::Receiver<Search>>,
-    walk: Option<Search>,
+    walk: Search,
     preview: Option<mpsc::Receiver<Entry>>,
-    cancel: Arc<AtomicBool>,
-    paused: bool,
 }
 impl WindowsSearch {
     #[cfg(windows)]
@@ -89,7 +86,7 @@ impl WindowsSearch {
         filter: FileFilter,
         discover: impl FnOnce(&AtomicBool) -> Vec<PathBuf> + Send + 'static,
         permit: impl FnOnce() -> Option<Permit>,
-        dirs: impl FnOnce() -> Vec<PathBuf> + Send + 'static,
+        dirs: impl FnOnce() -> Vec<PathBuf>,
         lookup: impl Fn(&Path, FileFilter) -> Option<(PathBuf, Entry)> + Send + 'static,
     ) -> Self {
         let eligible = !cancel.load(Ordering::Relaxed) && filter != FileFilter::MacBundles;
@@ -97,55 +94,48 @@ impl WindowsSearch {
             .executable_filename()
             .filter(|_| eligible)
             .and_then(|name| Some((name.to_owned(), permit()?)));
-        let mut search = Self {
-            starting: None,
-            walk: None,
-            preview: None,
-            cancel: cancel.clone(),
-            paused: false,
+        let seeds = if eligible && query.error().is_none() {
+            dirs()
+        } else {
+            Vec::new()
         };
-        let Some((filename, permit)) = probe else {
-            let roots = discover(&cancel);
-            search.walk = Some(Search::start_filtered(query, roots, cancel, filter));
-            return search;
+        let (preview, previews) = if let Some((filename, permit)) = probe {
+            let paths = Arc::new(Mutex::new(PreviewPaths::default()));
+            let probe_paths = paths.clone();
+            let probe_dirs = seeds.clone();
+            let probe_cancel = cancel.clone();
+            let (send, receive) = mpsc::channel();
+            thread::spawn(move || {
+                let _permit = permit;
+                for dir in probe_dirs {
+                    if probe_cancel.load(Ordering::Relaxed) || probe_paths.lock().unwrap().finished
+                    {
+                        break;
+                    }
+                    let Some((key, entry)) = lookup(&dir.join(&filename), filter) else {
+                        continue;
+                    };
+                    let mut state = probe_paths.lock().unwrap();
+                    if probe_cancel.load(Ordering::Relaxed) || state.finished {
+                        break;
+                    }
+                    if !state.walked.contains(&key)
+                        && state.early.insert(key)
+                        && send.send(entry).is_err()
+                    {
+                        break;
+                    }
+                }
+                let mut state = probe_paths.lock().unwrap();
+                state.finished = true;
+                state.walked.clear();
+            });
+            (Some(receive), Some(paths))
+        } else {
+            (None, None)
         };
-        let paths = Arc::new(Mutex::new(PreviewPaths::default()));
-        let (ready, starting) = mpsc::channel();
-        let walk_cancel = cancel.clone();
-        let walk_paths = paths.clone();
-        thread::spawn(move || {
-            let roots = discover(&walk_cancel);
-            let walk = Search::start_remaining(query, roots, walk_cancel, filter, Some(walk_paths));
-            let _ = ready.send(walk);
-        });
-        let (send, receive) = mpsc::channel();
-        thread::spawn(move || {
-            let _permit = permit;
-            for dir in dirs() {
-                if cancel.load(Ordering::Relaxed) || paths.lock().unwrap().finished {
-                    break;
-                }
-                let Some((key, entry)) = lookup(&dir.join(&filename), filter) else {
-                    continue;
-                };
-                let mut state = paths.lock().unwrap();
-                if cancel.load(Ordering::Relaxed) || state.finished {
-                    break;
-                }
-                if !state.walked.contains(&key)
-                    && state.early.insert(key)
-                    && send.send(entry).is_err()
-                {
-                    break;
-                }
-            }
-            let mut state = paths.lock().unwrap();
-            state.finished = true;
-            state.walked.clear();
-        });
-        search.starting = Some(starting);
-        search.preview = Some(receive);
-        search
+        let walk = Search::start_seeded(query, seeds, discover, cancel, filter, previews);
+        Self { walk, preview }
     }
 
     pub fn try_recv_hit(&mut self) -> Result<(MatchKind, Entry), mpsc::TryRecvError> {
@@ -156,16 +146,10 @@ impl WindowsSearch {
                 Err(mpsc::TryRecvError::Empty) => {}
             }
         }
-        if let Some(rx) = &self.starting {
-            let walk = rx.try_recv()?;
-            walk.set_paused(self.paused);
-            self.walk = Some(walk);
-            self.starting = None;
-        }
-        let result = self.walk.as_ref().unwrap().try_recv_hit();
+        let result = self.walk.try_recv_hit();
         if matches!(result, Err(mpsc::TryRecvError::Disconnected)) {
             // The full walk owns completion. A stalled optional location never keeps it alive.
-            self.cancel.store(true, Ordering::Relaxed);
+            self.walk.stop();
             if let Some(hit) = self.preview.as_ref().and_then(|rx| rx.try_recv().ok()) {
                 return Ok((MatchKind::Exact, hit));
             }
@@ -175,18 +159,10 @@ impl WindowsSearch {
     }
 
     pub fn set_paused(&mut self, paused: bool) {
-        self.paused = paused;
-        if let Some(walk) = &self.walk {
-            walk.set_paused(paused);
-        }
+        self.walk.set_paused(paused);
     }
     pub fn pending(&self) -> Option<usize> {
-        self.walk.as_ref().map(Search::pending)
-    }
-}
-impl Drop for WindowsSearch {
-    fn drop(&mut self) {
-        self.cancel.store(true, Ordering::Relaxed);
+        Some(self.walk.pending())
     }
 }
 
@@ -217,7 +193,78 @@ mod tests {
     }
 
     #[test]
-    fn ordinary_searches_do_no_system_work() {
+    fn extensionless_notepad_streams_before_discovery_and_overlapping_roots_do_not_repeat_it() {
+        let temp = crate::test_directory::private_temp_dir();
+        let windows = temp.path().join("Windows");
+        let system = windows.join("System32");
+        fs::create_dir_all(&system).unwrap();
+        let notepad = system.join("notepad.exe");
+        let readme = system.join("notepad-readme.txt");
+        let late = temp.path().join("notepad-late.exe");
+        for path in [&notepad, &readme, &system.join("editor.exe"), &late] {
+            fs::write(path, b"").unwrap();
+        }
+        for (filter, rank) in [
+            (FileFilter::All, MatchKind::Partial),
+            (FileFilter::WindowsExecutables, MatchKind::Exact),
+        ] {
+            let (release, gate) = mpsc::channel();
+            let (entered, discovery_started) = mpsc::channel();
+            let (ready, search) = mpsc::channel();
+            let drive = temp.path().to_owned();
+            let system = system.clone();
+            let windows = windows.clone();
+            let seeds = vec![system.clone(), windows.clone()];
+            thread::spawn(move || {
+                let scan = WindowsSearch::start_with(
+                    SearchQuery::parse("notepad"),
+                    token(),
+                    filter,
+                    move |_| {
+                        entered.send(()).unwrap();
+                        if gate.recv().is_ok() {
+                            vec![drive, windows, system]
+                        } else {
+                            Vec::new()
+                        }
+                    },
+                    || panic!("an extensionless query attempted to start a probe"),
+                    || seeds,
+                    |_, _| panic!("an extensionless query performed a literal lookup"),
+                );
+                let _ = ready.send(scan);
+            });
+            discovery_started.recv_timeout(TIMEOUT).unwrap();
+            let mut scan = search
+                .recv_timeout(TIMEOUT)
+                .expect("blocked drive discovery held up search startup");
+            let mut first = HashSet::new();
+            let early_count = if filter == FileFilter::All { 2 } else { 1 };
+            for _ in 0..early_count {
+                let (kind, hit) = poll(|| scan.try_recv_hit()).unwrap();
+                if hit.path == notepad {
+                    assert_eq!(kind, rank);
+                } else {
+                    assert_eq!((kind, &hit.path), (MatchKind::Partial, &readme));
+                }
+                assert!(first.insert(hit.path));
+            }
+            assert!(first.contains(&notepad));
+            assert!(matches!(
+                scan.try_recv_hit(),
+                Err(mpsc::TryRecvError::Empty)
+            ));
+
+            release.send(()).unwrap();
+            let (kind, hit) = poll(|| scan.try_recv_hit()).unwrap();
+            assert_eq!((kind, &hit.path), (MatchKind::Partial, &late));
+            assert!(poll(|| scan.try_recv_hit()).is_none());
+            assert_eq!(scan.pending(), Some(0));
+        }
+    }
+
+    #[test]
+    fn ordinary_queries_use_seed_directories_without_literal_lookups() {
         let temp = crate::test_directory::private_temp_dir();
         fs::write(temp.path().join("report.txt"), b"").unwrap();
         for query in [
@@ -232,9 +279,9 @@ mod tests {
                 SearchQuery::parse(query),
                 token(),
                 FileFilter::All,
-                move |_| vec![root],
+                |_| Vec::new(),
                 || panic!("ordinary query attempted to start a probe"),
-                || panic!("looked up system directories"),
+                || vec![root],
                 |_, _| panic!("inspected an executable"),
             );
             assert_eq!(poll(|| scan.try_recv_hit()).unwrap().1.name, "report.txt");
@@ -261,6 +308,8 @@ mod tests {
         let root = temp.path().to_owned();
         let candidate = system.join("tool.exe");
         let expected = candidate.clone();
+        let probe_dir = system.join("probe");
+        let probe_candidate = probe_dir.join("tool.exe");
         let mut scan = WindowsSearch::start_with(
             SearchQuery::parse("tool.exe"),
             token(),
@@ -270,10 +319,11 @@ mod tests {
                 vec![root]
             },
             permit,
-            move || vec![system.clone(), system.clone(), system.join("blocked")],
+            move || vec![probe_dir.clone(), probe_dir, system.join("blocked")],
             move |path, filter| {
-                if path == candidate {
-                    return lookup(path, filter);
+                if path == probe_candidate {
+                    // Redirect the lookup to a file that the seeded walk cannot reach.
+                    return lookup(&candidate, filter);
                 }
                 entered_secondary.send(()).unwrap();
                 probe_gate.recv_timeout(TIMEOUT).unwrap();
@@ -462,45 +512,61 @@ mod tests {
     #[ignore = "paired startup measurement on a Windows runner"]
     fn compare_startup_to_ordinary_walk() {
         let fixture = crate::test_directory::private_temp_dir();
+        let system = fixture.path().join("System32");
+        fs::create_dir(&system).unwrap();
         fs::write(fixture.path().join("report.txt"), b"").unwrap();
+        fs::write(system.join("notepad.exe"), b"").unwrap();
         for (text, expected) in [
             ("report", Some("report.txt")),
+            ("notepad", Some("notepad.exe")),
+            ("notepad.exe", Some("notepad.exe")),
             ("drill-absent-9c3a.exe", None),
         ] {
             let mut base = Vec::new();
             let mut changed = Vec::new();
             for pair in 0..7 {
-                for preview in [pair % 2 == 0, pair % 2 != 0] {
+                for seeded in [pair % 2 == 0, pair % 2 != 0] {
                     let root = fixture.path().to_owned();
-                    // Exercise real Windows drive discovery in both paths, and confine the walk
-                    // to the identical fixture for an observable first result or complete miss.
+                    let seed = system.clone();
+                    // Exercise real drive discovery in both paths. The fixture contains
+                    // every seed, so both walks see the same files.
                     let discover = move |stop: &AtomicBool| {
                         let _ = default_roots_with_cancel(stop);
                         vec![root]
                     };
-                    let started = Instant::now();
                     let cancel = token();
                     let query = SearchQuery::parse(text);
-                    let hit = if preview {
+                    let started = Instant::now();
+                    let collect = |next: &mut dyn FnMut() -> Result<
+                        (MatchKind, Entry),
+                        mpsc::TryRecvError,
+                    >| {
+                        let hit = poll(&mut *next);
+                        let first = hit.as_ref().map(|_| started.elapsed());
+                        assert_eq!(hit.as_ref().map(|(_, entry)| entry.name.as_str()), expected);
+                        if hit.is_some() {
+                            assert!(poll(next).is_none());
+                        }
+                        (first, started.elapsed())
+                    };
+                    let elapsed = if seeded {
                         let mut search = WindowsSearch::start_with(
                             query,
                             cancel,
                             FileFilter::All,
                             discover,
                             permit,
-                            system_dirs,
+                            || vec![seed],
                             lookup,
                         );
-                        poll(|| search.try_recv_hit())
+                        collect(&mut || search.try_recv_hit())
                     } else {
                         let roots = discover(&cancel);
                         let search = Search::start_filtered(query, roots, cancel, FileFilter::All);
-                        poll(|| search.try_recv_hit())
+                        collect(&mut || search.try_recv_hit())
                     };
-                    let elapsed = started.elapsed();
-                    assert_eq!(hit.as_ref().map(|(_, entry)| entry.name.as_str()), expected);
                     if pair > 0 {
-                        if preview {
+                        if seeded {
                             changed.push(elapsed);
                         } else {
                             base.push(elapsed);
@@ -508,9 +574,17 @@ mod tests {
                     }
                 }
             }
-            base.sort();
-            changed.sort();
-            eprintln!("native startup {text:?}, 6 alternating pairs after warmup, middle pair: ordinary {:?}/{:?}, new {:?}/{:?}",base[2],base[3],changed[2],changed[3]);
+            let median = |samples: &[(Option<Duration>, Duration)]| {
+                let (mut first, mut complete): (Vec<_>, Vec<_>) = samples.iter().copied().unzip();
+                first.sort_unstable();
+                complete.sort_unstable();
+                ([first[2], first[3]], [complete[2], complete[3]])
+            };
+            eprintln!(
+                "native startup {text:?}, 6 alternating pairs after warmup, middle pairs (first hit, completion): ordinary {:?}, seeded {:?}",
+                median(&base),
+                median(&changed)
+            );
         }
     }
 
@@ -518,24 +592,41 @@ mod tests {
     #[test]
     #[ignore = "requires an installed Windows Notepad"]
     fn installed_notepad_in_both_modes() {
-        let root = PathBuf::from(std::env::var_os("SystemRoot").unwrap());
-        let expected = [root.join("System32/notepad.exe"), root.join("notepad.exe")];
+        let expected: Vec<_> = system_dirs()
+            .into_iter()
+            .filter_map(|dir| fs::canonicalize(dir.join("notepad.exe")).ok())
+            .collect();
+        assert!(
+            !expected.is_empty(),
+            "Notepad is missing from the seed directories"
+        );
         for filter in [FileFilter::All, FileFilter::WindowsExecutables] {
-            let start = Instant::now();
-            let mut search =
-                WindowsSearch::start(SearchQuery::parse("NOTEPAD.EXE"), token(), filter);
-            let (kind, hit) = poll(|| search.try_recv_hit()).unwrap();
-            let elapsed = start.elapsed();
-            assert_eq!(kind, MatchKind::Exact);
-            let found = fs::canonicalize(&hit.path).unwrap();
-            assert!(expected
-                .iter()
-                .filter_map(|p| fs::canonicalize(p).ok())
-                .any(|p| p == found));
-            eprintln!(
-                "{filter:?} first native Notepad {elapsed:?}: {}",
-                hit.path.display()
-            );
+            for text in ["notepad", "notepad.exe"] {
+                let start = Instant::now();
+                let mut search = WindowsSearch::start(SearchQuery::parse(text), token(), filter);
+                let (kind, hit) = poll(|| {
+                    let hit = search.try_recv_hit()?;
+                    if hit.1.name.eq_ignore_ascii_case("notepad.exe")
+                        && fs::canonicalize(&hit.1.path).is_ok_and(|path| expected.contains(&path))
+                    {
+                        Ok(hit)
+                    } else {
+                        Err(mpsc::TryRecvError::Empty)
+                    }
+                })
+                .unwrap();
+                let elapsed = start.elapsed();
+                let rank = if text == "notepad" && filter == FileFilter::All {
+                    MatchKind::Partial
+                } else {
+                    MatchKind::Exact
+                };
+                assert_eq!(kind, rank);
+                eprintln!(
+                    "{filter:?} {text:?} native Notepad {elapsed:?}: {}",
+                    hit.path.display()
+                );
+            }
         }
     }
 }
