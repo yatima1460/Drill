@@ -1,6 +1,6 @@
 //! Ask the operating system about an empty file with the same extension. The icon
 //! provider never receives the path to an untrusted executable.
-use crate::platform_icon;
+use super::platform_icon;
 use std::fs::{self, File};
 use std::io;
 use std::path::{Path, PathBuf};

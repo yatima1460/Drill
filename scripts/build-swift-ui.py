@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build the experimental macOS search window with the Rust core and Apple SDK."""
+"""Build the macOS Drill app with SwiftUI, the Rust search core and the Apple SDK."""
 import argparse
 from concurrent.futures import ThreadPoolExecutor
 import json
@@ -38,6 +38,8 @@ def build_rust(cargo, cargo_target, jobs, timings, env):
     for package in packages:
         source, _, fragment = package.rpartition("#")
         names.append(fragment.split("@")[0] if "@" in fragment else source.rsplit("/", 1)[-1])
+    if {"egui", "eframe"}.intersection(names):
+        raise ValueError("the macOS Swift build unexpectedly compiled the egui frontend")
     return archive, {"rust_seconds": elapsed, "cargo_packages": len(packages),
                      "package_names": sorted(names), "cargo_units": len(artifacts),
                      "fresh_units": sum(row["fresh"] for row in artifacts)}
@@ -48,14 +50,14 @@ def stage_bundle(app, executable, version):
     binaries, resources = contents / "MacOS", contents / "Resources"
     binaries.mkdir(parents=True, exist_ok=True)
     resources.mkdir(exist_ok=True)
-    shutil.copy2(executable, binaries / "drill-swift")
+    shutil.copy2(executable, binaries / executable.name)
     shutil.copy2(ROOT / "src/assets/drill-macos.icns", resources / "Drill.icns")
     shutil.copy2(ROOT / "LICENSE", resources / "LICENSE")
     info = {
-        "CFBundleExecutable": "drill-swift", "CFBundleIdentifier": "software.drill.swift-preview",
-        "CFBundlePackageType": "APPL", "CFBundleName": "Drill Swift",
+        "CFBundleExecutable": executable.name, "CFBundleIdentifier": "software.drill",
+        "CFBundlePackageType": "APPL", "CFBundleName": "Drill", "CFBundleDisplayName": "Drill",
         "CFBundleIconFile": "Drill", "CFBundleShortVersionString": version,
-        "CFBundleVersion": "1", "LSMinimumSystemVersion": MIN_MACOS,
+        "CFBundleVersion": version, "LSMinimumSystemVersion": MIN_MACOS,
         "NSHighResolutionCapable": True,
     }
     for key, location in [("DesktopFolder", "Desktop"), ("DocumentsFolder", "Documents"),
@@ -69,7 +71,7 @@ def stage_bundle(app, executable, version):
 
 def bundle(out, executable, version):
     # Build and sign new files before publishing so a running app keeps its mapped executable.
-    installed = out / "Drill Swift.app"
+    installed = out / "Drill.app"
     with tempfile.TemporaryDirectory(dir=out, prefix="swift-bundle-") as temporary:
         stage = Path(temporary) / installed.name
         previous = Path(temporary) / "previous.app"
@@ -123,7 +125,7 @@ def build(args, cargo, out):
               "-module-cache-path", str(cache)]
     sources = ROOT / "native/macos"
     files = sorted(sources.glob("*.swift"))
-    name = "drill-swift-tests" if args.test else "drill-swift"
+    name = "drill-swift-tests" if args.test else "Drill"
     object_file, executable = out / f"{name}.o", out / name
     command = [*swiftc, "-parse-as-library", "-whole-module-optimization", "-emit-object",
                "-import-objc-header", str(sources / "Bridge.h")]

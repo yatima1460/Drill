@@ -20,6 +20,7 @@ on:
       - 'src/assets/wordsalpha.txt'
       # Desktop startup, result delivery and exact-row insertion.
       - 'src/main.rs'
+      - 'src/mod.rs'
       - 'src/search_mode.rs'
       - 'src/result_order.rs'
   workflow_dispatch:

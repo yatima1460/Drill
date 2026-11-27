@@ -28,6 +28,7 @@ struct DrillApp {
             }
             root = directory
         }
+        InterfacePreferences.migrateOnFirstLaunch()
         let app = NSApplication.shared
         let delegate = DrillDelegate(root: root)
         app.delegate = delegate

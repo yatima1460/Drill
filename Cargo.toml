@@ -13,33 +13,53 @@ edition = "2021"
 description = "Fast file search without indexing"
 license-file = "LICENSE"
 
+[[example]]
+name = "macos_opengl"
+required-features = ["macos-egui"]
+
+[[test]]
+name = "macos_clipboard"
+required-features = ["macos-egui"]
+
 [profile.release]
 opt-level = 3
 lto = "off"
 
 [features]
-ui-test-driver = []
+macos-egui = ["dep:eframe", "dep:drill-core", "dep:drill-icons", "dep:drill-macos", "dep:libc"]
+ui-test-driver = ["macos-egui"]
 verify-packaged-appimage = ["dep:image"]
 
-[dependencies]
-image = { version = "0.25.10", default-features = false, features = ["png"], optional = true }
+[workspace.dependencies]
 eframe = { version = "0.31.1", default-features = false, features = ["default_fonts", "glow", "persistence"] }
 drill-core = { path = "crates/drill-core" }
 drill-icons = { path = "crates/drill-icons" }
 
-[target.'cfg(unix)'.dependencies]
+[dependencies]
+image = { version = "0.25.10", default-features = false, features = ["png"], optional = true }
+
+[target.'cfg(not(target_os = "macos"))'.dependencies]
+eframe.workspace = true
+drill-core.workspace = true
+drill-icons.workspace = true
+
+[target.'cfg(all(unix, not(target_os = "macos")))'.dependencies]
 libc = "0.2"
 
 [target.'cfg(all(unix, not(target_vendor = "apple")))'.dependencies]
-eframe = { version = "0.31.1", default-features = false, features = ["x11", "wayland"] }
+eframe = { workspace = true, features = ["x11", "wayland"] }
 
 [target.'cfg(target_os = "linux")'.dependencies]
 drill-gtk = { path = "crates/drill-gtk" }
 
 [target.'cfg(target_os = "macos")'.dependencies]
-drill-macos = { path = "crates/drill-macos" }
+eframe = { workspace = true, features = ["drill-clipboard-tests"], optional = true }
+drill-core = { workspace = true, optional = true }
+drill-icons = { workspace = true, optional = true }
+drill-macos = { path = "crates/drill-macos", optional = true }
+libc = { version = "0.2", optional = true }
 
-[target.'cfg(any(target_os = "macos", windows))'.dev-dependencies]
+[target.'cfg(windows)'.dev-dependencies]
 eframe = { version = "0.31.1", default-features = false, features = ["drill-clipboard-tests"] }
 
 [target.'cfg(target_os = "windows")'.dependencies]

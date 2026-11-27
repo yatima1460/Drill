@@ -18,8 +18,8 @@ Use an external dependency only when it is strictly necessary. **Always ask the 
 
 - Prefer a functional core. Keep matching and ranking deterministic where practical, pass inputs explicitly, and isolate filesystem, platform and rendering effects. Choose ownership and bounded work that make behavior easy to parallelize, test and verify.
 - `crates/drill-query` owns parsing, normalization and filename matching. `crates/drill-core` reexports its query API and owns app file filters, directory priority, traversal, and delivery of results. Keep filesystem calls outside the shared directory-queue lock. Changes to traversal should account for overlapping roots, symlinks, unreadable directories, and cancellation while paused or while the result queue is full.
-- `src/main.rs` and its sibling modules own the egui interface and platform integration. Exercise changes through the search box, Files/Apps selector, or other affected entry point. Preserve result identity through streaming, sorting and selection. Check that new queries discard stale results and that Continue resumes the same scan.
-- The [experimental macOS window](docs/swift-ui.md) uses SwiftUI and calls the shared Rust core through `crates/drill-swift`. Exercise it with `make test-swift-ui`. For clean build comparisons, include the Swift compiler and final link, and report whether the Apple SDK module cache started empty.
+- `src/main.rs` selects the platform frontend. The Windows and Linux egui interface lives in `src/mod.rs` and its sibling modules. Exercise changes through the search box, Files/Apps selector, or other affected entry point. Preserve result identity through streaming, sorting and selection. Check that new queries discard stale results and that Continue resumes the same scan.
+- The macOS app uses SwiftUI and AppKit in `native/macos` and calls the shared Rust core through `crates/drill-swift`. Exercise it with `make test-ui`. See the [macOS development notes](docs/swift-ui.md). For clean build comparisons, include the Swift compiler and final link, and report whether the Apple SDK module cache started empty.
 - Keep changes scoped. Reuse existing interfaces and extract a module or crate when it gives the project a concrete testing, ownership or build benefit. Consult the local patch notes before changing vendored libraries.
 
 ### Why icon decoding uses WebAssembly
@@ -35,7 +35,7 @@ Run the least expensive checks that exercise the changed behavior, followed by t
 | Change | Relevant check |
 | --- | --- |
 | Matching, traversal or cancellation | `make test-core` with a focused fixture |
-| Keyboard, pointer, rendering or result-list behavior | `make test-ui-headless` drives egui frames. `make test-ui-native` drives a real window and OS input. Use a controlled desktop for the native test. Linux CI uses Xvfb. |
+| Keyboard, pointer, rendering or result-list behavior | On macOS, `make test-ui` drives private AppKit windows. On Windows and Linux, `make test-ui-headless` drives egui frames and `make test-ui-native` drives a real window with OS input. Use a controlled desktop for OS input. Linux CI uses Xvfb. |
 | Rust integration | `make fmt-check check lint test` |
 | Scripts and packaging | `make shellcheck` and the affected packaging target. Inspect the artifact a user would download. |
 
@@ -53,6 +53,6 @@ The comparison changed both LTO and codegen units. The earlier control used Carg
 
 ## Platform and release evidence
 
-Consult the [release workflow](.github/workflows/rust.yml) before reporting platform coverage. A Windows cross-build, a Wine smoke test and a native Windows run establish different things. The macOS preview build and production signing are separate jobs. Keep signing credentials in the protected production environment and ordinary PR validation independent of those credentials.
+Consult the [release workflow](.github/workflows/rust.yml) before reporting platform coverage. A Windows cross-build, a Wine smoke test and a native Windows run establish different things. macOS CI tests the Swift app and stages its DMG for the separate production signing job. Keep signing credentials in the protected production environment and ordinary PR validation independent of those credentials.
 
 Report what actually ran, what passed, and what remains unverified. Link the PR and relevant test, release or benchmark evidence.

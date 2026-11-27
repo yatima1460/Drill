@@ -2,6 +2,7 @@
 CARGO ?= $(if $(wildcard $(HOME)/.cargo/bin/cargo),$(HOME)/.cargo/bin/cargo,cargo)
 WINE ?= wine
 WINDOWS_LINKER ?= $(if $(CARGO_TARGET_X86_64_PC_WINDOWS_GNU_LINKER),$(CARGO_TARGET_X86_64_PC_WINDOWS_GNU_LINKER),x86_64-w64-mingw32-gcc)
+HOST_SYSTEM := $(if $(filter Windows_NT,$(OS)),Windows_NT,$(shell uname -s))
 
 .PHONY: help start start_wine build check fmt fmt-check lint shellcheck test test-core test-doc test-ui test-ui-headless test-ui-native package-linux package-macos offline-source clean
 .DEFAULT_GOAL := help
@@ -9,18 +10,44 @@ WINDOWS_LINKER ?= $(if $(CARGO_TARGET_X86_64_PC_WINDOWS_GNU_LINKER),$(CARGO_TARG
 help: ## Show available commands
 	@awk 'BEGIN {FS = ":.*## "} /^[a-zA-Z0-9_-]+:.*## / {printf "  %-18s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
 
-start: ## Build and start Drill in release mode
+start: ## Build and start the platform's Drill app
+build: ## Build the platform's release application
+test-ui-headless: ## Test UI interactions with simulated input
+test-ui-native: ## Test the interface in a native window
+
+ifeq ($(HOST_SYSTEM),Darwin)
+start: start-swift
+build: build-swift-ui
+# The Mac suite drives native AppKit windows with private input events.
+test-ui-headless test-ui-native: test-swift-ui
+else
+start:
 	$(CARGO) run --release --locked
+
+build:
+	$(CARGO) build --release --locked
+
+test-ui-headless:
+	$(CARGO) test --locked -p drill --bin drill
+
+test-ui-native:
+ifeq ($(HOST_SYSTEM),Linux)
+	CARGO="$(CARGO)" xvfb-run -a scripts/test-native-ui-linux.sh
+else
+	@echo 'The native UI test moves the mouse and types. Do not use them until it finishes.'
+	$(CARGO) test --locked -p drill --features ui-test-driver --test native_ui -- --ignored --nocapture --test-threads=1
+endif
+endif
 
 .PHONY: build-swift-ui start-swift test-swift-ui
 build-swift-ui test-swift-ui: export CARGO := $(CARGO)
-build-swift-ui: ## Build the SwiftUI prototype app on macOS
+build-swift-ui: ## Build the native macOS app
 	python3 scripts/build-swift-ui.py
 
-start-swift: build-swift-ui ## Launch the SwiftUI prototype on macOS
-	open "target/swift-ui/Drill Swift.app"
+start-swift: build-swift-ui ## Open the native macOS app
+	open "target/swift-ui/Drill.app"
 
-test-swift-ui: ## Exercise the SwiftUI prototype in a native macOS window
+test-swift-ui: ## Exercise SwiftUI in private native macOS windows
 	python3 scripts/build-swift-ui.py --test
 
 start_wine: ## Build the Windows version and run it with Wine
@@ -46,9 +73,6 @@ start_wine: export CARGO := $(CARGO)
 start_wine: export WINE := $(WINE)
 start_wine: export WINDOWS_LINKER := $(WINDOWS_LINKER)
 start_wine: export RUSTFLAGS := $(RUSTFLAGS)
-
-build: ## Build the release application
-	$(CARGO) build --release --locked
 
 check: ## Check all workspace targets
 	$(CARGO) check --locked --workspace --all-targets
@@ -86,23 +110,12 @@ test-core: ## Run search core tests without the UI
 test-doc: ## Run Rust documentation tests
 	$(CARGO) test --locked --workspace --doc
 
-test-ui-headless: ## Run fast egui interface tests
-	$(CARGO) test --locked -p drill --bin drill
-
-test-ui-native: ## Open a real window and drive OS input
-	@echo 'The native UI test moves the mouse and types. Do not use them until it finishes.'
-	@if [ "$$(uname -s)" = Linux ]; then \
-		CARGO="$(CARGO)" xvfb-run -a scripts/test-native-ui-linux.sh; \
-	else \
-		$(CARGO) test --locked -p drill --features ui-test-driver --test native_ui -- --ignored --nocapture --test-threads=1; \
-	fi
-
-test-ui: test-ui-headless test-ui-native ## Run both UI test suites
+test-ui: test-ui-headless test-ui-native ## Run the platform's UI suite
 
 package-linux: build ## Build Linux packages (requires packaging tools)
 	scripts/package-linux.sh
 
-package-macos: build ## Build and verify a macOS DMG
+package-macos: build-swift-ui ## Build and verify a macOS DMG
 	scripts/package-macos.sh
 
 offline-source: ## Package source and locked dependencies for an offline build

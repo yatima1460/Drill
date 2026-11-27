@@ -4,13 +4,15 @@ Download the `Drill-offline-source-<commit>` artifact from a successful **Offlin
 
 Install the Rust toolchain in `rust-toolchain.toml` and the SDK for your build machine before disconnecting. macOS needs the Xcode Command Line Tools. For Windows MSVC, install the C++ Build Tools and Windows SDK including `rc.exe`. On Ubuntu, install a C/C++ toolchain, pkg-config and the development packages for GTK 3, Wayland, xkbcommon, GL and EGL. Rebuilding the optional icon decoders also requires the pinned toolchain’s `wasm32-unknown-unknown` standard library.
 
-From the extracted project root, run:
+On macOS 13 or later, build the SwiftUI app from the extracted project root with `CARGO_NET_OFFLINE=true make build`. Open `target/swift-ui/Drill.app` or run its `Contents/MacOS/Drill` executable.
+
+On Windows and Linux, build the egui app with
 
 ```sh
 cargo build --release --frozen --bin drill
 ```
 
-The result is `target/release/drill` (`drill.exe` on Windows). Cargo locates the bundled dependency sources through the relative path in `.cargo/config.toml`. You can set `CARGO_HOME` to an empty directory before building. Desktop builds embed the checked-in Wasm icon decoders.
+Cargo places the egui executable in `target/release/drill` (`drill.exe` on Windows). Cargo locates the bundled dependency sources through the relative path in `.cargo/config.toml`. You can set `CARGO_HOME` to an empty directory before building. Desktop builds embed the checked-in Wasm icon decoders.
 
 To create an archive from a Git checkout, run `scripts/package-offline-source.sh`. It writes `dist/Drill-source-<commit>.tar.gz`. Pass a directory as the first argument to choose another destination. Creating the archive fetches any locked sources missing from Cargo's cache. Only committed files from `HEAD` enter the source snapshot.
 
