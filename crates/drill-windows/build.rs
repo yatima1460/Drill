@@ -161,11 +161,13 @@ fn main() {
     if env::var("CARGO_CFG_TARGET_OS").as_deref() != Ok("windows") {
         return;
     }
+    let desktop = env::var_os("CARGO_FEATURE_DESKTOP").is_some();
     let clipboard = env::var_os("CARGO_FEATURE_CLIPBOARD").is_some();
     let menu = env::var_os("CARGO_FEATURE_MENU").is_some();
     let shell_icons = env::var_os("CARGO_FEATURE_SHELL_ICONS").is_some();
     let mut defines = Vec::new();
     for (enabled, define, file) in [
+        (desktop, "DRILL_DESKTOP", "src/window.c"),
         (clipboard, "DRILL_CLIPBOARD", "src/clipboard.c"),
         (menu, "DRILL_MENU", "src/menu.c"),
         (shell_icons, "DRILL_SHELL_ICONS", "src/file_icon.c"),
@@ -193,6 +195,26 @@ fn main() {
 
     println!("cargo:rustc-link-search=native={}", out.display());
     println!("cargo:rustc-link-lib=static=drill_windows_native");
+    if desktop {
+        for file in [
+            "../drill-desktop/include/DrillDesktop.h",
+            "src/window_actions.h",
+            "src/window_actions.c",
+            "src/window_shell.c",
+            "src/window_preferences.c",
+            "src/window_icons.c",
+            "src/window_panels.c",
+            "src/window_table.c",
+            "src/window_accessibility.c",
+        ] {
+            println!("cargo:rerun-if-changed={file}");
+        }
+        for library in [
+            "shell32", "ole32", "oleaut32", "uuid", "advapi32", "dwmapi", "uxtheme",
+        ] {
+            println!("cargo:rustc-link-lib={library}");
+        }
+    }
     if menu {
         println!("cargo:rerun-if-changed=src/menu_appearance.c");
         println!("cargo:rustc-link-lib=comctl32");

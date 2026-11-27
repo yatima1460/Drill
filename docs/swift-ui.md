@@ -29,10 +29,10 @@ The native app stores interface preferences in macOS user defaults under `softwa
 
 On the same Mac, time egui from the Cargo invocation through the linked executable, and SwiftUI from the build command through the linked, assembled and ad-hoc-signed app. Swift and Rust compile concurrently against a small C header. The SDK module cache can materially affect a clean Swift build, so measure both an empty SDK cache and a previously populated SDK cache. Use fresh project and Cargo compiler outputs for every run, including the warm SDK condition. The [benchmark PR](https://github.com/yatima1460/Drill/pull/153) records the individual measurements and feature coverage.
 
-The benchmark can still build the previous Mac egui frontend for comparison. From a clean checkout, run the following command to compare both interfaces at the same revision. Choose a new output filename for each experiment.
+To reproduce the historical comparison, supply a clean checkout of the former frontend and a checkout of the current native app. Choose a new output filename for each experiment.
 
 ```sh
-python3 scripts/bench-swift-ui.py . . --jobs 12 --runs 4 --output /tmp/drill-swift-builds.json
+python3 scripts/bench-swift-ui.py /path/to/previous-egui-checkout . --jobs 12 --runs 4 --output /tmp/drill-swift-builds.json
 ```
 
 The runner alternates the three conditions, measures local signing and bundle assembly for the Swift app, and retains the Cargo timing reports beside the JSON. It checks the architecture, deployment target, app version and both embedded Wasm modules in every executable. It requires the Rust and SDK toolchains and cached Cargo sources. Filesystem pages and the installed Apple SDK are shared between samples.

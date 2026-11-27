@@ -3,9 +3,7 @@ set -euo pipefail
 version="2.0.0"
 revision="${GITHUB_RUN_NUMBER:-1}"
 for stage in build/package build/appdir build/arch; do
-  licenses="$stage/usr/share/licenses/drill/emoji"
-  mkdir -p "$licenses"
-  cp src/assets/emoji/{NOTICE,LICENSE-TWEMOJI,LICENSE-UNICODE} "$licenses/"
+  install -Dm644 LICENSE "$stage/usr/share/licenses/drill/LICENSE"
 done
 mkdir -p dist build/package/usr/bin build/package/usr/share/applications build/package/usr/share/icons/hicolor/256x256/apps build/package/DEBIAN
 install -m755 target/release/drill build/package/usr/bin/drill
@@ -25,7 +23,7 @@ Package: drill
 Version: ${version}-${revision}
 Architecture: amd64
 Maintainer: Drill contributors
-Depends: libc6, libx11-6, libx11-xcb1, libxkbcommon0, libxkbcommon-x11-0, libwayland-client0, libgl1, libegl1, libgtk-3-0, xdg-utils
+Depends: libc6, libgtk-3-0 (>= 3.24)
 Description: Desktop file search without indexing
 CONTROL
 dpkg-deb --build --root-owner-group build/package "dist/Drill-linux-amd64.deb"
@@ -39,6 +37,7 @@ cp src/assets/drill.png build/appdir/usr/share/icons/hicolor/256x256/apps/drill.
 cat > build/appdir/AppRun <<'APPRUN'
 #!/bin/sh
 HERE="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
+export XDG_DATA_DIRS="$HERE/usr/share:${XDG_DATA_DIRS:-/usr/local/share:/usr/share}"
 exec "$HERE/usr/bin/drill" "$@"
 APPRUN
 chmod +x build/appdir/AppRun
@@ -62,12 +61,6 @@ size = $(wc -c < target/release/drill | tr -d ' ')
 arch = x86_64
 license = GPL-2.0-only
 depend = glibc
-depend = libx11
-depend = libxkbcommon
-depend = libxkbcommon-x11
-depend = xdg-utils
-depend = wayland
-depend = libglvnd
 depend = gtk3
 PKGINFO
 tar --zstd -C build/arch -cf "dist/Drill-linux-x86_64.pkg.tar.zst" .PKGINFO usr

@@ -9,7 +9,7 @@ args=(--cargo-arg=--locked --jobs 1 --build-timeout 900 --timeout 90 --caught)
 case "$scope" in
   query) args+=(-p drill-query --all-features) ;;
   core) args+=(-p drill-core) ;;
-  desktop) args+=(-p drill --all-features) ;;
+  desktop) args+=(-p drill-desktop -p drill-icons --test-package drill-desktop --test-package drill-icons) ;;
   guest) args+=(--dir tools/exe-icon-wasm) ;;
   appimage) args+=(--dir tools/appimage-icon-wasm) ;;
   *) echo "Unknown mutation scope: $scope" >&2; exit 2 ;;
@@ -19,26 +19,14 @@ case "$campaign" in
     case "$scope" in
       query) args+=(--file lib.rs --re 'SearchQuery::exact_stem') ;;
       core) args+=(--file file_filter.rs) ;;
-      desktop) args+=(--file result_order.rs --file exe_icon.rs --re 'exact_batch|icon_route|is_exe|is_appimage') ;;
+      desktop) args+=(--file result_order.rs --file lib.rs --file icons.rs
+                      --re 'exact_batch|EmbeddedIcon::for_path|EmbeddedIcons::request') ;;
       guest) args+=(--file resource.rs) ;;
       appimage) args+=(--file bounds.rs) ;;
     esac ;;
   full)
-    if [[ "$scope" == desktop ]]; then
-      # The desktop exercises its shared Wasm hosts through the icon workers.
-      args+=(-p drill-icons --test-package drill --test-package drill-icons)
-      case "$(uname -s)" in
-        Linux)
-          args+=(--exclude native_menu.rs --exclude 'src/native_menu/*.rs' --exclude permissions.rs
-                 --exclude 'src/platform_icon/macos.rs' --exclude 'src/platform_icon/windows.rs') ;;
-        Darwin)
-          args+=(--exclude linux_apps.rs --exclude 'src/appearance/linux.rs' --exclude 'src/native_menu/windows.rs'
-                 --exclude 'src/platform_icon/linux.rs' --exclude 'src/platform_icon/windows.rs') ;;
-        MINGW*|MSYS*)
-          args+=(--exclude linux_apps.rs --exclude 'src/appearance/linux.rs' --exclude permissions.rs
-                 --exclude 'src/native_menu/macos.rs' --exclude 'src/platform_icon/linux.rs'
-                 --exclude 'src/platform_icon/macos.rs') ;;
-      esac
+    if [[ "$scope" == desktop && $(uname -s) != Linux ]]; then
+      args+=(--exclude linux_apps.rs)
     fi ;;
   *) echo "Unknown mutation campaign: $campaign" >&2; exit 2 ;;
 esac

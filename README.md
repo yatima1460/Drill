@@ -35,7 +35,7 @@ Very fast file searcher without indexing
 
 Install the workspace Rust toolchain with [rustup](https://rustup.rs/). On macOS 13 or later, install the Xcode Command Line Tools and start the SwiftUI app with `make start` or by double-clicking `Start Drill.command`. See the [macOS build and test instructions](docs/swift-ui.md).
 
-On Windows and Linux, launch the egui app with
+Windows uses native Win32 controls. Linux uses GTK 3 and requires the GTK 3 development files to build from source. Start either app with
 
 ```bash
 cargo run --release --locked
@@ -43,7 +43,7 @@ cargo run --release --locked
 
 The first build may download Rust dependencies. Search results appear while the filesystem is scanned. Type `*.md` to find Markdown files, `glob:report-??.pdf` for a wildcard pattern, `regex:^IMG_[0-9]{4}\.jpg$` for a regular expression, or `fuzzy:` followed by words for approximate matching. Drill follows your system light or dark appearance and displays native file icons when available.
 
-Run `make help` to see common commands, including `make start`, `make test-core`, and `make test-ui`. The macOS UI suite sends events to its own AppKit windows. Linux CI drives the egui app with Xvfb and Openbox.
+Run `make help` to see common commands, including `make start`, `make test-core`, and `make test-ui`. The macOS UI suite sends events to its own AppKit windows. Linux CI drives GTK on an Xvfb display. Windows CI exercises the native controls on a Windows runner.
 
 See [Rust migration notes](docs/rust-migration.md) for development checks and platform status.
 
@@ -102,4 +102,4 @@ Support this project with your organization. Your logo will show up here with a 
 <a href="https://opencollective.com/Drill/organization/8/website"><img src="https://opencollective.com/Drill/organization/8/avatar.svg"></a>
 <a href="https://opencollective.com/Drill/organization/9/website"><img src="https://opencollective.com/Drill/organization/9/avatar.svg"></a>
 
-Filename emoji in the egui app use [Twemoji artwork](https://github.com/jdecked/twemoji) under CC BY 4.0. [Credits and licenses](src/assets/emoji/NOTICE)
+Filename text and emoji are rendered by the operating system’s native controls.

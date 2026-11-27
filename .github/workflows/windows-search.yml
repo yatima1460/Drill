@@ -9,20 +9,18 @@ on:
       - 'build.rs'
       - 'src/assets/drill.ico'
       - 'src/assets/drill.rc'
+      - 'src/assets/drill.manifest'
       - '.github/ci/windows_resource_smoke.py'
       - 'rust-toolchain.toml'
       - 'crates/drill-core/**'
       - 'crates/drill-query/**'
       - 'crates/drill-windows/**'
-      - 'vendor/*/Cargo.toml'
+      - 'crates/drill-desktop/**'
+      - 'crates/drill-icons/**'
       # drill-core embeds all three root lists and the dictionary at compile time.
       - 'src/assets/roots_*.txt'
       - 'src/assets/wordsalpha.txt'
-      # Desktop startup, result delivery and exact-row insertion.
       - 'src/main.rs'
-      - 'src/mod.rs'
-      - 'src/search_mode.rs'
-      - 'src/result_order.rs'
   workflow_dispatch:
 permissions:
   contents: read

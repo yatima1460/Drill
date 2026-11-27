@@ -15,7 +15,6 @@ jobs:
       linux: ${{ steps.select.outputs.linux }}
       windows: ${{ steps.select.outputs.windows }}
       macos: ${{ steps.select.outputs.macos }}
-      macos_legacy: ${{ steps.select.outputs.macos_legacy }}
       release: ${{ steps.select.outputs.release }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -75,7 +74,7 @@ jobs:
       - name: Install build and packaging dependencies
         run: |
           .github/ci/ubuntu-apt-get.sh update
-          .github/ci/ubuntu-apt-get.sh install -y libxkbcommon-dev libwayland-dev libgl1-mesa-dev libgtk-3-dev libxkbcommon-x11-0 libx11-xcb1 libegl1 xdg-utils shellcheck zstd xvfb xauth openbox xdotool
+          .github/ci/ubuntu-apt-get.sh install -y libgtk-3-dev at-spi2-core dbus-daemon xdg-utils shellcheck zstd xvfb xauth openbox xdotool
       - name: Lint shell scripts before release packaging
         if: needs.platforms.outputs.release == 'true'
         run: make shellcheck
@@ -116,20 +115,21 @@ jobs:
       - run: scripts/package-linux.sh
       - name: Decode the icon from the packaged AppImage
         run: |
-          test_name=egui_app::appimage_icon::tests::packaged_appimage_contains_drill_icon
-          cargo test --locked --bin drill --features verify-packaged-appimage "$test_name" -- --ignored --exact | tee "$RUNNER_TEMP/appimage-test"
+          test_name=packaged_appimage_contains_drill_icon
+          cargo test --locked -p drill --features verify-packaged-appimage --test packaged_appimage "$test_name" -- --ignored --exact | tee "$RUNNER_TEMP/appimage-test"
           grep -Fx "test $test_name ... ok" "$RUNNER_TEMP/appimage-test"
       - name: Double-click AppImage results with Xed and Nemo
         timeout-minutes: 8
         run: |
           docker run --rm --volume "$PWD/scripts/test-appimage-open.sh:/test.sh:ro" \
+            --volume "$PWD/tests/native_ui/linux.py:/linux.py:ro" \
             --volume "$PWD/dist/Drill-linux-x86_64.AppImage:/Drill.AppImage:ro" \
             archlinux:base bash -euxo pipefail -c '
-              pacman -Syu --noconfirm --needed xed nemo xorg-server-xvfb xorg-xauth openbox xdotool wmctrl xdg-utils libxkbcommon-x11 mesa ttf-dejavu
+              pacman -Syu --noconfirm --needed xed nemo xorg-server-xvfb xorg-xauth openbox xdotool wmctrl xdg-utils gtk3 at-spi2-core python ttf-dejavu
               useradd -m tester
               install -d -m 700 -o tester /tmp/drill-session
               runuser -u tester -- env XDG_RUNTIME_DIR=/tmp/drill-session \
-                xvfb-run -a dbus-run-session -- bash /test.sh /Drill.AppImage
+                xvfb-run -a dbus-run-session -- bash /test.sh /Drill.AppImage /linux.py
             '
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
@@ -169,11 +169,8 @@ jobs:
           RUSTFLAGS: -C target-feature=+crt-static
         run: |
           cargo build --release --locked --target x86_64-pc-windows-gnu
-          cargo test --no-run --locked --release --target x86_64-pc-windows-gnu -p drill --bin drill \
-            --message-format=json-render-diagnostics > "$RUNNER_TEMP/windows-ui-build.jsonl"
-          test_exe=$(jq -ers 'map(select(.reason == "compiler-artifact" and .target.name == "drill" and .profile.test and .executable))
-            | select(length == 1) | .[0].executable' "$RUNNER_TEMP/windows-ui-build.jsonl")
-          cp -- "$test_exe" "$RUNNER_TEMP/drill-ui-tests.exe"
+          x86_64-w64-mingw32-gcc -municode -Wall -Wextra -Werror crates/drill-windows/tests/native_window.c \
+            -o "$RUNNER_TEMP/drill-native-window.exe" -loleacc -loleaut32 -lole32 -luuid
           x86_64-w64-mingw32-gcc -Wall -Wextra -Werror crates/drill-windows/tests/menu_accessibility.c \
             crates/drill-windows/src/menu.c -o "$RUNNER_TEMP/drill-menu-accessibility.exe" \
             -lcomctl32 -lgdi32 -loleacc -loleaut32 -lole32 -luuid
@@ -181,30 +178,31 @@ jobs:
         with:
           name: drill-windows-ui-tests
           path: |
-            ${{ runner.temp }}/drill-ui-tests.exe
+            ${{ runner.temp }}/drill-native-window.exe
             ${{ runner.temp }}/drill-menu-accessibility.exe
           if-no-files-found: error
           retention-days: 1
-      - name: Install Wine test dependencies
-        run: .github/ci/ubuntu-apt-get.sh install -y --no-install-recommends wine wine64 xvfb xauth openbox xdotool wmctrl libgl1 libgl1-mesa-dri libglx-mesa0
-      - name: Open the Windows app under Wine
-        run: scripts/test-wine-linux.sh
       - name: Package and inspect Windows executable
         run: |
-          mkdir -p dist build/windows/licenses/emoji
+          mkdir -p dist build/windows
           cp target/x86_64-pc-windows-gnu/release/drill.exe build/windows/Drill.exe
           file build/windows/Drill.exe | grep -q 'PE32+'
           cp LICENSE build/windows/
-          cp src/assets/emoji/{NOTICE,LICENSE-TWEMOJI,LICENSE-UNICODE} build/windows/licenses/emoji/
-          (cd build/windows && zip -q ../../dist/Drill-windows-x86_64.zip Drill.exe LICENSE licenses/emoji/*)
+          (cd build/windows && zip -q ../../dist/Drill-windows-x86_64.zip Drill.exe LICENSE)
           unzip -t dist/Drill-windows-x86_64.zip
           unzip -p dist/Drill-windows-x86_64.zip Drill.exe > build/windows/packaged.exe
           wrestool --extract --type=14 --name=1 build/windows/packaged.exe > build/windows/embedded.ico
+          wrestool --extract --raw --type=24 --name=1 build/windows/packaged.exe > build/windows/embedded.manifest
+          cmp src/assets/drill.manifest build/windows/embedded.manifest
           mkdir -p build/windows/{original,embedded}
           icotool -x -o build/windows/original/ src/assets/drill.ico
           cp build/windows/embedded.ico build/windows/drill.ico
           icotool -x -o build/windows/embedded/ build/windows/drill.ico
           diff -r build/windows/original build/windows/embedded
+      - name: Install Wine test dependencies
+        run: .github/ci/ubuntu-apt-get.sh install -y --no-install-recommends wine wine64 xvfb xauth openbox
+      - name: Drive the packaged Windows app under Wine
+        run: scripts/test-wine-linux.sh "$RUNNER_TEMP/drill-native-window.exe" build/windows/packaged.exe
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: drill-windows
@@ -213,31 +211,34 @@ jobs:
   windows-ui:
     needs: windows-cross
     runs-on: windows-2025
-    timeout-minutes: 5
+    timeout-minutes: 20
     steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.100.0
+          components: clippy
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: drill-windows-ui-tests
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: drill-windows
+          path: dist
       - name: Read menu names through Windows accessibility in light and dark mode
         run: .\drill-menu-accessibility.exe
-      - name: Verify clipboard, emoji, shell initialization and file-type icons on native Windows
-        shell: pwsh
+      - name: Drive the packaged Win32 app on native Windows
         run: |
-          $tests = @(
-            'result_date::tests::windows_results_follow_historical_daylight_saving_rules',
-            'ui_tests::windows_clipboard_preserves_shortcuts_and_write_order',
-            'ui_tests::emoji_filenames_paint_colored_clusters_inside_their_columns',
-            'shell_worker_balances_sta_after_failed_action',
-            'icon_sample::tests::owns_only_the_file_it_created',
-            'icon_sample::tests::associated_icons_match_direct_native_lookup'
-          )
-          foreach ($name in $tests) {
-            $test = "egui_app::$name"
-            & .\drill-ui-tests.exe $test --exact --color never | Tee-Object -Variable result
-            if ($LASTEXITCODE -ne 0 -or $result -cnotcontains "test $test ... ok") {
-              throw "The native Windows test $test did not pass."
-            }
-          }
+          Expand-Archive dist/Drill-windows-x86_64.zip -DestinationPath dist/packaged
+          .\drill-native-window.exe dist/packaged/Drill.exe
+      - name: Lint the Win32 frontend and shared model
+        run: cargo clippy --locked -p drill -p drill-windows -p drill-desktop --all-targets --all-features -- -D warnings -D clippy::undocumented_unsafe_blocks
+      - name: Test search, shell adapters, icons and desktop model with MSVC
+        run: cargo test --locked -p drill -p drill-windows -p drill-desktop -p drill-icons --all-features
+      - name: Drive the MSVC-built Win32 app on native Windows
+        run: ./scripts/test-native-ui-windows.ps1
   macos:
     name: macOS Swift app
     needs: platforms
@@ -287,25 +288,6 @@ jobs:
           name: drill-macos-preview
           path: dist/Drill-macos-*.dmg
           if-no-files-found: error
-  macos-legacy:
-    name: macOS egui comparison checks
-    needs: platforms
-    if: needs.platforms.outputs.macos_legacy == 'true'
-    runs-on: macos-latest
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - uses: dtolnay/rust-toolchain@master
-        with:
-          toolchain: 1.100.0
-          components: clippy
-      - run: cargo clippy --locked -p drill -p drill-macos --all-targets --all-features -- -D warnings -D clippy::undocumented_unsafe_blocks
-      - run: cargo test --locked -p drill -p drill-macos --features macos-egui
-      - name: Verify clipboard text and RGBA on a private macOS pasteboard
-        run: scripts/test-macos-clipboard.sh
-      - name: Verify native OpenGL rendering, resize and viewport teardown
-        run: cargo run --locked -p drill --features macos-egui --example macos_opengl
   merged-main:
     needs: platforms
     if: >-

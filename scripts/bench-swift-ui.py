@@ -15,7 +15,7 @@ import sys
 import tempfile
 import time
 
-from bench_egui import egui_features
+
 
 
 # Rotate build positions, then reverse the order for the next three rounds.
@@ -62,12 +62,20 @@ def validate_executable(binary, cwd, arch, guests):
     return {"executable_bytes": len(data), "version": version}
 
 
+def baseline_features(cargo, checkout, env):
+    metadata = json.loads(output([cargo, "metadata", "--frozen", "--no-deps", "--format-version", "1"], checkout, env=env))
+    package, = (p for p in metadata["packages"] if p["name"] == "drill")
+    if not any(dep["name"] == "eframe" for dep in package["dependencies"]):
+        raise ValueError("choose a historical egui checkout for the baseline")
+    return ["--features", "macos-egui"] if "macos-egui" in package["features"] else []
+
+
 def egui_build(checkout, dest, jobs, env):
     target = dest / "cargo"
     env = dict(env, CARGO_TARGET_DIR=str(target), CARGO_BUILD_BUILD_DIR=str(target))
     command = [env["CARGO"], "build", "--release", "--frozen", "-p", "drill", "--bin", "drill",
                "--jobs", str(jobs), "--timings", "--message-format=json-render-diagnostics"]
-    command.extend(egui_features(env["CARGO"], checkout, env))
+    command.extend(baseline_features(env["CARGO"], checkout, env))
     start = time.perf_counter()
     messages = output(command, checkout, env=env)
     elapsed = time.perf_counter() - start

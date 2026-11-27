@@ -1,0 +1,22 @@
+[package]
+name = "drill-desktop"
+version = "2.0.0"
+edition = "2021"
+license-file = "../../LICENSE"
+publish = false
+
+[target.'cfg(target_os = "macos")'.dev-dependencies]
+drill-core = { path = "../drill-core" }
+drill-icons = { path = "../drill-icons" }
+libc = "0.2"
+
+[target.'cfg(any(windows, target_os = "linux"))'.dependencies]
+drill-core = { path = "../drill-core" }
+drill-icons = { path = "../drill-icons" }
+
+[target.'cfg(target_os = "linux")'.dependencies]
+libc = "0.2"
+drill-gtk = { path = "../drill-gtk", features = ["desktop"] }
+
+[target.'cfg(windows)'.dependencies]
+drill-windows = { path = "../drill-windows", features = ["desktop"] }

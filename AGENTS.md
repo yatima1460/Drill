@@ -18,7 +18,8 @@ Use an external dependency only when it is strictly necessary. **Always ask the 
 
 - Prefer a functional core. Keep matching and ranking deterministic where practical, pass inputs explicitly, and isolate filesystem, platform and rendering effects. Choose ownership and bounded work that make behavior easy to parallelize, test and verify.
 - `crates/drill-query` owns parsing, normalization and filename matching. `crates/drill-core` reexports its query API and owns app file filters, directory priority, traversal, and delivery of results. Keep filesystem calls outside the shared directory-queue lock. Changes to traversal should account for overlapping roots, symlinks, unreadable directories, and cancellation while paused or while the result queue is full.
-- `src/main.rs` selects the platform frontend. The Windows and Linux egui interface lives in `src/mod.rs` and its sibling modules. Exercise changes through the search box, Files/Apps selector, or other affected entry point. Preserve result identity through streaming, sorting and selection. Check that new queries discard stale results and that Continue resumes the same scan.
+- **The macOS SwiftUI/AppKit app is the gold standard for UI parity.** Use the behavior in `native/macos` and its native interaction tests as the acceptance criteria for Windows and Linux UI changes. Match search, paging, selection, columns, menus, settings and keyboard behavior using each platform’s controls and shortcuts. Document platform-specific differences such as macOS permissions.
+- `src/main.rs` selects SwiftUI/AppKit on macOS, Win32 on Windows, and GTK 3 on Linux. Win32 and GTK share the streamed result model in `crates/drill-desktop`. Exercise changes through their native controls and verify selection survives streaming and sorting, a new query cancels the previous one, and Continue resumes the same scan.
 - The macOS app uses SwiftUI and AppKit in `native/macos` and calls the shared Rust core through `crates/drill-swift`. Exercise it with `make test-ui`. See the [macOS development notes](docs/swift-ui.md). For clean build comparisons, include the Swift compiler and final link, and report whether the Apple SDK module cache started empty.
 - Keep changes scoped. Reuse existing interfaces and extract a module or crate when it gives the project a concrete testing, ownership or build benefit. Consult the local patch notes before changing vendored libraries.
 
@@ -35,7 +36,7 @@ Run the least expensive checks that exercise the changed behavior, followed by t
 | Change | Relevant check |
 | --- | --- |
 | Matching, traversal or cancellation | `make test-core` with a focused fixture |
-| Keyboard, pointer, rendering or result-list behavior | On macOS, `make test-ui` drives private AppKit windows. On Windows and Linux, `make test-ui-headless` drives egui frames and `make test-ui-native` drives a real window with OS input. Use a controlled desktop for OS input. Linux CI uses Xvfb. |
+| Keyboard, pointer, rendering or result-list behavior | On macOS, `make test-ui` drives private AppKit windows. Windows and Linux exercise the shared model and native controls. Run `make test-ui-native` for a real window with OS input. Use a controlled desktop for OS input. Linux CI uses Xvfb. |
 | Rust integration | `make fmt-check check lint test` |
 | Scripts and packaging | `make shellcheck` and the affected packaging target. Inspect the artifact a user would download. |
 

@@ -12,7 +12,7 @@ help: ## Show available commands
 
 start: ## Build and start the platform's Drill app
 build: ## Build the platform's release application
-test-ui-headless: ## Test UI interactions with simulated input
+test-ui-headless: ## Test the native UI model or private AppKit windows
 test-ui-native: ## Test the interface in a native window
 
 ifeq ($(HOST_SYSTEM),Darwin)
@@ -28,14 +28,13 @@ build:
 	$(CARGO) build --release --locked
 
 test-ui-headless:
-	$(CARGO) test --locked -p drill --bin drill
+	$(CARGO) test --locked -p drill-desktop
 
 test-ui-native:
 ifeq ($(HOST_SYSTEM),Linux)
 	CARGO="$(CARGO)" xvfb-run -a scripts/test-native-ui-linux.sh
 else
-	@echo 'The native UI test moves the mouse and types. Do not use them until it finishes.'
-	$(CARGO) test --locked -p drill --features ui-test-driver --test native_ui -- --ignored --nocapture --test-threads=1
+	powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test-native-ui-windows.ps1
 endif
 endif
 

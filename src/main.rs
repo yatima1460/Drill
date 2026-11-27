@@ -3,7 +3,7 @@
 
 // Cargo is an additional source-checkout launcher on macOS. The DMG contains
 // the independently linked Swift executable, which runs without the checkout.
-#[cfg(all(target_os = "macos", not(feature = "macos-egui")))]
+#[cfg(target_os = "macos")]
 fn main() -> std::io::Result<()> {
     use std::os::unix::process::CommandExt;
     use std::path::Path;
@@ -24,15 +24,34 @@ fn main() -> std::io::Result<()> {
         .exec())
 }
 
-#[cfg(any(not(target_os = "macos"), feature = "macos-egui"))]
-#[path = "mod.rs"]
-mod egui_app;
+#[cfg(any(target_os = "linux", windows))]
+fn main() -> std::process::ExitCode {
+    use std::process::ExitCode;
 
-#[cfg(any(not(target_os = "macos"), feature = "macos-egui"))]
-fn main() -> eframe::Result {
-    egui_app::run()
+    let mut args = std::env::args_os().skip(1);
+    let mut root = None;
+    while let Some(arg) = args.next() {
+        if arg == "--version" {
+            println!("Drill {}", env!("CARGO_PKG_VERSION"));
+            return ExitCode::SUCCESS;
+        }
+        if arg == "--root" {
+            let Some(path) = args.next().filter(|p| !p.is_empty()) else {
+                eprintln!("Expected a directory after --root");
+                return ExitCode::from(2);
+            };
+            match std::path::absolute(&path) {
+                Ok(path) => root = Some(path),
+                Err(error) => {
+                    eprintln!("Could not resolve --root {path:?}: {error}");
+                    return ExitCode::from(2);
+                }
+            }
+        }
+    }
+    if drill_desktop::run(root) == 0 {
+        ExitCode::SUCCESS
+    } else {
+        ExitCode::FAILURE
+    }
 }
-
-#[cfg(all(test, any(not(target_os = "macos"), feature = "macos-egui")))]
-#[path = "../crates/drill-core/src/test_directory.rs"]
-mod test_directory;

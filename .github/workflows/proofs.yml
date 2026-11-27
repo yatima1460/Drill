@@ -9,7 +9,7 @@ on:
       - 'verification/**'
       # Modules imported directly by verification/proofs.rs.
       - 'crates/drill-core/src/file_filter.rs'
-      - 'src/result_order.rs'
+      - 'crates/drill-desktop/src/result_order.rs'
       - 'tools/appimage-icon-wasm/src/bounds.rs'
       - 'tools/exe-icon-wasm/src/resource.rs'
   workflow_dispatch:

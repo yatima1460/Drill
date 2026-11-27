@@ -1,6 +1,6 @@
 # Rust migration
 
-Drill shares its Rust search engine across the SwiftUI and AppKit app on macOS and the egui app on Windows and Linux. The former Python implementation remains in Git history.
+Drill shares its Rust search engine across the SwiftUI and AppKit app on macOS and two native frontends built with Win32 on Windows and GTK 3 on Linux. The former Python implementation remains in Git history.
 
 On macOS 13 or later, install Rust through rustup and the Xcode Command Line Tools. Run `make start` or open `Start Drill.command`. On Windows and Linux, run `cargo run --release --locked`. The first build may download dependencies.
 
@@ -17,7 +17,7 @@ Quote paths that contain spaces.
 Set `PKG_CONFIG` to the target's executable or set `PKG_CONFIG_SYSROOT_DIR`
 with the target's `PKG_CONFIG_LIBDIR`.
 
-For macOS Swift app timings, use the [native build benchmark](swift-ui.md#measuring-compilation), which includes the Swift compiler, bundle assembly and local signing. To compare clean Linux builds of the egui app, give the benchmark a fresh output directory and
+For macOS Swift app timings, use the [native build benchmark](swift-ui.md#measuring-compilation), which includes the Swift compiler, bundle assembly and local signing. To compare clean Linux builds of the GTK app, give the benchmark a fresh output directory and
 the paths to clean checkouts. Fetch their locked dependencies first. Pass the
 same C compiler driver that Rust normally uses to also measure the final link.
 
@@ -47,11 +47,9 @@ On macOS, Settings → Permissions lets the user choose folders using the system
 
 `make start_wine` builds the current checkout for `x86_64-pc-windows-gnu` and runs it with Wine. It requires Wine, the `x86_64-w64-mingw32-gcc` MinGW-w64 cross-linker, and the Rust target (`rustup target add x86_64-pc-windows-gnu`). Set `WINE` or `WINDOWS_LINKER` when either executable is not on `PATH`. On Apple silicon, an installed Wine distribution must also support running x86-64 Windows programs; this is separate from the native macOS build. CI exercises the launcher in a disposable Wine prefix and virtual Linux display; that does not establish Wine behavior on macOS.
 
-The vendored eframe 0.31.1 includes a Windows OpenGL compatibility-context fallback for Wine on macOS. Its source and patch details are recorded in `vendor/eframe/PATCH.md`.
-
 Under Settings → Interface, choose Auto to follow system appearance changes, or select Light or Dark. Drill applies the choice immediately and remembers it across launches. Auto is the default.
 
-Settings → Interface controls embedded icons for Windows executables. The default is enabled. Executables are read as bounded snapshots and decoded in a bundled WebAssembly module with no host imports, bounded memory and fuel; they are never run. Oversized, unreadable or invalid executables use a system file-type icon, as do executables when the setting is disabled. macOS and Linux look up the file type by extension. Windows uses a private empty .exe sample. A generic glyph is the final fallback. On macOS the icon worker avoids materializing cloud-only files. Other file types use platform icon providers, with a separate embedded-icon preference for AppImages. The decoder is built from `tools/exe-icon-wasm`; Linux CI rebuilds it and compares the result with the shipped module.
+Settings → Interface controls embedded icons for Windows executables. The default is enabled. Executables are read as bounded snapshots and decoded in a bundled WebAssembly module with no host imports, bounded memory and fuel; they are never run. Oversized, unreadable or invalid executables use a system file-type icon, as do executables when the setting is disabled. macOS and Linux look up the file type by extension. Windows asks the Shell for a file-type icon using file attributes. A generic glyph is the final fallback. On macOS the icon worker avoids materializing cloud-only files. Other file types use platform icon providers, with a separate embedded-icon preference for AppImages. The decoder is built from `tools/exe-icon-wasm`; Linux CI rebuilds it and compares the result with the shipped module.
 
 The **Use embedded icons for AppImages** checkbox also defaults on. A background worker reads the `.DirIcon` from Type 1 ISO 9660/Rock Ridge images and Type 2 images with an appended SquashFS filesystem. Icon links resolve inside the archive. PNGs up to 1024 × 1024 and self-contained vector SVGs are drawn at 32 × 32. Missing, unsupported or unreadable icons use the AppImage system file-type icon or a generic file glyph. The worker never executes or mounts the AppImage. Its dedicated Wasm guest can only request bounded reads of the already opened file, up to 8 MiB in total, with 64 MiB of guest memory and a fuel limit. Linux CI rebuilds `tools/appimage-icon-wasm` and compares the icon in the packaged Drill AppImage with the source artwork.
 
@@ -75,6 +73,6 @@ The GitHub Actions environment `prod` allows only the branch `main` and requires
 
 The signing job retrieves the staged disk image by artifact ID and verifies its SHA-256 digest. It signs `software.drill` with Hardened Runtime and a secure timestamp, signs the DMG, submits it to Apple and staples the accepted ticket. The publisher retrieves the validated DMG by its artifact ID. Missing credentials or failed verification block publication.
 
-The query and search core packages forbid unsafe Rust. Run `cargo test --locked -p drill-query` for pure matching and normalization tests, or `make test-core` to include traversal and result delivery. The desktop crate denies unsafe Rust except for narrowly scoped Windows shell launch, Open With, COM and window-menu calls and the macOS icon worker's thread-local I/O policy. The Linux GTK and GIO adapter lives in `crates/drill-gtk`. The Wasm guests use pointers at their host boundaries. The EXE guest has no host imports. The AppImage guest imports a read-only function scoped to the selected file. CI checks for undocumented unsafe blocks in the workspace targets it builds. Focused tests cover matching, priority, overlapping roots, completion and cancellation with a full result queue. Run `make prove` and `make test-mutants` for additional checks. See [verification domains, commands and limits](verification.md).
+The query and search core packages forbid unsafe Rust. Run `cargo test --locked -p drill-query` for pure matching and normalization tests, or `make test-core` to include traversal and result delivery. The Windows and Linux model keeps original filesystem paths alongside display strings. Its C interface bounds the lifetime of memory borrowed by Win32 and GTK. The Linux GTK and GIO adapter lives in `crates/drill-gtk`. The Wasm guests use pointers at their host boundaries. The EXE guest has no host imports. The AppImage guest imports a read-only function scoped to the selected file. CI checks for undocumented unsafe blocks in the workspace targets it builds. Focused tests cover matching, priority, overlapping roots, completion and cancellation with a full result queue. Run `make prove` and `make test-mutants` for additional checks. See [verification domains, commands and limits](verification.md).
 
-On macOS, `Run Core Tests.command` runs the query and traversal package tests. `Run UI Tests.command` runs the Swift interaction suite using AppKit windows and input events scoped to the test process. Linux CI drives the egui window on a virtual X display.
+On macOS, `Run Core Tests.command` runs the query and traversal package tests. `Run UI Tests.command` runs the Swift interaction suite using AppKit windows and input events scoped to the test process. Linux CI drives the GTK window on a virtual X display.

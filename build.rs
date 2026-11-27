@@ -71,6 +71,7 @@ fn uses_windres(compiler: &OsStr, target_default: bool) -> bool {
 fn main() {
     println!("cargo:rerun-if-changed=src/assets/drill.rc");
     println!("cargo:rerun-if-changed=src/assets/drill.ico");
+    println!("cargo:rerun-if-changed=src/assets/drill.manifest");
     if env::var("CARGO_CFG_TARGET_OS").as_deref() != Ok("windows") {
         return;
     }
@@ -130,5 +131,9 @@ fn main() {
         status.success(),
         "{compiler:?} failed for {target}: {status}"
     );
+    if msvc {
+        // The resource already contains the full application manifest.
+        println!("cargo:rustc-link-arg-bin=drill=/MANIFEST:NO");
+    }
     println!("cargo:rustc-link-arg-bin=drill={}", resource.display());
 }
