@@ -43,7 +43,7 @@ cargo run --release --locked
 
 To try Win64 on macOS or Linux, install Wine, MinGW-w64 and the `x86_64-pc-windows-gnu` Rust target, then run `make start_wine`.
 
-The first build may download Rust dependencies. Search results appear while the filesystem is scanned. Type `*.md` to find Markdown files, `glob:report-??.pdf` for a wildcard pattern, `regex:^IMG_[0-9]{4}\.jpg$` for a regular expression, or `fuzzy:` followed by words for approximate matching. Drill follows your system light or dark appearance and displays native file icons when available.
+The first build may download Rust dependencies. Search results appear while the filesystem is scanned. Type `*.md` to find Markdown files, `glob:report-??.pdf` for a wildcard pattern, `regex:^IMG_[0-9]{4}\.jpg$` for a regular expression, or `fuzzy:` followed by words for approximate matching. Drill follows your system light or dark appearance. On Windows, most results show the system icon for the file type or the standard folder icon. EXE and AppImage files can show their embedded icons. Both options are enabled by default under **Settings → Interface**.
 
 Run `make help` to see common commands, including `make start`, `make test-core`, and `make test-ui`. The macOS UI suite sends events to its own AppKit windows. Linux CI drives GTK on an Xvfb display. Windows CI exercises the native controls on a Windows runner.
 

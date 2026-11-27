@@ -440,14 +440,8 @@ static void filter_and_launch(void) {
 }
 
 static HWND open_settings(void) {
-    // An HMENU from a different process is not a portable inspection handle
-    // under Wine. Use the visible menu bar's ordinary keyboard navigation.
     activate_main();
-    key(VK_F10, false);
-    key(VK_END, false);
-    key(VK_LEFT, false);  // Settings is immediately before Help.
-    key(VK_DOWN, false);
-    key(VK_RETURN, false);
+    key(VK_OEM_COMMA, true);
     HWND panel = find_window(L"#32770", L"Interface");
     REQUIRE(GetWindow(panel, GW_OWNER) == window);
     return panel;
@@ -458,6 +452,22 @@ static void close_panel(HWND panel) {
     ULONGLONG deadline = GetTickCount64() + 5000;
     while (IsWindow(panel)) REQUIRE(retry(deadline));
     REQUIRE(IsWindowVisible(window));
+}
+
+static bool has_fallback_pixels(HDC dc, POINT origin, int side) {
+    COLORREF first = CLR_INVALID;
+    unsigned different = 0;
+    // Stay inside the image slot, clear of the header, border and filename.
+    // A file-type glyph contains multiple colors; an empty cell is uniform.
+    for (int y = 1; y <= 9; ++y) {
+        for (int x = 1; x <= 9; ++x) {
+            COLORREF pixel = GetPixel(dc, origin.x + side * x / 10, origin.y + side * y / 10);
+            REQUIRE(pixel != CLR_INVALID);
+            if (first == CLR_INVALID) first = pixel;
+            if (pixel != first && ++different >= 3) return true;
+        }
+    }
+    return false;
 }
 
 // The fixture's opaque 32 px frame is green. Sample the first unselected
@@ -485,8 +495,9 @@ static void expect_green_icon(bool green) {
                 if (pixel == RGB(0, 255, 0)) ++matches;
             }
         }
+        bool rendered = green ? matches == 9 : matches == 0 && has_fallback_pixels(dc, origin, side);
         ReleaseDC(list, dc);
-        if (green ? matches == 9 : matches == 0) {
+        if (rendered) {
             if (++stable == 5) return;
         } else {
             stable = 0;

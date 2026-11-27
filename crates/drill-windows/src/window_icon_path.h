@@ -61,35 +61,36 @@ static bool icon_device_component(const WCHAR *part) {
 
 typedef struct {
     WCHAR path[MAX_PATH + ICON_VOLUME_LENGTH];
-    HANDLE handles[MAX_PATH / 2 + 2];
-    size_t count;
+    HANDLE root;
 } DrillPinnedIcon;
 
-// A successful pin owns the root and every component until the Shell finishes
-// its cache-only lookup. On failure pin_icon_path has already released them.
-static void unpin_icon_path(DrillPinnedIcon *pin) {
-    while (pin->count) CloseHandle(pin->handles[--pin->count]);
+static bool icon_volume_eligible(UINT drive_type, DWORD volume_flags) {
+    return drive_type == DRIVE_FIXED && (volume_flags & FILE_READ_ONLY_VOLUME) != 0;
 }
 
-static bool pin_icon_component(DrillPinnedIcon *pin, bool directory) {
-    // Metadata-only opens do not participate in Windows share reservations.
-    // FILE_READ_DATA is FILE_LIST_DIRECTORY when the component is a folder.
-    HANDLE handle = CreateFileW(pin->path, FILE_READ_DATA | FILE_READ_ATTRIBUTES, FILE_SHARE_READ,
-        NULL, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OPEN_REPARSE_POINT |
-        FILE_FLAG_OPEN_NO_RECALL, NULL);
-    if (handle == INVALID_HANDLE_VALUE) return false;
-    pin->handles[pin->count++] = handle;
-    BY_HANDLE_FILE_INFORMATION info;
-    if (GetFileType(handle) != FILE_TYPE_DISK || !GetFileInformationByHandle(handle, &info) ||
-        (info.dwFileAttributes & (FILE_ATTRIBUTE_REPARSE_POINT | FILE_ATTRIBUTE_OFFLINE |
-         FILE_ATTRIBUTE_RECALL_ON_OPEN | FILE_ATTRIBUTE_RECALL_ON_DATA_ACCESS)) ||
-        ((info.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) != 0) != directory) return false;
+static void unpin_icon_path(DrillPinnedIcon *pin) {
+    if (pin->root) CloseHandle(pin->root);
+    pin->root = NULL;
+}
 
-    // Reject aliases, including short names that disguise excluded file types.
-    WCHAR actual[ARRAYSIZE(pin->path)];
-    DWORD length = GetFinalPathNameByHandleW(handle, actual, ARRAYSIZE(actual),
-                                             FILE_NAME_NORMALIZED | VOLUME_NAME_GUID);
-    return length && length < ARRAYSIZE(actual) && same_icon_type(actual, pin->path);
+static HANDLE open_icon_component(const WCHAR *path, bool directory) {
+    HANDLE handle = CreateFileW(path, FILE_READ_ATTRIBUTES, FILE_SHARE_READ | FILE_SHARE_WRITE |
+        FILE_SHARE_DELETE, NULL, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS |
+        FILE_FLAG_OPEN_REPARSE_POINT | FILE_FLAG_OPEN_NO_RECALL, NULL);
+    if (handle == INVALID_HANDLE_VALUE) return NULL;
+    BY_HANDLE_FILE_INFORMATION info;
+    if (GetFileType(handle) == FILE_TYPE_DISK && GetFileInformationByHandle(handle, &info) &&
+        !(info.dwFileAttributes & (FILE_ATTRIBUTE_REPARSE_POINT | FILE_ATTRIBUTE_OFFLINE |
+          FILE_ATTRIBUTE_RECALL_ON_OPEN | FILE_ATTRIBUTE_RECALL_ON_DATA_ACCESS)) &&
+        ((info.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) != 0) == directory) {
+        // Reject aliases, including short names that disguise excluded file types.
+        WCHAR actual[MAX_PATH + ICON_VOLUME_LENGTH];
+        DWORD length = GetFinalPathNameByHandleW(handle, actual, ARRAYSIZE(actual),
+                                                 FILE_NAME_NORMALIZED | VOLUME_NAME_GUID);
+        if (length && length < ARRAYSIZE(actual) && same_icon_type(actual, path)) return handle;
+    }
+    CloseHandle(handle);
+    return NULL;
 }
 
 // Use the drive letter only to identify a fixed, directly mounted volume.
@@ -98,8 +99,7 @@ static bool pin_icon_component(DrillPinnedIcon *pin, bool directory) {
 static bool icon_volume_root(WCHAR letter, WCHAR root[ICON_VOLUME_LENGTH]) {
     WCHAR drive[] = {letter, L':', L'\\', 0};
     if (GetDriveTypeW(drive) != DRIVE_FIXED ||
-        !GetVolumeNameForVolumeMountPointW(drive, root, ICON_VOLUME_LENGTH) ||
-        GetDriveTypeW(root) != DRIVE_FIXED) return false;
+        !GetVolumeNameForVolumeMountPointW(drive, root, ICON_VOLUME_LENGTH)) return false;
     const WCHAR prefix[] = L"\\\\?\\Volume{";
     size_t length = wcslen(root);
     if (length != (ARRAYSIZE(prefix) - 1) + 36 + 2 ||
@@ -116,13 +116,18 @@ static bool icon_volume_root(WCHAR letter, WCHAR root[ICON_VOLUME_LENGTH]) {
 }
 
 static bool pin_icon_path(const WCHAR *path, bool directory, DrillPinnedIcon *pin) {
-    pin->count = 0;
+    pin->root = NULL;
     bool letter = (path[0] >= L'A' && path[0] <= L'Z') || (path[0] >= L'a' && path[0] <= L'z');
     if (!letter || path[1] != L':' || path[2] != L'\\' || !path[3] || wcslen(path) >= MAX_PATH ||
         wcspbrk(path + 3, L"/:*\"<>?|") || wcsstr(path, L".{") ||
         !icon_volume_root(path[0], pin->path)) return false;
 
-    if (pin_icon_component(pin, true)) {
+    // The Shell binds by name. Only consider component paths after the mounted
+    // filesystem itself reports read-only, and retain that root through lookup.
+    pin->root = open_icon_component(pin->path, true);
+    DWORD flags = 0;
+    if (pin->root && GetVolumeInformationByHandleW(pin->root, NULL, 0, NULL, NULL, &flags, NULL, 0) &&
+        icon_volume_eligible(GetDriveTypeW(pin->path), flags)) {
         WCHAR *part = pin->path + wcslen(pin->path);
         memcpy(part, path + 3, (wcslen(path + 3) + 1) * sizeof(WCHAR));
         while (*part) {
@@ -133,10 +138,12 @@ static bool pin_icon_path(const WCHAR *path, bool directory, DrillPinnedIcon *pi
             *end = 0;
             DrillTypeName extension;
             icon_type_name(part, extension);
-            bool safe = !icon_device_component(part) && !icon_source_extension(extension) &&
-                        pin_icon_component(pin, separator || directory);
+            HANDLE entry = NULL;
+            if (!icon_device_component(part) && !icon_source_extension(extension))
+                entry = open_icon_component(pin->path, separator || directory);
             *end = separator;
-            if (!safe) break;
+            if (!entry) break;
+            CloseHandle(entry);
             if (!separator) return true;
             part = end + 1;
         }

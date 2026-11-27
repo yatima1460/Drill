@@ -233,7 +233,7 @@ jobs:
           path: dist
       - name: Read menu names through Windows accessibility in light and dark mode
         run: .\drill-menu-accessibility.exe
-      - name: Verify Windows icon lookup sharing and fallback
+      - name: Verify Windows read-only volume policy and icon fallbacks
         run: .\drill-icon-path.exe
       - name: Drive the packaged Win32 app on native Windows
         run: |
