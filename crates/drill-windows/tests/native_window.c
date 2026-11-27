@@ -255,9 +255,12 @@ static void results(int count) {
 
 static void selected(int index) {
     ULONGLONG deadline = GetTickCount64() + 5000;
+    LRESULT actual;
     do {
-        if (message(list, LVM_GETNEXTITEM, (WPARAM)-1, LVNI_SELECTED) == index) return;
+        actual = message(list, LVM_GETNEXTITEM, (WPARAM)-1, LVNI_SELECTED);
+        if (actual == index) return;
     } while (retry(deadline));
+    fprintf(stderr, "Expected selected row %d, observed %lld\n", index, (long long)actual);
     fail("unexpected selected row");
 }
 
@@ -410,7 +413,7 @@ static void type_text(const WCHAR *text) {
     }
 }
 
-static bool copy_matches(const WCHAR *expected, ULONGLONG deadline) {
+static WCHAR *copy_text(ULONGLONG deadline) {
     DWORD previous = GetClipboardSequenceNumber();
     key('C', true);
     do {
@@ -418,21 +421,27 @@ static bool copy_matches(const WCHAR *expected, ULONGLONG deadline) {
             HANDLE data = GetClipboardData(CF_UNICODETEXT);
             const WCHAR *value = data ? GlobalLock(data) : NULL;
             if (value) {
-                bool matches = _wcsicmp(value, expected) == 0;
+                WCHAR *copied = _wcsdup(value);
                 GlobalUnlock(data);
                 CloseClipboard();
-                return matches;
+                REQUIRE(copied);
+                return copied;
             }
             CloseClipboard();
         }
     } while (retry(deadline));
-    fail("Copy did not produce a Unicode clipboard value");
-    return false;
+    return NULL;
 }
 
 static void copy_and_expect(const WCHAR *expected) {
-    if (copy_matches(expected, GetTickCount64() + 5000)) return;
-    fwprintf(stderr, L"Copy did not put '%ls' on the Unicode clipboard.\n", expected);
+    WCHAR *actual = copy_text(GetTickCount64() + 5000);
+    bool matches = actual && _wcsicmp(actual, expected) == 0;
+    if (!matches) {
+        fprintf(stderr, "Expected Unicode clipboard path '%ls', read '%ls'.\n",
+                expected, actual ? actual : L"(no new clipboard text)");
+    }
+    free(actual);
+    if (matches) return;
     fail("copy selection");
 }
 
@@ -696,19 +705,45 @@ static void bind_window(void) {
 
 static void wait_for_system_notepad(const WCHAR *expected) {
     ULONGLONG deadline = GetTickCount64() + 10000;
-    int index = 0;
-    // Select streamed rows using the native controls and inspect the action
-    // path. The row caption alone cannot distinguish the system executable.
+    key('F', true);
+    wait_for_focus(edit);
+    while (message(list, LVM_GETITEMCOUNT, 0, 0) == 0 && retry(deadline)) {}
+    if (GetTickCount64() < deadline) key(VK_DOWN, false);
+    key(VK_TAB, false);
+    wait_for_focus(combo);
+    key(VK_TAB, false);
+    wait_for_focus(list);
+
+    // Use native navigation and Copy to verify the installed executable's
+    // action path. Revisit the top because streaming can move a selected row.
+    WCHAR *copied = NULL;
     do {
-        if (message(list, LVM_GETITEMCOUNT, 0, 0) <= index) continue;
-        if (index == 0) click_point(list, first_row());
-        else key(VK_DOWN, false);
-        selected(index);
-        wait_for_focus(list);
-        if (copy_matches(expected, deadline)) return;
-        ++index;
+        LRESULT count = message(list, LVM_GETITEMCOUNT, 0, 0);
+        if (count == 0) continue;
+        LRESULT index = message(list, LVM_GETNEXTITEM, (WPARAM)-1, LVNI_SELECTED);
+        if (index >= 0) {
+            WCHAR *path = copy_text(deadline);
+            if (!path) break;
+            free(copied);
+            copied = path;
+            if (_wcsicmp(copied, expected) == 0) {
+                free(copied);
+                return;
+            }
+        }
+        if (index >= 0 && index + 1 < count) key(VK_DOWN, false);
+        else if (index != 0) key(VK_HOME, false);
     } while (retry(deadline));
-    fwprintf(stderr, L"Expected result '%ls'; inspected %d streamed rows.\n", expected, index);
+
+    GUITHREADINFO focus = {0};
+    focus.cbSize = sizeof(focus);
+    GetGUIThreadInfo(app.dwThreadId, &focus);
+    fprintf(stderr, "Expected '%ls', last copied '%ls', rows=%lld, selected=%lld, focused control=%d\n",
+            expected, copied ? copied : L"(no new clipboard text)",
+            (long long)message(list, LVM_GETITEMCOUNT, 0, 0),
+            (long long)message(list, LVM_GETNEXTITEM, (WPARAM)-1, LVNI_SELECTED),
+            GetDlgCtrlID(focus.hwndFocus));
+    free(copied);
     fail("system Notepad did not stream into the result list");
 }
 
@@ -730,7 +765,16 @@ static void default_root_search(const WCHAR *executable) {
     wait_for_system_notepad(expected);
 
     stage = "finding system Notepad after switching default search to Apps";
+    key('F', true);
+    wait_for_focus(edit);
+    key(VK_BACK, false);
+    expect_text(edit, L"");
+    expect_text(status, L"Type to search");
+    REQUIRE(message(list, LVM_GETITEMCOUNT, 0, 0) == 0);
     choose_mode(1);
+    key('F', true);
+    wait_for_focus(edit);
+    type_text(L"notepad");
     expect_text(edit, L"notepad");
     wait_for_system_notepad(expected);
     message(window, WM_CLOSE, 0, 0);
