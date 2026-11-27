@@ -13,7 +13,10 @@ static const WCHAR *const win_pref_names[] = {L"Appearance", L"ShowExeIcons", L"
 
 static WCHAR *win_known_file(REFKNOWNFOLDERID folder, const WCHAR *suffix) {
     WCHAR *base = NULL;
-    if (FAILED(SHGetKnownFolderPath(folder, KF_FLAG_DONT_VERIFY, NULL, &base))) return NULL;
+    if (FAILED(SHGetKnownFolderPath(folder, KF_FLAG_DONT_VERIFY, NULL, &base))) {
+        CoTaskMemFree(base);
+        return NULL;
+    }
     size_t base_len = wcslen(base), suffix_len = wcslen(suffix) + 1;
     WCHAR *path = malloc((base_len + suffix_len) * sizeof(*path));
     if (path) {

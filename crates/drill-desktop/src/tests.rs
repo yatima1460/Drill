@@ -191,9 +191,10 @@ fn explicit_windows_apps_root_emits_only_executables() {
         .encode_wide()
         .chain(Some(0))
         .collect::<Vec<_>>();
-    // SAFETY: row.path is the model-owned, NUL-terminated wide path to the file.
-    assert_eq!(
-        unsafe { std::slice::from_raw_parts(row.path, expected.len()) },
-        expected
-    );
+    for (index, unit) in expected.into_iter().enumerate() {
+        // SAFETY: the model owns a terminated path. A premature terminator
+        // fails this assertion before the next unit can be read.
+        let actual = unsafe { *row.path.add(index) };
+        assert_eq!(actual, unit);
+    }
 }

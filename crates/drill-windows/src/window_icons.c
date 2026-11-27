@@ -1,6 +1,7 @@
 #include <windows.h>
 #include <commctrl.h>
 #include <shellapi.h>
+#include <shobjidl.h>
 #include <objbase.h>
 #include <wchar.h>
 #include <stdlib.h>
@@ -13,7 +14,10 @@ static const WCHAR type_worker_property[] = L"software.drill.TypeIcons";
 
 typedef struct {
     enum { TYPE_FREE, TYPE_QUEUED, TYPE_LOADING, TYPE_DONE } state;
+    uint64_t id, generation;
     DrillTypeName extension;
+    WCHAR path[MAX_PATH];
+    bool directory;
     HICON icon;
 } DrillTypeJob;
 
@@ -37,7 +41,8 @@ typedef struct DrillWinIcons {
     DrillTypeWorker *worker;
     HIMAGELIST images;
     int file, folder, first_slot, count, size;
-    uint64_t clock;
+    uint64_t clock, generation;
+    uint64_t misses[512];
     DrillIconSlot slots[ICON_SLOTS];
 } DrillWinIcons;
 
@@ -45,8 +50,7 @@ static bool same_icon_type(const WCHAR *left, const WCHAR *right) {
     return CompareStringOrdinal(left, -1, right, -1, TRUE) == CSTR_EQUAL;
 }
 
-// Only an extension can cross into the Shell.  A discovered path, an ADS, or
-// a filename without an extension must never reach a file-specific handler.
+// Synthetic type lookups receive only the extension, never a path or ADS.
 static void icon_type_name(const WCHAR *path, DrillTypeName output) {
     const WCHAR *dot = wcsrchr(path, L'.');
     output[0] = 0;
@@ -58,6 +62,111 @@ static void icon_type_name(const WCHAR *path, DrillTypeName output) {
         ++length;
     }
     memcpy(output, dot, (length + 1) * sizeof(WCHAR));
+}
+
+// These formats can refer to another Shell object or supply icon resources
+// themselves. Keep even a cache lookup from binding those paths in the Shell.
+static bool icon_source_extension(const WCHAR *extension) {
+    static const WCHAR *const types[] = {
+        L".exe", L".appimage", L".dll", L".com", L".cpl", L".ocx", L".scr", L".sys",
+        L".lnk", L".url", L".pif", L".scf", L".theme", L".themepack", L".library-ms",
+        L".search-ms", L".searchconnector-ms", L".appref-ms", L".application", L".gadget",
+        L".ico", L".icl", L".cur", L".ani", L".fon", L".fot", L".ttf", L".otf", L".ttc"
+    };
+    for (size_t i = 0; i < ARRAYSIZE(types); ++i)
+        if (same_icon_type(extension, types[i])) return true;
+    return false;
+}
+
+static HICON cached_shell_icon(const WCHAR *path) {
+    IShellItemImageFactory *factory = NULL;
+    if (FAILED(SHCreateItemFromParsingName(path, NULL, &IID_IShellItemImageFactory,
+                                            (void **)&factory))) return NULL;
+    HBITMAP color = NULL;
+    SIZE size = {ICON_SIDE, ICON_SIDE};
+    // Windows can return Explorer's cached per-instance icon, including a
+    // customized folder icon. Never ask it to extract from a file or icon URL.
+    HRESULT hr = factory->lpVtbl->GetImage(factory, size, SIIGBF_ICONONLY | SIIGBF_INCACHEONLY, &color);
+    factory->lpVtbl->Release(factory);
+    BITMAP bitmap;
+    HICON icon = NULL;
+    if (SUCCEEDED(hr) && color && GetObjectW(color, sizeof(bitmap), &bitmap) == sizeof(bitmap) &&
+        bitmap.bmWidth > 0 && bitmap.bmWidth <= ICON_SIDE &&
+        bitmap.bmHeight > 0 && bitmap.bmHeight <= ICON_SIDE) {
+        BYTE bits[ICON_SIDE * ICON_SIDE / 8] = {0};
+        HBITMAP mask = CreateBitmap(bitmap.bmWidth, bitmap.bmHeight, 1, 1, bits);
+        if (mask) {
+            ICONINFO info = {0};
+            info.fIcon = TRUE;
+            info.hbmColor = color;
+            info.hbmMask = mask;
+            icon = CreateIconIndirect(&info);
+            DeleteObject(mask);
+        }
+    }
+    if (color) DeleteObject(color);
+    return icon;
+}
+
+// Check each component without following the leaf reparse point. Sharing all
+// access and closing the handles here lets users edit and rename files during
+// a slow Shell cache lookup.
+static bool local_icon_attributes(const WCHAR *path, bool directory) {
+    HANDLE handle = CreateFileW(path, FILE_READ_ATTRIBUTES,
+        FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, NULL, OPEN_EXISTING,
+        FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OPEN_REPARSE_POINT, NULL);
+    if (handle == INVALID_HANDLE_VALUE) return false;
+    BY_HANDLE_FILE_INFORMATION info;
+    bool valid = GetFileType(handle) == FILE_TYPE_DISK && GetFileInformationByHandle(handle, &info) &&
+        !(info.dwFileAttributes & (FILE_ATTRIBUTE_REPARSE_POINT | FILE_ATTRIBUTE_OFFLINE |
+          FILE_ATTRIBUTE_RECALL_ON_OPEN | FILE_ATTRIBUTE_RECALL_ON_DATA_ACCESS)) &&
+        ((info.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) != 0) == directory;
+    CloseHandle(handle);
+    return valid;
+}
+
+// DOS device aliases apply even if the name has an extension.
+static bool icon_device_component(const WCHAR *part) {
+    size_t n = wcscspn(part, L".");
+    while (n && part[n - 1] == L' ') --n;
+    if (n == 3) {
+        return CompareStringOrdinal(part, 3, L"CON", 3, TRUE) == CSTR_EQUAL ||
+               CompareStringOrdinal(part, 3, L"NUL", 3, TRUE) == CSTR_EQUAL ||
+               CompareStringOrdinal(part, 3, L"AUX", 3, TRUE) == CSTR_EQUAL ||
+               CompareStringOrdinal(part, 3, L"PRN", 3, TRUE) == CSTR_EQUAL;
+    }
+    if (n == 4 && wcschr(L"0123456789\x00b9\x00b2\x00b3", part[3])) {
+        return CompareStringOrdinal(part, 3, L"COM", 3, TRUE) == CSTR_EQUAL ||
+               CompareStringOrdinal(part, 3, L"LPT", 3, TRUE) == CSTR_EQUAL;
+    }
+    return (n == 6 && CompareStringOrdinal(part, 6, L"CONIN$", 6, TRUE) == CSTR_EQUAL) ||
+           (n == 7 && CompareStringOrdinal(part, 7, L"CONOUT$", 7, TRUE) == CSTR_EQUAL);
+}
+
+static HICON local_item_icon(WCHAR path[MAX_PATH], bool directory) {
+    WCHAR drive[4] = {path[0], L':', L'\\', 0};
+    bool letter = (path[0] >= L'A' && path[0] <= L'Z') || (path[0] >= L'a' && path[0] <= L'z');
+    if (!letter || path[1] != L':' || path[2] != L'\\' || !path[3] ||
+        wcspbrk(path + 3, L"/:*\"<>?|") || wcsstr(path, L".{")) return NULL;
+    WCHAR volume[MAX_PATH];
+    if (GetDriveTypeW(drive) != DRIVE_FIXED ||
+        !GetVolumeNameForVolumeMountPointW(drive, volume, ARRAYSIZE(volume))) return NULL;
+    for (WCHAR *part = path + 3; *part;) {
+        WCHAR *end = wcschr(part, L'\\');
+        if (!end) end = part + wcslen(part);
+        if (end == part || end[-1] == L' ' || end[-1] == L'.') return NULL;
+        WCHAR separator = *end;
+        *end = 0;
+        DrillTypeName extension;
+        icon_type_name(part, extension);
+        bool safe = !icon_device_component(part) && !icon_source_extension(extension) &&
+            local_icon_attributes(path, separator || directory);
+        *end = separator;
+        if (!safe) return NULL;
+        if (!separator) return cached_shell_icon(path);
+        part = end + 1;
+    }
+    return NULL;
 }
 
 static DWORD WINAPI type_icon_thread(void *data) {
@@ -79,14 +188,17 @@ static DWORD WINAPI type_icon_thread(void *data) {
         // A loading slot stays reserved until this worker publishes the result.
         job->state = TYPE_LOADING;
         ReleaseSRWLockExclusive(&worker->lock);
-        SHFILEINFOW info = {0};
-        if (SUCCEEDED(com)) {
+        HICON icon = NULL;
+        if (SUCCEEDED(com) && job->id) {
+            icon = local_item_icon(job->path, job->directory);
+        } else if (SUCCEEDED(com)) {
+            SHFILEINFOW info = {0};
             SHGetFileInfoW(job->extension, FILE_ATTRIBUTE_NORMAL, &info, sizeof(info),
                            SHGFI_USEFILEATTRIBUTES | SHGFI_ICON | SHGFI_LARGEICON);
+            icon = info.hIcon;
         }
-        if (!info.hIcon) info.hIcon = CopyIcon(LoadIconW(NULL, MAKEINTRESOURCEW(32512)));
         AcquireSRWLockExclusive(&worker->lock);
-        job->icon = info.hIcon;
+        job->icon = icon;
         job->state = TYPE_DONE;
         if (!worker->closing && GetPropW(worker->table, type_worker_property) == worker)
             InvalidateRect(worker->table, NULL, FALSE);
@@ -119,18 +231,22 @@ static DrillTypeWorker *start_type_worker(HWND table) {
 
 // Take a completed icon or enqueue its type. Failed lookups stay cached until
 // another type needs the slot. Excess requests retry on the next invalidation.
-static HICON request_type_icon(DrillTypeWorker *worker, const WCHAR *extension) {
+static HICON request_shell_icon(DrillWinIcons *icons, uint64_t id, const WCHAR *extension,
+                                const WCHAR *path, size_t length, bool directory) {
+    DrillTypeWorker *worker = icons->worker;
     if (!worker) return NULL;
     HICON result = NULL;
     DrillTypeJob *available = NULL;
     AcquireSRWLockExclusive(&worker->lock);
     for (unsigned i = 0; i < TYPE_JOBS; ++i) {
         DrillTypeJob *job = &worker->jobs[i];
-        if (job->state != TYPE_FREE && same_icon_type(extension, job->extension)) {
-            if (job->state == TYPE_DONE && job->icon) {
+        if (job->state != TYPE_FREE && job->id == id &&
+            (id ? job->generation == icons->generation : same_icon_type(extension, job->extension))) {
+            if (job->state == TYPE_DONE && (id || job->icon)) {
                 result = job->icon;
                 job->icon = NULL;
                 job->state = TYPE_FREE;
+                if (id && !result) icons->misses[id % ARRAYSIZE(icons->misses)] = id;
             }
             ReleaseSRWLockExclusive(&worker->lock);
             return result;
@@ -141,7 +257,11 @@ static HICON request_type_icon(DrillTypeWorker *worker, const WCHAR *extension) 
     if (available) {
         if (available->icon) DestroyIcon(available->icon);
         available->icon = NULL;
-        memcpy(available->extension, extension, (wcslen(extension) + 1) * sizeof(WCHAR));
+        available->id = id;
+        available->generation = icons->generation;
+        available->directory = directory;
+        if (id) memcpy(available->path, path, (length + 1) * sizeof(WCHAR));
+        else memcpy(available->extension, extension, (wcslen(extension) + 1) * sizeof(WCHAR));
         available->state = TYPE_QUEUED;
         WakeConditionVariable(&worker->changed);
     }
@@ -206,6 +326,20 @@ void drill_win_icons_reset(DrillWinIcons *icons) {
     if (size > 192) size = 192;
     icons->count = 0;
     icons->clock = 0;
+    ++icons->generation;
+    memset(icons->misses, 0, sizeof(icons->misses));
+    if (icons->worker) {
+        AcquireSRWLockExclusive(&icons->worker->lock);
+        for (unsigned i = 0; i < TYPE_JOBS; ++i) {
+            DrillTypeJob *job = &icons->worker->jobs[i];
+            if (job->id && job->state != TYPE_LOADING) {
+                if (job->icon) DestroyIcon(job->icon);
+                job->state = TYPE_FREE;
+                job->icon = NULL;
+            }
+        }
+        ReleaseSRWLockExclusive(&icons->worker->lock);
+    }
     if (icons->images && icons->size == size) return;
     icons->size = size;
     HIMAGELIST images = ImageList_Create(size, size, ILC_COLOR32 | ILC_MASK, 2, 8);
@@ -286,14 +420,25 @@ int drill_win_icons_get(DrillWinIcons *icons, uint64_t id, bool exe, bool appima
     if (!icons || !icons->images || !id) return -1;
     DrillRow row;
     if (!drill_row(icons->model, id, &row)) return -1;
-    if (row.directory) return icons->folder;
+    const WCHAR *path = (const WCHAR *)row.path;
     DrillTypeName extension;
-    icon_type_name((const WCHAR *)row.path, extension);
+    icon_type_name(path, extension);
+    int cached = find_list_icon(icons, id, NULL);
+    if (cached >= 0) return cached;
+    // Copy the borrowed native path before any model mutation. Long or verbatim
+    // paths still open losslessly and use a file-type icon for display.
+    if (icons->misses[id % ARRAYSIZE(icons->misses)] != id && !icon_source_extension(extension)) {
+        size_t length = 0;
+        while (length < MAX_PATH && path[length]) ++length;
+        if (length < MAX_PATH) {
+            HICON image = request_shell_icon(icons, id, NULL, path, length, row.directory);
+            if (image) return store_list_icon(icons, id, NULL, image);
+        }
+    }
+    if (row.directory) return icons->folder;
     if (!*extension) return icons->file;
     if ((exe && same_icon_type(extension, L".exe")) ||
         (appimage && same_icon_type(extension, L".appimage"))) {
-        int index = find_list_icon(icons, id, NULL);
-        if (index >= 0) return index;
         uint8_t rgba[ICON_SIDE * ICON_SIDE * 4];
         if (drill_embedded_icon(icons->model, id, exe, appimage, rgba) == 1) {
             HICON image = rgba_result_icon(rgba);
@@ -302,6 +447,6 @@ int drill_win_icons_get(DrillWinIcons *icons, uint64_t id, bool exe, bool appima
     }
     int index = find_list_icon(icons, 0, extension);
     if (index >= 0) return index;
-    HICON image = request_type_icon(icons->worker, extension);
+    HICON image = request_shell_icon(icons, 0, extension, NULL, 0, false);
     return image ? store_list_icon(icons, 0, extension, image) : icons->file;
 }

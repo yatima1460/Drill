@@ -71,8 +71,8 @@ static HRESULT win_spawn_terminal(const WCHAR *exe, WCHAR *command, const WCHAR 
 }
 
 static HRESULT win_terminal_here(WCHAR *path, bool directory) {
-    DWORD attributes = GetFileAttributesW(path);
-    if (!directory && (attributes == INVALID_FILE_ATTRIBUTES || !(attributes & FILE_ATTRIBUTE_DIRECTORY))) {
+    DWORD attributes = directory ? FILE_ATTRIBUTE_DIRECTORY : GetFileAttributesW(path);
+    if (attributes == INVALID_FILE_ATTRIBUTES || !(attributes & FILE_ATTRIBUTE_DIRECTORY)) {
         WCHAR *last = NULL;
         for (WCHAR *p = path; *p; ++p) {
             if (*p == L'\\' || *p == L'/') last = p;
@@ -80,12 +80,10 @@ static HRESULT win_terminal_here(WCHAR *path, bool directory) {
         if (!last) return HRESULT_FROM_WIN32(ERROR_DIRECTORY);
         last[1] = 0; // Keep the separator, including for a file in a drive root.
     }
-    attributes = GetFileAttributesW(path);
-    if (attributes == INVALID_FILE_ATTRIBUTES) return win_last_failure();
-    if (!(attributes & FILE_ATTRIBUTE_DIRECTORY)) return HRESULT_FROM_WIN32(ERROR_DIRECTORY);
-
     // Resolve known OS programs explicitly. Put the discovered path only in
     // lpCurrentDirectory, never in the shell command line or executable search.
+    // CreateProcess validates the directory, including a UNC share root where
+    // GetFileAttributesW is documented to return ERROR_BAD_NETPATH.
     WCHAR *terminal = win_known_file(&FOLDERID_LocalAppData, L"\\Microsoft\\WindowsApps\\wt.exe");
     WCHAR tab[] = L"wt.exe new-tab -d .";
     HRESULT result = win_spawn_terminal(terminal, tab, path);

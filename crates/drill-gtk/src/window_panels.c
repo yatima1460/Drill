@@ -44,9 +44,12 @@ static void save_preferences(DrillGtkPanels *panels) {
 
 static void set_appearance(DrillGtkPanels *panels, const char *value) {
     for (guint i = 0; i < G_N_ELEMENTS(appearances); i++) {
-        if (g_strcmp0(value, appearances[i]) == 0)
+        if (g_strcmp0(value, appearances[i]) == 0) {
             panels->appearance = (enum Appearance)i;
+            return;
+        }
     }
+    panels->appearance = AUTOMATIC;
 }
 
 // The released eframe version writes a pretty-printed map of string pairs.
