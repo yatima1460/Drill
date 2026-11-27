@@ -25,10 +25,19 @@ case "$campaign" in
     esac ;;
   full)
     if [[ "$scope" == desktop ]]; then
+      # The desktop exercises its shared Wasm hosts through the icon workers.
+      args+=(-p drill-icons --test-package drill --test-package drill-icons)
       case "$(uname -s)" in
-        Linux) args+=(--exclude native_menu.rs --exclude permissions.rs) ;;
-        Darwin) args+=(--exclude linux_apps.rs) ;;
-        MINGW*|MSYS*) args+=(--exclude linux_apps.rs --exclude permissions.rs) ;;
+        Linux)
+          args+=(--exclude native_menu.rs --exclude 'src/native_menu/*.rs' --exclude permissions.rs
+                 --exclude 'src/platform_icon/macos.rs' --exclude 'src/platform_icon/windows.rs') ;;
+        Darwin)
+          args+=(--exclude linux_apps.rs --exclude 'src/appearance/linux.rs' --exclude 'src/native_menu/windows.rs'
+                 --exclude 'src/platform_icon/linux.rs' --exclude 'src/platform_icon/windows.rs') ;;
+        MINGW*|MSYS*)
+          args+=(--exclude linux_apps.rs --exclude 'src/appearance/linux.rs' --exclude permissions.rs
+                 --exclude 'src/native_menu/macos.rs' --exclude 'src/platform_icon/linux.rs'
+                 --exclude 'src/platform_icon/macos.rs') ;;
       esac
     fi ;;
   *) echo "Unknown mutation campaign: $campaign" >&2; exit 2 ;;

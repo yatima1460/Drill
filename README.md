@@ -33,17 +33,19 @@ Very fast file searcher without indexing
 
 ### From source
 
-Install Rust using [rustup](https://rustup.rs/), then run:
+Install the workspace Rust toolchain with [rustup](https://rustup.rs/). On macOS 13 or later, install the Xcode Command Line Tools and start the SwiftUI app with `make start` or by double-clicking `Start Drill.command`. See the [macOS build and test instructions](docs/swift-ui.md).
+
+On Windows and Linux, launch the egui app with
 
 ```bash
-cargo run --release
+cargo run --release --locked
 ```
 
-On macOS, double-click `Start Drill.command` to build and start Drill. The first build downloads Rust dependencies. Search results appear while the filesystem is scanned. Type `*.md` to find Markdown files, `glob:report-??.pdf` for a wildcard pattern, `regex:^IMG_[0-9]{4}\.jpg$` for a regular expression, or `fuzzy:` followed by words for approximate matching. Drill follows your system light or dark appearance and displays native file icons when available.
+The first build may download Rust dependencies. Search results appear while the filesystem is scanned. Type `*.md` to find Markdown files, `glob:report-??.pdf` for a wildcard pattern, `regex:^IMG_[0-9]{4}\.jpg$` for a regular expression, or `fuzzy:` followed by words for approximate matching. Drill follows your system light or dark appearance and displays native file icons when available.
 
-Run `make help` to see common commands, including `make start`, `make test-core`, and `make test-ui`. The native UI tests drive a real window and may move the mouse or type; on macOS they require Accessibility permission. Linux UI tests use Xvfb and Openbox.
+Run `make help` to see common commands, including `make start`, `make test-core`, and `make test-ui`. The macOS UI suite sends events to its own AppKit windows. Linux CI drives the egui app with Xvfb and Openbox.
 
-See [Rust migration notes](docs/rust-migration.md) for development checks and platform status. Existing downloadable releases predate this Rust version.
+See [Rust migration notes](docs/rust-migration.md) for development checks and platform status.
 
 ## What happened to the old code?
 
@@ -100,4 +102,4 @@ Support this project with your organization. Your logo will show up here with a 
 <a href="https://opencollective.com/Drill/organization/8/website"><img src="https://opencollective.com/Drill/organization/8/avatar.svg"></a>
 <a href="https://opencollective.com/Drill/organization/9/website"><img src="https://opencollective.com/Drill/organization/9/avatar.svg"></a>
 
-Filename emoji use [Twemoji artwork](https://github.com/jdecked/twemoji) under CC BY 4.0. [Credits and licenses](src/assets/emoji/NOTICE)
+Filename emoji in the egui app use [Twemoji artwork](https://github.com/jdecked/twemoji) under CC BY 4.0. [Credits and licenses](src/assets/emoji/NOTICE)

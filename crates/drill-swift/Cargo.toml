@@ -1,0 +1,12 @@
+[package]
+name = "drill-swift"
+version = "2.0.0"
+edition = "2021"
+license-file = "../../LICENSE"
+
+[lib]
+crate-type = ["staticlib", "rlib"]
+
+[target.'cfg(unix)'.dependencies]
+drill-core = { path = "../drill-core" }
+drill-icons = { path = "../drill-icons" }

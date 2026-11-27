@@ -96,7 +96,7 @@
     const sections = {
       windows: createOsSection("Windows"),
       linux: createOsSection("Linux"),
-      macos: createOsSection("macOS"),
+      macos: createOsSection("macOS 13 or later"),
     };
     const assets = Array.isArray(release.assets) ? release.assets : [];
     let downloads = 0;

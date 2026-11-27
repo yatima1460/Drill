@@ -182,6 +182,22 @@ pub use web::{WebLogger, WebRunner};
 #[cfg(any(feature = "glow", feature = "wgpu"))]
 mod native;
 
+#[cfg(all(
+    target_os = "macos",
+    feature = "drill-clipboard-tests",
+    any(feature = "glow", feature = "wgpu")
+))]
+#[doc(hidden)]
+pub use native::clipboard::macos::tests as clipboard_test_cases;
+
+#[cfg(all(
+    windows,
+    feature = "drill-clipboard-tests",
+    any(feature = "glow", feature = "wgpu")
+))]
+#[doc(hidden)]
+pub use native::clipboard::windows::tests as clipboard_test_cases;
+
 #[cfg(not(target_arch = "wasm32"))]
 #[cfg(any(feature = "glow", feature = "wgpu"))]
 #[cfg(feature = "persistence")]
@@ -355,14 +371,20 @@ pub enum Error {
     WinitEventLoop(winit::error::EventLoopError),
 
     /// An error from [`glutin`] when using [`glow`].
-    #[cfg(all(feature = "glow", not(target_arch = "wasm32")))]
+    #[cfg(all(
+        feature = "glow",
+        not(any(target_arch = "wasm32", target_os = "macos"))
+    ))]
     Glutin(glutin::error::Error),
 
     /// An error from [`glutin`] when using [`glow`].
-    #[cfg(all(feature = "glow", not(target_arch = "wasm32")))]
+    #[cfg(all(
+        feature = "glow",
+        not(any(target_arch = "wasm32", target_os = "macos"))
+    ))]
     NoGlutinConfigs(glutin::config::ConfigTemplate, Box<dyn std::error::Error>),
 
-    /// An error from [`glutin`] when using [`glow`].
+    /// An error from the native OpenGL backend or painter when using [`glow`].
     #[cfg(feature = "glow")]
     OpenGL(egui_glow::PainterError),
 
@@ -389,7 +411,10 @@ impl From<winit::error::EventLoopError> for Error {
     }
 }
 
-#[cfg(all(feature = "glow", not(target_arch = "wasm32")))]
+#[cfg(all(
+    feature = "glow",
+    not(any(target_arch = "wasm32", target_os = "macos"))
+))]
 impl From<glutin::error::Error> for Error {
     #[inline]
     fn from(err: glutin::error::Error) -> Self {
@@ -428,12 +453,18 @@ impl std::fmt::Display for Error {
                 write!(f, "winit EventLoopError: {err}")
             }
 
-            #[cfg(all(feature = "glow", not(target_arch = "wasm32")))]
+            #[cfg(all(
+                feature = "glow",
+                not(any(target_arch = "wasm32", target_os = "macos"))
+            ))]
             Self::Glutin(err) => {
                 write!(f, "glutin error: {err}")
             }
 
-            #[cfg(all(feature = "glow", not(target_arch = "wasm32")))]
+            #[cfg(all(
+                feature = "glow",
+                not(any(target_arch = "wasm32", target_os = "macos"))
+            ))]
             Self::NoGlutinConfigs(template, err) => {
                 write!(
                     f,

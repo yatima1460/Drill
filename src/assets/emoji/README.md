@@ -21,3 +21,15 @@ python3 scripts/update-emoji-assets.py /path/to/twemoji /path/to/emoji-test.txt
 | Unicode 17.0 `emoji-test.txt` | `1d8a944f88d7952f7ef7c5167fef3c67995bcae24543949710231b03a201acda` |
 | `twemoji.bin` | `47384454e4f90958e9e686c8c25d409c3241ce0e4160d42045efd79cbed122b6` |
 | `index.tsv` | `6132c2878d306ffa10dec8adbe4257de07b2f2927054fa987c1128afee8b4fcd` |
+
+## Sprite boundaries
+
+Drill paints an image only when the entire emoji sequence matches an index key. The scanner
+uses the grapheme and pictograph properties that can join characters to these specific
+keys. Ordinary text stays in a single shaped run between images.
+
+To regenerate `sprite-boundaries.bin`, place the Unicode 17.0.0
+[GraphemeBreakProperty.txt](https://www.unicode.org/Public/17.0.0/ucd/auxiliary/GraphemeBreakProperty.txt)
+and [emoji-data.txt](https://www.unicode.org/Public/17.0.0/ucd/emoji/emoji-data.txt)
+in one directory and run `python3 scripts/update-emoji-boundaries.py /path/to/ucd`.
+The generator verifies both source checksums. [Unicode license](LICENSE-UNICODE)

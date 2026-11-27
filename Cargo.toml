@@ -1,11 +1,10 @@
 [workspace]
-members = ["crates/drill-core", "crates/drill-query"]
-exclude = ["vendor/eframe", "vendor/file_icon_provider"]
+members = ["crates/drill-core", "crates/drill-query", "crates/drill-icons", "crates/drill-macos", "crates/drill-gtk", "crates/drill-windows", "crates/drill-swift"]
+exclude = ["vendor/eframe"]
 resolver = "2"
 
 [patch.crates-io]
 eframe = { path = "vendor/eframe" }
-file_icon_provider = { path = "vendor/file_icon_provider" }
 
 [package]
 name = "drill"
@@ -14,42 +13,56 @@ edition = "2021"
 description = "Fast file search without indexing"
 license-file = "LICENSE"
 
+[[example]]
+name = "macos_opengl"
+required-features = ["macos-egui"]
+
+[[test]]
+name = "macos_clipboard"
+required-features = ["macos-egui"]
+
 [profile.release]
 opt-level = 3
 lto = "off"
 
 [features]
-ui-test-driver = []
+macos-egui = ["dep:eframe", "dep:drill-core", "dep:drill-icons", "dep:drill-macos", "dep:libc"]
+ui-test-driver = ["macos-egui"]
+verify-packaged-appimage = ["dep:image"]
 
-[dev-dependencies]
-enigo = "0.6.1"
-tempfile = "3.23.0"
+[workspace.dependencies]
+eframe = { version = "0.31.1", default-features = false, features = ["default_fonts", "glow", "persistence"] }
+drill-core = { path = "crates/drill-core" }
+drill-icons = { path = "crates/drill-icons" }
 
 [dependencies]
-eframe = { version = "0.31.1", default-features = false, features = ["default_fonts", "glow", "x11", "wayland", "persistence"] }
-drill-core = { path = "crates/drill-core" }
-chrono = "0.4.45"
-file_icon_provider = "1.0.2"
-image = { version = "0.25.10", default-features = false, features = ["png"] }
-wasmi = { version = "0.51.3", default-features = false, features = ["std", "extra-checks"] }
-unicode-segmentation = "1.13.3"
+image = { version = "0.25.10", default-features = false, features = ["png"], optional = true }
 
-[target.'cfg(unix)'.dependencies]
+[target.'cfg(not(target_os = "macos"))'.dependencies]
+eframe.workspace = true
+drill-core.workspace = true
+drill-icons.workspace = true
+
+[target.'cfg(all(unix, not(target_os = "macos")))'.dependencies]
 libc = "0.2"
 
+[target.'cfg(all(unix, not(target_vendor = "apple")))'.dependencies]
+eframe = { workspace = true, features = ["x11", "wayland"] }
+
 [target.'cfg(target_os = "linux")'.dependencies]
-gtk = "0.19.0"
-gio-unix = "0.22"
+drill-gtk = { path = "crates/drill-gtk" }
 
 [target.'cfg(target_os = "macos")'.dependencies]
-objc2 = "0.6.4"
-objc2-app-kit = { version = "0.3.2", default-features = false, features = ["NSApplication", "NSOpenPanel", "NSPanel", "NSResponder", "NSSavePanel", "NSWindow"] }
-objc2-foundation = { version = "0.3.2", default-features = false, features = ["std", "NSString", "NSURL", "NSUUID"] }
+eframe = { workspace = true, features = ["drill-clipboard-tests"], optional = true }
+drill-core = { workspace = true, optional = true }
+drill-icons = { workspace = true, optional = true }
+drill-macos = { path = "crates/drill-macos", optional = true }
+libc = { version = "0.2", optional = true }
 
-[target.'cfg(any(target_os = "macos", target_os = "windows"))'.dependencies]
-muda = { version = "0.21.2", default-features = false }
-raw-window-handle = "0.6.2"
+[target.'cfg(windows)'.dev-dependencies]
+eframe = { version = "0.31.1", default-features = false, features = ["drill-clipboard-tests"] }
 
 [target.'cfg(target_os = "windows")'.dependencies]
-windows-core = { version = "0.62.2", default-features = false }
+drill-windows = { path = "crates/drill-windows", features = ["shell-icons", "menu"] }
+raw-window-handle = "0.6.2"
 windows-sys = { version = "0.61.2", features = ["Win32_Foundation", "Win32_UI_Shell", "Win32_UI_WindowsAndMessaging", "Win32_System_Com", "Win32_Storage_FileSystem"] }

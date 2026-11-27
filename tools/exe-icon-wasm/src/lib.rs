@@ -1,6 +1,6 @@
-use icoextract_rs::{ExtractedIcon, ExtractedImage, IconExtractor};
 use std::io::Cursor;
 
+mod pe;
 mod resource;
 
 #[no_mangle]
@@ -26,31 +26,12 @@ pub extern "C" fn decode(ptr: *const u8, len: u32) -> *mut u8 {
 }
 
 fn extract(input: &[u8]) -> Option<Vec<u8>> {
-    let extractor = IconExtractor::from_bytes(input).ok()?;
-    let groups = extractor.list_group_icons().ok()?;
-    let group = groups.first()?;
-    let image = group
-        .images()
-        .iter()
-        .filter(|img| img.bytes_in_resource() <= 4 * 1024 * 1024)
-        .min_by_key(|img| {
-            (
-                img.width().abs_diff(32) + img.height().abs_diff(32),
-                std::cmp::Reverse(img.bit_count()),
-            )
-        })?;
-    let range = resource::byte_range(
-        image.file_offset(),
-        image.bytes_in_resource(),
-        u32::try_from(input.len()).ok()?,
-    )?;
-    let bytes = input.get(range)?.to_vec();
-    let ico = ExtractedIcon::new(
-        group.resource_id().clone(),
-        vec![ExtractedImage::new(image.clone(), bytes)],
-    )
-    .to_ico_bytes()
-    .ok()?;
+    let frame = pe::icon_frame(input)?;
+    let mut ico = Vec::with_capacity(22 + frame.bytes.len());
+    ico.extend_from_slice(&[0, 0, 1, 0, 1, 0]); // Reserved, ICO type, one image.
+    ico.extend_from_slice(frame.directory_fields);
+    ico.extend_from_slice(&22u32.to_le_bytes()); // Header and entry length.
+    ico.extend_from_slice(frame.bytes);
     let mut reader = image::ImageReader::with_format(Cursor::new(ico), image::ImageFormat::Ico);
     let mut limits = image::Limits::default();
     limits.max_image_width = Some(256);
@@ -80,5 +61,68 @@ mod tests {
             assert_eq!(&pixels[..4], &[0, 255, 0, 255]);
             assert!(extract(&fixture[..64]).is_none());
         }
+    }
+
+    #[test]
+    fn extracts_from_named_groups_and_selects_the_first_language() {
+        let mut fixture = include_bytes!("../tests/fixtures/icon-pe32.exe").to_vec();
+
+        // The group name is stored after the directory, in a length-prefixed UTF-16 string.
+        fixture[0x25c..0x260].copy_from_slice(&[1, 0, 0, 0]);
+        write_u32(&mut fixture, 0x260, 0x8000_0130);
+        fixture[0x330..0x33a].copy_from_slice(&[4, 0, b'M', 0, b'a', 0, b'i', 0, b'n', 0]);
+
+        // Move the green frame's language table into free space. Its second locale
+        // will point to a red DIB. The original green frame is a PNG.
+        write_u32(&mut fixture, 0x23c, 0x8000_0140);
+        fixture[0x34e..0x350].copy_from_slice(&2u16.to_le_bytes());
+        write_u32(&mut fixture, 0x350, 0x0407);
+        write_u32(&mut fixture, 0x354, 0x00f0);
+        write_u32(&mut fixture, 0x358, 0x0409);
+        write_u32(&mut fixture, 0x35c, 0x0160);
+
+        assert_eq!(&extract(&fixture).unwrap()[..4], &[0, 255, 0, 255]);
+
+        // A 32-bit DIB contains a 40-byte header, BGRA pixels and an AND mask.
+        // The stored height includes the pixel rows and the mask rows.
+        let dib = 0x50000;
+        let dib_size = 40 + 32 * 32 * 4 + 32 * 4;
+        write_u32(&mut fixture, dib, 40);
+        write_u32(&mut fixture, dib + 4, 32);
+        write_u32(&mut fixture, dib + 8, 64);
+        fixture[dib + 12..dib + 16].copy_from_slice(&[1, 0, 32, 0]);
+        fixture[dib + 40..dib + 40 + 32 * 32 * 4]
+            .copy_from_slice(&[0, 0, 255, 255].repeat(32 * 32));
+        write_u32(&mut fixture, 0x360, 0x50e00);
+        write_u32(&mut fixture, 0x364, dib_size);
+        write_u32(&mut fixture, 0x354, 0x0160);
+        write_u32(&mut fixture, 0x35c, 0x00f0);
+        write_u32(&mut fixture, 0x440a0, dib_size);
+
+        assert_eq!(&extract(&fixture).unwrap()[..4], &[255, 0, 0, 255]);
+    }
+
+    #[test]
+    fn a_preceding_overlapping_section_does_not_hide_the_resource_directory() {
+        let mut fixture = include_bytes!("../tests/fixtures/icon-pe32.exe").to_vec();
+        let section = 0x178;
+        let section_len = 40;
+        fixture[0x86..0x88].copy_from_slice(&2u16.to_le_bytes());
+        fixture.copy_within(section..section + section_len, section + section_len);
+        fixture[section..section + 8].copy_from_slice(b".other\0\0");
+        write_u32(&mut fixture, section + 12, 0);
+        write_u32(&mut fixture, section + 16, u32::MAX);
+        assert_eq!(&extract(&fixture).unwrap()[..4], &[0, 255, 0, 255]);
+    }
+
+    #[test]
+    fn falls_back_if_the_resource_directory_omits_the_group_payload() {
+        let mut fixture = include_bytes!("../tests/fixtures/icon-pe32.exe").to_vec();
+        write_u32(&mut fixture, 0x10c, 0x400);
+        assert!(extract(&fixture).is_none());
+    }
+
+    fn write_u32(input: &mut [u8], offset: usize, value: u32) {
+        input[offset..offset + 4].copy_from_slice(&value.to_le_bytes());
     }
 }

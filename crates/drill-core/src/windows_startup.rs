@@ -36,14 +36,7 @@ fn system_dirs() -> Vec<PathBuf> {
 // Query the file directly: an absent executable costs one lookup per directory.
 fn lookup(path: &Path, filter: FileFilter) -> Option<(PathBuf, Entry)> {
     #[cfg(windows)]
-    let name = {
-        let mut data = winsafe::WIN32_FIND_DATA::default();
-        let (_handle, found) = winsafe::HFINDFILE::FindFirstFile(path.to_str()?, &mut data).ok()?;
-        if !found {
-            return None;
-        }
-        data.cFileName()
-    };
+    let name = drill_windows::find_filename(path)?;
     #[cfg(not(windows))]
     let name = path.file_name()?.to_str()?.to_owned();
     // A short (8.3) alias may resolve to an unrelated long name.
@@ -225,7 +218,7 @@ mod tests {
 
     #[test]
     fn ordinary_searches_do_no_system_work() {
-        let temp = tempfile::tempdir().unwrap();
+        let temp = crate::test_directory::private_temp_dir();
         fs::write(temp.path().join("report.txt"), b"").unwrap();
         for query in [
             "report",
@@ -253,7 +246,7 @@ mod tests {
 
     #[test]
     fn exact_hit_precedes_discovery_and_a_slow_secondary_probe_cannot_delay_walk_or_completion() {
-        let temp = tempfile::tempdir().unwrap();
+        let temp = crate::test_directory::private_temp_dir();
         let system = temp.path().join("system");
         let other = temp.path().join("other");
         fs::create_dir(&system).unwrap();
@@ -311,7 +304,7 @@ mod tests {
 
     #[test]
     fn system_lookup_uses_the_literal_accented_and_mixed_case_filename() {
-        let temp = tempfile::tempdir().unwrap();
+        let temp = crate::test_directory::private_temp_dir();
         let root = temp.path().to_owned();
         let disk_name = "CaféTool.EXE";
         let expected = root.join(disk_name);
@@ -345,7 +338,7 @@ mod tests {
     #[test]
     fn walk_first_hit_is_unique_and_cancelling_revokes_a_blocked_probe() {
         for cancel_after_first in [false, true] {
-            let temp = tempfile::tempdir().unwrap();
+            let temp = crate::test_directory::private_temp_dir();
             let root = temp.path().to_owned();
             fs::write(root.join("tool.exe"), b"ordinary").unwrap();
             let (entered, started) = mpsc::channel();
@@ -384,7 +377,7 @@ mod tests {
 
     #[test]
     fn absent_exe_costs_one_literal_lookup_per_dir_and_invalid_names_skip_lookup() {
-        let temp = tempfile::tempdir().unwrap();
+        let temp = crate::test_directory::private_temp_dir();
         let base = temp.path().to_owned();
         let dirs = [base.join("a"), base.join("b"), base.join("c")];
         let expected = dirs.clone().map(|p| p.join("missing.exe"));
@@ -438,7 +431,7 @@ mod tests {
     #[cfg(windows)]
     #[test]
     fn literal_lookup_preserves_disk_case_and_ignores_directories() {
-        let temp = tempfile::tempdir().unwrap();
+        let temp = crate::test_directory::private_temp_dir();
         let real = temp.path().join("MiXeD-Tool.EXE");
         fs::write(&real, b"123").unwrap();
         fs::create_dir(temp.path().join("folder.exe")).unwrap();
@@ -455,9 +448,20 @@ mod tests {
 
     #[cfg(windows)]
     #[test]
+    fn literal_lookup_rejects_an_embedded_nul() {
+        let temp = crate::test_directory::private_temp_dir();
+        let path = temp.path().join("tool.exe");
+        fs::write(&path, b"").unwrap();
+        let mut path_with_nul = path.into_os_string();
+        path_with_nul.push("\0ignored");
+        assert!(drill_windows::find_filename(Path::new(&path_with_nul)).is_none());
+    }
+
+    #[cfg(windows)]
+    #[test]
     #[ignore = "paired startup measurement on a Windows runner"]
     fn compare_startup_to_ordinary_walk() {
-        let fixture = tempfile::tempdir().unwrap();
+        let fixture = crate::test_directory::private_temp_dir();
         fs::write(fixture.path().join("report.txt"), b"").unwrap();
         for (text, expected) in [
             ("report", Some("report.txt")),

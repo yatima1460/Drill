@@ -1,7 +1,5 @@
+use drill_macos::permissions::pick_folder;
 use eframe::egui;
-use objc2::{rc::autoreleasepool, MainThreadMarker};
-use objc2_app_kit::{NSApplication, NSModalResponseOK, NSOpenPanel};
-use objc2_foundation::{NSString, NSURL};
 use std::path::{Path, PathBuf};
 use std::sync::mpsc;
 
@@ -57,33 +55,6 @@ fn settings_url(version: &str, pane: &str) -> String {
     };
     format!("x-apple.systempreferences:{domain}?{pane}")
 }
-fn pick_folder(starting_folder: Option<&Path>) -> Option<PathBuf> {
-    let main_thread = MainThreadMarker::new()?;
-    autoreleasepool(|_| {
-        let previous_window = NSApplication::sharedApplication(main_thread).keyWindow();
-        let panel = NSOpenPanel::openPanel(main_thread);
-        panel.setMessage(Some(&NSString::from_str(
-            "Choose a folder for Drill to search",
-        )));
-        panel.setCanChooseDirectories(true);
-        panel.setCanChooseFiles(false);
-        panel.setAllowsMultipleSelection(false);
-        panel.setCanCreateDirectories(true);
-        if let Some(url) = starting_folder.and_then(NSURL::from_directory_path) {
-            panel.setDirectoryURL(Some(&url));
-        }
-        let response = panel.runModal();
-        if let Some(window) = previous_window {
-            window.makeKeyAndOrderFront(None);
-        }
-        if response == NSModalResponseOK {
-            panel.URL()?.to_file_path()
-        } else {
-            None
-        }
-    })
-}
-
 fn open_settings(pane: &str) -> Result<(), String> {
     let version = std::process::Command::new("/usr/bin/sw_vers")
         .arg("-productVersion")

@@ -107,14 +107,11 @@ version = "1"
 features = ["derive"]
 optional = true
 
-[dependencies.static_assertions]
-version = "1.1.0"
-
 [dependencies.web-time]
 version = "1.1.0"
 
 [features]
-__screenshot = []
+__screenshot = ["dep:image"]
 accesskit = [
     "egui/accesskit",
     "egui-winit/accesskit",
@@ -132,6 +129,7 @@ default = [
     "egui-wgpu?/fragile-send-sync-non-atomic-wasm",
 ]
 default_fonts = ["egui/default_fonts"]
+drill-clipboard-tests = []
 glow = [
     "dep:egui_glow",
     "dep:glow",
@@ -173,6 +171,9 @@ x11 = [
 [target.'cfg(any(target_os = "macos"))'.dependencies.objc2]
 version = "0.5.1"
 
+[target.'cfg(target_os = "macos")'.dependencies.drill-macos]
+path = "../../crates/drill-macos"
+
 [target.'cfg(any(target_os = "macos"))'.dependencies.objc2-app-kit]
 version = "0.2.0"
 features = [
@@ -195,17 +196,19 @@ features = [
 ]
 default-features = false
 
-[target.'cfg(any(target_os = "windows"))'.dependencies.winapi]
-version = "0.3.9"
-features = ["winuser"]
-
 [target.'cfg(any(target_os = "windows"))'.dependencies.windows-sys]
-version = "0.59"
+version = "0.61.2"
 features = [
     "Win32_Foundation",
+    "Win32_UI_Input_KeyboardAndMouse",
     "Win32_UI_Shell",
+    "Win32_UI_WindowsAndMessaging",
     "Win32_System_Com",
 ]
+
+[target.'cfg(target_os = "windows")'.dependencies.drill-windows]
+path = "../../crates/drill-windows"
+features = ["clipboard"]
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies.egui-wgpu]
 version = "0.31.1"
@@ -215,9 +218,11 @@ default-features = false
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies.egui-winit]
 version = "0.31.1"
-features = [
-    "clipboard",
-]
+default-features = false
+
+[target.'cfg(all(not(target_arch = "wasm32"), not(any(target_os = "macos", target_os = "windows"))))'.dependencies.egui-winit]
+version = "0.31.1"
+features = ["clipboard"]
 default-features = false
 
 [target.'cfg(target_os = "linux")'.dependencies.egui-winit]
@@ -225,28 +230,38 @@ version = "0.31.1"
 features = ["links"]
 default-features = false
 
-[target.'cfg(not(target_arch = "wasm32"))'.dependencies.glutin]
+[target.'cfg(not(any(target_arch = "wasm32", target_os = "macos")))'.dependencies.glutin]
 version = "0.32.0"
-features = [
-    "egl",
-    "wgl",
-]
 optional = true
 default-features = false
 
-[target.'cfg(not(target_arch = "wasm32"))'.dependencies.glutin-winit]
+[target.'cfg(not(any(target_arch = "wasm32", target_os = "macos")))'.dependencies.glutin-winit]
 version = "0.5.0"
-features = [
-    "egl",
-    "wgl",
-]
 optional = true
 default-features = false
 
-[target.'cfg(not(target_arch = "wasm32"))'.dependencies.image]
+[target.'cfg(all(unix, not(target_vendor = "apple"), not(target_arch = "wasm32")))'.dependencies.glutin-winit]
+version = "0.5.0"
+features = ["egl"]
+optional = true
+default-features = false
+
+[target.'cfg(windows)'.dependencies.glutin-winit]
+version = "0.5.0"
+features = ["egl", "wgl"]
+optional = true
+default-features = false
+
+[target.'cfg(not(any(target_arch = "wasm32", target_os = "macos")))'.dependencies.image]
 version = "0.25"
 features = ["png"]
 default-features = false
+
+[target.'cfg(target_os = "macos")'.dependencies.image]
+version = "0.25"
+features = ["png"]
+default-features = false
+optional = true
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies.pollster]
 version = "0.4"

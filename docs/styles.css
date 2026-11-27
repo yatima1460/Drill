@@ -43,8 +43,8 @@ body {
 }
 
 .brand-mark {
-  width: 1.55rem;
-  height: 1.55rem;
+  width: 1cap;
+  height: 1cap;
   border-radius: 6px;
   object-fit: contain;
   background: #fff;
@@ -53,15 +53,18 @@ body {
 
 .title-row {
   display: inline-flex;
-  align-items: center;
+  align-items: baseline;
   gap: 0.6rem;
+  font-size: clamp(2rem, 5.8vw, 3rem);
+  font-weight: 700;
+  margin: 0.1rem 0 0.5rem;
 }
 
 .hero-content h1 {
-  font-size: clamp(2rem, 5.8vw, 3rem);
+  font-size: inherit;
   line-height: 1.1;
   max-width: 14ch;
-  margin: 0.1rem 0 0.5rem;
+  margin: 0;
 }
 
 .eyebrow {
@@ -417,7 +420,7 @@ code {
 }
 
 @media (min-width: 52rem) and (max-height: 42rem) {
-  .hero-content h1 {
+  .title-row {
     font-size: 2.25rem;
   }
   .hero-actions {
