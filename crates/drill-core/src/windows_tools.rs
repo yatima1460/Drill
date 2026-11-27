@@ -2,12 +2,10 @@
 use std::ffi::OsStr;
 use std::{fs, path::Path};
 
-const BUILTIN_EXTENSIONS: &[&[u8]] = &[b"EXE", b"MSC", b"CPL"];
+const BUILTIN_EXTENSIONS: &[&[u8]] = &[b"EXE", b"COM", b"BAT", b"CMD", b"MSC", b"CPL"];
 
 // Remaining entries from the Windows command prompt's default PATHEXT.
-const FALLBACK_EXTENSIONS: &[&[u8]] = &[
-    b"COM", b"BAT", b"CMD", b"VBS", b"VBE", b"JS", b"JSE", b"WSF", b"WSH",
-];
+const FALLBACK_EXTENSIONS: &[&[u8]] = &[b"VBS", b"VBE", b"JS", b"JSE", b"WSF", b"WSH"];
 
 pub(super) struct ToolExtensions {
     configured: Vec<Vec<u8>>,
@@ -91,10 +89,17 @@ mod tests {
         let tools = ToolExtensions::from_pathext(Some(OsStr::new(
             " .Py ; .TOOL-2;pyw;*.txt;.t?t;.foo.bar;.x/y;.x\\y",
         )));
-        for name in ["tool.pY", "tool.tool-2", "tool.ExE", "tool.msc", "tool.cpl"] {
+        for name in [
+            "tool.pY",
+            "tool.tool-2",
+            "tool.ExE",
+            "tool.cmd",
+            "tool.msc",
+            "tool.cpl",
+        ] {
             assert!(tools.matches(Path::new(name), file_type), "{name}");
         }
-        for name in ["tool.cmd", "tool.pyw", "tool.txt", "tool.bar", "tool.y"] {
+        for name in ["tool.js", "tool.pyw", "tool.txt", "tool.bar", "tool.y"] {
             assert!(!tools.matches(Path::new(name), file_type), "{name}");
         }
     }

@@ -361,6 +361,30 @@ mod tests {
     }
 
     #[test]
+    fn executable_lookups_require_a_literal_windows_filename() {
+        for text in [
+            "notepad",
+            "regex:notepad.exe",
+            "*.exe",
+            "fuzzy:notepad.exe",
+            r"sub\tool.exe",
+            "sub/tool.exe",
+            "aux.exe",
+            "lpt1.exe",
+            "c:thing.exe",
+            "com¹.exe",
+            "file?.exe",
+            "file\0.exe",
+        ] {
+            assert_eq!(
+                SearchQuery::parse(text).executable_filename(),
+                None,
+                "{text:?}"
+            );
+        }
+    }
+
+    #[test]
     fn executable_lookups_preserve_the_spelling_of_the_requested_file() {
         assert_eq!(
             SearchQuery::parse("NÔTÉS.EXE").executable_filename(),

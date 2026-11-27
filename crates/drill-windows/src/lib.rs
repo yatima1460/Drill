@@ -101,3 +101,28 @@ pub fn system_windows_directory() -> Option<PathBuf> {
     let path = PathBuf::from(OsString::from_wide(&path[..len]));
     path.is_absolute().then_some(path)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn find_filename_returns_the_original_case() {
+        let path = std::env::current_exe().unwrap();
+        let name = path.file_name().unwrap().to_str().unwrap();
+        let uppercase = name.to_ascii_uppercase();
+        assert_ne!(name, uppercase);
+        assert_eq!(
+            find_filename(&path.with_file_name(uppercase)).as_deref(),
+            Some(name)
+        );
+    }
+
+    #[test]
+    fn find_filename_rejects_an_embedded_nul() {
+        let path = std::env::current_exe().unwrap();
+        let mut path_with_nul = path.into_os_string();
+        path_with_nul.push("\0ignored");
+        assert_eq!(find_filename(Path::new(&path_with_nul)), None);
+    }
+}

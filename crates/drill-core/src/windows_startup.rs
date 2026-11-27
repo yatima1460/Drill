@@ -213,27 +213,122 @@ mod tests {
 
     #[cfg(windows)]
     #[test]
+    #[ignore = "requires an installed Windows Notepad"]
+    fn installed_notepad_in_both_modes() {
+        let expected = drill_windows::system_windows_directory()
+            .unwrap()
+            .join("System32")
+            .join("notepad.exe");
+        let expected = fs::canonicalize(expected).unwrap();
+        for filter in [FileFilter::All, FileFilter::WindowsExecutables] {
+            for text in ["notepad", "NOTEPAD.EXE"] {
+                let start = Instant::now();
+                let mut scan = WindowsSearch::start(SearchQuery::parse(text), token(), filter);
+                loop {
+                    assert!(
+                        start.elapsed() < TIMEOUT,
+                        "{text} in {filter:?} took too long"
+                    );
+                    let Some((rank, hit)) = poll(|| scan.try_recv_hit()) else {
+                        panic!("missing installed Notepad for {text} in {filter:?}");
+                    };
+                    if !hit.name.eq_ignore_ascii_case("notepad.exe")
+                        || fs::canonicalize(&hit.path).ok().as_ref() != Some(&expected)
+                    {
+                        continue;
+                    }
+                    let expected_rank = if text == "notepad" && filter == FileFilter::All {
+                        MatchKind::Partial
+                    } else {
+                        MatchKind::Exact
+                    };
+                    assert_eq!(rank, expected_rank);
+                    eprintln!(
+                        "{filter:?} {text} found {} in {:?}",
+                        hit.path.display(),
+                        start.elapsed()
+                    );
+                    break;
+                }
+            }
+        }
+    }
+
+    #[cfg(windows)]
+    #[test]
     #[ignore = "paired startup measurement on a Windows runner"]
     fn compare_startup_to_ordinary_walk() {
+        use std::os::windows::fs::MetadataExt;
+
         let fixture = crate::test_directory::private_temp_dir();
-        let system = fixture.path().join("System32");
+        let root = fs::canonicalize(fixture.path()).unwrap();
+        let system = root.join("System32");
         fs::create_dir(&system).unwrap();
-        fs::write(fixture.path().join("report.txt"), b"").unwrap();
-        fs::write(system.join("loom-editor.exe"), b"").unwrap();
+        let installed = drill_windows::system_windows_directory()
+            .expect("Windows directory unavailable")
+            .join("System32");
+        let extensions = ToolExtensions::from_environment();
+        let (mut files, mut directories, mut tools, mut skipped) = (0, 0, 0, 0);
+        for entry in fs::read_dir(installed).unwrap() {
+            let Ok(entry) = entry else {
+                skipped += 1;
+                continue;
+            };
+            let Ok(metadata) = entry.metadata() else {
+                skipped += 1;
+                continue;
+            };
+            const FILE_ATTRIBUTE_REPARSE_POINT: u32 = 0x400;
+            let kind = metadata.file_type();
+            let path = system.join(entry.file_name());
+            // Mirror names only. Reparse points could point outside the snapshot.
+            if metadata.file_attributes() & FILE_ATTRIBUTE_REPARSE_POINT != 0 {
+                skipped += 1;
+            } else if kind.is_file() {
+                fs::File::create_new(&path).unwrap();
+                files += 1;
+                tools += usize::from(extensions.matches(&path, kind));
+            } else if kind.is_dir() {
+                fs::create_dir(&path).unwrap();
+                directories += 1;
+            } else {
+                skipped += 1;
+            }
+        }
+        assert!(files > 0, "System32 provided no regular files");
+
+        // The private fixture name includes a random suffix to avoid matching a mirrored name.
+        let prefix = fixture.path().file_name().unwrap().to_str().unwrap();
+        let report = root.join(format!("{prefix}-report.txt"));
+        let tool_stem = format!("{prefix}-tool");
+        let tool_name = format!("{tool_stem}.exe");
+        let tool = system.join(&tool_name);
+        let absent = format!("{prefix}-absent.exe");
+        fs::File::create_new(&report).unwrap();
+        fs::File::create_new(&tool).unwrap();
+
+        const PAIRS: usize = 6;
+        eprintln!(
+            "System32 top-level names snapshot with {files} empty files ({tools} launchable), \
+             {directories} empty directories and {skipped} skipped entries, plus 2 sentinel files. \
+             Debug assertions {}, warm filesystem, 1 warmup pair per query then {PAIRS} alternating pairs. \
+             Timed from before discovery to first hit and stream drain. Fixture creation and build excluded.",
+            cfg!(debug_assertions),
+        );
         for (text, expected) in [
-            ("report", Some("report.txt")),
-            ("loom-editor", Some("loom-editor.exe")),
-            ("loom-editor.exe", Some("loom-editor.exe")),
-            ("drill-absent-9c3a.exe", None),
+            (report.file_name().unwrap().to_str().unwrap(), Some(&report)),
+            (tool_stem.as_str(), Some(&tool)),
+            (tool_name.as_str(), Some(&tool)),
+            (absent.as_str(), None),
         ] {
             let mut base = Vec::new();
             let mut changed = Vec::new();
-            for pair in 0..7 {
+            let mut threads = [0; 2];
+            for pair in 0..=PAIRS {
                 for seeded in [pair % 2 == 0, pair % 2 != 0] {
-                    let root = fixture.path().to_owned();
+                    let root = root.clone();
                     let seed = system.clone();
-                    // Exercise real drive discovery in both paths. The fixture contains
-                    // every seed, so both walks see the same files.
+                    // Run the usual drive discovery in both paths, then walk the same bounded tree.
                     let discover = move |stop: &AtomicBool| {
                         let _ = default_roots_with_cancel(stop);
                         vec![root]
@@ -241,51 +336,51 @@ mod tests {
                     let cancel = token();
                     let query = SearchQuery::parse(text);
                     let started = Instant::now();
-                    let collect = |next: &mut dyn FnMut() -> Result<
-                        (MatchKind, Entry),
-                        mpsc::TryRecvError,
-                    >| {
-                        let hit = poll(&mut *next);
-                        let first = hit.as_ref().map(|_| started.elapsed());
-                        assert_eq!(hit.as_ref().map(|(_, entry)| entry.name.as_str()), expected);
-                        if hit.is_some() {
-                            assert!(poll(next).is_none());
-                        }
-                        (first, started.elapsed())
-                    };
-                    let elapsed = if seeded {
-                        let search = Search::start_seeded(
+                    let search = if seeded {
+                        Search::start_seeded(
                             query,
-                            Some((seed, ToolExtensions::from_pathext(None))),
+                            Some((seed, ToolExtensions::from_environment())),
                             discover,
                             cancel,
                             FileFilter::All,
-                        );
-                        collect(&mut || search.try_recv_hit())
+                        )
                     } else {
                         let roots = discover(&cancel);
-                        let search = Search::start_filtered(query, roots, cancel, FileFilter::All);
-                        collect(&mut || search.try_recv_hit())
+                        Search::start_filtered(query, roots, cancel, FileFilter::All)
                     };
+                    threads[usize::from(seeded)] = search.workers.len() - usize::from(seeded);
+                    let hit = poll(|| search.try_recv_hit());
+                    let first = hit.as_ref().map(|_| started.elapsed());
+                    let repeated = hit.is_some() && poll(|| search.try_recv_hit()).is_some();
+                    let complete = started.elapsed();
+                    assert_eq!(hit.as_ref().map(|(_, entry)| &entry.path), expected);
+                    assert!(!repeated, "search returned another match");
                     if pair > 0 {
                         if seeded {
-                            changed.push(elapsed);
+                            changed.push((first, complete));
                         } else {
-                            base.push(elapsed);
+                            base.push((first, complete));
                         }
                     }
                 }
             }
-            let median = |samples: &[(Option<Duration>, Duration)]| {
+            let medians = |samples: &[(Option<Duration>, Duration)]| {
                 let (mut first, mut complete): (Vec<_>, Vec<_>) = samples.iter().copied().unzip();
                 first.sort_unstable();
                 complete.sort_unstable();
-                ([first[2], first[3]], [complete[2], complete[3]])
+                let middle = PAIRS / 2;
+                let first = first[middle - 1]
+                    .zip(first[middle])
+                    .map(|(left, right)| (left + right) / 2);
+                (first, (complete[middle - 1] + complete[middle]) / 2)
             };
             eprintln!(
-                "native startup {text:?}, 6 alternating pairs after warmup, middle pairs (first hit, completion): ordinary {:?}, seeded {:?}",
-                median(&base),
-                median(&changed)
+                "{text:?} median (first hit, full drain): ordinary {:?} with {} walk workers, \
+                 seeded {:?} with {} walk workers and 1 discovery worker",
+                medians(&base),
+                threads[0],
+                medians(&changed),
+                threads[1],
             );
         }
     }
