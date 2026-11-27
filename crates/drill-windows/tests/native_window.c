@@ -464,13 +464,26 @@ static void wait_for_launches(DWORD expected) {
     REQUIRE(launches() == expected);
 }
 
-static void filter_and_launch(void) {
-    // A click opens the drop-down list on Windows. End and Return commit Apps.
+static void choose_mode(int index) {
     click(combo);
-    key(VK_END, false);
-    key(VK_RETURN, false);
+    ULONGLONG deadline = GetTickCount64() + 5000;
+    while (!message(combo, CB_GETDROPPEDSTATE, 0, 0)) REQUIRE(retry(deadline));
+    COMBOBOXINFO info = {0};
+    info.cbSize = sizeof(info);
+    REQUIRE(GetComboBoxInfo(combo, &info) && info.hwndList);
+    RECT row;
+    REQUIRE(message(info.hwndList, LB_GETITEMRECT, (WPARAM)index, (LPARAM)&row) != LB_ERR);
+    POINT point = {(row.left + row.right) / 2, (row.top + row.bottom) / 2};
+    REQUIRE(ClientToScreen(info.hwndList, &point));
+    click_point(info.hwndList, point);
+    deadline = GetTickCount64() + 5000;
+    while (message(combo, CB_GETDROPPEDSTATE, 0, 0) ||
+           message(combo, CB_GETCURSEL, 0, 0) != index) REQUIRE(retry(deadline));
+}
+
+static void filter_and_launch(void) {
+    choose_mode(1);
     results(1);
-    REQUIRE(message(combo, CB_GETCURSEL, 0, 0) == 1);
     click_point(list, first_row());
     selected(0);
     copy_and_expect(paths[2]);
@@ -491,9 +504,7 @@ static void filter_and_launch(void) {
     wait_for_launches(2);
     activate_main();
 
-    click(combo);
-    key(VK_HOME, false);
-    key(VK_RETURN, false);
+    choose_mode(0);
     results(3);
     selected(-1);
     click(edit);

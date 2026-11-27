@@ -48,7 +48,6 @@ unsafe extern "system" {
     ) -> i32;
 }
 
-const FILE_DIRECTORY_FILE: u32 = 1;
 const FILE_SYNCHRONOUS_IO_NONALERT: u32 = 0x20;
 const FILE_NON_DIRECTORY_FILE: u32 = 0x40;
 const FILE_OPEN_REPARSE_POINT: u32 = 0x0020_0000;
@@ -86,27 +85,11 @@ fn local_root(letter: u8) -> Option<File> {
     let mut target = [0_u16; 512];
     // SAFETY: drive is terminated and the output is sized in UTF-16 units.
     let used = unsafe { QueryDosDeviceW(drive.as_ptr(), target.as_mut_ptr(), target.len() as u32) };
-    #[cfg(test)]
-    if used == 0 {
-        eprintln!(
-            "QueryDosDeviceW({}:) failed: {}",
-            char::from(letter),
-            std::io::Error::last_os_error()
-        );
-    }
     let current = target
         .get(..used as usize)?
         .split(|&unit| unit == 0)
         .next()?;
-    let Some(mut root) = disk_volume_root(current) else {
-        #[cfg(test)]
-        eprintln!(
-            "rejected {}: mapping {:?}",
-            char::from(letter),
-            String::from_utf16_lossy(current)
-        );
-        return None;
-    };
+    let mut root = disk_volume_root(current)?;
     open(ptr::null_mut(), &mut root, true)
 }
 
@@ -124,11 +107,7 @@ fn disk_volume_root(current: &[u16]) -> Option<Vec<u16>> {
 }
 
 pub(super) fn child(parent: &File, name: &OsStr, directory: bool) -> Option<File> {
-    let Some(mut wide) = component_name(name) else {
-        #[cfg(test)]
-        eprintln!("rejected component {name:?}");
-        return None;
-    };
+    let mut wide = component_name(name)?;
     open(parent.as_raw_handle(), &mut wide, directory)
 }
 
@@ -140,8 +119,6 @@ fn component_name(name: &OsStr) -> Option<Vec<u16>> {
 }
 
 fn open(parent: HANDLE, name: &mut [u16], directory: bool) -> Option<File> {
-    #[cfg(test)]
-    let label = String::from_utf16_lossy(name);
     let length = u16::try_from(size_of_val(name)).ok()?;
     let name = UNICODE_STRING {
         Length: length,
@@ -162,7 +139,9 @@ fn open(parent: HANDLE, name: &mut [u16], directory: bool) -> Option<File> {
     };
     let mut handle = ptr::null_mut();
     let (access, kind) = if directory {
-        (FILE_TRAVERSE, FILE_DIRECTORY_FILE)
+        // NO_RECALL is incompatible with the DIRECTORY_FILE create option.
+        // Verify the directory attribute on this handle before traversing it.
+        (FILE_TRAVERSE, 0)
     } else {
         (0, FILE_NON_DIRECTORY_FILE)
     };
@@ -179,40 +158,20 @@ fn open(parent: HANDLE, name: &mut [u16], directory: bool) -> Option<File> {
         )
     };
     if result != STATUS_SUCCESS {
-        #[cfg(test)]
-        eprintln!("NtOpenFile({label:?}, directory={directory}) returned {result:#010x}, I/O status {:#010x}", status.status_or_pointer);
         return None;
     }
     // SAFETY: the successful open transferred this handle to us.
     let file = unsafe { File::from_raw_handle(handle) };
     // SAFETY: file owns this live handle.
-    let file_type = unsafe { GetFileType(handle) };
-    if file_type != FILE_TYPE_DISK {
-        #[cfg(test)]
-        eprintln!(
-            "GetFileType({label:?}) returned {file_type}, last error {}",
-            std::io::Error::last_os_error()
-        );
+    if unsafe { GetFileType(handle) } != FILE_TYPE_DISK {
         return None;
     }
-    let meta = file
-        .metadata()
-        .inspect_err(|_error| {
-            #[cfg(test)]
-            eprintln!("metadata({label:?}) failed: {_error}");
-        })
-        .ok()?;
+    let meta = file.metadata().ok()?;
     let excluded = FILE_ATTRIBUTE_OFFLINE
         | FILE_ATTRIBUTE_RECALL_ON_DATA_ACCESS
         | FILE_ATTRIBUTE_RECALL_ON_OPEN
         | FILE_ATTRIBUTE_REPARSE_POINT;
     if meta.file_attributes() & excluded != 0 || meta.is_dir() != directory {
-        #[cfg(test)]
-        eprintln!(
-            "rejected {label:?}: attributes={:#x}, directory={}, expected={directory}",
-            meta.file_attributes(),
-            meta.is_dir()
-        );
         return None;
     }
     if directory {
@@ -229,11 +188,6 @@ fn open(parent: HANDLE, name: &mut [u16], directory: bool) -> Option<File> {
         )
     };
     if reader == INVALID_HANDLE_VALUE {
-        #[cfg(test)]
-        eprintln!(
-            "ReOpenFile({label:?}) failed: {}",
-            std::io::Error::last_os_error()
-        );
         return None;
     }
     // SAFETY: ReOpenFile returned a second, owned handle.
