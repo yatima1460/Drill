@@ -31,7 +31,7 @@ static void icon_type_name(const WCHAR *path, DrillTypeName output) {
 // themselves. Keep even a cache lookup from binding those paths in the Shell.
 static bool icon_source_extension(const WCHAR *extension) {
     static const WCHAR *const types[] = {
-        L".exe", L".appimage", L".dll", L".com", L".cpl", L".ocx", L".scr", L".sys",
+        L".exe", L".appimage", L".app", L".dll", L".com", L".cpl", L".ocx", L".scr", L".sys",
         L".lnk", L".url", L".pif", L".scf", L".theme", L".themepack", L".library-ms",
         L".search-ms", L".searchconnector-ms", L".appref-ms", L".application", L".gadget",
         L".ico", L".icl", L".cur", L".ani", L".fon", L".fot", L".ttf", L".otf", L".ttc"

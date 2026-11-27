@@ -44,11 +44,14 @@ struct DrillRow {
     path: *const DrillPathChar,
     directory: bool,
     registered_app: bool,
+    app_bundle: bool,
     desktop_id: *const c_char,
 }
 
 #[cfg(any(windows, target_os = "linux"))]
 pub fn run(root: Option<std::path::PathBuf>) -> i32 {
+    #[cfg(windows)]
+    drill_icons::prepare_wine_icons();
     // Select the platform crate's native archive even when the only reference
     // to its UI is the C symbol below (not a Rust function or type).
     #[cfg(target_os = "linux")]
@@ -150,10 +153,13 @@ unsafe extern "C" fn drill_embedded_icon(
     let Some(row) = model.rows.get(id) else {
         return -1;
     };
-    if row.hit.entry.is_dir || rgba.is_null() {
+    if rgba.is_null() {
         return -1;
     }
-    match model.icons.request(&row.hit.entry.path, exe, appimage) {
+    match model
+        .icons
+        .request(&row.hit.entry.path, row.hit.entry.is_dir, exe, appimage)
+    {
         IconResult::Ready(bytes) if bytes.len() == drill_icons::RGBA_BYTES => {
             // SAFETY: the caller provides the fixed-size output buffer defined
             // by the header; the source is a disjoint, verified RGBA image.

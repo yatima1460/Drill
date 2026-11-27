@@ -16,6 +16,7 @@ pub(crate) enum IconResult<'a> {
 }
 
 struct Request {
+    kind: EmbeddedIcon,
     generation: u64,
     path: PathBuf,
 }
@@ -39,7 +40,7 @@ impl Worker {
             .spawn(move || {
                 for request in jobs {
                     let current = || generation.load(Ordering::Relaxed) == request.generation;
-                    let pixels = drill_icons::decode(&request.path, current);
+                    let pixels = request.kind.decode(&request.path, current);
                     // A completion also wakes a view that encountered a full queue,
                     // even when clear() cancelled every job in that queue.
                     if completed.send(Response { request, pixels }).is_err() {
@@ -84,19 +85,23 @@ impl EmbeddedIcons {
         self.insertion_order.clear();
     }
 
-    pub(crate) fn request(&mut self, path: &Path, exe: bool, appimage: bool) -> IconResult<'_> {
+    pub(crate) fn request(
+        &mut self,
+        path: &Path,
+        directory: bool,
+        exe: bool,
+        appimage: bool,
+    ) -> IconResult<'_> {
         if self.enabled != (exe, appimage) {
             self.enabled = (exe, appimage);
             self.clear();
         }
-        let enabled = match EmbeddedIcon::for_path(path) {
-            Some(EmbeddedIcon::Exe) => exe,
-            Some(EmbeddedIcon::AppImage) => appimage,
-            None => false,
+        let kind = match EmbeddedIcon::for_entry(path, directory) {
+            Some(kind @ EmbeddedIcon::Exe) if exe => kind,
+            Some(kind @ EmbeddedIcon::AppImage) if appimage => kind,
+            Some(kind @ EmbeddedIcon::AppBundle) => kind,
+            _ => return IconResult::Fallback,
         };
-        if !enabled {
-            return IconResult::Fallback;
-        }
         if let Some(cached) = self.cache.get(path) {
             return match cached {
                 Some(pixels) => IconResult::Ready(pixels),
@@ -113,6 +118,7 @@ impl EmbeddedIcons {
             return IconResult::Fallback;
         };
         let request = Request {
+            kind,
             generation: self.generation.load(Ordering::Relaxed),
             path: path.to_owned(),
         };
@@ -176,14 +182,17 @@ mod tests {
     #[test]
     fn ignores_unrelated_extensions_and_disabled_formats() {
         let mut icons = EmbeddedIcons::new();
-        for (path, exe, appimage) in [
-            ("photo.ExE.txt", true, true),
-            ("folder.AppImage.txt", true, true),
-            ("Program.eXe", false, true),
-            ("Program.aPpImAgE", true, false),
+        for (path, directory, exe, appimage) in [
+            ("photo.ExE.txt", false, true, true),
+            ("Journal.app", false, true, true),
+            ("folder.exe", true, true, true),
+            ("ordinary", true, true, true),
+            ("folder.AppImage.txt", false, true, true),
+            ("Program.eXe", false, false, true),
+            ("Program.aPpImAgE", false, true, false),
         ] {
             assert!(matches!(
-                icons.request(Path::new(path), exe, appimage),
+                icons.request(Path::new(path), directory, exe, appimage),
                 IconResult::Fallback
             ));
         }
@@ -191,20 +200,40 @@ mod tests {
     }
 
     #[test]
-    fn worker_serves_both_wasm_formats_and_caches_failures() {
-        let tools = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../tools");
+    fn worker_serves_files_and_bundle_icons_and_caches_failures() {
+        let workspace = Path::new(env!("CARGO_MANIFEST_DIR"))
+            .ancestors()
+            .nth(2)
+            .unwrap();
         let mut icons = EmbeddedIcons::new();
-        for (fixture, valid) in [
-            ("exe-icon-wasm/tests/fixtures/icon-pe32.exe", true),
+        for (fixture, directory, valid) in [
             (
-                "appimage-icon-wasm/tests/fixtures/linked-png.AppImage",
+                "tools/exe-icon-wasm/tests/fixtures/icon-pe32.exe",
+                false,
                 true,
             ),
-            ("appimage-icon-wasm/tests/fixtures/cyclic.AppImage", false),
+            (
+                "tools/appimage-icon-wasm/tests/fixtures/linked-png.AppImage",
+                false,
+                true,
+            ),
+            (
+                "tools/appimage-icon-wasm/tests/fixtures/cyclic.AppImage",
+                false,
+                false,
+            ),
+            ("tests/native_ui/fixtures/mac-bundles/Jade.app", true, true),
+            (
+                "tests/native_ui/fixtures/mac-bundles/Missing.app",
+                true,
+                false,
+            ),
         ] {
-            let path = tools.join(fixture);
+            let path = workspace.join(fixture);
+            // Bundle artwork is independent of the PE and AppImage preferences.
+            let (exe, appimage) = (!directory, !directory);
             assert!(matches!(
-                icons.request(&path, true, true),
+                icons.request(&path, directory, exe, appimage),
                 IconResult::Pending
             ));
             let deadline = Instant::now() + Duration::from_secs(10);
@@ -212,7 +241,7 @@ mod tests {
                 assert!(Instant::now() < deadline, "icon worker did not respond");
                 std::thread::sleep(Duration::from_millis(1));
             }
-            match icons.request(&path, true, true) {
+            match icons.request(&path, directory, exe, appimage) {
                 IconResult::Ready(pixels) => {
                     assert!(valid);
                     assert_eq!(pixels.len(), drill_icons::RGBA_BYTES);
@@ -234,8 +263,8 @@ mod tests {
             responses,
         }));
         let path = Path::new("program.exe");
-        icons.request(path, true, true);
-        icons.request(Path::new("other.exe"), true, true);
+        icons.request(path, false, true, true);
+        icons.request(Path::new("other.exe"), false, true, true);
         assert_eq!(
             icons.pending.len(),
             1,
@@ -243,7 +272,7 @@ mod tests {
         );
         let old = jobs.try_recv().unwrap();
         icons.clear();
-        icons.request(path, true, true);
+        icons.request(path, false, true, true);
         completed
             .send(Response {
                 request: old,
@@ -252,7 +281,7 @@ mod tests {
             .unwrap();
         assert!(icons.poll(), "queue space is now available");
         assert!(matches!(
-            icons.request(path, true, true),
+            icons.request(path, false, true, true),
             IconResult::Pending
         ));
         let current = jobs.try_recv().unwrap();
@@ -264,9 +293,11 @@ mod tests {
             })
             .unwrap();
         assert!(icons.poll());
-        assert!(matches!(icons.request(path, true, true), IconResult::Ready(p) if p[0] == 42));
+        assert!(
+            matches!(icons.request(path, false, true, true), IconResult::Ready(p) if p[0] == 42)
+        );
         assert!(matches!(
-            icons.request(path, false, true),
+            icons.request(path, false, false, true),
             IconResult::Fallback
         ));
         assert!(icons.cache.is_empty());

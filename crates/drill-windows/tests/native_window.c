@@ -15,6 +15,8 @@
 
 static const char *stage = "startup";
 static bool use_msaa = true;
+static const WCHAR bridge_marker[] = L"DRILL_WINE_BUNDLE_PIPE";
+static HANDLE bridge_input, bridge_output;
 static PROCESS_INFORMATION app;
 static HWND window, edit, combo, list, header, status;
 static WCHAR root[MAX_PATH];
@@ -108,7 +110,30 @@ static void fixture(const WCHAR *self) {
     REQUIRE(CopyFileW(L"tools\\exe-icon-wasm\\tests\\fixtures\\icon-pe32.exe", paths[4], TRUE));
 }
 
-static void launch(const WCHAR *path, const WCHAR *directory) {
+// The host wrapper gives this driver the protocol streams for its final
+// bundle test. Keep them out of the standard handles of the ordinary app and
+// the harmless executable it launches during the shell-action test.
+static void reserve_bridge(void) {
+    WCHAR enabled[2];
+    REQUIRE(GetEnvironmentVariableW(bridge_marker, enabled, ARRAYSIZE(enabled)) == 1 && enabled[0] == L'1');
+    bridge_input = GetStdHandle(STD_INPUT_HANDLE);
+    bridge_output = GetStdHandle(STD_OUTPUT_HANDLE);
+    REQUIRE(bridge_input && bridge_output && bridge_output != GetStdHandle(STD_ERROR_HANDLE));
+    REQUIRE(SetHandleInformation(bridge_input, HANDLE_FLAG_INHERIT, 0));
+    REQUIRE(SetHandleInformation(bridge_output, HANDLE_FLAG_INHERIT, 0));
+    REQUIRE(SetEnvironmentVariableW(bridge_marker, NULL));
+    REQUIRE(SetStdHandle(STD_INPUT_HANDLE, NULL));
+    REQUIRE(SetStdHandle(STD_OUTPUT_HANDLE, GetStdHandle(STD_ERROR_HANDLE)));
+}
+
+static HANDLE inherited_stream(HANDLE stream) {
+    HANDLE copy = NULL;
+    REQUIRE(DuplicateHandle(GetCurrentProcess(), stream, GetCurrentProcess(),
+                            &copy, 0, TRUE, DUPLICATE_SAME_ACCESS));
+    return copy;
+}
+
+static void launch(const WCHAR *path, const WCHAR *directory, bool with_bridge) {
     WCHAR executable[MAX_PATH], command[2 * MAX_PATH + 32];
     DWORD n = GetFullPathNameW(path, ARRAYSIZE(executable), executable, NULL);
     REQUIRE(n && n < ARRAYSIZE(executable));
@@ -116,7 +141,22 @@ static void launch(const WCHAR *path, const WCHAR *directory) {
     REQUIRE(chars > 0 && (size_t)chars < ARRAYSIZE(command));
     STARTUPINFOW startup = {0};
     startup.cb = sizeof(startup);
-    REQUIRE(CreateProcessW(executable, command, NULL, NULL, FALSE, 0, NULL, NULL, &startup, &app));
+    REQUIRE(!app.hProcess);
+    if (with_bridge) {
+        startup.dwFlags = STARTF_USESTDHANDLES;
+        startup.hStdInput = inherited_stream(bridge_input);
+        startup.hStdOutput = inherited_stream(bridge_output);
+        startup.hStdError = inherited_stream(GetStdHandle(STD_ERROR_HANDLE));
+        REQUIRE(SetEnvironmentVariableW(bridge_marker, L"1"));
+    }
+    BOOL created = CreateProcessW(executable, command, NULL, NULL, with_bridge, 0, NULL, NULL, &startup, &app);
+    if (with_bridge) {
+        REQUIRE(SetEnvironmentVariableW(bridge_marker, NULL));
+        CloseHandle(startup.hStdInput);
+        CloseHandle(startup.hStdOutput);
+        CloseHandle(startup.hStdError);
+    }
+    REQUIRE(created);
     CloseHandle(app.hThread);
 }
 
@@ -596,7 +636,7 @@ static void bundle_icons(const WCHAR *executable) {
     WCHAR directory[MAX_PATH];
     DWORD length = GetFullPathNameW(L"tests\\native_ui\\fixtures\\mac-bundles", ARRAYSIZE(directory), directory, NULL);
     REQUIRE(length && length < ARRAYSIZE(directory));
-    launch(executable, directory);
+    launch(executable, directory, !use_msaa);
     bind_window();
     // Both bundles coexist in one result set. Sorting reverses which bundle
     // occupies the first row, including when the image list already has icons.
@@ -649,7 +689,7 @@ static void check_geometry(const WCHAR *executable) {
     key(VK_ESCAPE, false);
     wait_for_exit();
 
-    launch(executable, root);
+    launch(executable, root, false);
     window = find_window(L"DrillSearchWindow", L"Drill");
     wait_for_bounds(&normal);
     message(window, WM_SYSCOMMAND, SC_MAXIMIZE, 0);
@@ -657,7 +697,7 @@ static void check_geometry(const WCHAR *executable) {
     message(window, WM_CLOSE, 0, 0);
     wait_for_exit();
 
-    launch(executable, root);
+    launch(executable, root, false);
     window = find_window(L"DrillSearchWindow", L"Drill");
     wait_for_maximized();
     message(window, WM_SYSCOMMAND, SC_RESTORE, 0);
@@ -672,6 +712,7 @@ int wmain(int argc, WCHAR **argv) {
     REQUIRE(n && n < ARRAYSIZE(self));
     WCHAR *name = wcsrchr(self, L'\\');
     if (argc == 1 && name && _wcsicmp(name + 1, files[2]) == 0) {
+        REQUIRE(GetEnvironmentVariableW(bridge_marker, NULL, 0) == 0);
         // Let Windows release the fixture console before reporting that Open ran.
         FreeConsole();
         lstrcpyW(name + 1, files[3]);
@@ -688,14 +729,18 @@ int wmain(int argc, WCHAR **argv) {
         fputs("Usage on a controlled desktop: drill-native-window.exe <path-to-Drill.exe>\n", stderr);
         return 2;
     }
-    if (use_msaa) REQUIRE(SUCCEEDED(CoInitializeEx(NULL, COINIT_APARTMENTTHREADED)));
+    if (use_msaa) {
+        REQUIRE(SUCCEEDED(CoInitializeEx(NULL, COINIT_APARTMENTTHREADED)));
+    } else {
+        reserve_bridge();
+    }
     // Keep hit-test coordinates in physical pixels on scaled displays.
     SetProcessDPIAware();
     atexit(clean_up);
     preserve_value(L"Software\\Drill\\Interface", L"WindowPlacement");
     preserve_value(L"Software\\Drill\\Interface", L"ShowExeIcons");
     fixture(self);
-    launch(argv[1], root);
+    launch(argv[1], root, false);
     bind_window();
     REQUIRE(message(combo, CB_GETCOUNT, 0, 0) == 2 && message(combo, CB_GETCURSEL, 0, 0) == 0);
     expect_text(status, L"Type to search");
@@ -713,6 +758,7 @@ int wmain(int argc, WCHAR **argv) {
     stage = "displaying macOS bundle icons";
     bundle_icons(argv[1]);
     if (use_msaa) CoUninitialize();
-    puts("Native Windows search, selection, clipboard, sorting, launch shortcuts, panels, geometry and Escape passed.");
+    fputs("Native Windows search, selection, clipboard, sorting, launch shortcuts, panels, geometry and bundle icons passed.\n",
+          use_msaa ? stdout : stderr);
     return 0;
 }

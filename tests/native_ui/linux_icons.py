@@ -25,6 +25,10 @@ def check_icons(window, root, wait, xdotool):
     iso = "rock-ridge.AppImage"
     bad_app = "cyclic.aPpImAgE"
     bad_pe = "no-icon.exe"
+    bundle_fixtures = source.parent / "fixtures/mac-bundles"
+    for name in ("Jade.app", "Carmine.app", "Missing.app"):
+        shutil.copytree(bundle_fixtures / name, root / name)
+    (root / "ordinary-folder").mkdir()
     app_fixtures = tools / "appimage-icon-wasm/tests/fixtures"
     shutil.copyfile(tools / "exe-icon-wasm/tests/fixtures" / pe, root / pe)
     for name in (linked, svg, iso, bad_app):
@@ -76,7 +80,7 @@ def check_icons(window, root, wait, xdotool):
         def has_glyph():
             rgb = pixels()
             return len({rgb[i:i+3] for i in range(0, len(rgb), 3)}) > 2 and GREEN * SIDE not in rgb
-        wait("file-type fallback " + name, has_glyph, True)
+        wait("visible fallback " + name, has_glyph, True)
         return pixels()
 
     def toggle(label):
@@ -99,6 +103,11 @@ def check_icons(window, root, wait, xdotool):
     rendered(pe, EMBEDDED)
     toggle("Show EXE icons")
     wait("invalidate displayed EXE", lambda: pixels() == exe_fallback, True)
+    # Bundle icons stay enabled with both executable formats switched off.
+    rendered("Carmine.app", bytes((255, 0, 0)) * SIDE ** 2)
+    folder_icon = fallback("ordinary-folder")
+    rendered("Jade.app", EMBEDDED)
+    assert fallback("Missing.app") != folder_icon, "Missing artwork should use an application icon"
     toggle("Show AppImage icons")
     rendered(linked, EMBEDDED)
     rendered(pe, exe_fallback)

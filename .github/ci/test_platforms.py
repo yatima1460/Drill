@@ -56,6 +56,7 @@ class PlatformRouting(unittest.TestCase):
             ("crates/drill-windows/tests/native_window.c", {"windows"}),
             ("crates/drill-desktop/tests/search.rs", DESKTOP),
             ("scripts/test-wine-linux.sh", {"windows"}),
+            ("scripts/wine-runner.sh", {"windows"}),
             ("scripts/test-native-ui-windows.ps1", {"windows"}),
             ("scripts/test-native-ui-linux.sh", {"linux"}),
         ]:

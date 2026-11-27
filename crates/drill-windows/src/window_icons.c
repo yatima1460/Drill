@@ -40,7 +40,7 @@ typedef struct DrillWinIcons {
     DrillModel *model;
     DrillTypeWorker *worker;
     HIMAGELIST images;
-    int file, folder, first_slot, count, size;
+    int file, folder, application, first_slot, count, size;
     uint64_t clock, generation;
     uint64_t misses[512];
     DrillIconSlot slots[ICON_SLOTS];
@@ -278,11 +278,12 @@ void drill_win_icons_reset(DrillWinIcons *icons) {
     }
     if (icons->images && icons->size == size) return;
     icons->size = size;
-    HIMAGELIST images = ImageList_Create(size, size, ILC_COLOR32 | ILC_MASK, 2, 8);
+    HIMAGELIST images = ImageList_Create(size, size, ILC_COLOR32 | ILC_MASK, 3, 8);
     HIMAGELIST previous = icons->images;
     icons->images = images;
     icons->file = images ? stock_list_icon(images, SIID_DOCNOASSOC) : -1;
     icons->folder = images ? stock_list_icon(images, SIID_FOLDER) : -1;
+    icons->application = images ? stock_list_icon(images, SIID_APPLICATION) : -1;
     icons->first_slot = images ? ImageList_GetImageCount(images) : 0;
     ListView_SetImageList(icons->table, images, LVSIL_SMALL);
     if (previous) ImageList_Destroy(previous);
@@ -371,16 +372,18 @@ int drill_win_icons_get(DrillWinIcons *icons, uint64_t id, bool exe, bool appima
             if (image) return store_list_icon(icons, id, NULL, image);
         }
     }
-    if (row.directory) return icons->folder;
-    if (!*extension) return icons->file;
-    if ((exe && same_icon_type(extension, L".exe")) ||
-        (appimage && same_icon_type(extension, L".appimage"))) {
+    bool embedded_file = (exe && same_icon_type(extension, L".exe")) ||
+                         (appimage && same_icon_type(extension, L".appimage"));
+    if (row.app_bundle || (!row.directory && embedded_file)) {
         uint8_t rgba[ICON_SIDE * ICON_SIDE * 4];
         if (drill_embedded_icon(icons->model, id, exe, appimage, rgba) == 1) {
             HICON image = rgba_result_icon(rgba);
             if (image) return store_list_icon(icons, id, NULL, image);
         }
     }
+    if (row.app_bundle) return icons->application;
+    if (row.directory) return icons->folder;
+    if (!*extension) return icons->file;
     int index = find_list_icon(icons, 0, extension);
     if (index >= 0) return index;
     HICON image = request_shell_icon(icons, 0, extension, NULL, 0, false);

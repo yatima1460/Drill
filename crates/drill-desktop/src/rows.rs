@@ -94,6 +94,10 @@ impl Row {
             path: display.path.as_ptr(),
             directory: self.hit.entry.is_dir,
             registered_app: self.hit.desktop_id.is_some(),
+            app_bundle: drill_icons::EmbeddedIcon::for_entry(
+                &self.hit.entry.path,
+                self.hit.entry.is_dir,
+            ) == Some(drill_icons::EmbeddedIcon::AppBundle),
             desktop_id: self
                 .hit
                 .desktop_id

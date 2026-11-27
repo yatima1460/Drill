@@ -88,7 +88,9 @@ fn column_sorts_use_native_paths_numeric_values_and_precise_dates() {
     // The two Echo entries share folded names, size and date, so each sort must
     // resolve that tie by full path. A parent path still precedes its subdirectory.
     let early = UNIX_EPOCH;
-    let late = UNIX_EPOCH + Duration::from_nanos(1);
+    // One FILETIME tick is the smallest distinct SystemTime interval on Windows.
+    let late = early + Duration::from_nanos(100);
+    assert!(late > early);
     let mut rows = Rows::new();
     for (path, size, modified) in [
         ("a/z", None, Some(early)),

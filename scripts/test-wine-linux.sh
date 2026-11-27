@@ -39,4 +39,4 @@ else
 fi
 windows_app=$(timeout 120s winepath -w "$(realpath -- "$application")")
 # MSAA row annotations are checked by this driver on native Windows.
-timeout 120s "${WINE:-wine}" "$driver" "$windows_app" --wine
+timeout 240s scripts/wine-runner.sh "$driver" "$windows_app" --wine

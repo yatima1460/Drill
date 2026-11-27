@@ -27,7 +27,7 @@ Use an external dependency only when it is strictly necessary. **Always ask the 
 
 Displaying a search result can make Drill parse an icon from an untrusted file before the user opens it. Keep this parsing in bundled WebAssembly (Wasm) decoders so a parser bug has limited access to the desktop process and a malformed icon has a bounded memory and execution budget. The search engine and desktop UI run natively.
 
-The [Windows executable decoder](tools/exe-icon-wasm) receives a size-limited copy of the file and imports no host functions. The [AppImage decoder](tools/appimage-icon-wasm) can request only bounded reads from the file Drill already opened. The host reads back a fixed-size RGBA icon without running the discovered executable or mounting the AppImage. If decoding fails or exceeds a limit, preserve the file-type icon or generic glyph fallback.
+The [PE and ICNS decoder](tools/exe-icon-wasm) receives a size-limited copy of one executable or icon file and imports no host functions. For Mac application bundles, Windows and Linux resolve the declared icon within the bundle’s resources and pass the ICNS bytes to this guest. The [AppImage decoder](tools/appimage-icon-wasm) can request only bounded reads from the file Drill already opened. The host reads back a fixed-size RGBA icon without running the discovered executable or mounting the AppImage. If decoding fails or exceeds a limit, preserve the file-type icon or generic glyph fallback.
 
 ## Validation
 

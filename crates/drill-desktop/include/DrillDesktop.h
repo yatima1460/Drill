@@ -23,7 +23,7 @@ typedef struct {
 typedef struct {
     const char *cells[4]; /* UTF-8 Name, parent Path, Size, Date */
     const DrillPathChar *path; /* NUL-terminated original filename encoding */
-    bool directory, registered_app;
+    bool directory, registered_app, app_bundle;
     const char *desktop_id; /* registered GIO desktop ID, otherwise NULL */
 } DrillRow;
 void drill_query(DrillModel *, const char *utf8, bool apps);

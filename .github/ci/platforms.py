@@ -30,7 +30,7 @@ def route(path):
         "tests/native_ui/linux", "scripts/test-native-ui-linux", "scripts/test-appimage-open",
     )):
         return {"linux"}, False
-    if path in {"scripts/test-wine-linux.sh", "scripts/test-native-ui-windows.ps1"}:
+    if path in {"scripts/test-wine-linux.sh", "scripts/wine-runner.sh", "scripts/test-native-ui-windows.ps1"}:
         return {"windows"}, False
     if path == ".github/ci/ubuntu-apt-get.sh" or path.startswith("tests/"):
         return DESKTOP, False

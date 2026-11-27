@@ -127,9 +127,15 @@ static void rectangle(guint32 pixels[ICON_SIZE][ICON_SIZE], int x, int y,
             pixels[row][col] = GUINT32_TO_BE(rgba);
 }
 
-static GdkPixbuf *generic_glyph(gboolean directory) {
+typedef enum { GLYPH_FILE, GLYPH_FOLDER, GLYPH_APPLICATION } Glyph;
+
+static GdkPixbuf *generic_glyph(Glyph glyph) {
     guint32 pixels[ICON_SIZE][ICON_SIZE] = {0};
-    if (directory) {
+    if (glyph == GLYPH_APPLICATION) {
+        rectangle(pixels, 2, 5, 28, 22, 0x566574ff);
+        rectangle(pixels, 4, 11, 24, 14, 0xd9dfe3ff);
+        rectangle(pixels, 23, 7, 4, 2, 0xe3ebf1ff);
+    } else if (glyph == GLYPH_FOLDER) {
         rectangle(pixels, 3, 6, 11, 6, 0xb18533ff);
         rectangle(pixels, 3, 10, 26, 16, 0xb18533ff);
         rectangle(pixels, 4, 12, 24, 13, 0xe7ba60ff);
@@ -142,10 +148,11 @@ static GdkPixbuf *generic_glyph(gboolean directory) {
     return rgba_pixbuf(pixels);
 }
 
-static GdkPixbuf *type_icon(gboolean directory, const char *path) {
-    if (!directory) {
+static GdkPixbuf *type_icon(const DrillRow *row) {
+    Glyph glyph = row->app_bundle ? GLYPH_APPLICATION : (row->directory ? GLYPH_FOLDER : GLYPH_FILE);
+    if (glyph == GLYPH_FILE) {
         // Type fallback takes no bytes from the search result.
-        g_autofree char *type = g_content_type_guess(path, NULL, 0, NULL);
+        g_autofree char *type = g_content_type_guess(row->path, NULL, 0, NULL);
         if (type) {
             g_autoptr(GIcon) icon = g_content_type_get_icon(type);
             GdkPixbuf *result = load_icon(icon);
@@ -153,9 +160,13 @@ static GdkPixbuf *type_icon(gboolean directory, const char *path) {
                 return result;
         }
     }
-    g_autoptr(GIcon) generic = g_themed_icon_new(directory ? "folder" : "text-x-generic");
+    static const char *const names[] = {
+        [GLYPH_FILE] = "text-x-generic", [GLYPH_FOLDER] = "folder",
+        [GLYPH_APPLICATION] = "application-x-executable"
+    };
+    g_autoptr(GIcon) generic = g_themed_icon_new(names[glyph]);
     GdkPixbuf *result = load_icon(generic);
-    return result ? result : generic_glyph(directory);
+    return result ? result : generic_glyph(glyph);
 }
 
 static void finish_lookup(Lookup *lookup, GIcon *native) {
@@ -227,8 +238,7 @@ static void request_native(DrillGtkIcons *cache, CachedIcon *icon, const DrillRo
     }
 }
 
-static gboolean embedded_format(const char *path) {
-    const char *suffix = strrchr(path, '.');
+static gboolean executable_suffix(const char *suffix) {
     return suffix && (g_ascii_strcasecmp(suffix, ".exe") == 0 ||
                       g_ascii_strcasecmp(suffix, ".appimage") == 0);
 }
@@ -244,15 +254,15 @@ GdkPixbuf *drill_gtk_icon_get(DrillGtkIcons *cache, DrillModel *model, uint64_t 
         icon->id = id;
         icon->exe = exe;
         icon->appimage = appimage;
-        gboolean special = embedded_format(row->path);
-        // A folder named e.g. tools.exe keeps its folder icon. A stale result
-        // cannot make us inspect an executable that replaced that folder.
-        icon->wants_native = !special;
-        icon->wants_embedded = special && !row->directory;
+        const char *suffix = strrchr(row->path, '.');
+        gboolean executable = executable_suffix(suffix);
+        // Bundle artwork comes from the sandbox. A plain .app file uses its type.
+        icon->wants_native = !executable && (!suffix || g_ascii_strcasecmp(suffix, ".app") != 0);
+        icon->wants_embedded = row->app_bundle || (executable && !row->directory);
         needs_type = TRUE;
         g_hash_table_insert(cache->by_id, &icon->id, icon);
     } else if (icon->exe != exe || icon->appimage != appimage) {
-        if (embedded_format(row->path) && !row->directory) {
+        if (!row->directory && executable_suffix(strrchr(row->path, '.'))) {
             needs_type = TRUE;
             icon->wants_embedded = TRUE;
         }
@@ -263,7 +273,7 @@ GdkPixbuf *drill_gtk_icon_get(DrillGtkIcons *cache, DrillModel *model, uint64_t 
     if (needs_type) {
         uint64_t generation = cache->generation;
         cache->refs++;
-        GdkPixbuf *pixels = type_icon(row->directory, row->path);
+        GdkPixbuf *pixels = type_icon(row);
         // Theme signals can synchronously clear this entry or close its window.
         icon = (!cache->closed && generation == cache->generation)
             ? g_hash_table_lookup(cache->by_id, &id) : NULL;

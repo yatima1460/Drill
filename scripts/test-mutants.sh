@@ -20,7 +20,7 @@ case "$campaign" in
       query) args+=(--file lib.rs --re 'SearchQuery::exact_stem') ;;
       core) args+=(--file file_filter.rs) ;;
       desktop) args+=(--file result_order.rs --file lib.rs --file icons.rs
-                      --re 'exact_batch|EmbeddedIcon::for_path|EmbeddedIcons::request') ;;
+                      --re 'exact_batch|EmbeddedIcon::for_(entry|path)|EmbeddedIcons::request') ;;
       guest) args+=(--file resource.rs) ;;
       appimage) args+=(--file bounds.rs) ;;
     esac ;;
