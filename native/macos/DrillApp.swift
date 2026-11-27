@@ -49,7 +49,7 @@ final class DrillDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation
 
     init(root: URL?, defaults: UserDefaults = .standard, accessibilityEnabled: Bool = false,
          present: @escaping @MainActor (NSWindow) -> Void = { $0.makeKeyAndOrderFront(nil) }) {
-        model = SearchModel(root: root)
+        model = SearchModel(root: root, defaults: defaults)
         self.defaults = defaults
         self.accessibilityEnabled = accessibilityEnabled
         self.present = present
@@ -58,7 +58,7 @@ final class DrillDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation
     func applicationDidFinishLaunching(_ notification: Notification) {
         InterfacePreferences.applyAppearance(from: defaults)
         installMenus()
-        let search = makeSearchWindow(model: model)
+        let search = makeSearchWindow(model: model, accessibilityEnabled: accessibilityEnabled)
         search.delegate = self
         window = search
         present(search)
@@ -101,6 +101,12 @@ final class DrillDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation
     @objc private func showPermissions(_ sender: Any?) {
         presentPanel("Permissions", size: NSSize(width: 500, height: 430)) { window in
             PermissionsView(addSearchRoot: model.addSearchRoot, window: { [weak window] in window })
+        }
+    }
+
+    @objc private func showSearchSettings(_ sender: Any?) {
+        presentPanel("Search", size: NSSize(width: 420, height: 170)) { _ in
+            SearchSettings(model: model)
         }
     }
 
@@ -152,6 +158,7 @@ final class DrillDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation
 
         let settings = submenu("Settings")
         settings.addItem(withTitle: "Interface…", action: #selector(showInterface(_:)), keyEquivalent: ",").target = self
+        settings.addItem(withTitle: "Search…", action: #selector(showSearchSettings(_:)), keyEquivalent: "").target = self
         settings.addItem(withTitle: "Permissions…", action: #selector(showPermissions(_:)), keyEquivalent: "").target = self
 
         let window = submenu("Window")

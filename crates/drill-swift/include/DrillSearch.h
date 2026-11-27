@@ -40,6 +40,14 @@ DrillSearch *drill_search_start_with_roots(const char *query, bool apps,
                                            const uint8_t *root, size_t root_len,
                                            const uint8_t *additional, size_t additional_len);
 
+/* When enabled, descend into Photos libraries discovered during a macOS search.
+ * The start functions above default to false. Explicit search roots within
+ * a Photos library are searched in either mode. */
+DrillSearch *drill_search_start_with_options(const char *query, bool apps,
+                                             const uint8_t *root, size_t root_len,
+                                             const uint8_t *additional, size_t additional_len,
+                                             bool search_inside_photos_libraries);
+
 /* Borrowed until the next mutable call. NULL means no error. */
 const char *drill_search_error(const DrillSearch *search);
 

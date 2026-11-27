@@ -2,11 +2,10 @@ import Darwin
 import SwiftUI
 import UniformTypeIdentifiers
 
-private struct IconRequest: Equatable {
-    let path: Data
-    let isDirectory: Bool
-    let embeddedExtension: String?
-    let enabled: Bool
+private enum IconRequest: Equatable {
+    case photosLibrary
+    case embedded(path: Data, isDirectory: Bool, fileExtension: String, enabled: Bool)
+    case native(path: Data, isDirectory: Bool)
 }
 
 private final class IconRead: Operation, @unchecked Sendable {
@@ -21,15 +20,20 @@ private final class IconRead: Operation, @unchecked Sendable {
     override func main() {
         guard !isCancelled else { return }
         let image: CGImage? = autoreleasepool {
-            if let ext = request.embeddedExtension {
-                if !request.isDirectory, request.enabled, let decoded = embeddedIcon() {
+            switch request {
+            case .photosLibrary:
+                let type = UTType("com.apple.photos.library") ?? .package
+                return resultIconBitmap(NSWorkspace.shared.icon(for: type))
+            case let .embedded(path, isDirectory, ext, enabled):
+                if !isDirectory, enabled, let decoded = embeddedIcon(at: path) {
                     return decoded
                 }
                 // Ask for the file type alone. Icon Services never receives this path.
-                let type = request.isDirectory ? UTType.folder : (UTType(filenameExtension: ext) ?? .executable)
+                let type = isDirectory ? UTType.folder : (UTType(filenameExtension: ext) ?? .executable)
                 return resultIconBitmap(NSWorkspace.shared.icon(for: type))
+            case let .native(path, _):
+                return platformIcon(at: path)
             }
-            return platformIcon()
         }
         guard let image, !isCancelled else { return }
         Task { @MainActor in
@@ -37,10 +41,10 @@ private final class IconRead: Operation, @unchecked Sendable {
         }
     }
 
-    private func embeddedIcon() -> CGImage? {
+    private func embeddedIcon(at path: Data) -> CGImage? {
         var pixels = Data(count: 32 * 32 * 4)
         let decoded = pixels.withUnsafeMutableBytes { output in
-            request.path.withUnsafeBytes { input in
+            path.withUnsafeBytes { input in
                 drill_decode_icon(input.bindMemory(to: UInt8.self).baseAddress, input.count,
                                   output.bindMemory(to: UInt8.self).baseAddress, output.count)
             }
@@ -53,9 +57,9 @@ private final class IconRead: Operation, @unchecked Sendable {
                        intent: .defaultIntent)
     }
 
-    private func platformIcon() -> CGImage? {
+    private func platformIcon(at bytes: Data) -> CGImage? {
         // NSString paths cannot represent every POSIX name. Never look up a lossy display path.
-        guard let path = String(data: request.path, encoding: .utf8) else { return nil }
+        guard let path = String(data: bytes, encoding: .utf8) else { return nil }
         let policy = IOPOL_TYPE_VFS_MATERIALIZE_DATALESS_FILES
         let scope = IOPOL_SCOPE_THREAD
         let previous = getiopolicy_np(policy, scope)
@@ -102,15 +106,17 @@ struct ResultIcon: View {
     private var request: IconRequest {
         let name = row.name.lowercased()
         if name.hasSuffix(".exe") {
-            return IconRequest(path: row.path, isDirectory: row.isDirectory,
-                               embeddedExtension: "exe", enabled: showExeIcons)
+            return .embedded(path: row.path, isDirectory: row.isDirectory,
+                             fileExtension: "exe", enabled: showExeIcons)
         }
         if name.hasSuffix(".appimage") {
-            return IconRequest(path: row.path, isDirectory: row.isDirectory,
-                               embeddedExtension: "appimage", enabled: showAppImageIcons)
+            return .embedded(path: row.path, isDirectory: row.isDirectory,
+                             fileExtension: "appimage", enabled: showAppImageIcons)
         }
-        return IconRequest(path: row.path, isDirectory: row.isDirectory,
-                           embeddedExtension: nil, enabled: false)
+        if row.isDirectory, name.hasSuffix(".photoslibrary"), name != ".photoslibrary" {
+            return .photosLibrary
+        }
+        return .native(path: row.path, isDirectory: row.isDirectory)
     }
 
     var body: some View {

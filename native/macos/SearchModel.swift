@@ -119,6 +119,8 @@ private final class HitBatch {
 final class SearchModel: ObservableObject {
     enum Phase { case empty, searching, paused, stopped, finished, invalid }
 
+    private static let searchInsidePhotosLibrariesKey = "searchInsidePhotosLibraries"
+
     @Published var query = "" {
         didSet {
             // Rust regexes distinguish composed and decomposed Unicode.
@@ -136,6 +138,7 @@ final class SearchModel: ObservableObject {
     var isSearching: Bool { phase == .searching }
     var canContinue: Bool { phase == .paused }
     var canStop: Bool { isSearching || canContinue }
+    var searchInsidePhotosLibraries: Bool { defaults.bool(forKey: Self.searchInsidePhotosLibrariesKey) }
 
     var status: String {
         let count = "\(rows.count) \(rows.count == 1 ? "result" : "results")"
@@ -150,6 +153,7 @@ final class SearchModel: ObservableObject {
     }
 
     private let root: URL?
+    private let defaults: UserDefaults
     private var additionalRoots: [Data] = []
     private let openURL: (URL) -> Void
     private let pollBatchSize: UInt32
@@ -160,13 +164,14 @@ final class SearchModel: ObservableObject {
     private var handle: OpaquePointer?
     private var polling: Task<Void, Never>?
 
-    init(root: URL? = nil, pollBatchSize: UInt32 = 64, pageSize: Int = 10_000,
+    init(root: URL? = nil, defaults: UserDefaults = .standard, pollBatchSize: UInt32 = 64, pageSize: Int = 10_000,
          openURL: @escaping (URL) -> Void = { url in
              NSWorkspace.shared.open(url, configuration: NSWorkspace.OpenConfiguration()) { _, error in
                  if let error { DispatchQueue.main.async { NSApp.presentError(error) } }
              }
          }) {
         self.root = root
+        self.defaults = defaults
         self.openURL = openURL
         self.pollBatchSize = min(max(1, pollBatchSize), 256)
         self.pageSize = max(1, min(pageSize, Int.max - 1))
@@ -195,6 +200,16 @@ final class SearchModel: ObservableObject {
         guard canStop else { return }
         discardHandle()
         phase = .stopped
+    }
+
+    func setSearchInsidePhotosLibraries(_ enabled: Bool) {
+        guard enabled != searchInsidePhotosLibraries else { return }
+        objectWillChange.send()
+        defaults.set(enabled, forKey: Self.searchInsidePhotosLibrariesKey)
+        switch phase {
+        case .searching, .paused, .finished: replaceSearch()
+        case .empty, .stopped, .invalid: break
+        }
     }
 
     func resume() {
@@ -275,13 +290,14 @@ final class SearchModel: ObservableObject {
 
     private func start() {
         let apps = mode == .apps
+        let searchInsidePhotosLibraries = self.searchInsidePhotosLibraries
         let additional = additionalRoots.reduce(into: Data()) { $0.append($1) }
         handle = additional.withUnsafeBytes { buffer in
             let paths = buffer.bindMemory(to: UInt8.self)
             return query.withCString { text in
                 func begin(_ base: UnsafePointer<UInt8>?, _ count: Int) -> OpaquePointer? {
-                    drill_search_start_with_roots(text, apps, base, count,
-                                                  paths.baseAddress, paths.count)
+                    drill_search_start_with_options(text, apps, base, count, paths.baseAddress, paths.count,
+                                                    searchInsidePhotosLibraries)
                 }
                 guard let root else { return begin(nil, 0) }
                 return root.withUnsafeFileSystemRepresentation { path in

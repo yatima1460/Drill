@@ -123,6 +123,13 @@ func exerciseResultIcons() throws {
         try wait(rowWindow(path, directory: directory), "Missing native artwork for \(path)") { $0 == expected }
     }
 
+    // A missing path rules out a per-file icon lookup and exercises case-insensitive detection.
+    let library = manager.temporaryDirectory.appendingPathComponent("DrillIcon-\(UUID()).PhOtOsLiBrArY")
+    let photosArt = try nativeReference(NSWorkspace.shared.icon(for: UTType("com.apple.photos.library") ?? .package))
+    try wait(rowWindow(library.path, directory: true), "Expected native Photos library type artwork") {
+        $0 == photosArt
+    }
+
     let placeholder = try snapshot(mount(Image(systemName: "doc").foregroundStyle(.secondary)
         .frame(width: 32, height: 32)))
     let fixtures = [("tools/exe-icon-wasm/tests/fixtures/icon-pe32.exe", "exe", "showExeIcons"),

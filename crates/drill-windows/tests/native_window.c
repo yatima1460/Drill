@@ -145,7 +145,9 @@ static void launch(const WCHAR *path, const WCHAR *directory, bool with_bridge) 
     WCHAR executable[MAX_PATH], command[2 * MAX_PATH + 32];
     DWORD n = GetFullPathNameW(path, ARRAYSIZE(executable), executable, NULL);
     REQUIRE(n && n < ARRAYSIZE(executable));
-    int chars = swprintf(command, ARRAYSIZE(command), L"\"%ls\" --root \"%ls\"", executable, directory);
+    int chars = directory
+        ? swprintf(command, ARRAYSIZE(command), L"\"%ls\" --root \"%ls\"", executable, directory)
+        : swprintf(command, ARRAYSIZE(command), L"\"%ls\"", executable);
     REQUIRE(chars > 0 && (size_t)chars < ARRAYSIZE(command));
     STARTUPINFOW startup = {0};
     startup.cb = sizeof(startup);
@@ -253,9 +255,12 @@ static void results(int count) {
 
 static void selected(int index) {
     ULONGLONG deadline = GetTickCount64() + 5000;
+    LRESULT actual;
     do {
-        if (message(list, LVM_GETNEXTITEM, (WPARAM)-1, LVNI_SELECTED) == index) return;
+        actual = message(list, LVM_GETNEXTITEM, (WPARAM)-1, LVNI_SELECTED);
+        if (actual == index) return;
     } while (retry(deadline));
+    fprintf(stderr, "Expected selected row %d, observed %lld\n", index, (long long)actual);
     fail("unexpected selected row");
 }
 
@@ -352,6 +357,11 @@ static POINT first_row(void) {
     return point;
 }
 
+static bool description_matches_directory(const WCHAR *description, const WCHAR *directory) {
+    size_t length = wcslen(directory);
+    return _wcsnicmp(description, directory, length) == 0 && description[length] == L',';
+}
+
 static void accessible_first_row(const WCHAR *filename) {
     if (!use_msaa) return;
     IAccessible *owner = NULL;
@@ -363,7 +373,7 @@ static void accessible_first_row(const WCHAR *filename) {
     REQUIRE(IAccessible_get_accName(owner, child, &name) == S_OK && name);
     REQUIRE(wcscmp(name, filename) == 0);
     REQUIRE(IAccessible_get_accDescription(owner, child, &description) == S_OK && description);
-    REQUIRE(_wcsnicmp(description, root, wcslen(root)) == 0 && description[wcslen(root)] == L',');
+    REQUIRE(description_matches_directory(description, root));
     SysFreeString(description);
     SysFreeString(name);
     VariantClear(&role);
@@ -403,21 +413,35 @@ static void type_text(const WCHAR *text) {
     }
 }
 
-static void copy_and_expect(const WCHAR *expected) {
+static WCHAR *copy_text(ULONGLONG deadline) {
     DWORD previous = GetClipboardSequenceNumber();
     key('C', true);
-    ULONGLONG deadline = GetTickCount64() + 5000;
     do {
         if (GetClipboardSequenceNumber() != previous && OpenClipboard(NULL)) {
             HANDLE data = GetClipboardData(CF_UNICODETEXT);
             const WCHAR *value = data ? GlobalLock(data) : NULL;
-            bool equal = value && _wcsicmp(value, expected) == 0;
-            if (value) GlobalUnlock(data);
+            if (value) {
+                WCHAR *copied = _wcsdup(value);
+                GlobalUnlock(data);
+                CloseClipboard();
+                REQUIRE(copied);
+                return copied;
+            }
             CloseClipboard();
-            if (equal) return;
         }
     } while (retry(deadline));
-    fwprintf(stderr, L"Copy did not put '%ls' on the Unicode clipboard.\n", expected);
+    return NULL;
+}
+
+static void copy_and_expect(const WCHAR *expected) {
+    WCHAR *actual = copy_text(GetTickCount64() + 5000);
+    bool matches = actual && _wcsicmp(actual, expected) == 0;
+    if (!matches) {
+        fprintf(stderr, "Expected Unicode clipboard path '%ls', read '%ls'.\n",
+                expected, actual ? actual : L"(no new clipboard text)");
+    }
+    free(actual);
+    if (matches) return;
     fail("copy selection");
 }
 
@@ -679,6 +703,85 @@ static void bind_window(void) {
     activate_main();
 }
 
+static void wait_for_system_notepad(const WCHAR *expected) {
+    ULONGLONG deadline = GetTickCount64() + 10000;
+    key('F', true);
+    wait_for_focus(edit);
+    while (message(list, LVM_GETITEMCOUNT, 0, 0) == 0 && retry(deadline)) {}
+    if (GetTickCount64() < deadline) key(VK_DOWN, false);
+    key(VK_TAB, false);
+    wait_for_focus(combo);
+    key(VK_TAB, false);
+    wait_for_focus(list);
+
+    // Use native navigation and Copy to verify the installed executable's
+    // action path. Revisit the top because streaming can move a selected row.
+    WCHAR *copied = NULL;
+    do {
+        LRESULT count = message(list, LVM_GETITEMCOUNT, 0, 0);
+        if (count == 0) continue;
+        LRESULT index = message(list, LVM_GETNEXTITEM, (WPARAM)-1, LVNI_SELECTED);
+        if (index >= 0) {
+            WCHAR *path = copy_text(deadline);
+            if (!path) break;
+            free(copied);
+            copied = path;
+            if (_wcsicmp(copied, expected) == 0) {
+                free(copied);
+                return;
+            }
+        }
+        if (index >= 0 && index + 1 < count) key(VK_DOWN, false);
+        else if (index != 0) key(VK_HOME, false);
+    } while (retry(deadline));
+
+    GUITHREADINFO focus = {0};
+    focus.cbSize = sizeof(focus);
+    GetGUIThreadInfo(app.dwThreadId, &focus);
+    fprintf(stderr, "Expected '%ls', last copied '%ls', rows=%lld, selected=%lld, focused control=%d\n",
+            expected, copied ? copied : L"(no new clipboard text)",
+            (long long)message(list, LVM_GETITEMCOUNT, 0, 0),
+            (long long)message(list, LVM_GETNEXTITEM, (WPARAM)-1, LVNI_SELECTED),
+            GetDlgCtrlID(focus.hwndFocus));
+    free(copied);
+    fail("system Notepad did not stream into the result list");
+}
+
+static void default_root_search(const WCHAR *executable) {
+    stage = "finding system Notepad in default Files search";
+    WCHAR system[MAX_PATH], expected[MAX_PATH];
+    UINT n = GetSystemDirectoryW(system, ARRAYSIZE(system));
+    REQUIRE(n && n < ARRAYSIZE(system));
+    int chars = swprintf(expected, ARRAYSIZE(expected), L"%ls\\notepad.exe", system);
+    REQUIRE(chars > 0 && (size_t)chars < ARRAYSIZE(expected));
+
+    launch(executable, NULL, false);
+    bind_window();
+    expect_text(status, L"Type to search");
+    REQUIRE(message(combo, CB_GETCURSEL, 0, 0) == 0);
+    click(edit);
+    type_text(L"notepad");
+    expect_text(edit, L"notepad");
+    wait_for_system_notepad(expected);
+
+    stage = "finding system Notepad after switching default search to Apps";
+    key('F', true);
+    wait_for_focus(edit);
+    key(VK_BACK, false);
+    expect_text(edit, L"");
+    expect_text(status, L"Type to search");
+    REQUIRE(message(list, LVM_GETITEMCOUNT, 0, 0) == 0);
+    choose_mode(1);
+    key('F', true);
+    wait_for_focus(edit);
+    type_text(L"notepad");
+    expect_text(edit, L"notepad");
+    wait_for_system_notepad(expected);
+    message(window, WM_CLOSE, 0, 0);
+    wait_for_exit();
+    puts("Default Files and Apps search found Windows Notepad with the query 'notepad'.");
+}
+
 static void check_first_bundle(const WCHAR *directory, const WCHAR *name, COLORREF color) {
     WCHAR expected[MAX_PATH];
     int n = swprintf(expected, ARRAYSIZE(expected), L"%ls\\%ls", directory, name);
@@ -793,6 +896,10 @@ int wmain(int argc, WCHAR **argv) {
     stage = "typing and sorting";
     search_and_sort();
     filter_and_launch();
+    if (use_msaa) {
+        stage = "keeping system Notepad out of explicit-root search";
+        search_fixture(L"notepad", 0);
+    }
     stage = "settings and icon rendering";
     panels();
     stage = "restoring window geometry";
@@ -800,7 +907,10 @@ int wmain(int argc, WCHAR **argv) {
     REQUIRE(launches() == 2);
     stage = "displaying macOS bundle icons";
     bundle_icons(argv[1]);
-    if (use_msaa) CoUninitialize();
+    if (use_msaa) {
+        default_root_search(argv[1]);
+        CoUninitialize();
+    }
     fputs("Native Windows search, selection, clipboard, sorting, launch shortcuts, panels, geometry and bundle icons passed.\n",
           use_msaa ? stdout : stderr);
     return 0;

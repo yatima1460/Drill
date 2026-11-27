@@ -7,8 +7,5 @@ license-file = "../../LICENSE"
 [dependencies]
 drill-query = { path = "../drill-query" }
 
-[dev-dependencies]
-drill-query = { path = "../drill-query", features = ["windows-lookups"] }
-
 [target.'cfg(windows)'.dependencies]
 drill-windows = { path = "../drill-windows" }

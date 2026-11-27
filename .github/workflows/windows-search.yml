@@ -51,7 +51,7 @@ jobs:
           }
       - name: Verify Unicode text, PNG and DIB on the hosted Windows clipboard
         run: cargo test --locked -p drill-windows --features shell-icons,clipboard --test clipboard -- --ignored --test-threads=1
-      - name: Verify startup ordering, cancellation and direct lookups
-        run: cargo test --locked -p drill-core windows_startup
+      - name: Test Windows directory priority, traversal and tool discovery
+        run: cargo test --locked -p drill-core
       - name: Measure Windows startup and verify the installed Notepad executable
         run: cargo test --locked -p drill-core windows_startup -- --ignored --nocapture --test-threads=1
