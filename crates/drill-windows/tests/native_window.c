@@ -550,8 +550,9 @@ static IconSample sample_icon(void) {
 static IconSample expect_icon(COLORREF fixture_color, bool embedded) {
     ULONGLONG deadline = GetTickCount64() + 12000;
     unsigned stable = 0, colored, different;
+    IconSample sample;
     do {
-        IconSample sample = sample_icon();
+        sample = sample_icon();
         different = colored = 0;
         for (unsigned i = 0; i < ARRAYSIZE(sample.pixels); ++i) {
             if (sample.pixels[i] != sample.pixels[0]) ++different;
@@ -565,8 +566,8 @@ static IconSample expect_icon(COLORREF fixture_color, bool embedded) {
             stable = 0;
         }
     } while (retry(deadline));
-    fprintf(stderr, "Expected %s icon (COLORREF %08lx), found %u/9 matching center samples and %u varied pixels.\n",
-            embedded ? "embedded" : "fallback", fixture_color, colored, different);
+    fprintf(stderr, "Expected %s icon (COLORREF %08lx), saw center %08lx, %u/9 matching samples and %u varied pixels.\n",
+            embedded ? "embedded" : "fallback", fixture_color, sample.pixels[40], colored, different);
     fail("list-view icon pixels");
     return (IconSample){0};
 }
@@ -632,6 +633,20 @@ static void bind_window(void) {
     activate_main();
 }
 
+static void check_first_bundle(const WCHAR *directory, const WCHAR *name, COLORREF color) {
+    WCHAR expected[MAX_PATH];
+    int n = swprintf(expected, ARRAYSIZE(expected), L"%ls\\%ls", directory, name);
+    REQUIRE(n > 0 && (size_t)n < ARRAYSIZE(expected));
+    // Also put a real row click between header clicks. Without this, the OS
+    // can turn two quick sorts into one header click and one double-click.
+    click_point(list, first_row());
+    selected(0);
+    copy_and_expect(expected);
+    key(VK_UP, false);
+    selected(-1);
+    expect_icon(color, true);
+}
+
 static void bundle_icons(const WCHAR *executable) {
     WCHAR directory[MAX_PATH];
     DWORD length = GetFullPathNameW(L"tests\\native_ui\\fixtures\\mac-bundles", ARRAYSIZE(directory), directory, NULL);
@@ -642,9 +657,9 @@ static void bundle_icons(const WCHAR *executable) {
     // occupies the first row, including when the image list already has icons.
     search_fixture(L"regex:^(Carmine|Jade)\\.app$", 2);
     click(header);
-    expect_icon(RGB(255, 0, 0), true);
+    check_first_bundle(directory, L"Carmine.app", RGB(255, 0, 0));
     click(header);
-    expect_icon(RGB(0, 255, 0), true);
+    check_first_bundle(directory, L"Jade.app", RGB(0, 255, 0));
     search_fixture(L"Missing.app", 1);
     IconSample application = expect_icon(CLR_INVALID, false);
     search_fixture(L"Contents", 3);

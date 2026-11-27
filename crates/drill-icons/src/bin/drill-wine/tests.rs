@@ -41,6 +41,12 @@ fn honors_configured_drives_and_rejects_device_and_parent_paths() {
     ] {
         assert_eq!(mapped_path(&prefix, name), None, "{name:?}");
     }
+    symlink("../drive_c", drives.join("e:")).unwrap();
+    assert!(mapped_path(&prefix, r"E:\X.app").is_none());
+    for alias in ["dd:", "1:", "é:", "d::"] {
+        symlink("/", drives.join(alias)).unwrap();
+        assert!(mapped_path(&prefix, &format!(r"{alias}\X.app")).is_none());
+    }
     fs::remove_file(drives.join("z:")).unwrap();
     assert!(mapped_path(&prefix, r"Z:\X.app").is_none());
     symlink("../../arbitrary", drives.join("z:")).unwrap();
@@ -58,11 +64,17 @@ fn framed_pipe_serves_repeated_requests_and_skips_symlinks() {
         .canonicalize()
         .unwrap();
     symlink(&fixtures, drives.join("z:")).unwrap();
+    symlink(&fixtures, drives.join("d:")).unwrap();
     symlink("../drive_c", drives.join("c:")).unwrap();
     symlink(&fixtures, prefix.join("drive_c")).unwrap();
 
     let mut input = frame(&[0xD800]);
-    for name in [r"Z:\Missing.app", r"Z:\Carmine.app", r"C:\Carmine.app"] {
+    for name in [
+        r"Z:\Missing.app",
+        r"D:\Carmine.app",
+        r"d:\Jade.app",
+        r"C:\Carmine.app",
+    ] {
         input.extend(frame(&name.encode_utf16().collect::<Vec<_>>()));
     }
     let mut output = Vec::new();
@@ -74,6 +86,8 @@ fn framed_pipe_serves_repeated_requests_and_skips_symlinks() {
     );
     let mut expected = vec![0, 0, 1];
     expected.extend([255, 0, 0, 255].repeat(1024));
+    expected.push(1);
+    expected.extend([0, 255, 0, 255].repeat(1024));
     expected.push(0);
     assert_eq!(output, expected);
 }

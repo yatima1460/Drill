@@ -107,7 +107,7 @@ jobs:
       - run: cargo fmt --all -- --check
       - run: cargo check --locked --workspace --all-targets
       - run: cargo clippy --locked --workspace --all-targets --all-features -- -D warnings -D clippy::undocumented_unsafe_blocks
-      - run: cargo test --locked --workspace
+      - run: cargo test --locked --workspace --features drill-icons/wine-bundle-host
       - name: Native UI test on a virtual X display
         run: xvfb-run -a scripts/test-native-ui-linux.sh
       - run: cargo build --release --locked

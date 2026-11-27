@@ -89,11 +89,11 @@ mod host {
             return None;
         }
         let mut parts = guest.split(['\\', '/']);
-        let drive = match parts.next()? {
-            "Z:" | "z:" => "z:",
-            "C:" | "c:" => "c:",
-            _ => return None,
-        };
+        let drive = parts.next()?;
+        if !matches!(drive.as_bytes(), [letter, b':'] if letter.is_ascii_alphabetic()) {
+            return None;
+        }
+        let drive = drive.to_ascii_lowercase();
         let mut relative = PathBuf::new();
         for part in parts {
             if part.is_empty()
@@ -113,7 +113,7 @@ mod host {
         // Only resolve the drive mapping configured by the launcher user. Never
         // canonicalize a guest path: the native decoder must see and reject any
         // symlinks in it when it walks the original names from the root.
-        let target = fs::read_link(prefix.join("dosdevices").join(drive)).ok()?;
+        let target = fs::read_link(prefix.join("dosdevices").join(&drive)).ok()?;
         let mut root = if target.is_absolute()
             && target
                 .components()
