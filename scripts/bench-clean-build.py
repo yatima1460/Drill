@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Time offline builds of the Rust egui executable across Drill checkouts."""
+"""Time offline builds of the Linux or Windows desktop executable across Drill checkouts."""
 import argparse
 import json
 import os
@@ -11,8 +11,6 @@ import subprocess
 import sys
 import tempfile
 import time
-
-from bench_egui import egui_features
 
 
 def output(command, cwd, **kwargs):
@@ -31,7 +29,6 @@ def measure(checkout, cargo, jobs, report, linker):
             raise RuntimeError(f"Target directory still contains artifacts: {target}")
         cmd = [cargo, "rustc" if linker else "build", "--release", "--frozen", "--jobs", str(jobs),
                "-p", "drill", "--bin", "drill", "--message-format=json-render-diagnostics"]
-        cmd.extend(egui_features(cargo, checkout, env))
         if report:
             cmd.append("--timings")
         if linker:
@@ -68,6 +65,8 @@ def main():
     parser.add_argument("--jobs", type=int, required=True, help="Cargo parallelism for every build")
     parser.add_argument("--linker", help="time the final link using this Unix C compiler driver (e.g. cc)")
     args = parser.parse_args()
+    if sys.platform == "darwin":
+        parser.error("use scripts/bench-swift-ui.py to include the Swift app build on macOS")
     if min(args.runs, args.jobs) < 1:
         parser.error("runs and jobs must be positive")
     cargo = shutil.which("cargo")

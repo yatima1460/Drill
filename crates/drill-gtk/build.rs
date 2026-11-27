@@ -2,7 +2,6 @@ use std::{env, ffi::OsString, fs, path::PathBuf, process::Command};
 
 const PACKAGES: &[&str] = &["gtk+-3.0", "gio-unix-2.0"];
 const SOURCES: &[&str] = &[
-    "gtk.c",
     "linux_app_catalog.c",
     "desktop_theme.c",
     "desktop_theme_test.c",
@@ -134,12 +133,31 @@ fn main() {
     let archive = out.join("libdrill_gtk.a");
     let mut objects = Vec::new();
 
-    for name in SOURCES {
+    let mut sources = SOURCES.to_vec();
+    if env::var_os("CARGO_FEATURE_DESKTOP").is_some() {
+        sources.extend([
+            "window.c",
+            "window_table.c",
+            "window_actions.c",
+            "window_panels.c",
+            "window_icons.c",
+        ]);
+        println!("cargo:rerun-if-changed=../drill-desktop/include/DrillDesktop.h");
+        for header in [
+            "window_table.h",
+            "window_actions.h",
+            "window_panels.h",
+            "window_icons.h",
+        ] {
+            println!("cargo:rerun-if-changed=src/{header}");
+        }
+    }
+    for name in sources {
         let source = format!("src/{name}");
         println!("cargo:rerun-if-changed={source}");
         let object = out.join(name.replace(".c", ".o"));
         run(Command::new(&compiler)
-            .args(["-fPIC", "-c"])
+            .args(["-fPIC", "-c", "-I../drill-desktop/include"])
             .arg(format!("-O{}", env::var("OPT_LEVEL").unwrap()))
             .args(&sdk_flags)
             .args(&cflags)

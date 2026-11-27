@@ -8,12 +8,9 @@
 #include <stdio.h>
 #include <string.h>
 
-void *drill_windows_menu_install(HWND, void (*)(const void *, uint8_t), const void *);
-void drill_windows_menu_set_dark(void *, bool);
-void drill_windows_menu_set_enabled(void *, bool, bool);
-void drill_windows_menu_remove(void *);
+#include "../src/adapters.h"
 
-static const WCHAR *const titles[] = { L"Search", L"Settings", L"Help" };
+static const WCHAR *const titles[] = { L"File", L"Edit", L"Search", L"Settings", L"Help" };
 
 static void unused_command(const void *context, uint8_t command) {
     (void)context;
@@ -90,7 +87,7 @@ static ReadRoute check_accessible_names(HWND window, bool use_points) {
         fprintf(stderr, "AccessibleObjectFromWindow(OBJID_MENU) returned 0x%08lx\n", (unsigned long)result);
     }
     if (result == E_NOINTERFACE) {
-        fputs("Reading the three native menu item roles and names through MSAA hit-testing.\n", stderr);
+        fputs("Reading the native menu item roles and names through MSAA hit-testing.\n", stderr);
         check_names_at_points(window);
         return READ_BY_HIT_TEST;
     }
@@ -231,10 +228,10 @@ int main(int argc, char **argv) {
         }
         if (dark && can_draw_dark) {
             LPARAM bar = (LPARAM)GetMenu(window);
-            assert(SendMessageW(window, WM_MENUCHAR, 'H', bar) == MAKELRESULT(2, MNC_EXECUTE));
-            assert(SendMessageW(window, WM_MENUCHAR, 's', bar) == MAKELRESULT(0, MNC_SELECT));
+            assert(SendMessageW(window, WM_MENUCHAR, 'H', bar) == MAKELRESULT(4, MNC_EXECUTE));
+            assert(SendMessageW(window, WM_MENUCHAR, 's', bar) == MAKELRESULT(2, MNC_SELECT));
             drill_windows_menu_set_enabled(menu, false, false);
-            assert(SendMessageW(window, WM_MENUCHAR, 'S', bar) == MAKELRESULT(0, MNC_EXECUTE));
+            assert(SendMessageW(window, WM_MENUCHAR, 'S', bar) == MAKELRESULT(2, MNC_EXECUTE));
         }
     }
     drill_windows_menu_remove(menu);

@@ -12,3 +12,11 @@ libc = "0.2"
 
 [target.'cfg(windows)'.dependencies]
 windows-sys = { version = "0.61.2", features = ["Win32_Storage_FileSystem"] }
+
+[features]
+wine-bundle-host = []
+
+[[bin]]
+name = "drill-wine"
+path = "src/bin/drill-wine.rs"
+required-features = ["wine-bundle-host"]

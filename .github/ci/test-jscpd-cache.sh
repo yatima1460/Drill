@@ -12,8 +12,19 @@ export PATH="$work/bin:$PATH"
 bash "$prepare" "$work/cache" true
 
 cp .jscpd.json "$work/duplicates/"
-cp src/search_mode.rs "$work/duplicates/one.rs"
-cp src/search_mode.rs "$work/duplicates/two.rs"
+# Keep the detection fixture independent of the desktop UI's source layout.
+cat > "$work/duplicates/one.rs" <<'RUST'
+fn total_within_bounds(values: &[u64], minimum: u64, maximum: u64) -> u64 {
+    let mut total = 0_u64;
+    for &value in values {
+        if value >= minimum && value <= maximum {
+            total = total.saturating_add(value);
+        }
+    }
+    total
+}
+RUST
+cp "$work/duplicates/one.rs" "$work/duplicates/two.rs"
 if (cd "$work/duplicates" && "$work/cache/jscpd" .) > "$work/scan.log" 2>&1; then
     echo 'jscpd accepted duplicate source' >&2
     exit 1

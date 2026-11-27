@@ -5,8 +5,7 @@ from pathlib import Path
 
 
 ALL = {"linux", "windows", "macos"}
-LEGACY = {"macos_legacy"}
-EGUI = {"linux", "windows"} | LEGACY
+DESKTOP = {"linux", "windows"}
 
 
 def route(path):
@@ -19,56 +18,37 @@ def route(path):
         return {"macos"}, True
     if path.startswith(("scripts/package-macos", "scripts/sign-macos", "scripts/macos-dmg/")):
         return {"macos"}, True
-    if path in {"scripts/bench-swift-ui.py", "scripts/bench_egui.py", "scripts/bench-clean-build.py"}:
-        return {"macos"} | LEGACY, False
-    if path.endswith(".command") or path == "scripts/launcher-env.sh":
+    if path.endswith(".command") or path in {"scripts/launcher-env.sh", "scripts/bench-swift-ui.py"}:
         return {"macos"}, False
     if path in {"Makefile", ".github/workflows/rust.yml", ".github/ci/platforms.py",
-                ".github/ci/test_platforms.py", "crates/drill-core/src/test_directory.rs"}:
-        return ALL | LEGACY, False
-    if path in {"Cargo.toml", "Cargo.lock", "rust-toolchain.toml"} or path.startswith(".cargo/"):
-        return ALL | LEGACY, True
-    if path == "src/main.rs":
-        return ALL | LEGACY, True
-    if path.startswith(("crates/drill-macos/", "src/assets/drill-macos", "src/permissions.rs")) or path in {
-        "scripts/test-macos-clipboard.sh", "tests/macos_clipboard.rs", "examples/macos_opengl.rs",
-    }:
-        return LEGACY, False
-    if path.startswith("tests/"):
-        return EGUI, False
-    if path.startswith(("scripts/test-native-ui-linux", "scripts/test-appimage-open")):
+                ".github/ci/test_platforms.py", "crates/drill-core/src/test_directory.rs",
+                "scripts/bench-clean-build.py", "scripts/bench-linker.py"}:
+        return ALL, False
+    if path in {"Cargo.toml", "Cargo.lock", "rust-toolchain.toml", "src/main.rs"} or path.startswith(".cargo/"):
+        return ALL, True
+    if path == "tests/packaged_appimage.rs" or path.startswith((
+        "tests/native_ui/linux", "scripts/test-native-ui-linux", "scripts/test-appimage-open",
+    )):
         return {"linux"}, False
-    if path == "scripts/test-wine-linux.sh":
+    if path in {"scripts/test-wine-linux.sh", "scripts/wine-runner.sh", "scripts/test-native-ui-windows.ps1"}:
         return {"windows"}, False
-    if path == ".github/ci/ubuntu-apt-get.sh":
-        return {"linux", "windows"}, False
-    if path in {"scripts/package-linux.sh", "src/linux_apps.rs", "src/appearance/linux.rs", "src/assets/roots_linux.txt"}:
+    if path == ".github/ci/ubuntu-apt-get.sh" or path.startswith("tests/"):
+        return DESKTOP, False
+    if path in {"scripts/package-linux.sh", "src/assets/roots_linux.txt"}:
         return {"linux"}, True
-    if path in {"build.rs", "src/assets/drill.ico", "src/assets/drill.rc", "src/assets/roots_windows.txt"}:
+    if path in {"build.rs", "src/assets/drill.ico", "src/assets/drill.rc", "src/assets/drill.manifest",
+                "src/assets/roots_windows.txt"}:
         return {"windows"}, True
-    if path in {"src/native_menu.rs", "src/icon_sample.rs"}:
-        return {"windows"} | LEGACY, True
     if path.startswith("crates/drill-gtk/"):
-        return {"linux"}, "/tests/" not in path and path != "crates/drill-gtk/src/desktop_theme_test.c"
+        return {"linux"}, "/tests/" not in path and not path.endswith("_test.c")
     if path.startswith("crates/drill-windows/"):
         return {"windows"}, "/tests/" not in path
+    if path.startswith("crates/drill-desktop/"):
+        return DESKTOP, "/tests/" not in path
     if path.startswith(("tools/exe-icon-wasm/", "tools/appimage-icon-wasm/")):
-        # Desktop builds embed the checked-in Wasm files. Fixtures exercise both UIs.
-        return (ALL | LEGACY if "/tests/fixtures/" in path else {"linux"}), False
-    if path.startswith(("src/platform_icon/", "src/native_menu/", "vendor/file_icon_provider/src/implementation/",
-                        "vendor/eframe/src/native/clipboard/", "vendor/eframe/src/native/glow_context/")):
-        platform = Path(path).stem
-        if platform == "macos":
-            return LEGACY, False
-        if platform in {"linux", "windows"}:
-            return {platform}, True
-        return EGUI, True
-    if path in {"src/assets/exe-icon.wasm", "src/assets/appimage-icon.wasm", "src/assets/wordsalpha.txt",
-                "LICENSE", "scripts/wait-release-artifacts.sh"}:
-        return ALL, True
-    if path.startswith(("src/", "vendor/eframe/")):
-        return EGUI, True
-    if path.startswith(("crates/", "vendor/")):
+        # Linux rebuilds the guests. Every desktop embeds the Wasm and exercises its fixtures.
+        return (ALL if "/tests/fixtures/" in path else {"linux"}), False
+    if path in {"LICENSE", "scripts/wait-release-artifacts.sh"} or path.startswith(("src/", "crates/")):
         return ALL, "/tests/" not in path
     return set(), False
 
@@ -84,8 +64,6 @@ def select(paths, event):
     # Every release takes all three downloads from the same tested commit.
     if release or event == "workflow_dispatch":
         platforms.update(ALL)
-    if event == "workflow_dispatch":
-        platforms.update(LEGACY)
     return platforms, release
 
 
@@ -115,7 +93,7 @@ def changed_paths(event):
 
 def check_outputs(paths, event):
     platforms, release = select(paths, event)
-    values = {platform: platform in platforms for platform in sorted(ALL | LEGACY)}
+    values = {platform: platform in platforms for platform in sorted(ALL)}
     values["release"] = release
     values["duplicates"] = bool(platforms) or any(map(scans_source, paths))
     return values

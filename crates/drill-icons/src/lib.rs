@@ -2,7 +2,15 @@
 #![deny(unsafe_code)]
 
 mod appimage;
+mod bundle;
 mod exe;
+#[cfg(windows)]
+mod wine_bundle;
+
+#[cfg(windows)]
+pub fn prepare_wine_icons() {
+    wine_bundle::prepare();
+}
 
 use std::io::Read;
 use std::path::Path;
@@ -27,15 +35,27 @@ fn guest_limits() -> StoreLimits {
         .build()
 }
 
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum EmbeddedIcon {
     Exe,
     AppImage,
+    AppBundle,
 }
 
 impl EmbeddedIcon {
     pub fn for_path(path: &Path) -> Option<Self> {
+        Self::for_entry(path, false)
+    }
+
+    /// Classify using the metadata already recorded by the search. Only a
+    /// directory can be an application bundle.
+    pub fn for_entry(path: &Path, directory: bool) -> Option<Self> {
         let extension = path.extension()?;
+        if directory {
+            return extension
+                .eq_ignore_ascii_case("app")
+                .then_some(Self::AppBundle);
+        }
         if extension.eq_ignore_ascii_case("exe") {
             Some(Self::Exe)
         } else if extension.eq_ignore_ascii_case("AppImage") {
@@ -44,34 +64,51 @@ impl EmbeddedIcon {
             None
         }
     }
+
+    /// Open and decode a resident resource on the background worker.
+    pub fn decode(self, path: &Path, is_current: impl Fn() -> bool) -> Option<Vec<u8>> {
+        static RESOURCE: OnceLock<Option<exe::Decoder>> = OnceLock::new();
+        static APPIMAGE: OnceLock<Option<appimage::Decoder>> = OnceLock::new();
+        if !is_current() {
+            return None;
+        }
+        #[cfg(windows)]
+        if self == Self::AppBundle && wine_bundle::running_under_wine() {
+            return wine_bundle::decode(path, &is_current);
+        }
+        #[cfg(target_os = "macos")]
+        let _policy = match self {
+            Self::AppBundle => None, // The bundle reader also protects its directory traversal.
+            _ => Some(macos::MaterializationPolicy::disable()?),
+        };
+        match self {
+            Self::Exe | Self::AppBundle => {
+                let (bytes, export) = if self == Self::AppBundle {
+                    (bundle::snapshot(path, &is_current)?, "decode_icns")
+                } else {
+                    (snapshot(path)?, "decode")
+                };
+                if !is_current() {
+                    return None;
+                }
+                RESOURCE
+                    .get_or_init(exe::Decoder::new)
+                    .as_ref()?
+                    .decode(&bytes, export)
+            }
+            Self::AppImage => {
+                let decoder = APPIMAGE.get_or_init(appimage::Decoder::new).as_ref()?;
+                let (file, len) = resident_file(path)?;
+                decoder.decode(file, len)
+            }
+        }
+    }
 }
 
-/// Decode a resident file on a background thread. The supplied predicate lets
-/// a cancelled search skip reading the file or entering the PE guest after a read.
+/// macOS obtains application bundle icons from NSWorkspace. Only its regular
+/// executable and AppImage files use the portable decoder.
 pub fn decode(path: &Path, is_current: impl Fn() -> bool) -> Option<Vec<u8>> {
-    static EXE: OnceLock<Option<exe::Decoder>> = OnceLock::new();
-    static APPIMAGE: OnceLock<Option<appimage::Decoder>> = OnceLock::new();
-    if !is_current() {
-        return None;
-    }
-    let kind = EmbeddedIcon::for_path(path)?;
-    #[cfg(target_os = "macos")]
-    let _policy = macos::MaterializationPolicy::disable()?;
-    match kind {
-        EmbeddedIcon::Exe => {
-            let decoder = EXE.get_or_init(exe::Decoder::new).as_ref()?;
-            let bytes = snapshot(path)?;
-            if !is_current() {
-                return None;
-            }
-            decoder.decode(&bytes)
-        }
-        EmbeddedIcon::AppImage => {
-            let decoder = APPIMAGE.get_or_init(appimage::Decoder::new).as_ref()?;
-            let (file, len) = resident_file(path)?;
-            decoder.decode(file, len)
-        }
-    }
+    EmbeddedIcon::for_path(path)?.decode(path, is_current)
 }
 
 fn resident_file(path: &Path) -> Option<(std::fs::File, u64)> {
@@ -175,6 +212,20 @@ mod test_directory;
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn file_and_directory_formats_use_their_own_decoders() {
+        for (name, file, directory) in [
+            ("a.eXe", Some(EmbeddedIcon::Exe), None),
+            ("a.AppImage", Some(EmbeddedIcon::AppImage), None),
+            ("Journal.ApP", None, Some(EmbeddedIcon::AppBundle)),
+            ("ordinary", None, None),
+        ] {
+            let path = Path::new(name);
+            assert_eq!(EmbeddedIcon::for_path(path), file);
+            assert_eq!(EmbeddedIcon::for_entry(path, true), directory);
+        }
+    }
 
     #[test]
     fn rejects_directory_and_large_file() {

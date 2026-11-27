@@ -8,7 +8,8 @@ import subprocess
 import tempfile
 
 
-def icon_from_exe(exe, source):
+def verify_resources(exe, assets):
+    source = (assets / "drill.ico").read_bytes()
     kernel = ctypes.WinDLL("kernel32", use_last_error=True)
     pointer = ctypes.c_void_p
     for name in ("LoadLibraryExW", "FindResourceW", "LoadResource", "LockResource"):
@@ -26,6 +27,7 @@ def icon_from_exe(exe, source):
         return ctypes.string_at(data, kernel.SizeofResource(module, info))
 
     try:
+        assert resource(24, 1) == (assets / "drill.manifest").read_bytes()  # RT_MANIFEST
         group = resource(14, 1)  # RT_GROUP_ICON, ID in drill.rc
         assert group[:6] == source[:6]
         count = struct.unpack_from("<H", source, 4)[0]
@@ -49,7 +51,7 @@ if __name__ == "__main__":
         assets = project / "src/assets"
         assets.mkdir(parents=True)
         shutil.copy(root / "build.rs", project)
-        for name in ("drill.rc", "drill.ico"):
+        for name in ("drill.rc", "drill.ico", "drill.manifest"):
             shutil.copy(root / "src/assets" / name, assets)
         (project / "src/main.rs").write_text("fn main() {}\n")
         (project / "Cargo.toml").write_text('[package]\nname="drill"\nversion="0.0.0"\nedition="2021"\n')
@@ -58,4 +60,4 @@ if __name__ == "__main__":
              "--target-dir", str(project / "target")],
             check=True,
         )
-        icon_from_exe(project / "target/debug/drill.exe", (assets / "drill.ico").read_bytes())
+        verify_resources(project / "target/debug/drill.exe", assets)

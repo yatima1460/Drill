@@ -4,9 +4,11 @@ Drill is a Rust desktop file searcher for macOS, Windows and Linux. It streams r
 
 ## Collaboration and delivery
 
-For each request involving the repository, assign planning to the strongest available model at its maximum supported reasoning effort. This planning coordinator prepares the plan before implementation. As of November 2026, the example is Astra at Ultra reasoning effort. The implementation coordinator owns delivery, integration and validation. Give research and review agents read-only tasks by default. Delegate independent implementation in separate worktrees with explicit file ownership and stable interfaces.
+For each request involving the repository, assign planning to the strongest available model at its maximum supported reasoning effort. This planning coordinator prepares the plan before implementation. As of November 2026, the example is Astra at Ultra reasoning effort.
 
-Open a pull request and ask an independent reviewer selected by the same model and effort rule to review the actual PR. Immediately before every merge, recheck the PR conversation, submitted reviews and inline review threads for comments from automated AI reviewers, including Codex. Address substantive findings, then confirm the reviewed head still matches and the required checks pass before merging. Respect requests for a draft or to leave a PR open. If a required review or GitHub operation is unavailable, report the blocker. Read-only questions can be answered directly.
+The implementation coordinator breaks the plan into tasks and spawns agents using less capable models for routine, well-scoped implementation and verification. Sol 6.2 is one example as of November 2026. The coordinator reviews their changes and verification results and owns integration, delivery and final approval. Give research and review agents read-only tasks by default. Delegate independent implementation in separate worktrees with explicit file ownership and stable interfaces.
+
+The implementation coordinator opens a pull request and asks an independent reviewer using the strongest available model at its maximum supported reasoning effort to review the actual PR. Immediately before every merge, recheck the PR conversation, submitted reviews and inline review threads for comments from automated AI reviewers, including Codex. Address substantive findings, then confirm the reviewed head still matches and the required checks pass before merging. Respect requests for a draft or to leave a PR open. If a required review or GitHub operation is unavailable, report the blocker. Read-only questions can be answered directly.
 
 ## External dependencies and platform bindings
 
@@ -18,7 +20,8 @@ Use an external dependency only when it is strictly necessary. **Always ask the 
 
 - Prefer a functional core. Keep matching and ranking deterministic where practical, pass inputs explicitly, and isolate filesystem, platform and rendering effects. Choose ownership and bounded work that make behavior easy to parallelize, test and verify.
 - `crates/drill-query` owns parsing, normalization and filename matching. `crates/drill-core` reexports its query API and owns app file filters, directory priority, traversal, and delivery of results. Keep filesystem calls outside the shared directory-queue lock. Changes to traversal should account for overlapping roots, symlinks, unreadable directories, and cancellation while paused or while the result queue is full.
-- `src/main.rs` selects the platform frontend. The Windows and Linux egui interface lives in `src/mod.rs` and its sibling modules. Exercise changes through the search box, Files/Apps selector, or other affected entry point. Preserve result identity through streaming, sorting and selection. Check that new queries discard stale results and that Continue resumes the same scan.
+- **The macOS SwiftUI/AppKit app is the gold standard for UI parity.** Use the behavior in `native/macos` and its native interaction tests as the acceptance criteria for Windows and Linux UI changes. Match search, paging, selection, columns, menus, settings and keyboard behavior using each platform’s controls and shortcuts. Document platform-specific differences such as macOS permissions.
+- `src/main.rs` selects SwiftUI/AppKit on macOS, Win32 on Windows, and GTK 3 on Linux. Win32 and GTK share the streamed result model in `crates/drill-desktop`. Exercise changes through their native controls and verify selection survives streaming and sorting, a new query cancels the previous one, and Continue resumes the same scan.
 - The macOS app uses SwiftUI and AppKit in `native/macos` and calls the shared Rust core through `crates/drill-swift`. Exercise it with `make test-ui`. See the [macOS development notes](docs/swift-ui.md). For clean build comparisons, include the Swift compiler and final link, and report whether the Apple SDK module cache started empty.
 - Keep changes scoped. Reuse existing interfaces and extract a module or crate when it gives the project a concrete testing, ownership or build benefit. Consult the local patch notes before changing vendored libraries.
 
@@ -26,7 +29,7 @@ Use an external dependency only when it is strictly necessary. **Always ask the 
 
 Displaying a search result can make Drill parse an icon from an untrusted file before the user opens it. Keep this parsing in bundled WebAssembly (Wasm) decoders so a parser bug has limited access to the desktop process and a malformed icon has a bounded memory and execution budget. The search engine and desktop UI run natively.
 
-The [Windows executable decoder](tools/exe-icon-wasm) receives a size-limited copy of the file and imports no host functions. The [AppImage decoder](tools/appimage-icon-wasm) can request only bounded reads from the file Drill already opened. The host reads back a fixed-size RGBA icon without running the discovered executable or mounting the AppImage. If decoding fails or exceeds a limit, preserve the file-type icon or generic glyph fallback.
+The [PE and ICNS decoder](tools/exe-icon-wasm) receives a size-limited copy of one executable or icon file and imports no host functions. For Mac application bundles, Windows and Linux resolve the declared icon within the bundle’s resources and pass the ICNS bytes to this guest. The [AppImage decoder](tools/appimage-icon-wasm) can request only bounded reads from the file Drill already opened. The host reads back a fixed-size RGBA icon without running the discovered executable or mounting the AppImage. If decoding fails or exceeds a limit, preserve the file-type icon or generic glyph fallback.
 
 ## Validation
 
@@ -35,7 +38,7 @@ Run the least expensive checks that exercise the changed behavior, followed by t
 | Change | Relevant check |
 | --- | --- |
 | Matching, traversal or cancellation | `make test-core` with a focused fixture |
-| Keyboard, pointer, rendering or result-list behavior | On macOS, `make test-ui` drives private AppKit windows. On Windows and Linux, `make test-ui-headless` drives egui frames and `make test-ui-native` drives a real window with OS input. Use a controlled desktop for OS input. Linux CI uses Xvfb. |
+| Keyboard, pointer, rendering or result-list behavior | On macOS, `make test-ui` drives private AppKit windows. Windows and Linux exercise the shared model and native controls. Run `make test-ui-native` for a real window with OS input. Use a controlled desktop for OS input. Linux CI uses Xvfb. |
 | Rust integration | `make fmt-check check lint test` |
 | Scripts and packaging | `make shellcheck` and the affected packaging target. Inspect the artifact a user would download. |
 

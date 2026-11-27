@@ -1,21 +1,22 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Always use a private display, including when invoked directly by a developer.
+# All physical input from the driver stays inside this private X desktop.
 if [[ ${1-} != '--inside-private-xvfb' ]]; then
-    exec xvfb-run -a "$0" --inside-private-xvfb
+    exec xvfb-run -a "$0" --inside-private-xvfb "$@"
+fi
+shift
+if [[ $# != 0 && $# != 2 ]]; then
+    echo "Usage: $0 [driver.exe Drill.exe]" >&2
+    exit 2
 fi
 
-# A disposable prefix and virtual display keep the smoke test away from real user sessions.
 export WINEPREFIX
 WINEPREFIX=$(mktemp -d)
-export WINEARCH=win64 WINEDEBUG=-all WINEDLLOVERRIDES='mscoree,mshtml=' LIBGL_ALWAYS_SOFTWARE=1
-log_file="$WINEPREFIX/drill-test.log"
+export WINEARCH=win64 WINEDEBUG=-all WINEDLLOVERRIDES='mscoree,mshtml='
 openbox >/dev/null 2>&1 &
 wm_pid=$!
-app_pid=''
 cleanup() {
-    if [[ -n "$app_pid" ]]; then kill "$app_pid" 2>/dev/null || true; fi
     wineserver -k 2>/dev/null || true
     timeout 10s wineserver -w 2>/dev/null || true
     kill "$wm_pid" 2>/dev/null || true
@@ -23,43 +24,21 @@ cleanup() {
 }
 trap cleanup EXIT
 
-make start_wine >"$log_file" 2>&1 &
-app_pid=$!
-# Wine creates and destroys helper windows during startup. Query Openbox's
-# managed client list instead of walking the transient X11 window tree.
-window_id=''
-deadline=$((SECONDS + 120))
-while (( SECONDS < deadline )) && kill -0 "$app_pid" 2>/dev/null; do
-    window_id=$(wmctrl -l 2>/dev/null | awk 'NF == 4 && $4 == "Drill" {print $1}') || window_id=''
-    if [[ -n "$window_id" ]]; then break; fi
-    sleep 0.25
-done
-if [[ -z "$window_id" ]]; then
-    cat "$log_file" >&2
-    echo 'Drill did not open a managed window under Wine.' >&2
-    exit 1
+if [[ $# == 2 ]]; then
+    driver=$1
+    application=$2
+else
+    linker=${WINDOWS_LINKER:-x86_64-w64-mingw32-gcc}
+    target_dir=${CARGO_TARGET_DIR:-target}
+    CARGO_TARGET_X86_64_PC_WINDOWS_GNU_LINKER="$linker" RUSTFLAGS="${RUSTFLAGS-} -C target-feature=+crt-static" \
+        "${CARGO:-cargo}" build --release --locked -p drill --bin drill --target x86_64-pc-windows-gnu --target-dir "$target_dir"
+    application="$target_dir/x86_64-pc-windows-gnu/release/drill.exe"
+    driver="$WINEPREFIX/drill-native-window.exe"
+    "$linker" -std=c11 -municode -Wall -Wextra -Werror crates/drill-windows/tests/native_window.c \
+        -o "$driver" -lgdi32 -ladvapi32 -loleacc -loleaut32 -lole32 -luuid
+    "$linker" -std=c11 -municode -mwindows -Wall -Wextra -Werror crates/drill-windows/tests/launch_fixture.c \
+        -o "$WINEPREFIX/drill-launch-fixture.exe"
 fi
-window_id=${window_id%%$'\n'*}
-xdotool getwindowname "$window_id"
-if ! timeout 15s wmctrl -ic "$window_id"; then
-    cat "$log_file" >&2
-    echo 'Could not close the Wine window.' >&2
-    exit 1
-fi
-for _ in {1..30}; do
-    if ! kill -0 "$app_pid" 2>/dev/null; then
-        wait "$app_pid" || {
-            status=$?
-            cat "$log_file" >&2
-            exit "$status"
-        }
-        app_pid=''
-        cleanup
-        trap - EXIT
-        exit 0
-    fi
-    sleep 1
-done
-cat "$log_file" >&2
-echo 'Drill did not exit after closing its Wine window.' >&2
-exit 1
+windows_app=$(timeout 120s winepath -w "$(realpath -- "$application")")
+# MSAA row annotations are checked by this driver on native Windows.
+timeout 240s scripts/wine-runner.sh "$driver" "$windows_app" --wine

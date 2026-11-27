@@ -20,9 +20,12 @@ impl Drop for TestDirectory {
 }
 
 pub(super) fn private_temp_dir() -> TestDirectory {
+    private_temp_dir_in(&std::env::temp_dir())
+}
+
+pub(super) fn private_temp_dir_in(root: &Path) -> TestDirectory {
     static NEXT_ID: AtomicU64 = AtomicU64::new(0);
 
-    let root = std::env::temp_dir();
     let random = RandomState::new();
     let builder = DirBuilder::new();
     #[cfg(unix)]

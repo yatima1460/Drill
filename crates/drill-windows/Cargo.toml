@@ -5,6 +5,7 @@ edition = "2021"
 license-file = "../../LICENSE"
 
 [features]
+desktop = ["clipboard", "menu"]
 clipboard = []
 menu = []
 shell-icons = []

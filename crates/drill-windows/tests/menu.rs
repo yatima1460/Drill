@@ -92,14 +92,15 @@ fn native_menu_routes_only_its_enabled_commands_and_restores_previous_menu() {
     assert_ne!(bar, previous);
     // SAFETY: A second installation on the same live window must preserve the first callback.
     assert!(unsafe { Menu::install(window.0, |_| panic!("duplicate menu dispatched")) }.is_none());
-    let search = submenu(bar, 0);
-    let settings = submenu(bar, 1);
-    let help = submenu(bar, 2);
+    let search = submenu(bar, 2);
+    let settings = submenu(bar, 3);
+    let help = submenu(bar, 4);
 
     menu.set_enabled(false, false);
-    assert!(!enabled(search, 0) && !enabled(bar, 1));
-    select(&window, search, 0);
+    assert!(!enabled(search, 1) && !enabled(bar, 3));
+    select(&window, search, 1);
     select(&window, settings, 0);
+    select(&window, search, 2); // Continue is disabled until a page can resume.
     select(&window, help, 1);
     select(&window, previous, 0);
     // SAFETY: An unrelated WM_COMMAND must pass through to the hidden window.
@@ -107,28 +108,43 @@ fn native_menu_routes_only_its_enabled_commands_and_restores_previous_menu() {
     assert!(commands.borrow().is_empty());
 
     menu.set_enabled(true, true);
-    assert!(enabled(search, 0) && enabled(bar, 1));
+    assert!(enabled(search, 1) && enabled(bar, 3));
     // SAFETY: The help popup has one native menu item at position zero.
     let syntax_id = unsafe { GetMenuItemID(help, 0) };
     assert_ne!(syntax_id, u32::MAX);
-    // SAFETY: Control and accelerator notifications use the same WM_COMMAND but must pass through.
+    // SAFETY: Control notifications carry a child HWND, while accelerators have a null lParam.
     unsafe {
         SendMessageW(hwnd, 0x0111, syntax_id as usize, hwnd as isize);
         SendMessageW(hwnd, 0x0111, (syntax_id | 0x1_0000) as usize, 0);
     }
+    select(&window, submenu(bar, 0), 0);
+    select(&window, submenu(bar, 1), 2); // Separator has no command.
+    select(&window, submenu(bar, 1), 5);
     select(&window, search, 0);
+    select(&window, search, 1);
+    menu.set_command_enabled(Command::Continue, true);
+    select(&window, search, 2);
     select(&window, settings, 0);
     // SAFETY: This synchronous invocation uses the registered Win32 command identifier.
     unsafe { SendMessageW(hwnd, 0x0111, syntax_id as usize, 0) };
     assert_eq!(
         *commands.borrow(),
-        [Command::Stop, Command::Interface, Command::Syntax]
+        [
+            Command::Syntax,
+            Command::OpenSelection,
+            Command::Paste,
+            Command::Find,
+            Command::Stop,
+            Command::Continue,
+            Command::Interface,
+            Command::Syntax
+        ]
     );
     drop(menu);
     // SAFETY: The hidden window remains live and resumes ownership of the original menu.
     assert_eq!(unsafe { GetMenu(hwnd) }, previous);
     select(&window, previous, 0);
-    assert_eq!(commands.borrow().len(), 3);
+    assert_eq!(commands.borrow().len(), 8);
 }
 
 #[test]
@@ -155,7 +171,7 @@ fn native_menu_can_outlive_its_window_or_be_dropped_inside_dispatch() {
     assert!(slot.borrow().is_some());
     // SAFETY: GetMenu borrows this private window's installed menu.
     let bar = unsafe { GetMenu(replacement.0.get() as Handle) };
-    select(&replacement, submenu(bar, 2), 0);
+    select(&replacement, submenu(bar, 4), 0);
     assert!(slot.borrow().is_none());
     // SAFETY: The private window stays live after the menu callback has returned.
     assert!(unsafe { GetMenu(replacement.0.get() as Handle) }.is_null());

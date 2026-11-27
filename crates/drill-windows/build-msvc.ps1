@@ -1,10 +1,9 @@
 param(
     [string]$Compiler,
     [string]$Librarian,
-    [string]$Source,
-    [string]$Object,
+    [string]$Units,
+    [string]$OutDir,
     [string]$Archive,
-    [string]$Defines,
     [ValidateSet('/MD', '/MT')][string]$Crt,
     [string]$TargetArch,
     [string]$HostArch
@@ -27,8 +26,12 @@ if ($activeArch -ne $TargetArch -or !$env:INCLUDE -or !$env:LIB) {
     & $devShell -Arch $TargetArch -HostArch $HostArch -SkipAutomaticLocation | Out-Null
 }
 
-$defineArguments = @($Defines -split ',' | ForEach-Object { "/D$_" })
-& $Compiler '/nologo' '/TC' '/O2' $Crt '/c' @defineArguments "/Fo$Object" $Source
-if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-& $Librarian '/nologo' "/OUT:$Archive" $Object
+$objects = foreach ($unit in $Units.Split(',')) {
+    $object = Join-Path $OutDir "$unit.obj"
+    $source = Join-Path $PSScriptRoot "src/$unit.c"
+    & $Compiler '/nologo' '/TC' '/O2' $Crt '/c' "/Fo$object" $source | Out-Host
+    if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+    $object
+}
+& $Librarian '/nologo' "/OUT:$Archive" @objects
 exit $LASTEXITCODE

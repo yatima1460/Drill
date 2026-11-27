@@ -33,9 +33,7 @@ fn msvc_arch(triple: &str) -> &str {
     }
 }
 
-fn compile_msvc(host: &str, target: &str, source: &Path, out: &Path, defines: &[&str]) {
-    let object = out.join("drill_windows_native.obj");
-    let archive = out.join("drill_windows_native.lib");
+fn compile_msvc(host: &str, target: &str, units: &[&str], out: &Path, archive: &Path) {
     let native = host.contains("-windows-");
     let crt = if env::var("CARGO_CFG_TARGET_FEATURE")
         .is_ok_and(|features| features.split(',').any(|feature| feature == "crt-static"))
@@ -62,14 +60,12 @@ fn compile_msvc(host: &str, target: &str, source: &Path, out: &Path, defines: &[
             .arg(compiler)
             .arg("-Librarian")
             .arg(librarian)
-            .arg("-Source")
-            .arg(source)
-            .arg("-Object")
-            .arg(object)
+            .arg("-Units")
+            .arg(units.join(","))
+            .arg("-OutDir")
+            .arg(out)
             .arg("-Archive")
             .arg(archive)
-            .arg("-Defines")
-            .arg(defines.join(","))
             .args(["-Crt", crt])
             .args([
                 "-TargetArch",
@@ -78,17 +74,22 @@ fn compile_msvc(host: &str, target: &str, source: &Path, out: &Path, defines: &[
                 msvc_arch(host),
             ]));
     } else {
-        let mut output = OsString::from("/Fo");
-        output.push(&object);
-        run(Command::new(compiler)
-            .arg(format!("--target={target}"))
-            .args(["/nologo", "/TC", "/O2", crt, "/c"])
-            .args(defines.iter().map(|define| format!("/D{define}")))
-            .arg(output)
-            .arg(source));
+        let mut lib = Command::new(librarian);
         let mut output = OsString::from("/OUT:");
         output.push(archive);
-        run(Command::new(librarian).arg(output).arg(object));
+        lib.arg(output);
+        for unit in units {
+            let object = out.join(format!("{unit}.obj"));
+            let mut output = OsString::from("/Fo");
+            output.push(&object);
+            run(Command::new(&compiler)
+                .arg(format!("--target={target}"))
+                .args(["/nologo", "/TC", "/O2", crt, "/c"])
+                .arg(output)
+                .arg(format!("src/{unit}.c")));
+            lib.arg(object);
+        }
+        run(&mut lib);
     }
 }
 
@@ -125,7 +126,7 @@ fn mingw_archiver(compiler: &OsStr, fallback: OsString) -> OsString {
         .map_or(fallback, Into::into)
 }
 
-fn compile_mingw(host: &str, target: &str, source: &Path, out: &Path, defines: &[&str]) {
+fn compile_mingw(host: &str, target: &str, units: &[&str], out: &Path, archive: &Path) {
     let arch = target.split('-').next().unwrap();
     let mingw_tool = |name| {
         if host == target {
@@ -143,17 +144,18 @@ fn compile_mingw(host: &str, target: &str, source: &Path, out: &Path, defines: &
         env::var_os("RUSTC_LINKER").unwrap_or_else(|| mingw_tool("gcc"))
     });
     let archiver = tool("AR", target, || mingw_archiver(&compiler, mingw_tool("ar")));
-    let object = out.join("drill_windows_native.o");
-    run(Command::new(compiler)
-        .args(["-std=c11", "-O2", "-c"])
-        .args(defines.iter().map(|define| format!("-D{define}")))
-        .arg(source)
-        .arg("-o")
-        .arg(&object));
-    run(Command::new(archiver)
-        .arg("crs")
-        .arg(out.join("libdrill_windows_native.a"))
-        .arg(object));
+    let mut ar = Command::new(archiver);
+    ar.arg("crs").arg(archive);
+    for unit in units {
+        let object = out.join(format!("{unit}.o"));
+        run(Command::new(&compiler)
+            .args(["-std=c11", "-O2", "-c"])
+            .arg(format!("src/{unit}.c"))
+            .arg("-o")
+            .arg(&object));
+        ar.arg(object);
+    }
+    run(&mut ar);
 }
 
 fn main() {
@@ -161,38 +163,80 @@ fn main() {
     if env::var("CARGO_CFG_TARGET_OS").as_deref() != Ok("windows") {
         return;
     }
+    let desktop = env::var_os("CARGO_FEATURE_DESKTOP").is_some();
     let clipboard = env::var_os("CARGO_FEATURE_CLIPBOARD").is_some();
     let menu = env::var_os("CARGO_FEATURE_MENU").is_some();
     let shell_icons = env::var_os("CARGO_FEATURE_SHELL_ICONS").is_some();
-    let mut defines = Vec::new();
-    for (enabled, define, file) in [
-        (clipboard, "DRILL_CLIPBOARD", "src/clipboard.c"),
-        (menu, "DRILL_MENU", "src/menu.c"),
-        (shell_icons, "DRILL_SHELL_ICONS", "src/file_icon.c"),
+    // Keep the window (which calls into the Rust model) in its own archive
+    // member. Consumers of an adapter can link it independently.
+    let mut units = Vec::new();
+    for (enabled, unit) in [
+        (desktop, "native"),
+        (desktop, "accessibility_guids"),
+        (clipboard, "clipboard"),
+        (menu, "menu"),
+        (shell_icons, "file_icon"),
     ] {
         if enabled {
-            println!("cargo:rerun-if-changed={file}");
-            defines.push(define);
+            println!("cargo:rerun-if-changed=src/{unit}.c");
+            units.push(unit);
         }
     }
-    if defines.is_empty() {
+    if units.is_empty() {
         return;
     }
 
     let target = env::var("TARGET").expect("Cargo target triple");
     let host = env::var("HOST").expect("Cargo host triple");
     let out = PathBuf::from(env::var_os("OUT_DIR").expect("Cargo output directory"));
-    let source = Path::new("src/native.c");
-    println!("cargo:rerun-if-changed={}", source.display());
-    if target.ends_with("-msvc") {
-        println!("cargo:rerun-if-changed=build-msvc.ps1");
-        compile_msvc(&host, &target, source, &out, &defines);
+    let msvc = target.ends_with("-msvc");
+    let archive = out.join(if msvc {
+        "drill_windows_native.lib"
     } else {
-        compile_mingw(&host, &target, source, &out, &defines);
+        "libdrill_windows_native.a"
+    });
+    // ar updates an existing library in place and retains removed or renamed members.
+    if archive
+        .try_exists()
+        .expect("inspect previous native archive")
+    {
+        std::fs::remove_file(&archive).expect("replace previous native archive");
+    }
+    if clipboard || menu {
+        println!("cargo:rerun-if-changed=src/adapters.h");
+    }
+    if msvc {
+        println!("cargo:rerun-if-changed=build-msvc.ps1");
+        compile_msvc(&host, &target, &units, &out, &archive);
+    } else {
+        compile_mingw(&host, &target, &units, &out, &archive);
     }
 
     println!("cargo:rustc-link-search=native={}", out.display());
     println!("cargo:rustc-link-lib=static=drill_windows_native");
+    if desktop {
+        for file in [
+            "../drill-desktop/include/DrillDesktop.h",
+            "src/window_actions.h",
+            "src/window_actions.c",
+            "src/window_shell.c",
+            "src/window_preferences.c",
+            "src/window_icons.c",
+            "src/window_icon_path.h",
+            "src/window_panels.c",
+            "src/window.c",
+            "src/window_table.c",
+            "src/window_placement.c",
+            "src/window_accessibility.c",
+        ] {
+            println!("cargo:rerun-if-changed={file}");
+        }
+        for library in [
+            "shell32", "ole32", "oleaut32", "uuid", "advapi32", "dwmapi", "uxtheme",
+        ] {
+            println!("cargo:rustc-link-lib={library}");
+        }
+    }
     if menu {
         println!("cargo:rerun-if-changed=src/menu_appearance.c");
         println!("cargo:rustc-link-lib=comctl32");

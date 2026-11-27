@@ -19,10 +19,8 @@ on:
       - 'crates/drill-query/**'
       - 'crates/drill-icons/**'
       - 'crates/drill-gtk/**'
-      - 'crates/drill-macos/**'
+      - 'crates/drill-desktop/**'
       - 'crates/drill-windows/**'
-      - 'vendor/**'
-      - '!vendor/jscpd/**'
       - 'tools/appimage-icon-wasm/**'
       - 'tools/exe-icon-wasm/**'
       - '!**/*.md'
@@ -55,7 +53,7 @@ jobs:
         if: runner.os == 'Linux' && (github.event_name == 'pull_request' || inputs.scope == 'desktop')
         run: |
           .github/ci/ubuntu-apt-get.sh update
-          .github/ci/ubuntu-apt-get.sh install -y libxkbcommon-dev libwayland-dev libgl1-mesa-dev libgtk-3-dev libxkbcommon-x11-0 libx11-xcb1 libegl1
+          .github/ci/ubuntu-apt-get.sh install -y libgtk-3-dev
       - name: Install pinned cargo-mutants
         run: |
           source verification/tools.env

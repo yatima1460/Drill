@@ -18,7 +18,7 @@ Kani runs on pull requests that change the proof workspace, its imported modules
 To check the packaged AppImage icon locally, build the Linux package or set `DRILL_PACKAGED_APPIMAGE` to a built AppImage. Run the check with its reference decoder enabled.
 
 ```sh
-cargo test --locked --bin drill --features verify-packaged-appimage egui_app::appimage_icon::tests::packaged_appimage_contains_drill_icon -- --ignored --exact
+cargo test --locked -p drill --features verify-packaged-appimage --test packaged_appimage packaged_appimage_contains_drill_icon -- --ignored --exact
 ```
 
 This check uses the original artwork and an independent PNG decoder as its reference.
@@ -67,10 +67,10 @@ scripts/test-mutants.sh appimage full
 | --- | --- |
 | `query` | `drill-query` parsing, normalization, matching, stem classification and Windows lookup rules. Its tests run without filesystem fixtures or a window. |
 | `core` | `drill-core` traversal, filters, ranking and worker control. Runs its tests against temporary filesystem fixtures. |
-| `desktop` | The `drill` package’s desktop state, search-mode adapter, headless egui logic, icon workers and Rust platform integration. Full campaigns also mutate the shared Wasmi hosts in `drill-icons` and run both packages’ tests. The candidate list filters the platform-specific icon, menu, appearance and catalog modules for the selected runner. The dedicated window workflow drives interactive OS input. |
+| `desktop` | The shared desktop model in `drill-desktop` and its Rust tests. Full campaigns also exercise the Wasm icon hosts. Native UI workflows drive the platform controls. |
 | `guest` | The standalone `tools/exe-icon-wasm` crate. Native tests feed the actual extraction function PE32 and PE32+ fixtures, exercise truncated input, and check resource-range boundaries. The separate Linux Wasm rebuild and host tests cover the shipped guest. |
 | `appimage` | The `tools/appimage-icon-wasm` crate. Native tests exercise the same read-only parser and image decoder on ISO/Rock Ridge and SquashFS fixtures, including links, truncated inputs and a cycle. Desktop tests exercise the shipped Wasm ABI. Linux CI compares the icon from the packaged application with its source artwork. |
 
 The full campaigns preserve all candidate outcomes, including surviving changes in OS effects or branches inactive on the selected target. Use the appropriate native runner when investigating them. A survivor can expose a missing assertion or a behaviorally equivalent change. Inspect `target/mutations/<scope>/mutants.out/` for test logs, diffs, `missed.txt`, `timeout.txt`, and `outcomes.json`. CI uploads these reports even on failures. Each mutation gets a 90-second test budget and a 15-minute build budget. Each CI mutation job has a 90-minute limit; choose smaller shards for desktop work.
 
-The native SDK adapter crates and their C and Objective-C code are exercised through their consumers and platform checks. This includes the Windows filename lookup in the startup tests, the Windows icon fixture on a native runner, the Linux appearance observer on a private D-Bus session, and the macOS clipboard fixture on a private pasteboard. The mutation campaigns target the Rust code in the packages named above. Application builds and platform checks also exercise the vendored eframe patches. Third-party dependencies, the website, packaging and signing scripts are outside the Rust mutation inventory.
+The native SDK adapter crates and their C and Objective-C code are exercised through their consumers and platform checks. This includes the Windows filename lookup in the startup tests, the Windows icon fixture on a native runner, the Linux appearance observer on a private D-Bus session, and the Swift interaction suite on a private pasteboard. The mutation campaigns target the Rust code in the packages named above. Third-party dependencies, the website, packaging and signing scripts are outside the Rust mutation inventory.

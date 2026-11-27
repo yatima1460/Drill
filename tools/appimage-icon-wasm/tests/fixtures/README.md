@@ -1,4 +1,4 @@
-The four fixtures have inert ELF headers and no executable code. Their icons are opaque green. The result-row tests check pixels uploaded to egui and the texture painted beside the filename.
+The four fixtures have inert ELF headers and no executable code. The three decodable icons are opaque green. The Linux result-row test checks the 32 × 32 pixels painted beside each filename on Xvfb and exercises the fallback through the native Interface panel.
 
 * `linked-png.AppImage` wraps an XZ SquashFS in an ELF64 Type 2 header. The root `.DirIcon` links to `app.png`, which links to `icons/icon.png` (256 × 256).
 * `direct-svg.AppImage` wraps a Zstandard SquashFS in an ELF32 Type 2 header. Its last ELF section extends beyond the section table. The root `.DirIcon` contains the SVG itself.

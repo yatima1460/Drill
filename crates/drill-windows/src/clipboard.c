@@ -1,7 +1,5 @@
 #define WIN32_LEAN_AND_MEAN
-#include <windows.h>
-#include <stdbool.h>
-#include <stdint.h>
+#include "adapters.h"
 #include <string.h>
 
 typedef void (*accept_text)(void *context, const WCHAR *text, size_t length);

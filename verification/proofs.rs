@@ -7,7 +7,7 @@ mod appimage_bounds;
 mod file_filter;
 #[path = "../tools/exe-icon-wasm/src/resource.rs"]
 mod resource;
-#[path = "../src/result_order.rs"]
+#[path = "../crates/drill-desktop/src/result_order.rs"]
 mod result_order;
 
 #[kani::proof]
