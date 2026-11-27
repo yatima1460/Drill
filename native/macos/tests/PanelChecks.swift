@@ -9,6 +9,21 @@ private func press(_ name: String, in driver: WindowDriver) throws {
 }
 
 @MainActor
+private func performMenuEntry(_ menu: String, _ item: String) throws {
+    guard let submenu = NSApp.mainMenu?.item(withTitle: menu)?.submenu,
+          let entry = submenu.item(withTitle: item) else { throw WindowFailure("Missing \(menu) > \(item)") }
+    submenu.performActionForItem(at: submenu.index(of: entry))
+}
+
+@MainActor
+private func openPanel(_ menu: String, _ item: String, title: String) throws -> WindowDriver {
+    try performMenuEntry(menu, item)
+    let windows = NSApp.windows.filter { $0.title == title && $0.isVisible }
+    try require(windows.count == 1, "\(item) must open one visible window")
+    return WindowDriver(window: windows[0])
+}
+
+@MainActor
 func exercisePanels() throws {
     try exercisePreferenceMigration()
     let rootBytes = Array("/tmp/drill-".utf8) + [0xFF]
@@ -31,15 +46,6 @@ func exercisePanels() throws {
                                  present: presentPrivateWindow)
     delegate.installMenus()
     defer { withExtendedLifetime(delegate) {} }
-
-    func openPanel(_ menu: String, _ item: String, title: String) throws -> WindowDriver {
-        guard let submenu = NSApp.mainMenu?.item(withTitle: menu)?.submenu,
-              let entry = submenu.item(withTitle: item) else { throw WindowFailure("Missing \(menu) > \(item)") }
-        submenu.performActionForItem(at: submenu.index(of: entry))
-        let windows = NSApp.windows.filter { $0.title == title && $0.isVisible }
-        try require(windows.count == 1, "\(item) must open one visible window")
-        return WindowDriver(window: windows[0])
-    }
 
     let interface = try openPanel("Settings", "Interface…", title: "Interface")
     defer { interface.window.close() }
@@ -107,6 +113,110 @@ func exercisePanels() throws {
     }
     try syntax.wait("Missing syntax pattern limits") {
         syntax.elements.contains { $0.texts.contains { $0.contains("4,096 bytes") && $0.contains("eight levels") } }
+    }
+}
+
+@MainActor
+func exerciseSearchSettings() throws {
+    let manager = FileManager.default
+    let suite = "drill-search-settings-test-\(UUID())"
+    let root = manager.temporaryDirectory.appendingPathComponent(suite, isDirectory: true)
+    let originals = root.appendingPathComponent("Fixture.photoslibrary/originals", isDirectory: true)
+    try manager.createDirectory(at: originals, withIntermediateDirectories: true)
+    defer { try? manager.removeItem(at: root) }
+    let outside = "needle-outside.txt", inside = "needle-inside.txt"
+    try Data().write(to: root.appendingPathComponent(outside))
+    try Data().write(to: originals.appendingPathComponent(inside))
+
+    guard let defaults = UserDefaults(suiteName: suite) else { throw WindowFailure("Missing test defaults") }
+    let originalAppearance = NSApp.appearance
+    let originalMenu = NSApp.mainMenu
+    defer {
+        defaults.removePersistentDomain(forName: suite)
+        NSApp.appearance = originalAppearance
+        NSApp.mainMenu = originalMenu
+    }
+
+    func withSearchWindow(defaults: UserDefaults, run: (WindowDriver) throws -> Void) throws {
+        var search: NSWindow?
+        let delegate = DrillDelegate(root: root, defaults: defaults, accessibilityEnabled: true) { window in
+            if window.title == "Drill" { search = window }
+            presentPrivateWindow(window)
+        }
+        delegate.applicationDidFinishLaunching(Notification(name: NSApplication.didFinishLaunchingNotification))
+        guard let window = search else { throw WindowFailure("Missing fixture search window") }
+        defer { withExtendedLifetime(delegate) { window.close() } }
+        try run(WindowDriver(window: window))
+    }
+
+    func replaceQuery(_ query: String, in driver: WindowDriver) throws {
+        driver.window.contentView?.layoutSubtreeIfNeeded()
+        guard let field = driver.window.initialFirstResponder as? NSSearchField,
+              driver.window.makeFirstResponder(field),
+              let editor = driver.window.firstResponder as? NSTextView, editor.isFieldEditor else {
+            throw WindowFailure("Could not focus the fixture search field")
+        }
+        editor.selectAll(nil)
+        editor.insertText(query, replacementRange: editor.selectedRange())
+        try require(field.stringValue == query, "The fixture query did not reach the search field")
+    }
+
+    func waitForFiles(_ names: [String], in driver: WindowDriver) throws {
+        let status = names.count == 1 ? "1 result" : "\(names.count) results"
+        try driver.wait("Search did not finish with \(names)") {
+            let rows = driver.rows()
+            return rows.count == names.count && names.allSatisfy { name in rows.contains { $0.contains(name) } }
+                && driver.elements.contains { $0.role == NSAccessibility.Role.staticText.rawValue && $0.texts.contains(status) }
+        }
+    }
+
+    func togglePhotosSearch(in panel: WindowDriver) throws {
+        let label = "Search inside Photos libraries"
+        func checkbox() -> AccessibleNode? {
+            panel.elements.first { $0.role == NSAccessibility.Role.checkBox.rawValue && $0.texts.contains(label) }
+        }
+        try panel.wait("Missing the Photos search checkbox") { checkbox() != nil }
+        try require(checkbox()?.press() == true, "Could not press the Photos search checkbox")
+    }
+
+    let key = "searchInsidePhotosLibraries"
+    try withSearchWindow(defaults: defaults) { driver in
+        try replaceQuery("needle", in: driver)
+        try waitForFiles([outside], in: driver)
+
+        let panel = try openPanel("Settings", "Search…", title: "Search")
+        try togglePhotosSearch(in: panel)
+        try panel.wait("Enabling Photos search did not save the preference") {
+            defaults.persistentDomain(forName: suite)?[key] as? Bool == true
+        }
+        try waitForFiles([outside, inside], in: driver)
+    }
+
+    guard let reopenedDefaults = UserDefaults(suiteName: suite) else { throw WindowFailure("Missing saved defaults") }
+    try withSearchWindow(defaults: reopenedDefaults) { driver in
+        try replaceQuery("needle", in: driver)
+        try waitForFiles([outside, inside], in: driver)
+
+        let panel = try openPanel("Settings", "Search…", title: "Search")
+        try togglePhotosSearch(in: panel)
+        try panel.wait("Disabling Photos search did not save the preference") {
+            reopenedDefaults.persistentDomain(forName: suite)?[key] as? Bool == false
+        }
+        try waitForFiles([outside], in: driver)
+
+        try replaceQuery("needle-outside", in: driver)
+        try performMenuEntry("Search", "Stop")
+        try driver.wait("Stop did not cancel the fixture search") {
+            driver.elements.contains { $0.isNamed("Stopped", role: .staticText) }
+        }
+        try togglePhotosSearch(in: panel)
+        try panel.wait("Re-enabling Photos search did not save the preference") {
+            reopenedDefaults.persistentDomain(forName: suite)?[key] as? Bool == true
+        }
+        try require(driver.elements.contains { $0.isNamed("Stopped", role: .staticText) },
+                    "Changing Photos search must honor an explicit Stop")
+        try replaceQuery("needle", in: driver)
+        try waitForFiles([outside, inside], in: driver)
     }
 }
 

@@ -26,6 +26,19 @@ pub struct Entry {
     pub is_dir: bool,
 }
 
+/// Options that apply to a single search.
+#[derive(Clone, Copy, Default)]
+pub struct SearchOptions {
+    /// Include the contents of macOS Photos libraries during ordinary traversal.
+    pub search_inside_photos_libraries: bool,
+}
+
+impl SearchOptions {
+    fn prunes_photos_libraries(self) -> bool {
+        cfg!(target_os = "macos") && !self.search_inside_photos_libraries
+    }
+}
+
 // The platform root files are embedded, so running a binary from another directory works.
 pub fn default_roots() -> Vec<PathBuf> {
     default_roots_with_cancel(&AtomicBool::new(false))
@@ -33,6 +46,11 @@ pub fn default_roots() -> Vec<PathBuf> {
 
 /// Discovers platform roots, checking cancellation between filesystem operations.
 pub fn default_roots_with_cancel(cancel: &AtomicBool) -> Vec<PathBuf> {
+    default_roots_with_options(cancel, SearchOptions::default())
+}
+
+/// Discovers platform roots using the options for the search.
+pub fn default_roots_with_options(cancel: &AtomicBool, options: SearchOptions) -> Vec<PathBuf> {
     let config = if cfg!(target_os = "windows") {
         include_str!("../../../src/assets/roots_windows.txt")
     } else if cfg!(target_os = "macos") {
@@ -43,6 +61,17 @@ pub fn default_roots_with_cancel(cancel: &AtomicBool) -> Vec<PathBuf> {
     let home = std::env::var_os(if cfg!(windows) { "USERPROFILE" } else { "HOME" })
         .map(PathBuf::from)
         .unwrap_or_else(|| PathBuf::from("."));
+    discover_default_roots(config, home, cancel, options)
+}
+
+fn discover_default_roots(
+    config: &str,
+    home: PathBuf,
+    cancel: &AtomicBool,
+    options: SearchOptions,
+) -> Vec<PathBuf> {
+    let prune_photos_libraries = options.prunes_photos_libraries();
+    let may_probe = |path: &Path| !prune_photos_libraries || !has_photos_library_component(path);
     let mut roots = Vec::new();
     for line in config
         .lines()
@@ -80,6 +109,9 @@ pub fn default_roots_with_cancel(cancel: &AtomicBool) -> Vec<PathBuf> {
                 } else {
                     Path::new(prefix).parent().unwrap_or(Path::new(prefix))
                 };
+                if !may_probe(parent) {
+                    continue;
+                }
                 let name_prefix = if directory_wildcard {
                     "".into()
                 } else {
@@ -93,16 +125,17 @@ pub fn default_roots_with_cancel(cancel: &AtomicBool) -> Vec<PathBuf> {
                         entries
                             .flatten()
                             .take_while(|_| !cancel.load(Ordering::Relaxed))
-                            .filter(|e| {
-                                e.file_name()
+                            .filter(|entry| {
+                                entry
+                                    .file_name()
                                     .to_string_lossy()
                                     .starts_with(name_prefix.as_ref())
-                                    && e.path().is_dir()
                             })
-                            .map(|e| e.path()),
+                            .map(|entry| entry.path())
+                            .filter(|path| may_probe(path) && path.is_dir()),
                     );
                 }
-            } else if path.is_dir() {
+            } else if may_probe(&path) && path.is_dir() {
                 roots.push(path);
             }
         }
@@ -121,13 +154,18 @@ pub fn default_roots_with_cancel(cancel: &AtomicBool) -> Vec<PathBuf> {
                 .filter(|dir| dir.is_dir()),
         );
     }
-    if roots.is_empty() && !cancel.load(Ordering::Relaxed) {
+    if roots.is_empty() && !cancel.load(Ordering::Relaxed) && may_probe(&home) {
         roots.push(home);
     }
     roots.sort();
     roots.dedup();
-    #[cfg(target_os = "macos")]
-    roots.retain(|root| !cancel.load(Ordering::Relaxed) && is_implicit_search_root(root));
+    if prune_photos_libraries {
+        // Lexically ordinary defaults can resolve inside a library through an alias.
+        roots.retain(|root| {
+            !cancel.load(Ordering::Relaxed)
+                && fs::canonicalize(root).is_ok_and(|path| !has_photos_library_component(&path))
+        });
+    }
     roots
 }
 
@@ -136,11 +174,8 @@ fn is_photos_library(path: &Path) -> bool {
         .is_some_and(|extension| extension.eq_ignore_ascii_case("photoslibrary"))
 }
 
-#[cfg(target_os = "macos")]
-fn is_implicit_search_root(path: &Path) -> bool {
-    // Expanded defaults can include a package or an alias that resolves inside it.
-    let in_library = |path: &Path| path.ancestors().any(is_photos_library);
-    !in_library(path) && fs::canonicalize(path).is_ok_and(|canonical| !in_library(&canonical))
+fn has_photos_library_component(path: &Path) -> bool {
+    path.ancestors().any(is_photos_library)
 }
 
 #[cfg(target_os = "linux")]
@@ -335,7 +370,23 @@ impl Search {
         startup_cancel: Arc<AtomicBool>,
         filter: FileFilter,
     ) -> Self {
-        Self::start_walk(query, roots, None, None, startup_cancel, filter)
+        Self::start_filtered_with_options(
+            query,
+            roots,
+            startup_cancel,
+            filter,
+            SearchOptions::default(),
+        )
+    }
+
+    pub fn start_filtered_with_options(
+        query: SearchQuery,
+        roots: Vec<PathBuf>,
+        startup_cancel: Arc<AtomicBool>,
+        filter: FileFilter,
+        options: SearchOptions,
+    ) -> Self {
+        Self::start_walk(query, roots, None, None, startup_cancel, filter, options)
     }
 
     #[cfg(any(windows, test))]
@@ -353,6 +404,7 @@ impl Search {
             Some(Box::new(discover)),
             startup_cancel,
             filter,
+            SearchOptions::default(),
         )
     }
 
@@ -363,7 +415,9 @@ impl Search {
         discover: Option<RootDiscovery>,
         startup_cancel: Arc<AtomicBool>,
         filter: FileFilter,
+        options: SearchOptions,
     ) -> Self {
+        let prune_photos_libraries = options.prunes_photos_libraries();
         let valid = query.error().is_none();
         let seeded = discover.is_some();
         let discover = discover.filter(|_| valid && !startup_cancel.load(Ordering::Relaxed));
@@ -470,7 +524,7 @@ impl Search {
                         if kind.is_dir()
                             && !kind.is_symlink()
                             && !(filter == FileFilter::MacBundles && accepted
-                                || cfg!(target_os = "macos") && is_photos_library(&path))
+                                || prune_photos_libraries && is_photos_library(&path))
                         {
                             let canonical =
                                 fs::canonicalize(&path).unwrap_or_else(|_| path.clone());
@@ -684,7 +738,7 @@ mod tests {
 
     #[cfg(target_os = "macos")]
     #[test]
-    fn implicit_roots_exclude_photos_libraries_and_their_contents() {
+    fn automatic_roots_follow_the_photos_library_search_option() {
         use std::os::unix::fs::symlink;
 
         let fixture = private_temp_dir();
@@ -696,24 +750,49 @@ mod tests {
         let originals_alias = pictures.join("originals-alias");
         let package_named_alias = pictures.join("alias.photoslibrary");
         fs::create_dir_all(&originals).unwrap();
+        let internal_directory = originals.join("subdir");
+        fs::create_dir_all(&internal_directory).unwrap();
         fs::create_dir_all(&ordinary).unwrap();
         symlink(&library, &alias).unwrap();
         symlink(&originals, &originals_alias).unwrap();
         symlink(&ordinary, &package_named_alias).unwrap();
 
-        for path in [pictures, ordinary] {
-            assert!(is_implicit_search_root(&path), "{}", path.display());
-        }
-        for path in [
+        let config = "~\n~/*\n~/Library.PhOtOsLiBrArY/originals\n~/Library.PhOtOsLiBrArY/originals/*\n~/alias/originals";
+        let cancel = AtomicBool::new(false);
+        let defaults = SearchOptions::default();
+        let include = SearchOptions {
+            search_inside_photos_libraries: true,
+        };
+        assert_eq!(
+            discover_default_roots(config, pictures.clone(), &cancel, defaults),
+            [pictures.clone(), ordinary.clone()]
+        );
+        let mut all = [
+            pictures.clone(),
+            ordinary,
             library,
-            originals,
+            originals.clone(),
+            internal_directory,
             alias.join("originals"),
             alias,
-            originals_alias,
+            originals_alias.clone(),
             package_named_alias,
-        ] {
-            assert!(!is_implicit_search_root(&path), "{}", path.display());
-        }
+        ];
+        all.sort();
+        assert_eq!(
+            discover_default_roots(config, pictures, &cancel, include),
+            all
+        );
+        assert!(discover_default_roots("", originals.clone(), &cancel, defaults).is_empty());
+        assert_eq!(
+            discover_default_roots("", originals.clone(), &cancel, include),
+            [originals]
+        );
+        assert!(discover_default_roots("", originals_alias.clone(), &cancel, defaults).is_empty());
+        assert_eq!(
+            discover_default_roots("", originals_alias.clone(), &cancel, include),
+            [originals_alias]
+        );
     }
 
     #[cfg(target_os = "linux")]

@@ -115,6 +115,7 @@ private struct WindowInteractionTest {
             try checkStreamingBacklog()
             try exerciseResultIcons()
             try exercisePanels()
+            try exerciseSearchSettings()
             print("SwiftUI interaction checks passed for search, the results table, icons, menus and settings")
         } catch {
             FileHandle.standardError.write(Data("SwiftUI window test failed: \(error)\n".utf8))

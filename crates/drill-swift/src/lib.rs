@@ -4,7 +4,9 @@
 
 mod icons;
 
-use drill_core::{default_roots_with_cancel, Entry, FileFilter, MatchKind, Search, SearchQuery};
+use drill_core::{
+    default_roots_with_options, Entry, FileFilter, MatchKind, Search, SearchOptions, SearchQuery,
+};
 use std::ffi::{c_char, c_void, CStr, CString, OsStr};
 use std::os::unix::ffi::OsStrExt;
 use std::path::{Path, PathBuf};
@@ -73,6 +75,7 @@ fn start(
     root: Option<PathBuf>,
     additional: Vec<PathBuf>,
     cancel: Arc<AtomicBool>,
+    options: SearchOptions,
 ) -> Result<Option<Search>, String> {
     if cancel.load(Ordering::Relaxed) {
         return Ok(None);
@@ -86,7 +89,7 @@ fn start(
     }
     let mut roots = match root {
         Some(root) => vec![root],
-        None => default_roots_with_cancel(&cancel),
+        None => default_roots_with_options(&cancel, options),
     };
     roots.extend(additional);
     let filter = if apps {
@@ -94,7 +97,9 @@ fn start(
     } else {
         FileFilter::All
     };
-    Ok(Some(Search::start_filtered(query, roots, cancel, filter)))
+    Ok(Some(Search::start_filtered_with_options(
+        query, roots, cancel, filter, options,
+    )))
 }
 
 /// Starts a search. Query parsing, root discovery and traversal run on workers.
@@ -128,6 +133,35 @@ pub unsafe extern "C" fn drill_search_start_with_roots(
     root_len: usize,
     additional: *const u8,
     additional_len: usize,
+) -> *mut DrillSearch {
+    // SAFETY: both APIs share the input pointer and length requirements.
+    unsafe {
+        drill_search_start_with_options(
+            query,
+            apps,
+            root,
+            root_len,
+            additional,
+            additional_len,
+            false,
+        )
+    }
+}
+
+/// Starts a search with optional recursive traversal of Photos libraries.
+///
+/// # Safety
+/// The query and all path buffers must meet the requirements of
+/// `drill_search_start_with_roots`.
+#[no_mangle]
+pub unsafe extern "C" fn drill_search_start_with_options(
+    query: *const c_char,
+    apps: bool,
+    root: *const u8,
+    root_len: usize,
+    additional: *const u8,
+    additional_len: usize,
+    search_inside_photos_libraries: bool,
 ) -> *mut DrillSearch {
     let cancel = Arc::new(AtomicBool::new(false));
     let mut handle = Box::new(DrillSearch {
@@ -180,10 +214,13 @@ pub unsafe extern "C" fn drill_search_start_with_roots(
         let (sender, receiver) = mpsc::sync_channel(1);
         let paused = Arc::new(Mutex::new(false));
         let startup_pause = paused.clone();
+        let options = SearchOptions {
+            search_inside_photos_libraries,
+        };
         thread::Builder::new()
             .name("drill-swift-start".into())
             .spawn(move || {
-                let result = start(text, apps, root, directories, cancel);
+                let result = start(text, apps, root, directories, cancel, options);
                 // Serialize this one-shot handoff with pause requests. Workers
                 // honor a pause during startup even if the UI stops polling.
                 let requested_pause = startup_pause.lock().unwrap();

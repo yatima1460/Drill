@@ -78,6 +78,30 @@ impl Handle {
         })
     }
 
+    #[cfg(target_os = "macos")]
+    fn with_options(
+        query: &str,
+        apps: bool,
+        root: &Path,
+        additional: &[u8],
+        search_inside_photos_libraries: bool,
+    ) -> Self {
+        let root = root.as_os_str().as_bytes();
+        let query = CString::new(query).unwrap();
+        // SAFETY: the C string and both borrowed buffers outlive this call.
+        Self(unsafe {
+            drill_search_start_with_options(
+                query.as_ptr(),
+                apps,
+                root.as_ptr(),
+                root.len(),
+                additional.as_ptr(),
+                additional.len(),
+                search_inside_photos_libraries,
+            )
+        })
+    }
+
     fn poll(&mut self, limit: u32, hits: &mut Vec<Hit>) -> bool {
         let before = hits.len();
         // SAFETY: self owns the live handle, and receive accesses hits only
@@ -102,6 +126,14 @@ impl Handle {
             std::thread::sleep(Duration::from_millis(1));
         }
         hits
+    }
+
+    #[cfg(target_os = "macos")]
+    fn sorted_paths(mut self) -> Vec<PathBuf> {
+        let mut paths: Vec<_> = self.drain(1).into_iter().map(|hit| hit.path).collect();
+        assert_eq!(self.error(), None);
+        paths.sort();
+        paths
     }
 
     fn error(&self) -> Option<String> {
@@ -236,32 +268,41 @@ fn apps_use_core_bundle_filter_stem_ranking_and_empty_query_behavior() {
 
 #[cfg(target_os = "macos")]
 #[test]
-fn photos_library_contents_are_hidden_from_parent_searches_in_both_scopes() {
+fn photos_library_option_controls_parent_searches_in_both_scopes() {
     let dir = private_temp_dir();
     let root = dir.path();
     let library = root.join("Sample.PHOTOSLIBRARY");
     let originals = library.join("originals");
+    let photo = originals.join("Sample Original.jpg");
+    let app = originals.join("Sample Internal.app");
     let loose = root.join("Sample.photoslibrary-backup");
     let loose_photo = loose.join("Sample Loose.jpg");
     let loose_app = loose.join("Sample Tools.app");
-    fs::create_dir_all(&originals).unwrap();
+    fs::create_dir_all(&app).unwrap();
     fs::create_dir_all(&loose_app).unwrap();
-    fs::write(originals.join("Sample Original.jpg"), []).unwrap();
+    fs::write(&photo, []).unwrap();
     fs::write(&loose_photo, []).unwrap();
-    fs::create_dir(originals.join("Sample Internal.app")).unwrap();
 
-    let mut files = Handle::new("sample", false, root);
-    let mut file_paths: Vec<_> = files.drain(1).into_iter().map(|hit| hit.path).collect();
-    file_paths.sort();
-    let mut apps = Handle::new("sample", true, root);
-    let app_paths: Vec<_> = apps.drain(1).into_iter().map(|hit| hit.path).collect();
+    let search =
+        |apps, enabled| Handle::with_options("sample", apps, root, &[], enabled).sorted_paths();
+    let outside_files = vec![library, loose, loose_photo, loose_app.clone()];
+    let outside_apps = std::slice::from_ref(&loose_app);
     assert_eq!(
-        (file_paths.as_slice(), app_paths.as_slice()),
-        (
-            [library, loose, loose_photo, loose_app.clone()].as_slice(),
-            [loose_app].as_slice(),
-        )
+        Handle::new("sample", false, root).sorted_paths(),
+        outside_files
     );
+    assert_eq!(
+        Handle::new("sample", true, root).sorted_paths(),
+        outside_apps
+    );
+    assert_eq!(search(false, false), outside_files);
+    assert_eq!(search(true, false), outside_apps);
+
+    let mut all_files = outside_files;
+    all_files.extend([photo, app.clone()]);
+    all_files.sort();
+    assert_eq!(search(false, true), all_files);
+    assert_eq!(search(true, true), [app, loose_app]);
 }
 
 #[cfg(target_os = "macos")]
@@ -277,11 +318,10 @@ fn explicit_photos_library_roots_search_contents_without_duplicate_hits() {
     fs::write(&photo, []).unwrap();
 
     for selected in [&library, &originals] {
-        let hits = Handle::new("sample", false, selected).drain(1);
-        assert!(hits.iter().any(|hit| hit.path == photo));
-        let apps = Handle::new("sample", true, selected).drain(1);
-        let paths: Vec<_> = apps.into_iter().map(|hit| hit.path).collect();
-        assert_eq!(paths.as_slice(), std::slice::from_ref(&app));
+        let paths = Handle::new("sample", false, selected).sorted_paths();
+        assert_eq!(paths, [app.clone(), photo.clone()]);
+        let paths = Handle::new("sample", true, selected).sorted_paths();
+        assert_eq!(paths, std::slice::from_ref(&app));
     }
 
     let mut additional = Vec::new();
@@ -289,13 +329,13 @@ fn explicit_photos_library_roots_search_contents_without_duplicate_hits() {
         additional.extend_from_slice(selected.as_os_str().as_bytes());
         additional.push(0);
     }
-    let mut files = Handle::with_additional("sample", false, root, &additional);
-    let mut paths: Vec<_> = files.drain(1).into_iter().map(|hit| hit.path).collect();
-    paths.sort();
-    assert_eq!(paths, [library, app.clone(), photo]);
-    let mut apps = Handle::with_additional("sample", true, root, &additional);
-    let paths: Vec<_> = apps.drain(1).into_iter().map(|hit| hit.path).collect();
-    assert_eq!(paths, [app]);
+    let expected_files = [library, app.clone(), photo];
+    for enabled in [false, true] {
+        let files = Handle::with_options("sample", false, root, &additional, enabled);
+        assert_eq!(files.sorted_paths(), expected_files);
+        let apps = Handle::with_options("sample", true, root, &additional, enabled);
+        assert_eq!(apps.sorted_paths(), std::slice::from_ref(&app));
+    }
 }
 
 #[test]
