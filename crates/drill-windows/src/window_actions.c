@@ -1,4 +1,4 @@
-// Built with menu.c and clipboard.c in the Windows SDK adapter.
+#include "adapters.h"
 #include "window_actions.h"
 #include "window_preferences.c"
 #include "window_shell.c"
@@ -16,19 +16,12 @@ void drill_panel_apply(HWND panel, bool dark);
 struct DrillWinActions {
     HWND owner, settings, help;
     DrillModel *model;
-    DrillMenu *menu;
     DrillWinIcons *icons;
     DWORD prefs[WIN_PREF_COUNT];
     bool dark;
 };
 
-static void win_menu_command(const void *context, uint8_t command) {
-    DrillWinActions *actions = (DrillWinActions *)context;
-    if (command == STOP_MENU) {
-        drill_stop(actions->model);
-        return;
-    }
-    bool settings = command == SETTINGS_MENU;
+void drill_win_show_panel(DrillWinActions *actions, bool settings) {
     HWND *panel = settings ? &actions->settings : &actions->help;
     *panel = drill_panel_show(actions->owner, *panel, settings, actions->prefs[WIN_APPEARANCE],
                              actions->prefs[WIN_EXE_ICONS] != 0, actions->prefs[WIN_APPIMAGE_ICONS] != 0,
@@ -42,11 +35,6 @@ DrillWinActions *drill_win_actions_create(HWND owner, DrillModel *model, HWND ta
     actions->owner = owner;
     actions->model = model;
     win_load_prefs(actions->prefs);
-    actions->menu = drill_windows_menu_install(owner, win_menu_command, actions);
-    if (!actions->menu) {
-        free(actions);
-        return NULL;
-    }
     actions->icons = drill_win_icons_create(owner, table, model);
     drill_win_refresh_theme(actions);
     return actions;
@@ -56,13 +44,8 @@ void drill_win_actions_destroy(DrillWinActions *actions) {
     if (!actions) return;
     if (actions->settings) DestroyWindow(actions->settings);
     if (actions->help) DestroyWindow(actions->help);
-    drill_windows_menu_remove(actions->menu);
     if (actions->icons) drill_win_icons_destroy(actions->icons);
     free(actions);
-}
-
-void drill_win_actions_update(DrillWinActions *actions, bool can_stop) {
-    if (actions) drill_windows_menu_set_enabled(actions->menu, can_stop, true);
 }
 
 bool drill_win_dark(const DrillWinActions *actions) {
@@ -74,7 +57,6 @@ void drill_win_refresh_theme(DrillWinActions *actions) {
     bool dark = win_resolve_dark(actions->prefs[WIN_APPEARANCE]);
     if (dark == actions->dark) return;
     actions->dark = dark;
-    drill_windows_menu_set_dark(actions->menu, dark);
     drill_panel_apply(actions->settings, dark);
     drill_panel_apply(actions->help, dark);
 }

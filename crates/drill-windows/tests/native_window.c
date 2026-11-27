@@ -17,7 +17,7 @@ static PROCESS_INFORMATION app;
 static HWND window, edit, combo, list, header, status;
 static WCHAR root[MAX_PATH];
 static const WCHAR *const files[] = {
-    L"win-native-a-\U0001F9EA.txt", L"win-native-z.txt", L"win-native-m.exe", L"opened.marker"
+    L"win-native-a-\U0001F9EA.txt", L"win-native-z.txt", L"win-native-m.exe", L"opened.marker", L"green test icon.exe"
 };
 static WCHAR paths[ARRAYSIZE(files)][MAX_PATH];
 
@@ -27,6 +27,36 @@ static void fail(const char *message) {
 }
 #define REQUIRE(test) do { if (!(test)) fail(#test); } while (0)
 
+typedef struct {
+    const WCHAR *subkey, *name;
+    DWORD type, bytes;
+    BYTE *data;
+} SavedValue;
+static SavedValue saved_values[8];
+static size_t saved_count;
+
+// Run the shipping app through its actual per-user registry preferences and
+// restore the original type, bytes, or absence even if an assertion fails.
+static void preserve_value(const WCHAR *subkey, const WCHAR *name) {
+    REQUIRE(saved_count < ARRAYSIZE(saved_values));
+    SavedValue *value = &saved_values[saved_count];
+    value->subkey = subkey;
+    value->name = name;
+    HKEY key = NULL;
+    LSTATUS result = RegOpenKeyExW(HKEY_CURRENT_USER, subkey, 0, KEY_QUERY_VALUE, &key);
+    if (result == ERROR_SUCCESS) {
+        result = RegQueryValueExW(key, name, NULL, &value->type, NULL, &value->bytes);
+        if (result == ERROR_SUCCESS) {
+            value->data = calloc(value->bytes ? value->bytes : 1, 1);
+            REQUIRE(value->data);
+            result = RegQueryValueExW(key, name, NULL, &value->type, value->data, &value->bytes);
+        }
+        RegCloseKey(key);
+    }
+    REQUIRE(result == ERROR_SUCCESS || result == ERROR_FILE_NOT_FOUND || result == ERROR_PATH_NOT_FOUND);
+    ++saved_count;
+}
+
 static void clean_up(void) {
     if (app.hProcess) {
         if (WaitForSingleObject(app.hProcess, 0) == WAIT_TIMEOUT) {
@@ -34,6 +64,15 @@ static void clean_up(void) {
             WaitForSingleObject(app.hProcess, 5000);
         }
         CloseHandle(app.hProcess);
+    }
+    for (size_t i = 0; i < saved_count; ++i) {
+        SavedValue *value = &saved_values[i];
+        if (value->data) {
+            RegSetKeyValueW(HKEY_CURRENT_USER, value->subkey, value->name, value->type, value->data, value->bytes);
+            free(value->data);
+        } else {
+            RegDeleteKeyValueW(HKEY_CURRENT_USER, value->subkey, value->name);
+        }
     }
     for (unsigned i = 0; i < ARRAYSIZE(files); ++i) {
         if (*paths[i]) DeleteFileW(paths[i]);
@@ -64,6 +103,7 @@ static void fixture(const WCHAR *self) {
     create_file(paths[1]);
     create_file(paths[0]);
     REQUIRE(CopyFileW(self, paths[2], TRUE));
+    REQUIRE(CopyFileW(L"tools\\exe-icon-wasm\\tests\\fixtures\\icon-pe32.exe", paths[4], TRUE));
 }
 
 static void launch(const WCHAR *path) {
@@ -251,7 +291,7 @@ static void key(WORD vk, bool ctrl) {
     for (UINT i = 0; i < count; ++i) {
         events[i].type = INPUT_KEYBOARD;
         WORD code = events[i].ki.wVk;
-        if (code == VK_UP || code == VK_DOWN || code == VK_RIGHT || code == VK_HOME || code == VK_END) {
+        if (code == VK_UP || code == VK_DOWN || code == VK_LEFT || code == VK_HOME || code == VK_END) {
             events[i].ki.dwFlags |= KEYEVENTF_EXTENDEDKEY;
         }
     }
@@ -315,7 +355,7 @@ static void search_and_sort(void) {
     copy_and_expect(paths[1]);
     accessible_first_row(files[1]);
 
-    click(edit);
+    key('F', true);
     GUITHREADINFO focus = {0};
     focus.cbSize = sizeof(focus);
     ULONGLONG deadline = GetTickCount64() + 5000;
@@ -324,6 +364,9 @@ static void search_and_sort(void) {
         if (focus.hwndFocus == edit) break;
         REQUIRE(retry(deadline));
     } while (true);
+    DWORD selected_start = 0, selected_end = 0;
+    message(edit, EM_GETSEL, (WPARAM)&selected_start, (LPARAM)&selected_end);
+    REQUIRE(selected_start == 0 && selected_end == wcslen(L"win-native-*.txt"));
     message(edit, EM_SETSEL, 0, 10);
     copy_and_expect(L"win-native");
     key('A', true);
@@ -331,6 +374,30 @@ static void search_and_sort(void) {
     expect_text(edit, L"win-native");
     results(3);
     selected(-1);
+    key('Z', true);
+    expect_text(edit, L"win-native-*.txt");
+    results(2);
+    key('Y', true);
+    expect_text(edit, L"win-native");
+    results(3);
+}
+
+// Each copy of the fixture app appends one byte. Concurrent activations must be
+// visible independently, including ones which start after a shortcut returns.
+static DWORD launches(void) {
+    WIN32_FILE_ATTRIBUTE_DATA attr;
+    if (!GetFileAttributesExW(paths[3], GetFileExInfoStandard, &attr)) {
+        REQUIRE(GetLastError() == ERROR_FILE_NOT_FOUND);
+        return 0;
+    }
+    REQUIRE(attr.nFileSizeHigh == 0);
+    return attr.nFileSizeLow;
+}
+
+static void wait_for_launches(DWORD expected) {
+    ULONGLONG deadline = GetTickCount64() + 10000;
+    while (launches() < expected) REQUIRE(retry(deadline));
+    REQUIRE(launches() == expected);
 }
 
 static void filter_and_launch(void) {
@@ -344,12 +411,20 @@ static void filter_and_launch(void) {
     selected(0);
     copy_and_expect(paths[2]);
     REQUIRE(GetFileAttributesW(paths[3]) == INVALID_FILE_ATTRIBUTES);
-    key(VK_RETURN, false);
-    ULONGLONG deadline = GetTickCount64() + 10000;
-    while (GetFileAttributesW(paths[3]) == INVALID_FILE_ATTRIBUTES) {
-        REQUIRE(retry(deadline));
+    // Submit a complete held Enter, including repeated key-downs and the final
+    // release, before the launched console can become the keyboard target.
+    INPUT enter[4] = {0};
+    for (unsigned i = 0; i < ARRAYSIZE(enter); ++i) {
+        enter[i].type = INPUT_KEYBOARD;
+        enter[i].ki.wVk = VK_RETURN;
     }
-    // The fixture process may briefly own focus while its console closes.
+    enter[3].ki.dwFlags = KEYEVENTF_KEYUP;
+    send_events(enter, ARRAYSIZE(enter));
+    wait_for_launches(1);
+    activate_main();
+    selected(0);
+    key('O', true);
+    wait_for_launches(2);
     activate_main();
 
     click(combo);
@@ -364,16 +439,16 @@ static void filter_and_launch(void) {
     results(0);
 }
 
-static HWND open_panel(int menu_index, const WCHAR *title) {
+static HWND open_settings(void) {
     // An HMENU from a different process is not a portable inspection handle
     // under Wine. Use the visible menu bar's ordinary keyboard navigation.
     activate_main();
     key(VK_F10, false);
-    key(VK_HOME, false);
-    for (int i = 0; i < menu_index; ++i) key(VK_RIGHT, false);
+    key(VK_END, false);
+    key(VK_LEFT, false);  // Settings is immediately before Help.
     key(VK_DOWN, false);
     key(VK_RETURN, false);
-    HWND panel = find_window(L"#32770", title);
+    HWND panel = find_window(L"#32770", L"Interface");
     REQUIRE(GetWindow(panel, GW_OWNER) == window);
     return panel;
 }
@@ -385,12 +460,70 @@ static void close_panel(HWND panel) {
     REQUIRE(IsWindowVisible(window));
 }
 
+// The fixture's opaque 32 px frame is green. Sample the first unselected
+// row's actual icon pixels; each point is inside the rendered image, clear
+// of borders, text, and the header. The same native row stays visible while
+// asynchronous decoding and preference changes repaint the control.
+static void expect_green_icon(bool green) {
+    ULONGLONG deadline = GetTickCount64() + 12000;
+    RECT heading;
+    REQUIRE(GetWindowRect(header, &heading));
+    POINT origin = {heading.left, heading.bottom};
+    REQUIRE(ScreenToClient(list, &origin));
+    int side = MulDiv(32, (int)GetDpiForWindow(list), 96);
+    REQUIRE(side > 0);
+    int matches;
+    unsigned stable = 0;
+    do {
+        HDC dc = GetDC(list);
+        REQUIRE(dc);
+        matches = 0;
+        for (int y = 1; y <= 3; ++y) {
+            for (int x = 1; x <= 3; ++x) {
+                COLORREF pixel = GetPixel(dc, origin.x + side * x / 4, origin.y + side * y / 4);
+                REQUIRE(pixel != CLR_INVALID);
+                if (pixel == RGB(0, 255, 0)) ++matches;
+            }
+        }
+        ReleaseDC(list, dc);
+        if (green ? matches == 9 : matches == 0) {
+            if (++stable == 5) return;
+        } else {
+            stable = 0;
+        }
+    } while (retry(deadline));
+    fprintf(stderr, "Expected %s icon, found %d/9 green samples.\n", green ? "embedded" : "fallback", matches);
+    fail("list-view icon pixels");
+}
+
 static void panels(void) {
-    HWND settings = open_panel(1, L"Interface");
-    expect_text(control(settings, 6104, L"Button"), L"Show EXE icons");
+    click(edit);
+    key('A', true);
+    type_text(L"green test icon.exe");
+    results(1);
+    selected(-1);
+    HWND settings = open_settings();
+    HWND check = control(settings, 6104, L"Button");
+    expect_text(check, L"Show EXE icons");
     expect_text(control(settings, 6105, L"Button"), L"Show AppImage icons");
+    bool checked = message(check, BM_GETCHECK, 0, 0) == BST_CHECKED;
     close_panel(settings);
-    HWND help = open_panel(2, L"Search syntax");
+    expect_green_icon(checked);
+    // Exercise both directions without starting a new query or replacing its row.
+    for (int i = 0; i < 2; ++i) {
+        settings = open_settings();
+        check = control(settings, 6104, L"Button");
+        click(check);
+        checked = !checked;
+        ULONGLONG deadline = GetTickCount64() + 5000;
+        while ((message(check, BM_GETCHECK, 0, 0) == BST_CHECKED) != checked) REQUIRE(retry(deadline));
+        close_panel(settings);
+        expect_green_icon(checked);
+    }
+    activate_main();
+    key(VK_F1, false);
+    HWND help = find_window(L"#32770", L"Search syntax");
+    REQUIRE(GetWindow(help, GW_OWNER) == window);
     REQUIRE(message(control(help, 6106, L"Edit"), WM_GETTEXTLENGTH, 0, 0) > 0);
     HWND reference = control(help, 6109, L"Button");
     REQUIRE(!IsWindowVisible(reference));
@@ -398,6 +531,66 @@ static void panels(void) {
     ULONGLONG deadline = GetTickCount64() + 5000;
     while (!IsWindowVisible(reference)) REQUIRE(retry(deadline));
     close_panel(help);
+}
+
+static void wait_for_exit(void) {
+    REQUIRE(WaitForSingleObject(app.hProcess, 10000) == WAIT_OBJECT_0);
+    DWORD code;
+    REQUIRE(GetExitCodeProcess(app.hProcess, &code) && code == 0);
+    CloseHandle(app.hProcess);
+    app.hProcess = NULL;
+}
+
+static void wait_for_bounds(const RECT *bounds) {
+    RECT actual = {0};
+    ULONGLONG deadline = GetTickCount64() + 5000;
+    do {
+        REQUIRE(GetWindowRect(window, &actual));
+        if (!IsZoomed(window) && labs(actual.left - bounds->left) <= 1 &&
+            labs(actual.top - bounds->top) <= 1 && labs(actual.right - bounds->right) <= 1 &&
+            labs(actual.bottom - bounds->bottom) <= 1) return;
+    } while (retry(deadline));
+    fprintf(stderr, "Expected normal bounds (%ld,%ld,%ld,%ld), got (%ld,%ld,%ld,%ld), zoomed=%d\n",
+            bounds->left, bounds->top, bounds->right, bounds->bottom,
+            actual.left, actual.top, actual.right, actual.bottom, IsZoomed(window));
+    fail("restoring window placement");
+}
+
+static void wait_for_maximized(void) {
+    ULONGLONG deadline = GetTickCount64() + 5000;
+    while (!IsZoomed(window)) REQUIRE(retry(deadline));
+}
+
+static void check_geometry(const WCHAR *executable) {
+    message(window, WM_SYSCOMMAND, SC_RESTORE, 0);
+    MONITORINFO monitor = {0};
+    monitor.cbSize = sizeof(monitor);
+    REQUIRE(GetMonitorInfoW(MonitorFromWindow(window, MONITOR_DEFAULTTONEAREST), &monitor));
+    RECT work = monitor.rcWork;
+    LONG width = (work.right - work.left) * 3 / 4, height = (work.bottom - work.top) * 3 / 4;
+    RECT normal = {work.left + 29, work.top + 21, work.left + 29 + width, work.top + 21 + height};
+    REQUIRE(SetWindowPos(window, NULL, normal.left, normal.top, width, height,
+                         SWP_NOACTIVATE | SWP_NOZORDER));
+    wait_for_bounds(&normal);
+    click(edit);
+    key(VK_ESCAPE, false);
+    wait_for_exit();
+
+    launch(executable);
+    window = find_window(L"DrillSearchWindow", L"Drill");
+    wait_for_bounds(&normal);
+    message(window, WM_SYSCOMMAND, SC_MAXIMIZE, 0);
+    wait_for_maximized();
+    message(window, WM_CLOSE, 0, 0);
+    wait_for_exit();
+
+    launch(executable);
+    window = find_window(L"DrillSearchWindow", L"Drill");
+    wait_for_maximized();
+    message(window, WM_SYSCOMMAND, SC_RESTORE, 0);
+    wait_for_bounds(&normal);
+    message(window, WM_CLOSE, 0, 0);
+    wait_for_exit();
 }
 
 int wmain(int argc, WCHAR **argv) {
@@ -409,7 +602,12 @@ int wmain(int argc, WCHAR **argv) {
         // Let Windows release the fixture console before reporting that Open ran.
         FreeConsole();
         lstrcpyW(name + 1, files[3]);
-        create_file(self);
+        HANDLE marker = CreateFileW(self, FILE_APPEND_DATA, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL,
+                                    OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+        REQUIRE(marker != INVALID_HANDLE_VALUE);
+        DWORD written = 0;
+        REQUIRE(WriteFile(marker, "1", 1, &written, NULL) && written == 1);
+        CloseHandle(marker);
         return 0;
     }
     use_msaa = !(argc == 3 && wcscmp(argv[2], L"--wine") == 0);
@@ -421,6 +619,8 @@ int wmain(int argc, WCHAR **argv) {
     // Keep hit-test coordinates in physical pixels on scaled displays.
     SetProcessDPIAware();
     atexit(clean_up);
+    preserve_value(L"Software\\Drill\\Interface", L"WindowPlacement");
+    preserve_value(L"Software\\Drill\\Interface", L"ShowExeIcons");
     fixture(self);
     launch(argv[1]);
     window = find_window(L"DrillSearchWindow", L"Drill");
@@ -438,12 +638,9 @@ int wmain(int argc, WCHAR **argv) {
     search_and_sort();
     filter_and_launch();
     panels();
-    click(edit);
-    key(VK_ESCAPE, false);
-    REQUIRE(WaitForSingleObject(app.hProcess, 10000) == WAIT_OBJECT_0);
-    DWORD code;
-    REQUIRE(GetExitCodeProcess(app.hProcess, &code) && code == 0);
+    check_geometry(argv[1]);
+    REQUIRE(launches() == 2);
     if (use_msaa) CoUninitialize();
-    puts("Native Windows search, selection, clipboard, sorting, launch, panels and Escape passed.");
+    puts("Native Windows search, selection, clipboard, sorting, launch shortcuts, panels, geometry and Escape passed.");
     return 0;
 }

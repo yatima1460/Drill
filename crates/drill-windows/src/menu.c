@@ -1,24 +1,47 @@
-// Drill's three window menu commands. Keep the menu and subclass on the UI thread.
+// The menu, accelerators and window subclass belong to the UI thread.
 #define WIN32_LEAN_AND_MEAN
-#include <windows.h>
+#include "adapters.h"
 #include <commctrl.h>
-#include <stdbool.h>
-#include <stdint.h>
 #include <stdlib.h>
 #include "menu_appearance.c"
 
-enum { STOP_MENU, SETTINGS_MENU, HELP_MENU, MENU_COUNT };
 enum { FIRST_DRILL_COMMAND = 0x4001, DRILL_SUBCLASS = 1 };
 
-typedef struct {
+enum { FILE_POPUP, EDIT_POPUP, SEARCH_POPUP, SETTINGS_POPUP, HELP_POPUP };
+
+static const struct {
+    UINT popup;
+    enum DrillMenuCommand command;
+    const WCHAR *label;
+    BYTE modifiers;
+    WORD key;
+} items[] = {
+    { FILE_POPUP, MENU_OPEN, L"&Open Selection\tCtrl+O", FCONTROL, 'O' },
+    { FILE_POPUP, MENU_CLOSE, L"&Close Window\tCtrl+W", FCONTROL, 'W' },
+    { EDIT_POPUP, MENU_UNDO, L"&Undo\tCtrl+Z", FCONTROL, 'Z' },
+    { EDIT_POPUP, MENU_REDO, L"&Redo\tCtrl+Y", FCONTROL, 'Y' },
+    { EDIT_POPUP, MENU_COMMAND_COUNT, NULL, 0, 0 },
+    { EDIT_POPUP, MENU_CUT, L"Cu&t\tCtrl+X", FCONTROL, 'X' },
+    { EDIT_POPUP, MENU_COPY, L"&Copy\tCtrl+C", FCONTROL, 'C' },
+    { EDIT_POPUP, MENU_PASTE, L"&Paste\tCtrl+V", FCONTROL, 'V' },
+    { EDIT_POPUP, MENU_SELECT_ALL, L"Select &All\tCtrl+A", FCONTROL, 'A' },
+    { SEARCH_POPUP, MENU_FIND, L"&Find\tCtrl+F", FCONTROL, 'F' },
+    { SEARCH_POPUP, MENU_STOP, L"&Stop", 0, 0 },
+    { SEARCH_POPUP, MENU_CONTINUE, L"&Continue", 0, 0 },
+    { SETTINGS_POPUP, MENU_INTERFACE, L"&Interface\x2026\tCtrl+,", FCONTROL, VK_OEM_COMMA },
+    { HELP_POPUP, MENU_SYNTAX, L"&Syntax\tF1", 0, VK_F1 },
+};
+
+struct DrillMenu {
     unsigned references;
     HWND window;
-    HMENU bar, previous, popups[MENU_COUNT];
+    HMENU bar, previous, popups[ARRAYSIZE(drill_menu_titles)];
+    HACCEL accelerators;
     void (*dispatch)(const void *, uint8_t);
     const void *context;
-    bool stop, settings;
+    bool settings;
     DrillMenuAppearance appearance;
-} DrillMenu;
+};
 
 static const WCHAR menu_property[] = L"software.drill.NativeMenu";
 static LRESULT CALLBACK drill_menu_proc(HWND, UINT, WPARAM, LPARAM, UINT_PTR, DWORD_PTR);
@@ -30,6 +53,7 @@ static void release_menu(DrillMenu *menu) {
         if (menu->bar) {
             DestroyMenu(menu->bar);
         }
+        if (menu->accelerators) DestroyAcceleratorTable(menu->accelerators);
         free(menu);
     }
 }
@@ -46,10 +70,11 @@ static void detach_menu(DrillMenu *menu) {
 }
 
 static bool dispatch_menu(DrillMenu *menu, unsigned command) {
-    if (command >= MENU_COUNT || !menu->dispatch) {
+    if (command >= MENU_COMMAND_COUNT || !menu->dispatch) {
         return false;
     }
-    if ((command != STOP_MENU || menu->stop) && (command != SETTINGS_MENU || menu->settings)) {
+    UINT state = GetMenuState(menu->bar, FIRST_DRILL_COMMAND + command, MF_BYCOMMAND);
+    if (!(state & (MF_DISABLED | MF_GRAYED)) && (command != MENU_INTERFACE || menu->settings)) {
         menu->dispatch(menu->context, (uint8_t)command);
         // The callback can synchronously detach the menu.
     }
@@ -60,15 +85,17 @@ static LRESULT process_menu_message(DrillMenu *menu, HWND window, UINT message, 
     if (message == WM_DESTROY || message == WM_NCDESTROY) {
         detach_menu(menu);
     } else if (GetMenu(window) == menu->bar) {
-        if (message == WM_MENUCOMMAND && wp == 0) {
-            for (unsigned i = 0; i < MENU_COUNT; ++i) {
-                if ((HMENU)lp == menu->popups[i] && dispatch_menu(menu, i)) {
-                    return 0;
+        if (message == WM_MENUCOMMAND) {
+            for (unsigned i = 0; i < ARRAYSIZE(menu->popups); ++i) {
+                if ((HMENU)lp == menu->popups[i]) {
+                    UINT id = GetMenuItemID(menu->popups[i], (int)wp);
+                    if (dispatch_menu(menu, id - FIRST_DRILL_COMMAND)) return 0;
+                    break;
                 }
             }
         }
-        // Also accept a menu invocation by its public command ID, e.g. automation.
-        if (message == WM_COMMAND && lp == 0 && HIWORD(wp) == 0 &&
+        // User32 sends a command by ID for accelerators and accessibility clients.
+        if (message == WM_COMMAND && lp == 0 && HIWORD(wp) <= 1 &&
             dispatch_menu(menu, (unsigned)LOWORD(wp) - FIRST_DRILL_COMMAND)) {
             return 0;
         }
@@ -109,26 +136,39 @@ static LRESULT CALLBACK drill_menu_proc(HWND window, UINT message, WPARAM wp, LP
     return result;
 }
 
-static bool add_command(DrillMenu *menu, unsigned index, const WCHAR *label) {
-    HMENU popup = CreatePopupMenu();
+static bool build_menu(DrillMenu *menu) {
     MENUINFO info = {0};
     info.cbSize = sizeof(info);
     info.fMask = MIM_STYLE;
     info.dwStyle = MNS_NOTIFYBYPOS;
-    UINT flags = MF_STRING | (index == STOP_MENU ? MF_GRAYED : MF_ENABLED);
-    if (!popup) {
-        return false;
+    for (unsigned i = 0; i < ARRAYSIZE(menu->popups); ++i) {
+        HMENU popup = CreatePopupMenu();
+        if (!popup) return false;
+        if (!SetMenuInfo(popup, &info) ||
+            !AppendMenuW(menu->bar, MF_POPUP, (UINT_PTR)popup, drill_menu_titles[i].pszWText)) {
+            DestroyMenu(popup);
+            return false;
+        }
+        menu->popups[i] = popup; // From here the parent menu owns it.
     }
-    if (!SetMenuInfo(popup, &info) || !AppendMenuW(popup, flags, FIRST_DRILL_COMMAND + index, label) ||
-        !AppendMenuW(menu->bar, MF_POPUP, (UINT_PTR)popup, drill_menu_titles[index].pszWText)) {
-        DestroyMenu(popup);
-        return false;
+    ACCEL keys[ARRAYSIZE(items)];
+    int count = 0;
+    for (unsigned i = 0; i < ARRAYSIZE(items); ++i) {
+        WORD id = (WORD)(FIRST_DRILL_COMMAND + items[i].command);
+        UINT flags = items[i].label ? MF_STRING : MF_SEPARATOR;
+        if (items[i].command == MENU_STOP || items[i].command == MENU_CONTINUE) flags |= MF_GRAYED;
+        if (!AppendMenuW(menu->popups[items[i].popup], flags, id, items[i].label)) return false;
+        if (items[i].key) {
+            keys[count].cmd = id;
+            keys[count].fVirt = FVIRTKEY | FNOINVERT | items[i].modifiers;
+            keys[count++].key = items[i].key;
+        }
     }
-    menu->popups[index] = popup; // The attached parent now owns this submenu.
-    return true;
+    menu->accelerators = CreateAcceleratorTableW(keys, count);
+    return menu->accelerators != NULL;
 }
 
-void *drill_windows_menu_install(HWND window, void (*callback)(const void *, uint8_t),
+DrillMenu *drill_windows_menu_install(HWND window, void (*callback)(const void *, uint8_t),
                                  const void *context) {
     if (GetWindowThreadProcessId(window, NULL) != GetCurrentThreadId() ||
         GetPropW(window, menu_property)) {
@@ -143,9 +183,7 @@ void *drill_windows_menu_install(HWND window, void (*callback)(const void *, uin
     menu->previous = GetMenu(window);
     menu->settings = true;
     menu->context = context;
-    if (menu->bar && add_command(menu, STOP_MENU, L"Stop") &&
-        add_command(menu, SETTINGS_MENU, L"Interface\x2026") &&
-        add_command(menu, HELP_MENU, L"Syntax") &&
+    if (menu->bar && build_menu(menu) &&
         SetWindowSubclass(window, drill_menu_proc, DRILL_SUBCLASS, (DWORD_PTR)menu)) {
         menu->window = window;
         if (SetPropW(window, menu_property, menu) && SetMenu(window, menu->bar) && menu->window) {
@@ -160,20 +198,28 @@ void *drill_windows_menu_install(HWND window, void (*callback)(const void *, uin
     return NULL;
 }
 
-static void set_command_enabled(HMENU parent, unsigned position, bool enabled, bool *old) {
-    if (*old != enabled &&
-        EnableMenuItem(parent, position, MF_BYPOSITION | (enabled ? MF_ENABLED : MF_GRAYED)) != -1) {
-        *old = enabled;
-    }
+bool drill_windows_menu_translate(DrillMenu *menu, MSG *message) {
+    if (!menu || !menu->window || GetAncestor(message->hwnd, GA_ROOT) != menu->window ||
+        (message->message != WM_KEYDOWN && message->message != WM_SYSKEYDOWN)) return false;
+    // Keep a held Open Selection accelerator from launching the same result repeatedly.
+    if (message->wParam == 'O' && (message->lParam & (1L << 30)) &&
+        (GetKeyState(VK_CONTROL) & 0x8000) && !((GetKeyState(VK_MENU) | GetKeyState(VK_SHIFT)) & 0x8000))
+        return true;
+    return TranslateAcceleratorW(menu->window, menu->accelerators, message) != 0;
+}
+
+void drill_windows_menu_enable(DrillMenu *menu, enum DrillMenuCommand command, bool enabled) {
+    if (menu && menu->window)
+        EnableMenuItem(menu->bar, FIRST_DRILL_COMMAND + command, MF_BYCOMMAND | (enabled ? MF_ENABLED : MF_GRAYED));
 }
 
 void drill_windows_menu_set_enabled(DrillMenu *menu, bool stop, bool settings) {
-    if (!menu->window || (menu->stop == stop && menu->settings == settings)) {
-        return;
+    drill_windows_menu_enable(menu, MENU_STOP, stop);
+    if (menu->window && menu->settings != settings &&
+        EnableMenuItem(menu->bar, SETTINGS_POPUP, MF_BYPOSITION | (settings ? MF_ENABLED : MF_GRAYED)) != -1) {
+        menu->settings = settings;
+        DrawMenuBar(menu->window);
     }
-    set_command_enabled(menu->popups[STOP_MENU], 0, stop, &menu->stop);
-    set_command_enabled(menu->bar, SETTINGS_MENU, settings, &menu->settings);
-    DrawMenuBar(menu->window);
 }
 
 void drill_windows_menu_set_dark(DrillMenu *menu, bool dark) {

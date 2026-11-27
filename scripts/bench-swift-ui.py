@@ -144,7 +144,7 @@ def write_report(report, results):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("egui_checkout", type=Path)
-    parser.add_argument("swift_checkout", type=Path, help="may be the same checkout as egui")
+    parser.add_argument("swift_checkout", type=Path, help="checkout containing the native macOS app")
     parser.add_argument("--runs", type=int, default=4, help="samples per arm (default: 4)")
     parser.add_argument("--jobs", type=int, default=12)
     parser.add_argument("--output", required=True, type=Path, help="new JSON file, outside the checkouts or ignored")

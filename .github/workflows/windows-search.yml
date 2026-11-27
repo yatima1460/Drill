@@ -35,8 +35,8 @@ jobs:
           toolchain: 1.100.0
       - name: Link the Windows SDK resource and check every Explorer icon frame
         run: python .github/ci/windows_resource_smoke.py
-      - name: Test native Windows menu, Shell icon and clipboard adapters with MSVC
-        run: cargo test --locked -p drill-windows --features shell-icons,clipboard,menu
+      - name: Link and run standalone Windows adapter tests with all features on MSVC
+        run: cargo test --locked -p drill-windows --all-features
       - name: Verify Unicode text, PNG and DIB on the hosted Windows clipboard
         run: cargo test --locked -p drill-windows --features shell-icons,clipboard --test clipboard -- --ignored --test-threads=1
       - name: Verify startup ordering, cancellation and direct lookups

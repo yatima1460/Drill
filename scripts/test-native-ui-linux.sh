@@ -5,7 +5,7 @@ set -euo pipefail
 if [[ ${1-} != --session ]]; then
     exec dbus-run-session -- "$0" --session
 fi
-export GDK_BACKEND=x11 NO_AT_BRIDGE=0
+export GDK_BACKEND=x11 GDK_SCALE=1 NO_AT_BRIDGE=0
 openbox >/dev/null 2>&1 &
 wm_pid=$!
 trap 'kill "$wm_pid" 2>/dev/null || true' EXIT

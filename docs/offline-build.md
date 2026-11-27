@@ -2,7 +2,7 @@
 
 Download the `Drill-offline-source-<commit>` artifact from a successful **Offline source bundle** run on the pull request. Unzip the artifact, then extract its `Drill-source-<commit>.tar.gz`. The archive contains the committed workspace, and Cargo’s versioned copies of the locked registry crates and their distributed license files in `cargo-sources/`.
 
-Install the Rust toolchain in `rust-toolchain.toml` and the SDK for your build machine before disconnecting. macOS needs the Xcode Command Line Tools. For Windows MSVC, install the C++ Build Tools and Windows SDK including `rc.exe`. On Ubuntu, install a C/C++ toolchain, pkg-config and the development packages for GTK 3, Wayland, xkbcommon, GL and EGL. Rebuilding the optional icon decoders also requires the pinned toolchain’s `wasm32-unknown-unknown` standard library.
+Install the Rust toolchain in `rust-toolchain.toml` and the SDK for your build machine before disconnecting. macOS needs the Xcode Command Line Tools. For Windows MSVC, install the C++ Build Tools and Windows SDK including `rc.exe`. On Ubuntu, install a C/C++ toolchain, pkg-config and the GTK 3 development package (`libgtk-3-dev`). Rebuilding the optional icon decoders also requires the pinned toolchain’s `wasm32-unknown-unknown` standard library.
 
 On macOS 13 or later, build the SwiftUI app from the extracted project root with `CARGO_NET_OFFLINE=true make build`. Open `target/swift-ui/Drill.app` or run its `Contents/MacOS/Drill` executable.
 

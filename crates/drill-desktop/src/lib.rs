@@ -35,6 +35,7 @@ struct DrillState {
     status: *const c_char,
     can_stop: bool,
     can_continue: bool,
+    poll_again: bool,
 }
 
 #[repr(C)]
@@ -77,7 +78,7 @@ unsafe extern "C" fn drill_query(model: &mut Model, query: *const c_char, apps: 
 
 #[no_mangle]
 extern "C" fn drill_tick(model: &mut Model) -> DrillState {
-    model.tick(Instant::now());
+    let poll_again = model.tick(Instant::now());
     DrillState {
         revision: model.revision,
         icon_revision: model.icon_revision,
@@ -86,6 +87,7 @@ extern "C" fn drill_tick(model: &mut Model) -> DrillState {
         status: model.status.as_ptr(),
         can_stop: model.can_stop(),
         can_continue: model.can_continue(),
+        poll_again,
     }
 }
 

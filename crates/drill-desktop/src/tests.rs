@@ -77,7 +77,7 @@ fn replacing_queries_debounces_and_drops_obsolete_rows_and_selection() {
 #[test]
 fn pagination_uses_one_lookahead_and_continues_the_original_session() {
     let root = test_directory::private_temp_dir();
-    let mut model = Model::with_page_size(Some(root.path().to_owned()), 2);
+    let mut model = Model::with_limits(Some(root.path().to_owned()), 2, 256);
     for file in ["a.file", "b.file"] {
         fs::write(root.path().join(file), b"").unwrap();
     }
@@ -197,4 +197,38 @@ fn explicit_windows_apps_root_emits_only_executables() {
         let actual = unsafe { *row.path.add(index) };
         assert_eq!(actual, unit);
     }
+}
+
+#[test]
+fn backlog_requests_one_bounded_turn_and_idle_or_paused_scans_back_off() {
+    let root = test_directory::private_temp_dir();
+    for name in ["one.txt", "two.txt", "three.txt", "four.txt"] {
+        fs::write(root.path().join(name), b"").unwrap();
+    }
+    let mut model = Model::with_limits(Some(root.path().to_owned()), 3, 1);
+    assert!(!drill_tick(&mut model).poll_again);
+    let now = Instant::now();
+    model.query("old", false, now);
+    assert!(!drill_tick(&mut model).poll_again);
+    model.query("txt", false, now - Duration::from_millis(250));
+    let deadline = Instant::now() + Duration::from_secs(10);
+    let mut full_turns = 0;
+    // A one-hit budget makes backlog detection deterministic even on slow disks.
+    while !model.can_continue() {
+        let previous = model.rows.len();
+        let state = drill_tick(&mut model);
+        if state.poll_again {
+            assert_eq!(model.rows.len(), previous + 1);
+            full_turns += 1;
+        } else {
+            assert_eq!(model.rows.len(), previous);
+            std::thread::yield_now();
+        }
+        assert!(Instant::now() < deadline, "search did not pause");
+    }
+    assert_eq!(full_turns, 3);
+    assert!(!drill_tick(&mut model).poll_again);
+    drill_continue(&mut model);
+    assert!(!settled(&mut model).poll_again);
+    assert_eq!(model.rows.len(), 4);
 }

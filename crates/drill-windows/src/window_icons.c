@@ -7,9 +7,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include "../../drill-desktop/include/DrillDesktop.h"
+#include "window_icon_path.h"
 
-enum { ICON_SIDE = 32, ICON_SLOTS = 192, TYPE_LENGTH = 32, TYPE_JOBS = 64 };
-typedef WCHAR DrillTypeName[TYPE_LENGTH];
+enum { ICON_SIDE = 32, ICON_SLOTS = 192, TYPE_JOBS = 64 };
 static const WCHAR type_worker_property[] = L"software.drill.TypeIcons";
 
 typedef struct {
@@ -45,38 +45,6 @@ typedef struct DrillWinIcons {
     uint64_t misses[512];
     DrillIconSlot slots[ICON_SLOTS];
 } DrillWinIcons;
-
-static bool same_icon_type(const WCHAR *left, const WCHAR *right) {
-    return CompareStringOrdinal(left, -1, right, -1, TRUE) == CSTR_EQUAL;
-}
-
-// Synthetic type lookups receive only the extension, never a path or ADS.
-static void icon_type_name(const WCHAR *path, DrillTypeName output) {
-    const WCHAR *dot = wcsrchr(path, L'.');
-    output[0] = 0;
-    if (!dot || dot[1] == 0) return;
-    size_t length = 0;
-    while (dot[length]) {
-        if (length + 1 >= TYPE_LENGTH || dot[length] < L' ' ||
-            wcschr(L"\\/:*?\"<>|", dot[length])) return;
-        ++length;
-    }
-    memcpy(output, dot, (length + 1) * sizeof(WCHAR));
-}
-
-// These formats can refer to another Shell object or supply icon resources
-// themselves. Keep even a cache lookup from binding those paths in the Shell.
-static bool icon_source_extension(const WCHAR *extension) {
-    static const WCHAR *const types[] = {
-        L".exe", L".appimage", L".dll", L".com", L".cpl", L".ocx", L".scr", L".sys",
-        L".lnk", L".url", L".pif", L".scf", L".theme", L".themepack", L".library-ms",
-        L".search-ms", L".searchconnector-ms", L".appref-ms", L".application", L".gadget",
-        L".ico", L".icl", L".cur", L".ani", L".fon", L".fot", L".ttf", L".otf", L".ttc"
-    };
-    for (size_t i = 0; i < ARRAYSIZE(types); ++i)
-        if (same_icon_type(extension, types[i])) return true;
-    return false;
-}
 
 // The Shell can return a transparent placeholder, particularly under Wine.
 static bool shell_bitmap_visible(HBITMAP color, LONG width, LONG height) {
@@ -129,65 +97,12 @@ static HICON cached_shell_icon(const WCHAR *path) {
     return icon;
 }
 
-// Check each component without following the leaf reparse point. Sharing all
-// access and closing the handles here lets users edit and rename files during
-// a slow Shell cache lookup.
-static bool local_icon_attributes(const WCHAR *path, bool directory) {
-    HANDLE handle = CreateFileW(path, FILE_READ_ATTRIBUTES,
-        FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, NULL, OPEN_EXISTING,
-        FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OPEN_REPARSE_POINT, NULL);
-    if (handle == INVALID_HANDLE_VALUE) return false;
-    BY_HANDLE_FILE_INFORMATION info;
-    bool valid = GetFileType(handle) == FILE_TYPE_DISK && GetFileInformationByHandle(handle, &info) &&
-        !(info.dwFileAttributes & (FILE_ATTRIBUTE_REPARSE_POINT | FILE_ATTRIBUTE_OFFLINE |
-          FILE_ATTRIBUTE_RECALL_ON_OPEN | FILE_ATTRIBUTE_RECALL_ON_DATA_ACCESS)) &&
-        ((info.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) != 0) == directory;
-    CloseHandle(handle);
-    return valid;
-}
-
-// DOS device aliases apply even if the name has an extension.
-static bool icon_device_component(const WCHAR *part) {
-    size_t n = wcscspn(part, L".");
-    while (n && part[n - 1] == L' ') --n;
-    if (n == 3) {
-        return CompareStringOrdinal(part, 3, L"CON", 3, TRUE) == CSTR_EQUAL ||
-               CompareStringOrdinal(part, 3, L"NUL", 3, TRUE) == CSTR_EQUAL ||
-               CompareStringOrdinal(part, 3, L"AUX", 3, TRUE) == CSTR_EQUAL ||
-               CompareStringOrdinal(part, 3, L"PRN", 3, TRUE) == CSTR_EQUAL;
-    }
-    if (n == 4 && wcschr(L"0123456789\x00b9\x00b2\x00b3", part[3])) {
-        return CompareStringOrdinal(part, 3, L"COM", 3, TRUE) == CSTR_EQUAL ||
-               CompareStringOrdinal(part, 3, L"LPT", 3, TRUE) == CSTR_EQUAL;
-    }
-    return (n == 6 && CompareStringOrdinal(part, 6, L"CONIN$", 6, TRUE) == CSTR_EQUAL) ||
-           (n == 7 && CompareStringOrdinal(part, 7, L"CONOUT$", 7, TRUE) == CSTR_EQUAL);
-}
-
-static HICON local_item_icon(WCHAR path[MAX_PATH], bool directory) {
-    WCHAR drive[4] = {path[0], L':', L'\\', 0};
-    bool letter = (path[0] >= L'A' && path[0] <= L'Z') || (path[0] >= L'a' && path[0] <= L'z');
-    if (!letter || path[1] != L':' || path[2] != L'\\' || !path[3] ||
-        wcspbrk(path + 3, L"/:*\"<>?|") || wcsstr(path, L".{")) return NULL;
-    WCHAR volume[MAX_PATH];
-    if (GetDriveTypeW(drive) != DRIVE_FIXED ||
-        !GetVolumeNameForVolumeMountPointW(drive, volume, ARRAYSIZE(volume))) return NULL;
-    for (WCHAR *part = path + 3; *part;) {
-        WCHAR *end = wcschr(part, L'\\');
-        if (!end) end = part + wcslen(part);
-        if (end == part || end[-1] == L' ' || end[-1] == L'.') return NULL;
-        WCHAR separator = *end;
-        *end = 0;
-        DrillTypeName extension;
-        icon_type_name(part, extension);
-        bool safe = !icon_device_component(part) && !icon_source_extension(extension) &&
-            local_icon_attributes(path, separator || directory);
-        *end = separator;
-        if (!safe) return NULL;
-        if (!separator) return cached_shell_icon(path);
-        part = end + 1;
-    }
-    return NULL;
+static HICON local_item_icon(const WCHAR *path, bool directory) {
+    DrillPinnedIcon pin;
+    if (!pin_icon_path(path, directory, &pin)) return NULL;
+    HICON icon = cached_shell_icon(pin.path);
+    unpin_icon_path(&pin);
+    return icon;
 }
 
 static DWORD WINAPI type_icon_thread(void *data) {

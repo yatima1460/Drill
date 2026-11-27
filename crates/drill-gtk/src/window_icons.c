@@ -114,6 +114,34 @@ static GdkPixbuf *load_icon(GIcon *icon) {
     return info ? gtk_icon_info_load_icon(info, NULL) : NULL;
 }
 
+static GdkPixbuf *rgba_pixbuf(const void *pixels) {
+    g_autoptr(GBytes) bytes = g_bytes_new(pixels, ICON_SIZE * ICON_SIZE * 4);
+    return gdk_pixbuf_new_from_bytes(bytes, GDK_COLORSPACE_RGB, TRUE, 8,
+                                     ICON_SIZE, ICON_SIZE, ICON_SIZE * 4);
+}
+
+static void rectangle(guint32 pixels[ICON_SIZE][ICON_SIZE], int x, int y,
+                      int width, int height, guint32 rgba) {
+    for (int row = y; row < y + height; row++)
+        for (int col = x; col < x + width; col++)
+            pixels[row][col] = GUINT32_TO_BE(rgba);
+}
+
+static GdkPixbuf *generic_glyph(gboolean directory) {
+    guint32 pixels[ICON_SIZE][ICON_SIZE] = {0};
+    if (directory) {
+        rectangle(pixels, 3, 6, 11, 6, 0xb18533ff);
+        rectangle(pixels, 3, 10, 26, 16, 0xb18533ff);
+        rectangle(pixels, 4, 12, 24, 13, 0xe7ba60ff);
+    } else {
+        rectangle(pixels, 6, 3, 20, 26, 0x74818bff);
+        rectangle(pixels, 7, 4, 18, 24, 0xd9dfe3ff);
+        rectangle(pixels, 10, 12, 12, 2, 0x8d989fff);
+        rectangle(pixels, 10, 17, 9, 2, 0x8d989fff);
+    }
+    return rgba_pixbuf(pixels);
+}
+
 static GdkPixbuf *type_icon(gboolean directory, const char *path) {
     if (!directory) {
         // Type fallback takes no bytes from the search result.
@@ -126,7 +154,8 @@ static GdkPixbuf *type_icon(gboolean directory, const char *path) {
         }
     }
     g_autoptr(GIcon) generic = g_themed_icon_new(directory ? "folder" : "text-x-generic");
-    return load_icon(generic);
+    GdkPixbuf *result = load_icon(generic);
+    return result ? result : generic_glyph(directory);
 }
 
 static void finish_lookup(Lookup *lookup, GIcon *native) {
@@ -250,10 +279,8 @@ GdkPixbuf *drill_gtk_icon_get(DrillGtkIcons *cache, DrillModel *model, uint64_t 
         int state = drill_embedded_icon(model, id, exe, appimage, rgba);
         icon->wants_embedded = state == 0;
         if (state == 1) {
-            g_autoptr(GBytes) bytes = g_bytes_new(rgba, sizeof(rgba));
             g_clear_object(&icon->pixbuf);
-            icon->pixbuf = gdk_pixbuf_new_from_bytes(bytes, GDK_COLORSPACE_RGB, TRUE, 8,
-                                                     ICON_SIZE, ICON_SIZE, ICON_SIZE * 4);
+            icon->pixbuf = rgba_pixbuf(rgba);
         }
     }
     return icon->pixbuf ? g_object_ref(icon->pixbuf) : NULL;

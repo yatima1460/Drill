@@ -188,8 +188,25 @@ def check_window(root, marker):
     xdotool("key", "End", "Return")
     wait("Apps scope", window.names, ["drill_native_unique app"])
     api.click(window.entry)
-    xdotool("key", "Down", "Return")
-    wait("registered app launch", marker.exists, True)
+    xdotool("key", "Down")
+    wait("registered app selected", window.selected, [0])
+    # Exercise each native activation signal. A held key launches once and its
+    # release rearms the next deliberate press. The fixture never takes focus.
+    def launches():
+        return marker.stat().st_size if marker.exists() else 0
+
+    for control, key in ((window.entry, "Return"), (window.cell(0), "KP_Enter")):
+        api.click(control)
+        before = launches()
+        xdotool("keydown", key)
+        try:
+            wait("initial app launch", lambda: launches() >= before + 1, True)
+            xdotool("keydown", key, "sleep", "1")
+        finally:
+            xdotool("keyup", key)
+        assert launches() == before + 1, f"Holding {key} launched the app repeatedly"
+        xdotool("key", key)
+        wait("app launch after key release", launches, before + 2)
     api.click(scope)
     xdotool("key", "Home", "Return")
     wait("return to Files", lambda: sorted(window.names()), files)
@@ -198,6 +215,9 @@ def check_window(root, marker):
     api.click(api.widget(window.frame, "Syntax"))
     dialog = api.widget(api.registry, "Search syntax", "Component")
     api.click(api.widget(dialog, "Close"))
+
+    from linux_icons import check_icons
+    check_icons(window, root, wait, xdotool)
 
     # Use the production page size and controls. Each query must leave the
     # previous scan behind, including one that was stopped at its page limit.
@@ -241,9 +261,12 @@ def test(binary):
         apps = home / "share/applications"
         apps.mkdir(parents=True)
         marker = home / "launched"
+        launcher = home / "count-launch"
+        launcher.write_text('#!/bin/sh\nprintf x >> "$1"\n')
+        launcher.chmod(0o700)
         (apps / "drill-fixture.desktop").write_text(
             "[Desktop Entry]\nType=Application\nName=drill_native_unique app\n"
-            f'Exec=/usr/bin/touch "{marker}"\n'
+            f'Exec="{launcher}" "{marker}"\n'
         )
         env = dict(os.environ, XDG_CONFIG_HOME=str(home / "config"),
                    XDG_DATA_HOME=str(apps.parent), LC_ALL="C.UTF-8")
@@ -255,6 +278,8 @@ def test(binary):
             if process.poll() is None:
                 process.kill()
                 process.wait()
+        from linux_geometry import check_geometry
+        check_geometry(binary, root, env, xdotool, wait)
 
 
 if __name__ == "__main__":

@@ -24,6 +24,7 @@ pub(super) struct Model {
     query: String,
     apps: bool,
     page_size: usize,
+    batch_size: usize,
     limit: usize,
     phase: Phase,
     pub rows: Rows,
@@ -35,10 +36,10 @@ pub(super) struct Model {
 
 impl Model {
     pub fn new(root: Option<PathBuf>) -> Self {
-        Self::with_page_size(root, PAGE_SIZE)
+        Self::with_limits(root, PAGE_SIZE, BATCH_SIZE)
     }
 
-    pub fn with_page_size(root: Option<PathBuf>, page_size: usize) -> Self {
+    pub fn with_limits(root: Option<PathBuf>, page_size: usize, batch_size: usize) -> Self {
         Self {
             roots: Roots {
                 explicit: root,
@@ -48,6 +49,7 @@ impl Model {
             query: String::new(),
             apps: false,
             page_size,
+            batch_size,
             limit: page_size,
             phase: Phase::Empty,
             rows: Rows::new(),
@@ -127,7 +129,8 @@ impl Model {
         self.refresh_status();
     }
 
-    pub fn tick(&mut self, now: Instant) {
+    /// Returns true when a full batch suggests another turn can deliver results.
+    pub fn tick(&mut self, now: Instant) -> bool {
         if self.icons.poll() {
             self.icon_revision += 1;
         }
@@ -139,7 +142,7 @@ impl Model {
             ));
         }
         let Phase::Running(session) = &mut self.phase else {
-            return;
+            return false;
         };
         let mut batch = Vec::new();
         // Stop only when there is evidence of another page. Exactly 10,000
@@ -147,7 +150,7 @@ impl Model {
         let available = self.limit - self.rows.len();
         let mut extra = None;
         let mut terminal = None;
-        for _ in 0..BATCH_SIZE {
+        for _ in 0..self.batch_size {
             match session.next() {
                 Poll::Hit(hit) if batch.len() == available => {
                     session.set_paused(true);
@@ -167,8 +170,9 @@ impl Model {
             }
         }
         if batch.is_empty() && extra.is_none() && terminal.is_none() {
-            return;
+            return false;
         }
+        let filled_batch = batch.len() == self.batch_size;
         self.rows.append(batch);
         if let Some(hit) = extra {
             let Phase::Running(session) = std::mem::replace(&mut self.phase, Phase::Finished)
@@ -180,5 +184,6 @@ impl Model {
             self.phase = phase;
         }
         self.refresh_status();
+        filled_batch
     }
 }

@@ -2,6 +2,7 @@
 // change different settings independently. Carry over the previous UI's values.
 #include <windows.h>
 #include <shlobj.h>
+#include <locale.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
@@ -37,15 +38,13 @@ static LSTATUS win_write_pref(unsigned key, DWORD value) {
                            REG_DWORD, &value, sizeof(value));
 }
 
-// The released eframe writer pretty-prints one quoted string pair per line.
-// Match whole entries so a value embedded in window geometry cannot impersonate a key.
-static void win_read_legacy_prefs(DWORD values[WIN_PREF_COUNT]) {
+static char *win_legacy_settings_text(void) {
     WCHAR *path = win_known_file(&FOLDERID_RoamingAppData, L"\\Drill\\data\\app.ron");
-    if (!path) return;
+    if (!path) return NULL;
     HANDLE file = CreateFileW(path, GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
                               NULL, OPEN_EXISTING, FILE_FLAG_OPEN_REPARSE_POINT, NULL);
     free(path);
-    if (file == INVALID_HANDLE_VALUE) return;
+    if (file == INVALID_HANDLE_VALUE) return NULL;
     BY_HANDLE_FILE_INFORMATION info;
     char *text = NULL;
     DWORD size = 0, count = 0;
@@ -57,30 +56,104 @@ static void win_read_legacy_prefs(DWORD values[WIN_PREF_COUNT]) {
     }
     bool ok = text && ReadFile(file, text, size, &count, NULL) && count == size;
     CloseHandle(file);
-    if (ok) {
-        text[size] = 0;
-        static const struct { const char *entry; unsigned key; DWORD value; } entries[] = {
-            {"\"appearance\": \"System\",", WIN_APPEARANCE, 0},
-            {"\"appearance\": \"Light\",", WIN_APPEARANCE, 1},
-            {"\"appearance\": \"Dark\",", WIN_APPEARANCE, 2},
-            {"\"embedded_exe_icons\": \"false\",", WIN_EXE_ICONS, 0},
-            {"\"embedded_exe_icons\": \"true\",", WIN_EXE_ICONS, 1},
-            {"\"embedded_appimage_icons\": \"false\",", WIN_APPIMAGE_ICONS, 0},
-            {"\"embedded_appimage_icons\": \"true\",", WIN_APPIMAGE_ICONS, 1},
-        };
-        char *line = text;
-        while (*line) {
-            char *end = line + strcspn(line, "\r\n");
-            char *next = end + strspn(end, "\r\n");
-            *end = 0;
-            line += strspn(line, " \t");
-            for (size_t i = 0; i < ARRAYSIZE(entries); ++i) {
-                if (strcmp(line, entries[i].entry) == 0) values[entries[i].key] = entries[i].value;
-            }
-            line = next;
+    if (!ok || memchr(text, 0, size)) {
+        free(text);
+        return NULL;
+    }
+    text[size] = 0;
+    return text;
+}
+
+// The released eframe writer prints one quoted key and string value per line.
+static char *win_next_legacy_entry(char **cursor) {
+    if (!*cursor || !**cursor) return NULL;
+    char *line = *cursor, *end = line + strcspn(line, "\r\n");
+    *cursor = end + strspn(end, "\r\n");
+    *end = 0;
+    return line + strspn(line, " \t");
+}
+
+static void win_read_legacy_prefs(DWORD values[WIN_PREF_COUNT]) {
+    static const struct { const char *entry; unsigned key; DWORD value; } entries[] = {
+        {"\"appearance\": \"System\",", WIN_APPEARANCE, 0},
+        {"\"appearance\": \"Light\",", WIN_APPEARANCE, 1},
+        {"\"appearance\": \"Dark\",", WIN_APPEARANCE, 2},
+        {"\"embedded_exe_icons\": \"false\",", WIN_EXE_ICONS, 0},
+        {"\"embedded_exe_icons\": \"true\",", WIN_EXE_ICONS, 1},
+        {"\"embedded_appimage_icons\": \"false\",", WIN_APPIMAGE_ICONS, 0},
+        {"\"embedded_appimage_icons\": \"true\",", WIN_APPIMAGE_ICONS, 1},
+    };
+    char *text = win_legacy_settings_text(), *cursor = text;
+    for (char *line; (line = win_next_legacy_entry(&cursor)) != NULL;) {
+        for (size_t i = 0; i < ARRAYSIZE(entries); ++i) {
+            if (strcmp(line, entries[i].entry) == 0) values[entries[i].key] = entries[i].value;
         }
     }
     free(text);
+}
+
+static bool win_legacy_consume(const char **line, const char *literal) {
+    size_t length = strlen(literal);
+    if (strncmp(*line, literal, length) != 0) return false;
+    *line += length;
+    return true;
+}
+
+static bool win_legacy_coordinate(const char **line, LONG *value) {
+    // Parse eframe's decimal point independently of the calling thread's locale.
+    _locale_t locale = _create_locale(LC_NUMERIC, "C");
+    if (!locale) return false;
+    char *end;
+    double n = _strtod_l(*line, &end, locale);
+    _free_locale(locale);
+    // Only finite coordinates within a million pixels can reach the Win32 casts.
+    if (end == *line || (size_t)(end - *line) != strspn(*line, "-+0123456789.eE") ||
+        !(n >= -1000000 && n <= 1000000)) return false;
+    *value = (LONG)(n < 0 ? n - 0.5 : n + 0.5);
+    *line = end;
+    return true;
+}
+
+static bool win_legacy_vector(const char **line, LONG *x, LONG *y) {
+    return win_legacy_consume(line, "Some((x:") && win_legacy_coordinate(line, x) &&
+           win_legacy_consume(line, ",y:") && win_legacy_coordinate(line, y) &&
+           win_legacy_consume(line, "))");
+}
+
+// Read the exact WindowSettings record from the released eframe version.
+// Origin is the physical screen position. Client size is measured in points.
+static bool win_parse_legacy_placement(const char *line, POINT *origin, SIZE *client_dip, bool *maximized) {
+    POINT inner, outer;
+    SIZE size;
+    if (!win_legacy_consume(&line, "\"window\": \"(inner_position_pixels:") ||
+        !(win_legacy_consume(&line, "None") || win_legacy_vector(&line, &inner.x, &inner.y)) ||
+        !win_legacy_consume(&line, ",outer_position_pixels:") || !win_legacy_vector(&line, &outer.x, &outer.y) ||
+        !win_legacy_consume(&line, ",fullscreen:") ||
+        !(win_legacy_consume(&line, "false") || win_legacy_consume(&line, "true")) ||
+        !win_legacy_consume(&line, ",maximized:")) return false;
+    bool max = win_legacy_consume(&line, "true");
+    if ((!max && !win_legacy_consume(&line, "false")) ||
+        !win_legacy_consume(&line, ",inner_size_points:") || !win_legacy_vector(&line, &size.cx, &size.cy) ||
+        strcmp(line, ")\",") != 0 || size.cx <= 0 || size.cy <= 0 || size.cx > 65535 || size.cy > 65535) return false;
+    *origin = outer;
+    // eframe saved the maximized client size without the normal restore size.
+    client_dip->cx = max ? 720 : size.cx;
+    client_dip->cy = max ? 470 : size.cy;
+    *maximized = max;
+    return true;
+}
+
+static bool win_read_legacy_placement(POINT *origin, SIZE *client_dip, bool *maximized) {
+    char *text = win_legacy_settings_text(), *cursor = text;
+    bool found = false;
+    for (char *line; (line = win_next_legacy_entry(&cursor)) != NULL;) {
+        if (win_parse_legacy_placement(line, origin, client_dip, maximized)) {
+            found = true;
+            break;
+        }
+    }
+    free(text);
+    return found;
 }
 
 static void win_load_prefs(DWORD values[WIN_PREF_COUNT]) {

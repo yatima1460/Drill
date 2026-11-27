@@ -169,17 +169,21 @@ jobs:
           RUSTFLAGS: -C target-feature=+crt-static
         run: |
           cargo build --release --locked --target x86_64-pc-windows-gnu
+          cargo test --no-run --locked --target x86_64-pc-windows-gnu -p drill-windows --all-features
           x86_64-w64-mingw32-gcc -municode -Wall -Wextra -Werror crates/drill-windows/tests/native_window.c \
-            -o "$RUNNER_TEMP/drill-native-window.exe" -loleacc -loleaut32 -lole32 -luuid
+            -o "$RUNNER_TEMP/drill-native-window.exe" -lgdi32 -ladvapi32 -loleacc -loleaut32 -lole32 -luuid
           x86_64-w64-mingw32-gcc -Wall -Wextra -Werror crates/drill-windows/tests/menu_accessibility.c \
             crates/drill-windows/src/menu.c -o "$RUNNER_TEMP/drill-menu-accessibility.exe" \
             -lcomctl32 -lgdi32 -loleacc -loleaut32 -lole32 -luuid
+          x86_64-w64-mingw32-gcc -Wall -Wextra -Werror crates/drill-windows/tests/icon_path.c \
+            -o "$RUNNER_TEMP/drill-icon-path.exe"
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: drill-windows-ui-tests
           path: |
             ${{ runner.temp }}/drill-native-window.exe
             ${{ runner.temp }}/drill-menu-accessibility.exe
+            ${{ runner.temp }}/drill-icon-path.exe
           if-no-files-found: error
           retention-days: 1
       - name: Package and inspect Windows executable
@@ -229,6 +233,8 @@ jobs:
           path: dist
       - name: Read menu names through Windows accessibility in light and dark mode
         run: .\drill-menu-accessibility.exe
+      - name: Verify Windows icon lookup sharing and fallback
+        run: .\drill-icon-path.exe
       - name: Drive the packaged Win32 app on native Windows
         run: |
           Expand-Archive dist/Drill-windows-x86_64.zip -DestinationPath dist/packaged

@@ -15,7 +15,7 @@ enum { DRILL_DWM_DARK_TITLE = 20 };
 typedef struct DrillWinActions DrillWinActions;
 DrillWinActions *drill_win_actions_create(HWND owner, DrillModel *model, HWND table);
 void drill_win_actions_destroy(DrillWinActions *actions);
-void drill_win_actions_update(DrillWinActions *actions, bool can_stop);
+void drill_win_show_panel(DrillWinActions *actions, bool settings);
 void drill_win_open(DrillWinActions *actions, uint64_t id);
 void drill_win_copy_path(DrillWinActions *actions, uint64_t id);
 void drill_win_context(DrillWinActions *actions, uint64_t id, POINT screen, bool apps);

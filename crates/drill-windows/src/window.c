@@ -6,20 +6,24 @@
 #include <uxtheme.h>
 #include <limits.h>
 #include <wchar.h>
+#include "adapters.h"
 #include "window_accessibility.c"
+#include "window_placement.c"
 
 enum { ID_QUERY = 101, ID_MODE, ID_RESULTS, ID_STATUS, ID_STOP, ID_CONTINUE };
 typedef struct {
     DrillModel *model;
     DrillWinActions *actions;
+    DrillMenu *menu;
     DrillListAccessibility *accessibility;
+    DrillPlacement placement;
     HWND hwnd, query_label, query, mode_label, mode, table, status, stop, resume;
     HFONT font;
     HBRUSH background, field;
     COLORREF face_color, text_color, list_color, stripe_color;
     UINT dpi;
     int previous_width, sort_column;
-    bool dark, apps, syncing, composing, ascending;
+    bool dark, apps, syncing, composing, ascending, poll_again, redo_available;
     uint64_t revision, icon_revision, press_id;
 } DrillWindow;
 
@@ -33,6 +37,7 @@ static void update_window(DrillWindow *);
 static void update_window(DrillWindow *ui) {
     if (ui->syncing || !ui->actions) return;
     DrillState state = drill_tick(ui->model);
+    ui->poll_again = state.poll_again;
     bool changed = state.revision != ui->revision;
     bool icons_changed = state.icon_revision != ui->icon_revision;
     if (!changed && !icons_changed) return;
@@ -58,9 +63,20 @@ static void update_window(DrillWindow *ui) {
         }
         EnableWindow(ui->stop, state.can_stop);
         ShowWindow(ui->resume, state.can_continue ? SW_SHOWNA : SW_HIDE);
-        drill_win_actions_update(ui->actions, state.can_stop);
+        drill_windows_menu_enable(ui->menu, MENU_STOP, state.can_stop);
+        drill_windows_menu_enable(ui->menu, MENU_CONTINUE, state.can_continue);
     }
     InvalidateRect(ui->table, NULL, FALSE);
+}
+
+static int next_window_message(DrillWindow *ui, MSG *message) {
+    // Drain one bounded batch between messages. Input and paints get the first
+    // opportunity on every pass. GetMessage sleeps on the ordinary timer once
+    // the producer's queue is empty.
+    while (ui->poll_again && !PeekMessageW(message, NULL, 0, 0, PM_NOREMOVE)) {
+        update_window(ui);
+    }
+    return GetMessageW(message, NULL, 0, 0);
 }
 
 static void search_changed(DrillWindow *ui) {
@@ -87,6 +103,7 @@ static void search_changed(DrillWindow *ui) {
 
 static void apply_colors(DrillWindow *ui) {
     ui->dark = ui->actions && drill_win_dark(ui->actions);
+    if (ui->menu) drill_windows_menu_set_dark(ui->menu, ui->dark);
     BOOL dark_title = ui->dark;
     DwmSetWindowAttribute(ui->hwnd, DRILL_DWM_DARK_TITLE, &dark_title, sizeof(dark_title));
     ui->text_color = ui->dark ? RGB(242,242,242) : GetSysColor(COLOR_WINDOWTEXT);
@@ -224,6 +241,15 @@ static LRESULT dark_button(DrillWindow *ui, NMCUSTOMDRAW *draw) {
 static LRESULT CALLBACK control_proc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp, UINT_PTR sub, DWORD_PTR data) {
     DrillWindow *ui = (DrillWindow *)data;
     if (hwnd == ui->query) {
+        // A standard EDIT has one undo record. EM_UNDO toggles that record, including
+        // when invoked through the native edit context menu.
+        if (msg == WM_UNDO || msg == EM_UNDO) {
+            bool can_undo = SendMessageW(hwnd, EM_CANUNDO, 0, 0) != 0;
+            bool next_is_redo = !ui->redo_available;
+            LRESULT result = DefSubclassProc(hwnd, msg, wp, lp);
+            ui->redo_available = can_undo && next_is_redo;
+            return result;
+        }
         if (msg == WM_IME_STARTCOMPOSITION) ui->composing = true;
         if (msg == WM_IME_ENDCOMPOSITION) ui->composing = false;
     }
@@ -257,6 +283,8 @@ static LRESULT CALLBACK control_proc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp, 
                 return 0;
             }
             if (wp == VK_RETURN) {
+                // A held Return opens one result, even if the Shell pumps messages.
+                if (HIWORD(lp) & KF_REPEAT) return 0;
                 uint64_t id = id_at(ui, index);
                 if (id) drill_win_open(ui->actions, id);
                 return 0;
@@ -271,22 +299,66 @@ static LRESULT CALLBACK control_proc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp, 
                 SetFocus(ui->query);
                 return 0;
             }
-        } else if ((GetKeyState(VK_CONTROL) & 0x8000) &&
-                   !((GetKeyState(VK_SHIFT) | GetKeyState(VK_MENU)) & 0x8000)) {
-            if (hwnd == ui->table && wp == 'C') {
-                uint64_t id = id_at(ui, selected_index(ui));
-                if (id) drill_win_copy_path(ui->actions, id);
-                return 0;
-            }
-            if (hwnd == ui->query && wp == 'A') {
-                Edit_SetSel(hwnd, 0, -1);
-                return 0;
-            }
         }
     }
     if (msg == WM_CHAR && !ui->composing && (wp == VK_RETURN || wp == VK_ESCAPE)) return 0;
     if (msg == WM_NCDESTROY) RemoveWindowSubclass(hwnd, control_proc, sub);
     return DefSubclassProc(hwnd, msg, wp, lp);
+}
+
+static void validate_menu(DrillWindow *ui) {
+    HWND focus = GetFocus();
+    bool editing = focus == ui->query;
+    bool selected = selected_index(ui) >= 0;
+    DWORD start = 0, end = 0;
+    if (editing) SendMessageW(ui->query, EM_GETSEL, (WPARAM)&start, (LPARAM)&end);
+    bool undo = editing && SendMessageW(ui->query, EM_CANUNDO, 0, 0);
+    drill_windows_menu_enable(ui->menu, MENU_OPEN, selected);
+    drill_windows_menu_enable(ui->menu, MENU_UNDO, undo && !ui->redo_available);
+    drill_windows_menu_enable(ui->menu, MENU_REDO, undo && ui->redo_available);
+    drill_windows_menu_enable(ui->menu, MENU_CUT, start != end);
+    drill_windows_menu_enable(ui->menu, MENU_COPY, start != end || (focus == ui->table && selected));
+    drill_windows_menu_enable(ui->menu, MENU_PASTE, editing && IsClipboardFormatAvailable(CF_UNICODETEXT));
+    drill_windows_menu_enable(ui->menu, MENU_SELECT_ALL, editing && GetWindowTextLengthW(ui->query) > 0);
+}
+
+static void window_menu_command(const void *context, uint8_t command) {
+    DrillWindow *ui = (DrillWindow *)context;
+    HWND focus = GetFocus();
+    switch (command) {
+    case MENU_FIND:
+        SetFocus(ui->query);
+        Edit_SetSel(ui->query, 0, -1);
+        break;
+    case MENU_OPEN: {
+        uint64_t id = id_at(ui, selected_index(ui));
+        if (id) drill_win_open(ui->actions, id);
+        break;
+    }
+    case MENU_CLOSE: SendMessageW(ui->hwnd, WM_CLOSE, 0, 0); break;
+    case MENU_UNDO: case MENU_REDO:
+        if (focus == ui->query && (command == MENU_REDO) == ui->redo_available)
+            SendMessageW(focus, EM_UNDO, 0, 0);
+        break;
+    case MENU_CUT: if (focus == ui->query) SendMessageW(focus, WM_CUT, 0, 0); break;
+    case MENU_PASTE: if (focus == ui->query) SendMessageW(focus, WM_PASTE, 0, 0); break;
+    case MENU_SELECT_ALL: if (focus == ui->query) Edit_SetSel(focus, 0, -1); break;
+    case MENU_COPY:
+        if (focus == ui->query) SendMessageW(focus, WM_COPY, 0, 0);
+        else if (focus == ui->table) {
+            uint64_t id = id_at(ui, selected_index(ui));
+            if (id) drill_win_copy_path(ui->actions, id);
+        }
+        break;
+    case MENU_STOP: case MENU_CONTINUE:
+        if (command == MENU_STOP) drill_stop(ui->model);
+        else drill_continue(ui->model);
+        update_window(ui);
+        break;
+    case MENU_INTERFACE: case MENU_SYNTAX:
+        drill_win_show_panel(ui->actions, command == MENU_INTERFACE);
+        break;
+    }
 }
 
 static HWND add_control(DrillWindow *ui, DWORD ex, const WCHAR *kind, const WCHAR *caption,
@@ -318,6 +390,8 @@ static bool create_controls(DrillWindow *ui) {
         !SetWindowSubclass(ui->table, control_proc, ID_RESULTS, (DWORD_PTR)ui)) return false;
     ui->actions = drill_win_actions_create(ui->hwnd, ui->model, ui->table);
     if (!ui->actions) return false;
+    ui->menu = drill_windows_menu_install(ui->hwnd, window_menu_command, ui);
+    if (!ui->menu) return false;
     ui->accessibility = list_accessibility_create(ui->table, ui->model);
     apply_font(ui);
     apply_colors(ui);
@@ -368,20 +442,24 @@ static LRESULT CALLBACK search_window_proc(HWND hwnd, UINT msg, WPARAM wp, LPARA
                      rect->bottom - rect->top, SWP_NOACTIVATE | SWP_NOZORDER);
         return 0;
     }
+    case WM_MOVE:
+        record_placement(hwnd, &ui->placement);
+        break;
     case WM_SIZE:
+        record_placement(hwnd, &ui->placement);
         if (wp != SIZE_MINIMIZED) layout_window(ui);
         return 0;
+    case WM_INITMENU:
+        if (ui->menu) validate_menu(ui);
+        break;
     case WM_COMMAND:
-        if (LOWORD(wp) == ID_QUERY && HIWORD(wp) == EN_CHANGE) search_changed(ui);
+        if (LOWORD(wp) == ID_QUERY && HIWORD(wp) == EN_CHANGE) {
+            ui->redo_available = false;
+            search_changed(ui);
+        }
         if (LOWORD(wp) == ID_MODE && HIWORD(wp) == CBN_SELCHANGE) search_changed(ui);
-        if (LOWORD(wp) == ID_STOP && HIWORD(wp) == BN_CLICKED) {
-            drill_stop(ui->model);
-            update_window(ui);
-        }
-        if (LOWORD(wp) == ID_CONTINUE && HIWORD(wp) == BN_CLICKED) {
-            drill_continue(ui->model);
-            update_window(ui);
-        }
+        if (LOWORD(wp) == ID_STOP && HIWORD(wp) == BN_CLICKED) window_menu_command(ui, MENU_STOP);
+        if (LOWORD(wp) == ID_CONTINUE && HIWORD(wp) == BN_CLICKED) window_menu_command(ui, MENU_CONTINUE);
         if (LOWORD(wp) == IDCANCEL && !ui->composing) DestroyWindow(hwnd);
         return 0;
     case WM_NOTIFY: {
@@ -444,6 +522,7 @@ static LRESULT CALLBACK search_window_proc(HWND hwnd, UINT msg, WPARAM wp, LPARA
         return 0;
     case WM_DESTROY:
         KillTimer(hwnd, 1);
+        save_placement(&ui->placement);
         list_accessibility_destroy(ui->accessibility);
         ui->accessibility = NULL;
         drill_stop(ui->model);
@@ -485,19 +564,24 @@ int drill_native_run(DrillModel *model) {
                                     area.right - area.left, area.bottom - area.top,
                                     NULL, NULL, instance, &ui);
         if (hwnd) {
-            ShowWindow(hwnd, SW_SHOWNORMAL);
+            int show = restore_placement(hwnd, &ui.placement);
+            ShowWindow(hwnd, show);
+            record_placement(hwnd, &ui.placement);
             SetFocus(ui.query);
             UpdateWindow(hwnd);
             MSG msg;
             int received;
-            while ((received = GetMessageW(&msg, NULL, 0, 0)) > 0) {
-                if (drill_win_dialog_message(ui.actions, &msg) || IsDialogMessageW(hwnd, &msg)) continue;
+            while ((received = next_window_message(&ui, &msg)) > 0) {
+                if (drill_win_dialog_message(ui.actions, &msg) ||
+                    (!ui.composing && drill_windows_menu_translate(ui.menu, &msg)) ||
+                    IsDialogMessageW(hwnd, &msg)) continue;
                 TranslateMessage(&msg);
                 DispatchMessageW(&msg);
             }
             result = received < 0 ? 1 : (int)msg.wParam;
             if (IsWindow(hwnd)) DestroyWindow(hwnd);
         }
+        if (ui.menu) drill_windows_menu_remove(ui.menu);
         if (ui.actions) drill_win_actions_destroy(ui.actions);
         DeleteObject(ui.font);
         DeleteObject(ui.field);

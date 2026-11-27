@@ -41,6 +41,8 @@ Windows uses native Win32 controls. Linux uses GTK 3 and requires the GTK 3 deve
 cargo run --release --locked
 ```
 
+To try Win64 on macOS or Linux, install Wine, MinGW-w64 and the `x86_64-pc-windows-gnu` Rust target, then run `make start_wine`.
+
 The first build may download Rust dependencies. Search results appear while the filesystem is scanned. Type `*.md` to find Markdown files, `glob:report-??.pdf` for a wildcard pattern, `regex:^IMG_[0-9]{4}\.jpg$` for a regular expression, or `fuzzy:` followed by words for approximate matching. Drill follows your system light or dark appearance and displays native file icons when available.
 
 Run `make help` to see common commands, including `make start`, `make test-core`, and `make test-ui`. The macOS UI suite sends events to its own AppKit windows. Linux CI drives GTK on an Xvfb display. Windows CI exercises the native controls on a Windows runner.

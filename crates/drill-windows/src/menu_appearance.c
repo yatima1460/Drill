@@ -6,6 +6,7 @@
 // items and menu navigation in both appearances. MSAA reads the same labels.
 #define DRILL_MENU_TITLE(text) { MSAA_MENU_SIG, ARRAYSIZE(text) - 1, text }
 static const MSAAMENUINFO drill_menu_titles[] = {
+    DRILL_MENU_TITLE(L"File"), DRILL_MENU_TITLE(L"Edit"),
     DRILL_MENU_TITLE(L"Search"), DRILL_MENU_TITLE(L"Settings"), DRILL_MENU_TITLE(L"Help")
 };
 #undef DRILL_MENU_TITLE

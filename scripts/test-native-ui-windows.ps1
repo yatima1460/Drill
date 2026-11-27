@@ -17,7 +17,7 @@ try {
         $source = Join-Path $PSScriptRoot '..\crates\drill-windows\tests\native_window.c'
         $hostTriple = ((& rustc -vV) -match '^host: ') -replace '^host: ', ''
         if ($hostTriple -like '*-windows-gnu*') {
-            & gcc -std=c11 -municode -Wall -Wextra -Werror $source -o $Driver -loleacc -loleaut32 -lole32 -luuid
+            & gcc -std=c11 -municode -Wall -Wextra -Werror $source -o $Driver -lgdi32 -ladvapi32 -loleacc -loleaut32 -lole32 -luuid
         } else {
             if (!$env:INCLUDE -or !(Get-Command cl.exe -ErrorAction SilentlyContinue)) {
                 $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\vswhere.exe'
@@ -27,7 +27,7 @@ try {
                 & (Join-Path $vs 'Common7\Tools\Launch-VsDevShell.ps1') -Arch $arch -HostArch $arch -SkipAutomaticLocation | Out-Null
             }
             $obj = Join-Path $temp 'driver.obj'
-            & cl.exe /nologo /W4 /WX /std:c11 /MT $source "/Fo$obj" "/Fe$Driver" user32.lib oleacc.lib oleaut32.lib ole32.lib uuid.lib
+            & cl.exe /nologo /W4 /WX /std:c11 /MT $source "/Fo$obj" "/Fe$Driver" user32.lib gdi32.lib advapi32.lib oleacc.lib oleaut32.lib ole32.lib uuid.lib
         }
         if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
     }

@@ -18,6 +18,7 @@ typedef struct {
     int64_t selected_index; /* -1 means no selection */
     const char *status;
     bool can_stop, can_continue;
+    bool poll_again; /* A full batch was delivered. Schedule another UI turn. */
 } DrillState;
 typedef struct {
     const char *cells[4]; /* UTF-8 Name, parent Path, Size, Date */
