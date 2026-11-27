@@ -252,10 +252,32 @@ static void selected(int index) {
 }
 
 static void activate_main(void) {
-    if (GetForegroundWindow() == window) return;
-    SetForegroundWindow(window);
     ULONGLONG deadline = GetTickCount64() + 5000;
-    while (GetForegroundWindow() != window) REQUIRE(retry(deadline));
+    HWND foreground;
+    while ((foreground = GetForegroundWindow()) != window) {
+        SetForegroundWindow(window);
+        if (!retry(deadline)) {
+            WCHAR title[96] = {0};
+            GetWindowTextW(foreground, title, ARRAYSIZE(title));
+            fprintf(stderr, "Foreground window %p '%ls'; expected Drill window %p\n",
+                    (void *)foreground, title, (void *)window);
+            fail("Drill did not regain the foreground");
+        }
+    }
+}
+
+static void wait_for_focus(HWND expected) {
+    GUITHREADINFO focus = {0};
+    focus.cbSize = sizeof(focus);
+    ULONGLONG deadline = GetTickCount64() + 5000;
+    do {
+        REQUIRE(GetGUIThreadInfo(app.dwThreadId, &focus));
+        if (focus.hwndFocus == expected) return;
+    } while (retry(deadline));
+    fprintf(stderr, "Expected focus on control %d; focused control %d, active window %p, capture %p\n",
+            GetDlgCtrlID(expected), GetDlgCtrlID(focus.hwndFocus),
+            (void *)focus.hwndActive, (void *)focus.hwndCapture);
+    fail("keyboard focus did not reach the expected control");
 }
 
 static void send_events(INPUT *events, UINT count) {
@@ -420,14 +442,7 @@ static void search_and_sort(void) {
     accessible_first_row(files[1]);
 
     key('F', true);
-    GUITHREADINFO focus = {0};
-    focus.cbSize = sizeof(focus);
-    ULONGLONG deadline = GetTickCount64() + 5000;
-    do {
-        REQUIRE(GetGUIThreadInfo(app.dwThreadId, &focus));
-        if (focus.hwndFocus == edit) break;
-        REQUIRE(retry(deadline));
-    } while (true);
+    wait_for_focus(edit);
     DWORD selected_start = 0, selected_end = 0;
     message(edit, EM_GETSEL, (WPARAM)&selected_start, (LPARAM)&selected_end);
     REQUIRE(selected_start == 0 && selected_end == wcslen(L"win-native-*.txt"));
@@ -460,34 +475,45 @@ static DWORD launches(void) {
 
 static void wait_for_launches(DWORD expected) {
     ULONGLONG deadline = GetTickCount64() + 10000;
-    while (launches() < expected) REQUIRE(retry(deadline));
-    REQUIRE(launches() == expected);
+    DWORD actual;
+    do {
+        actual = launches();
+        if (actual == expected) return;
+    } while (actual < expected && retry(deadline));
+    fprintf(stderr, "Expected %lu fixture launches, observed %lu\n", expected, actual);
+    fail("unexpected number of fixture launches");
 }
 
 static void choose_mode(int index) {
-    click(combo);
+    activate_main();
+    // Tab from Search to the native selector. Arrow keys commit a selection
+    // while the list is closed, so no window-manager popup grab is involved.
+    key('F', true);
+    wait_for_focus(edit);
+    key(VK_TAB, false);
+    wait_for_focus(combo);
+    REQUIRE(!message(combo, CB_GETDROPPEDSTATE, 0, 0));
+    REQUIRE(message(combo, CB_GETCURSEL, 0, 0) == 1 - index);
+    key(index == 0 ? VK_UP : VK_DOWN, false);
     ULONGLONG deadline = GetTickCount64() + 5000;
-    while (!message(combo, CB_GETDROPPEDSTATE, 0, 0)) REQUIRE(retry(deadline));
-    COMBOBOXINFO info = {0};
-    info.cbSize = sizeof(info);
-    REQUIRE(GetComboBoxInfo(combo, &info) && info.hwndList);
-    RECT row;
-    REQUIRE(message(info.hwndList, LB_GETITEMRECT, (WPARAM)index, (LPARAM)&row) != LB_ERR);
-    POINT point = {(row.left + row.right) / 2, (row.top + row.bottom) / 2};
-    REQUIRE(ClientToScreen(info.hwndList, &point));
-    click_point(info.hwndList, point);
-    deadline = GetTickCount64() + 5000;
-    while (message(combo, CB_GETDROPPEDSTATE, 0, 0) ||
-           message(combo, CB_GETCURSEL, 0, 0) != index) REQUIRE(retry(deadline));
+    LRESULT actual;
+    do {
+        actual = message(combo, CB_GETCURSEL, 0, 0);
+        if (actual == index) return;
+    } while (retry(deadline));
+    fprintf(stderr, "Expected search mode index %d, observed %lld\n", index, (long long)actual);
+    fail("search mode did not change");
 }
 
 static void filter_and_launch(void) {
+    stage = "switching search to Apps";
     choose_mode(1);
     results(1);
     click_point(list, first_row());
     selected(0);
     copy_and_expect(paths[2]);
     REQUIRE(GetFileAttributesW(paths[3]) == INVALID_FILE_ATTRIBUTES);
+    stage = "opening the selected application with held Enter";
     // Submit a complete held Enter, including repeated key-downs and the final
     // release, before the launched console can become the keyboard target.
     INPUT enter[4] = {0};
@@ -500,10 +526,11 @@ static void filter_and_launch(void) {
     wait_for_launches(1);
     activate_main();
     selected(0);
+    stage = "opening the selected application with Ctrl+O";
     key('O', true);
     wait_for_launches(2);
-    activate_main();
 
+    stage = "switching search to Files after launch";
     choose_mode(0);
     results(3);
     selected(-1);
@@ -774,7 +801,6 @@ int wmain(int argc, WCHAR **argv) {
     REQUIRE(!IsWindowVisible(control(window, 106, L"Button")));
     stage = "typing and sorting";
     search_and_sort();
-    stage = "filtering and launching";
     filter_and_launch();
     stage = "settings and icon rendering";
     panels();

@@ -140,6 +140,8 @@ jobs:
     needs: platforms
     if: needs.platforms.outputs.windows == 'true'
     runs-on: ubuntu-24.04
+    outputs:
+      package-id: ${{ steps.package.outputs.artifact-id }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: dtolnay/rust-toolchain@master
@@ -203,17 +205,21 @@ jobs:
           cp build/windows/embedded.ico build/windows/drill.ico
           icotool -x -o build/windows/embedded/ build/windows/drill.ico
           diff -r build/windows/original build/windows/embedded
-      - name: Install Wine test dependencies
-        run: .github/ci/ubuntu-apt-get.sh install -y --no-install-recommends wine wine64 xvfb xauth openbox
-      - name: Drive the packaged Windows app under Wine
-        run: scripts/test-wine-linux.sh "$RUNNER_TEMP/drill-native-window.exe" build/windows/packaged.exe
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        id: package
         with:
           name: drill-windows
           path: dist/*
           if-no-files-found: error
+      - name: Install Wine test dependencies
+        run: .github/ci/ubuntu-apt-get.sh install -y --no-install-recommends wine wine64 xvfb xauth openbox
+      - name: Drive the packaged Windows app under Wine
+        run: scripts/test-wine-linux.sh "$RUNNER_TEMP/drill-native-window.exe" build/windows/packaged.exe
   windows-ui:
     needs: windows-cross
+    if: >-
+      ${{ !cancelled() && needs.windows-cross.result != 'cancelled' &&
+          needs.windows-cross.outputs.package-id != '' }}
     runs-on: windows-2025
     timeout-minutes: 20
     steps:
@@ -229,7 +235,7 @@ jobs:
           name: drill-windows-ui-tests
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
-          name: drill-windows
+          artifact-ids: ${{ needs.windows-cross.outputs.package-id }}
           path: dist
       - name: Read menu names through Windows accessibility in light and dark mode
         run: .\drill-menu-accessibility.exe
