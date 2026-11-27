@@ -21,9 +21,9 @@
     ["Drill-windows-x86_64.zip", ["windows", "Windows x64", "windows-logo.svg"]],
     ["Drill-macos-arm64.dmg", ["macos", "macOS · Apple silicon", "apple-logo.svg"]],
     ["Drill-macos-x86_64.dmg", ["macos", "macOS · Intel", "apple-logo.svg"]],
-    ["Drill-linux-amd64.deb", ["linux", "Linux .deb", "debian-logo.svg"]],
-    ["Drill-linux-x86_64.AppImage", ["linux", "Linux AppImage x64", "appimage-logo.svg"]],
-    ["Drill-linux-x86_64.pkg.tar.zst", ["linux", "Arch Linux pkg", "arch-linux-logo.svg"]],
+    ["Drill-linux-amd64.deb", ["linux", ".deb", "debian-logo.svg"]],
+    ["Drill-linux-x86_64.AppImage", ["linux", ".appimage x64", "appimage-logo.svg"]],
+    ["Drill-linux-x86_64.pkg.tar.zst", ["linux", ".pkg", "arch-linux-logo.svg"]],
   ]);
 
   function createButton(label, href, icon, osType) {
