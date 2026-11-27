@@ -1,0 +1,25 @@
+[package]
+name = "cpd-tokenizer"
+version = "0.1.22"
+edition.workspace = true
+publish = false
+rust-version.workspace = true
+description = "Source code tokenizers for cpd"
+homepage.workspace = true
+license.workspace = true
+repository.workspace = true
+documentation = "https://docs.rs/cpd-tokenizer"
+keywords = ["duplicate-code", "clone-detection", "tokenizer", "cpd", "static-analysis"]
+categories = ["development-tools", "parsing"]
+
+[dependencies]
+cpd-core = { version = "0.1.23", path = "../cpd-core" }
+oxc_parser = "0.157"
+oxc_allocator = "0.157"
+oxc_span = "0.157"
+oxc_ast = "0.157"
+oxc_ast_visit = "0.157"
+oxc_syntax = "0.157"
+log = "0.4"
+regex = "1"
+

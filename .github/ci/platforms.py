@@ -11,7 +11,7 @@ EGUI = {"linux", "windows"} | LEGACY
 
 def route(path):
     """Return affected build jobs and whether the installed product can change."""
-    if path.endswith(".md"):
+    if path.endswith(".md") or path.startswith("vendor/jscpd/"):
         return set(), False
     if path.startswith(("native/macos/", "crates/drill-swift/")):
         return {"macos"}, "/tests/" not in path
@@ -90,6 +90,8 @@ def select(paths, event):
 
 
 def scans_source(path):
+    if path.startswith("vendor/jscpd/"):
+        return True
     if path.startswith("vendor/") or path.rsplit("/", 1)[-1] == "Cargo.lock":
         return False
     if path in {"src/assets/wordsalpha.txt", "tools/website-ci/package-lock.json",

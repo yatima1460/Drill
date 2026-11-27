@@ -1,0 +1,51 @@
+[package]
+name = "basta"
+version = "0.3.3"
+edition.workspace = true
+publish = false
+rust-version.workspace = true
+description = "Dead code detection — unused files, exports, symbols and imports across JavaScript, TypeScript, Vue, Svelte, Astro and Python, and Rust through cargo's diagnostics"
+homepage.workspace = true
+license.workspace = true
+repository.workspace = true
+documentation = "https://jscpd.dev"
+keywords = ["dead-code", "unused-code", "static-analysis", "unused-exports", "basta"]
+categories = ["command-line-utilities", "development-tools"]
+
+[lib]
+name = "basta"
+path = "src/lib.rs"
+
+[[bin]]
+name = "basta"
+path = "src/main.rs"
+
+[dependencies]
+globset = "0.4"
+ignore = "0.4"
+cpd-core = { version = "0.1.23", path = "../cpd-core" }
+cpd-finder = { version = "0.1.22", path = "../cpd-finder" }
+cpd-reporter = { version = "0.1.24", path = "../cpd-reporter" }
+cpd-tokenizer = { version = "0.1.22", path = "../cpd-tokenizer" }
+oxc_allocator = "0.157"
+oxc_ast = "0.157"
+oxc_ast_visit = "0.157"
+oxc_parser = "0.157"
+oxc_semantic = "0.157"
+oxc_span = "0.157"
+oxc_syntax = "0.157"
+ruff_python_ast = "0.0.20"
+ruff_python_parser = "0.0.20"
+rustc-hash = "2"
+chrono = "0.4"
+rayon = "1"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+# YAML in safe Rust; serde_yaml_ng sits on unsafe-libyaml, which is archived
+# (RUSTSEC-2024-0449). Only the deserializer is needed.
+serde-saphyr = { version = "2", default-features = false, features = ["deserialize"] }
+clap = { version = "4", features = ["derive"] }
+env_logger = "0.11"
+
+[dev-dependencies]
+serde_json = "1"

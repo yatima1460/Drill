@@ -1,0 +1,25 @@
+[package]
+name = "cpd-finder"
+version = "0.1.22"
+edition.workspace = true
+publish = false
+rust-version.workspace = true
+description = "File walking and clone detection for cpd"
+homepage.workspace = true
+license.workspace = true
+repository.workspace = true
+documentation = "https://docs.rs/cpd-finder"
+keywords = ["duplicate-code", "clone-detection", "copy-paste", "cpd", "static-analysis"]
+categories = ["development-tools"]
+
+[dependencies]
+cpd-core = { version = "0.1.23", path = "../cpd-core" }
+cpd-tokenizer = { version = "0.1.22", path = "../cpd-tokenizer" }
+cpd-similarity = { version = "0.1.1", path = "../cpd-similarity" }
+ignore = "0.4"
+globset = "0.4"
+rayon = "1"
+regex = "1"
+chrono = "0.4"
+memmap2 = "0.9"
+memchr = "2.8"

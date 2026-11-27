@@ -1,0 +1,33 @@
+[licenses]
+allow = [
+    "MIT",
+    "Apache-2.0",
+    "Apache-2.0 WITH LLVM-exception",
+    "BSL-1.0",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "ISC",
+    "Unicode-3.0",
+    # unicode_names2, via ruff_python_parser. The Unicode data licence sits
+    # beside a MIT/Apache dual licence on the same crate and covers only the
+    # character tables; Unicode-3.0 above is the same family, newer wording.
+    "Unicode-DFS-2016",
+    "OpenSSL",
+    "Zlib",
+    # webpki-roots / webpki-root-certs, via ureq for --semantic: Mozilla's CA
+    # certificate list, which the rustls build (Linux) and the native-tls
+    # fallback carry. A permissive licence for data, not code.
+    "CDLA-Permissive-2.0",
+]
+
+[advisories]
+db-path = "~/.cargo/advisory-db"
+db-urls = ["https://github.com/rustsec/advisory-db"]
+
+[bans]
+multiple-versions = "warn"
+deny = []
+
+[sources]
+unknown-registry = "warn"
+unknown-git = "warn"

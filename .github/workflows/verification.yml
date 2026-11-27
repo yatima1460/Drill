@@ -22,6 +22,7 @@ on:
       - 'crates/drill-macos/**'
       - 'crates/drill-windows/**'
       - 'vendor/**'
+      - '!vendor/jscpd/**'
       - 'tools/appimage-icon-wasm/**'
       - 'tools/exe-icon-wasm/**'
       - '!**/*.md'

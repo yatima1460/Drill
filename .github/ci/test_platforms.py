@@ -111,6 +111,12 @@ class PlatformRouting(unittest.TestCase):
         outputs = check_outputs(["native/macos/SearchWindow.swift", "crates/drill-icons/src/lib.rs"], "push")
         self.assertEqual({key for key, value in outputs.items() if value}, ALL | {"release", "duplicates"})
 
+    def test_detector_source_runs_only_the_duplicate_check(self):
+        for event in ("pull_request", "push"):
+            for path in ("vendor/jscpd/rust/Cargo.lock", "vendor/jscpd/rust/crates/cpd/src/main.rs"):
+                selected = check_outputs([path], event)
+                self.assertEqual({key for key, active in selected.items() if active}, {"duplicates"})
+
     def test_duplicate_gate_runs_for_every_platform_build(self):
         for event in ("pull_request", "push"):
             for path in ("Cargo.lock", "vendor/eframe/src/lib.rs", "src/assets/drill.ico"):

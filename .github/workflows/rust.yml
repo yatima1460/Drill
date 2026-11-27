@@ -34,38 +34,33 @@ jobs:
     needs: platforms
     if: needs.platforms.outputs.duplicates == 'true'
     runs-on: ubuntu-24.04
-    timeout-minutes: 5
-    env:
-      JSCPD_VERSION: 5.4.3
-      JSCPD_SHA256: a19d719331b21a047a7537f982566dabcf6d6e5f51581c3b80d9c420979cc92c
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - name: Restore jscpd release archive
-        id: archive
+      - name: Restore jscpd built from vendored source
+        id: detector
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
-          path: ${{ runner.temp }}/jscpd.tar.gz
-          key: jscpd-${{ runner.os }}-${{ runner.arch }}-${{ env.JSCPD_VERSION }}-${{ env.JSCPD_SHA256 }}
-      - name: Verify and extract jscpd
+          path: ${{ runner.temp }}/jscpd-cache
+          key: jscpd-source-ubuntu24-${{ runner.arch }}-${{ hashFiles('rust-toolchain.toml', '.github/ci/prepare-jscpd.sh', '.github/workflows/rust.yml') }}
+      - name: Prepare and verify jscpd
         env:
-          CACHE_HIT: ${{ steps.archive.outputs.cache-hit }}
-        run: |
-          url="https://github.com/kucherenko/jscpd/releases/download/v${JSCPD_VERSION}/jscpd-linux-x64-gnu.tar.gz"
-          bash .github/ci/prepare-jscpd.sh "$RUNNER_TEMP" "$CACHE_HIT" "$url"
+          CACHE_HIT: ${{ steps.detector.outputs.cache-hit }}
+        run: bash .github/ci/prepare-jscpd.sh "$RUNNER_TEMP/jscpd-cache" "$CACHE_HIT"
       - name: Check for duplicate code
-        run: '"$RUNNER_TEMP/jscpd" .'
-      - name: Test offline reuse and rejection of bad inputs
+        run: '"$RUNNER_TEMP/jscpd-cache/jscpd" .'
+      - name: Test warm reuse and rejection of bad inputs
         run: bash .github/ci/test-jscpd-cache.sh
-      - name: Save verified jscpd release archive
+      - name: Save verified jscpd
         if: >-
           github.repository == 'yatima1460/Drill' && github.event_name == 'push' &&
-          github.ref == 'refs/heads/main' && steps.archive.outputs.cache-hit != 'true'
+          github.ref == 'refs/heads/main' && steps.detector.outputs.cache-hit != 'true'
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
-          path: ${{ runner.temp }}/jscpd.tar.gz
-          key: ${{ steps.archive.outputs.cache-primary-key }}
+          path: ${{ runner.temp }}/jscpd-cache
+          key: ${{ steps.detector.outputs.cache-primary-key }}
   linux:
     needs: platforms
     if: needs.platforms.outputs.linux == 'true'

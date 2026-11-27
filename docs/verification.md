@@ -25,14 +25,14 @@ This check uses the original artwork and an independent PNG decoder as its refer
 
 ## Duplicate code
 
-Source changes run jscpd 5.4.3 on the full checkout. Each release also requires this check on its integrated main commit. Any reported clone fails the job and blocks release signing. To reproduce it, install the pinned version and run from the repository root.
+Source changes run jscpd 5.4.3 on the full checkout. Each release also requires this check on its integrated main commit. Any reported clone fails the job and blocks release signing. To reproduce it, build the vendored detector and run it from the repository root.
 
 ```sh
-cargo install --locked --version 5.4.3 jscpd
-jscpd .
+cargo build --locked --release --manifest-path vendor/jscpd/rust/Cargo.toml -p jscpd --bin jscpd --target-dir target/jscpd
+target/jscpd/release/jscpd .
 ```
 
-CI caches the upstream Linux archive by version, SHA-256, operating system and architecture. It checks the digest before every extraction and scans the current checkout even on a cache hit. Only pushes to the main branch of the upstream repository save the archive. Pull requests limited to excluded files such as binary assets skip the duplicate scan.
+CI verifies the [vendored source](../vendor/jscpd) against its pinned upstream Git tree. On a cache miss it builds the executable using Drill's pinned Rust toolchain and jscpd's own lockfile. Only pushes to the upstream main branch save the executable and its checksum. CI verifies the checksum and version before each scan. Pull requests limited to excluded files such as binary assets skip the duplicate scan.
 
 The detector reports repeated blocks of at least 50 tokens spanning at least five lines, including repeats within one file. It checks tests, shell launchers, workflows, website code and the other supported formats. The configuration excludes vendored dependencies, Cargo lockfiles, the generated website lint dependency lockfile, the word list and the three Potrace-generated Drill logos. jscpd respects Git ignore files for local build output.
 
