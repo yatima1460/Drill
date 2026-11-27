@@ -79,8 +79,8 @@ jobs:
           targets: wasm32-unknown-unknown
       - name: Install build and packaging dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install -y libxkbcommon-dev libwayland-dev libgl1-mesa-dev libgtk-3-dev libxkbcommon-x11-0 libx11-xcb1 libegl1 xdg-utils shellcheck zstd xvfb xauth openbox xdotool
+          .github/ci/ubuntu-apt-get.sh update
+          .github/ci/ubuntu-apt-get.sh install -y libxkbcommon-dev libwayland-dev libgl1-mesa-dev libgtk-3-dev libxkbcommon-x11-0 libx11-xcb1 libegl1 xdg-utils shellcheck zstd xvfb xauth openbox xdotool
       - name: Lint shell scripts before release packaging
         if: needs.platforms.outputs.release == 'true'
         run: make shellcheck
@@ -154,7 +154,10 @@ jobs:
           components: rustfmt
       - if: needs.platforms.outputs.linux != 'true'
         run: cargo fmt --all -- --check
-      - run: sudo apt-get update && sudo apt-get install -y gcc-mingw-w64-x86-64 zip file icoutils llvm lld
+      - name: Install Windows cross-build tools
+        run: |
+          .github/ci/ubuntu-apt-get.sh update
+          .github/ci/ubuntu-apt-get.sh install -y gcc-mingw-w64-x86-64 zip file icoutils llvm lld
       - name: Check resource compiler overrides across Windows toolchains
         run: |
           rustc --edition=2021 build.rs -o "$RUNNER_TEMP/drill-resource-build"
@@ -188,7 +191,7 @@ jobs:
           if-no-files-found: error
           retention-days: 1
       - name: Install Wine test dependencies
-        run: sudo apt-get install -y --no-install-recommends wine wine64 xvfb xauth openbox xdotool wmctrl libgl1 libgl1-mesa-dri libglx-mesa0
+        run: .github/ci/ubuntu-apt-get.sh install -y --no-install-recommends wine wine64 xvfb xauth openbox xdotool wmctrl libgl1 libgl1-mesa-dri libglx-mesa0
       - name: Open the Windows app under Wine
         run: scripts/test-wine-linux.sh
       - name: Package and inspect Windows executable
