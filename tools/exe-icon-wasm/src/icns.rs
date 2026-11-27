@@ -30,6 +30,8 @@ pub(super) fn extract(input: &[u8]) -> Option<Vec<u8>> {
     candidates.sort_by_key(|&(width, _)| (width < 32, width.abs_diff(32)));
     candidates.into_iter().find_map(|(_, frame)| {
         super::decode_image(frame, image::ImageFormat::Png, MAX_DIMENSION, 16 << 20)
+            // Some bundles ship fully transparent placeholder representations.
+            .filter(|rgba| rgba.as_chunks::<4>().0.iter().any(|pixel| pixel[3] != 0))
     })
 }
 
@@ -129,6 +131,18 @@ mod tests {
             (b"icp6", &larger),
         ]);
         assert_eq!(extract(&input).unwrap(), color.repeat(32 * 32));
+    }
+
+    #[test]
+    fn skips_invisible_frames_and_preserves_the_generic_fallback() {
+        let invisible = png(32, [100, 110, 120, 0]);
+        assert!(extract(&family(&[(b"ic11", &invisible)])).is_none());
+        let color = [80, 90, 100, 255];
+        let visible = png(64, color);
+        assert_eq!(
+            extract(&family(&[(b"ic11", &invisible), (b"ic12", &visible)])).unwrap(),
+            color.repeat(32 * 32)
+        );
     }
 
     #[test]

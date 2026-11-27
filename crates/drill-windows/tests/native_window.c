@@ -10,8 +10,10 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <wchar.h>
 
+static const char *stage = "startup";
 static bool use_msaa = true;
 static PROCESS_INFORMATION app;
 static HWND window, edit, combo, list, header, status;
@@ -22,7 +24,7 @@ static const WCHAR *const files[] = {
 static WCHAR paths[ARRAYSIZE(files)][MAX_PATH];
 
 static void fail(const char *message) {
-    fprintf(stderr, "Native window test failed: %s (Win32 error %lu)\n", message, GetLastError());
+    fprintf(stderr, "Native window test failed during %s: %s (Win32 error %lu)\n", stage, message, GetLastError());
     exit(1);
 }
 #define REQUIRE(test) do { if (!(test)) fail(#test); } while (0)
@@ -106,11 +108,11 @@ static void fixture(const WCHAR *self) {
     REQUIRE(CopyFileW(L"tools\\exe-icon-wasm\\tests\\fixtures\\icon-pe32.exe", paths[4], TRUE));
 }
 
-static void launch(const WCHAR *path) {
+static void launch(const WCHAR *path, const WCHAR *directory) {
     WCHAR executable[MAX_PATH], command[2 * MAX_PATH + 32];
     DWORD n = GetFullPathNameW(path, ARRAYSIZE(executable), executable, NULL);
     REQUIRE(n && n < ARRAYSIZE(executable));
-    int chars = swprintf(command, ARRAYSIZE(command), L"\"%ls\" --root \"%ls\"", executable, root);
+    int chars = swprintf(command, ARRAYSIZE(command), L"\"%ls\" --root \"%ls\"", executable, directory);
     REQUIRE(chars > 0 && (size_t)chars < ARRAYSIZE(command));
     STARTUPINFOW startup = {0};
     startup.cb = sizeof(startup);
@@ -224,8 +226,30 @@ static void send_events(INPUT *events, UINT count) {
 }
 
 static void click_point(HWND target, POINT point) {
-    HWND hit = WindowFromPoint(point);
-    REQUIRE(hit == target || IsChild(target, hit));
+    // An HWND becomes visible before an external window manager has finished
+    // mapping or repositioning its surface. Keep the intended client point and
+    // re-evaluate it on screen before sending any physical input.
+    POINT client = point;
+    REQUIRE(ScreenToClient(target, &client));
+    ULONGLONG deadline = GetTickCount64() + 5000;
+    HWND hit;
+    for (;;) {
+        point = client;
+        REQUIRE(IsWindow(target) && ClientToScreen(target, &point));
+        hit = WindowFromPoint(point);
+        if (IsWindowVisible(target) && IsWindowEnabled(target) &&
+            (hit == target || IsChild(target, hit))) break;
+        if (!retry(deadline)) {
+            WCHAR target_class[64] = {0}, hit_class[64] = {0}, hit_title[96] = {0};
+            GetClassNameW(target, target_class, ARRAYSIZE(target_class));
+            GetClassNameW(hit, hit_class, ARRAYSIZE(hit_class));
+            GetWindowTextW(GetAncestor(hit, GA_ROOT), hit_title, ARRAYSIZE(hit_title));
+            fprintf(stderr, "%s: target %p %ls id %d at (%ld,%ld); hit %p %ls id %d, top '%ls'\n",
+                    stage, (void *)target, target_class, GetDlgCtrlID(target), point.x, point.y,
+                    (void *)hit, hit_class, GetDlgCtrlID(hit), hit_title);
+            fail("target did not receive the pointer hit test");
+        }
+    }
     // Submit the move and both buttons together so queued clicks on different
     // controls retain their own positions even when the application is busy.
     INPUT events[3] = {0};
@@ -454,72 +478,77 @@ static void close_panel(HWND panel) {
     REQUIRE(IsWindowVisible(window));
 }
 
-static bool has_fallback_pixels(HDC dc, POINT origin, int side) {
-    COLORREF first = CLR_INVALID;
-    unsigned different = 0;
-    // Stay inside the image slot, clear of the header, border and filename.
-    // A file-type glyph contains multiple colors; an empty cell is uniform.
-    for (int y = 1; y <= 9; ++y) {
-        for (int x = 1; x <= 9; ++x) {
-            COLORREF pixel = GetPixel(dc, origin.x + side * x / 10, origin.y + side * y / 10);
-            REQUIRE(pixel != CLR_INVALID);
-            if (first == CLR_INVALID) first = pixel;
-            if (pixel != first && ++different >= 3) return true;
-        }
-    }
-    return false;
-}
+typedef struct {
+    COLORREF pixels[9 * 9];
+} IconSample;
 
-// The fixture's opaque 32 px frame is green. Sample the first unselected
-// row's actual icon pixels; each point is inside the rendered image, clear
-// of borders, text, and the header. The same native row stays visible while
-// asynchronous decoding and preference changes repaint the control.
-static void expect_green_icon(bool green) {
-    ULONGLONG deadline = GetTickCount64() + 12000;
+// Read the displayed image slot from the unselected first row. Leave the
+// header, image edges and filename outside the sample.
+static IconSample sample_icon(void) {
     RECT heading;
     REQUIRE(GetWindowRect(header, &heading));
     POINT origin = {heading.left, heading.bottom};
     REQUIRE(ScreenToClient(list, &origin));
     int side = MulDiv(32, (int)GetDpiForWindow(list), 96);
     REQUIRE(side > 0);
-    int matches;
-    unsigned stable = 0;
-    do {
-        HDC dc = GetDC(list);
-        REQUIRE(dc);
-        matches = 0;
-        for (int y = 1; y <= 3; ++y) {
-            for (int x = 1; x <= 3; ++x) {
-                COLORREF pixel = GetPixel(dc, origin.x + side * x / 4, origin.y + side * y / 4);
-                REQUIRE(pixel != CLR_INVALID);
-                if (pixel == RGB(0, 255, 0)) ++matches;
-            }
+    HDC dc = GetDC(list);
+    REQUIRE(dc);
+    IconSample sample;
+    for (int y = 1; y <= 9; ++y) {
+        for (int x = 1; x <= 9; ++x) {
+            COLORREF pixel = GetPixel(dc, origin.x + side * x / 10, origin.y + side * y / 10);
+            REQUIRE(pixel != CLR_INVALID);
+            sample.pixels[9 * (y - 1) + x - 1] = pixel;
         }
-        bool rendered = green ? matches == 9 : matches == 0 && has_fallback_pixels(dc, origin, side);
-        ReleaseDC(list, dc);
-        if (rendered) {
-            if (++stable == 5) return;
+    }
+    ReleaseDC(list, dc);
+    return sample;
+}
+
+// Poll several rendered frames while asynchronous decoding or a preference
+// change repaints the table. A stock icon must also have visible detail.
+static IconSample expect_icon(COLORREF fixture_color, bool embedded) {
+    ULONGLONG deadline = GetTickCount64() + 12000;
+    unsigned stable = 0, colored, different;
+    do {
+        IconSample sample = sample_icon();
+        different = colored = 0;
+        for (unsigned i = 0; i < ARRAYSIZE(sample.pixels); ++i) {
+            if (sample.pixels[i] != sample.pixels[0]) ++different;
+            unsigned x = i % 9, y = i / 9;
+            if ((x == 2 || x == 4 || x == 6) && (y == 2 || y == 4 || y == 6) &&
+                sample.pixels[i] == fixture_color) ++colored;
+        }
+        if (embedded ? colored == 9 : colored == 0 && different >= 3) {
+            if (++stable == 5) return sample;
         } else {
             stable = 0;
         }
     } while (retry(deadline));
-    fprintf(stderr, "Expected %s icon, found %d/9 green samples.\n", green ? "embedded" : "fallback", matches);
+    fprintf(stderr, "Expected %s icon (COLORREF %08lx), found %u/9 matching center samples and %u varied pixels.\n",
+            embedded ? "embedded" : "fallback", fixture_color, colored, different);
     fail("list-view icon pixels");
+    return (IconSample){0};
+}
+
+static void search_fixture(const WCHAR *query, int count) {
+    click(edit);
+    key('A', true);
+    type_text(query);
+    expect_text(edit, query);
+    results(count);
+    selected(-1);
 }
 
 static void panels(void) {
-    click(edit);
-    key('A', true);
-    type_text(L"green test icon.exe");
-    results(1);
-    selected(-1);
+    search_fixture(L"green test icon.exe", 1);
     HWND settings = open_settings();
     HWND check = control(settings, 6104, L"Button");
     expect_text(check, L"Show EXE icons");
     expect_text(control(settings, 6105, L"Button"), L"Show AppImage icons");
     bool checked = message(check, BM_GETCHECK, 0, 0) == BST_CHECKED;
     close_panel(settings);
-    expect_green_icon(checked);
+    expect_icon(RGB(0, 255, 0), checked);
     // Exercise both directions without starting a new query or replacing its row.
     for (int i = 0; i < 2; ++i) {
         settings = open_settings();
@@ -529,7 +558,7 @@ static void panels(void) {
         ULONGLONG deadline = GetTickCount64() + 5000;
         while ((message(check, BM_GETCHECK, 0, 0) == BST_CHECKED) != checked) REQUIRE(retry(deadline));
         close_panel(settings);
-        expect_green_icon(checked);
+        expect_icon(RGB(0, 255, 0), checked);
     }
     activate_main();
     key(VK_F1, false);
@@ -550,6 +579,39 @@ static void wait_for_exit(void) {
     REQUIRE(GetExitCodeProcess(app.hProcess, &code) && code == 0);
     CloseHandle(app.hProcess);
     app.hProcess = NULL;
+}
+
+static void bind_window(void) {
+    window = find_window(L"DrillSearchWindow", L"Drill");
+    edit = control(window, 101, L"Edit");
+    combo = control(window, 102, L"ComboBox");
+    list = control(window, 103, WC_LISTVIEWW);
+    status = control(window, 104, L"Static");
+    header = (HWND)message(list, LVM_GETHEADER, 0, 0);
+    REQUIRE(header && message(header, HDM_GETITEMCOUNT, 0, 0) == 4);
+    activate_main();
+}
+
+static void bundle_icons(const WCHAR *executable) {
+    WCHAR directory[MAX_PATH];
+    DWORD length = GetFullPathNameW(L"tests\\native_ui\\fixtures\\mac-bundles", ARRAYSIZE(directory), directory, NULL);
+    REQUIRE(length && length < ARRAYSIZE(directory));
+    launch(executable, directory);
+    bind_window();
+    // Both bundles coexist in one result set. Sorting reverses which bundle
+    // occupies the first row, including when the image list already has icons.
+    search_fixture(L"regex:^(Carmine|Jade)\\.app$", 2);
+    click(header);
+    expect_icon(RGB(255, 0, 0), true);
+    click(header);
+    expect_icon(RGB(0, 255, 0), true);
+    search_fixture(L"Missing.app", 1);
+    IconSample application = expect_icon(CLR_INVALID, false);
+    search_fixture(L"Contents", 3);
+    IconSample folder = expect_icon(CLR_INVALID, false);
+    REQUIRE(memcmp(&application, &folder, sizeof(folder)) != 0);
+    message(window, WM_CLOSE, 0, 0);
+    wait_for_exit();
 }
 
 static void wait_for_bounds(const RECT *bounds) {
@@ -587,7 +649,7 @@ static void check_geometry(const WCHAR *executable) {
     key(VK_ESCAPE, false);
     wait_for_exit();
 
-    launch(executable);
+    launch(executable, root);
     window = find_window(L"DrillSearchWindow", L"Drill");
     wait_for_bounds(&normal);
     message(window, WM_SYSCOMMAND, SC_MAXIMIZE, 0);
@@ -595,7 +657,7 @@ static void check_geometry(const WCHAR *executable) {
     message(window, WM_CLOSE, 0, 0);
     wait_for_exit();
 
-    launch(executable);
+    launch(executable, root);
     window = find_window(L"DrillSearchWindow", L"Drill");
     wait_for_maximized();
     message(window, WM_SYSCOMMAND, SC_RESTORE, 0);
@@ -633,24 +695,23 @@ int wmain(int argc, WCHAR **argv) {
     preserve_value(L"Software\\Drill\\Interface", L"WindowPlacement");
     preserve_value(L"Software\\Drill\\Interface", L"ShowExeIcons");
     fixture(self);
-    launch(argv[1]);
-    window = find_window(L"DrillSearchWindow", L"Drill");
-    edit = control(window, 101, L"Edit");
-    combo = control(window, 102, L"ComboBox");
-    list = control(window, 103, WC_LISTVIEWW);
-    status = control(window, 104, L"Static");
-    header = (HWND)message(list, LVM_GETHEADER, 0, 0);
-    REQUIRE(header && message(header, HDM_GETITEMCOUNT, 0, 0) == 4);
+    launch(argv[1], root);
+    bind_window();
     REQUIRE(message(combo, CB_GETCOUNT, 0, 0) == 2 && message(combo, CB_GETCURSEL, 0, 0) == 0);
-    activate_main();
     expect_text(status, L"Type to search");
     REQUIRE(!IsWindowEnabled(control(window, 105, L"Button")));
     REQUIRE(!IsWindowVisible(control(window, 106, L"Button")));
+    stage = "typing and sorting";
     search_and_sort();
+    stage = "filtering and launching";
     filter_and_launch();
+    stage = "settings and icon rendering";
     panels();
+    stage = "restoring window geometry";
     check_geometry(argv[1]);
     REQUIRE(launches() == 2);
+    stage = "displaying macOS bundle icons";
+    bundle_icons(argv[1]);
     if (use_msaa) CoUninitialize();
     puts("Native Windows search, selection, clipboard, sorting, launch shortcuts, panels, geometry and Escape passed.");
     return 0;
