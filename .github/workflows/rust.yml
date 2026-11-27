@@ -235,14 +235,14 @@ jobs:
         run: .\drill-menu-accessibility.exe
       - name: Verify Windows read-only volume policy and icon fallbacks
         run: .\drill-icon-path.exe
+      - name: Test search, shell adapters, icons and desktop model with MSVC
+        run: cargo test --locked --no-fail-fast -p drill -p drill-windows -p drill-desktop -p drill-icons --all-features
       - name: Drive the packaged Win32 app on native Windows
         run: |
           Expand-Archive dist/Drill-windows-x86_64.zip -DestinationPath dist/packaged
           .\drill-native-window.exe dist/packaged/Drill.exe
       - name: Lint the Win32 frontend and shared model
         run: cargo clippy --locked -p drill -p drill-windows -p drill-desktop --all-targets --all-features -- -D warnings -D clippy::undocumented_unsafe_blocks
-      - name: Test search, shell adapters, icons and desktop model with MSVC
-        run: cargo test --locked -p drill -p drill-windows -p drill-desktop -p drill-icons --all-features
       - name: Drive the MSVC-built Win32 app on native Windows
         run: ./scripts/test-native-ui-windows.ps1
   macos:
