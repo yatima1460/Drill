@@ -32,6 +32,8 @@ class PlatformRouting(unittest.TestCase):
             with self.subTest(path=path):
                 self.assertEqual(select([path], "pull_request"), (targets, False))
         self.assertEqual(select(["tests/native_ui.rs"], "push"), (EGUI, False))
+        for event in ("push", "pull_request"):
+            self.assertEqual(select([".github/ci/ubuntu-apt-get.sh"], event), ({"linux", "windows"}, False))
         for path in [".github/workflows/rust.yml", ".github/ci/platforms.py",
                      "crates/drill-core/src/test_directory.rs"]:
             self.assertEqual(select([path], "push"), (ALL | LEGACY, False))

@@ -3,6 +3,7 @@ on:
   pull_request:
     paths:
       - '.github/workflows/verification.yml'
+      - '.github/ci/ubuntu-apt-get.sh'
       - '.cargo/**'
       - 'Cargo.toml'
       - 'Cargo.lock'
@@ -52,8 +53,8 @@ jobs:
       - name: Install Linux desktop test dependencies
         if: runner.os == 'Linux' && (github.event_name == 'pull_request' || inputs.scope == 'desktop')
         run: |
-          sudo apt-get update
-          sudo apt-get install -y libxkbcommon-dev libwayland-dev libgl1-mesa-dev libgtk-3-dev libxkbcommon-x11-0 libx11-xcb1 libegl1
+          .github/ci/ubuntu-apt-get.sh update
+          .github/ci/ubuntu-apt-get.sh install -y libxkbcommon-dev libwayland-dev libgl1-mesa-dev libgtk-3-dev libxkbcommon-x11-0 libx11-xcb1 libegl1
       - name: Install pinned cargo-mutants
         run: |
           source verification/tools.env

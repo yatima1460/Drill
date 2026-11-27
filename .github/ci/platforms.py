@@ -40,6 +40,8 @@ def route(path):
         return {"linux"}, False
     if path == "scripts/test-wine-linux.sh":
         return {"windows"}, False
+    if path == ".github/ci/ubuntu-apt-get.sh":
+        return {"linux", "windows"}, False
     if path in {"scripts/package-linux.sh", "src/linux_apps.rs", "src/appearance/linux.rs", "src/assets/roots_linux.txt"}:
         return {"linux"}, True
     if path in {"build.rs", "src/assets/drill.ico", "src/assets/drill.rc", "src/assets/roots_windows.txt"}:
