@@ -9,14 +9,13 @@ use std::os::windows::io::{AsRawHandle, FromRawHandle};
 use std::path::{Component, Path, Prefix};
 use std::ptr;
 use windows_sys::Win32::Foundation::{
-    HANDLE, INVALID_HANDLE_VALUE, OBJ_CASE_INSENSITIVE, STATUS_SUCCESS, UNICODE_STRING,
+    HANDLE, OBJ_CASE_INSENSITIVE, STATUS_SUCCESS, UNICODE_STRING,
 };
 use windows_sys::Win32::Storage::FileSystem::{
-    GetFileType, QueryDosDeviceW, ReOpenFile, FILE_ATTRIBUTE_OFFLINE,
-    FILE_ATTRIBUTE_RECALL_ON_DATA_ACCESS, FILE_ATTRIBUTE_RECALL_ON_OPEN,
-    FILE_ATTRIBUTE_REPARSE_POINT, FILE_FLAG_OPEN_NO_RECALL, FILE_FLAG_OPEN_REPARSE_POINT,
-    FILE_READ_ATTRIBUTES, FILE_READ_DATA, FILE_SHARE_DELETE, FILE_SHARE_READ, FILE_SHARE_WRITE,
-    FILE_TRAVERSE, FILE_TYPE_DISK, SYNCHRONIZE,
+    GetFileType, QueryDosDeviceW, FILE_ATTRIBUTE_OFFLINE, FILE_ATTRIBUTE_RECALL_ON_DATA_ACCESS,
+    FILE_ATTRIBUTE_RECALL_ON_OPEN, FILE_ATTRIBUTE_REPARSE_POINT, FILE_READ_ATTRIBUTES,
+    FILE_READ_DATA, FILE_SHARE_DELETE, FILE_SHARE_READ, FILE_SHARE_WRITE, FILE_TRAVERSE,
+    FILE_TYPE_DISK, SYNCHRONIZE,
 };
 
 // winternl.h. NtOpenFile accepts a directory handle and a counted component name.
@@ -118,7 +117,13 @@ fn component_name(name: &OsStr) -> Option<Vec<u16>> {
     (wide.len() <= 255 && super::safe_component_text(&name.to_string_lossy())).then_some(wide)
 }
 
-fn open(parent: HANDLE, name: &mut [u16], directory: bool) -> Option<File> {
+fn open_handle(
+    parent: HANDLE,
+    name: &mut [u16],
+    access: u32,
+    kind: u32,
+    sharing: u32,
+) -> Option<File> {
     let length = u16::try_from(size_of_val(name)).ok()?;
     let name = UNICODE_STRING {
         Length: length,
@@ -138,13 +143,6 @@ fn open(parent: HANDLE, name: &mut [u16], directory: bool) -> Option<File> {
         information: 0,
     };
     let mut handle = ptr::null_mut();
-    let (access, kind) = if directory {
-        // NO_RECALL is incompatible with the DIRECTORY_FILE create option.
-        // Verify the directory attribute on this handle before traversing it.
-        (FILE_TRAVERSE, 0)
-    } else {
-        (0, FILE_NON_DIRECTORY_FILE)
-    };
     // SAFETY: all referenced storage and the optional parent handle outlive this
     // synchronous call. The OS writes an owned handle only on success.
     let result = unsafe {
@@ -153,7 +151,7 @@ fn open(parent: HANDLE, name: &mut [u16], directory: bool) -> Option<File> {
             access | FILE_READ_ATTRIBUTES | SYNCHRONIZE,
             &attrs,
             &mut status,
-            FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+            sharing,
             kind | FILE_SYNCHRONOUS_IO_NONALERT | FILE_OPEN_REPARSE_POINT | FILE_OPEN_NO_RECALL,
         )
     };
@@ -161,9 +159,21 @@ fn open(parent: HANDLE, name: &mut [u16], directory: bool) -> Option<File> {
         return None;
     }
     // SAFETY: the successful open transferred this handle to us.
-    let file = unsafe { File::from_raw_handle(handle) };
+    Some(unsafe { File::from_raw_handle(handle) })
+}
+
+fn open(parent: HANDLE, name: &mut [u16], directory: bool) -> Option<File> {
+    let (access, kind) = if directory {
+        // NO_RECALL is incompatible with the DIRECTORY_FILE create option.
+        // Verify the directory attribute on this handle before traversing it.
+        (FILE_TRAVERSE, 0)
+    } else {
+        (0, FILE_NON_DIRECTORY_FILE)
+    };
+    let sharing = FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE;
+    let file = open_handle(parent, name, access, kind, sharing)?;
     // SAFETY: file owns this live handle.
-    if unsafe { GetFileType(handle) } != FILE_TYPE_DISK {
+    if unsafe { GetFileType(file.as_raw_handle()) } != FILE_TYPE_DISK {
         return None;
     }
     let meta = file.metadata().ok()?;
@@ -177,21 +187,16 @@ fn open(parent: HANDLE, name: &mut [u16], directory: bool) -> Option<File> {
     if directory {
         return Some(file);
     }
-    // SAFETY: upgrade only this verified, live disk file for reading. Keeping the
-    // metadata handle alive prevents a name replacement from redirecting the read.
-    let reader = unsafe {
-        ReOpenFile(
-            file.as_raw_handle(),
-            FILE_READ_DATA | FILE_READ_ATTRIBUTES,
-            FILE_SHARE_READ,
-            FILE_FLAG_OPEN_REPARSE_POINT | FILE_FLAG_OPEN_NO_RECALL,
-        )
-    };
-    if reader == INVALID_HANDLE_VALUE {
-        return None;
-    }
-    // SAFETY: ReOpenFile returned a second, owned handle.
-    Some(unsafe { File::from_raw_handle(reader) })
+    // Reopen the verified object through its live handle and an empty name.
+    // This keeps the no-recall and no-reparse options on the synchronous data
+    // handle without resolving the original filename again.
+    open_handle(
+        file.as_raw_handle(),
+        &mut [],
+        FILE_READ_DATA,
+        FILE_NON_DIRECTORY_FILE,
+        FILE_SHARE_READ,
+    )
 }
 
 #[cfg(test)]
@@ -201,6 +206,7 @@ mod tests {
     use std::os::windows::ffi::OsStringExt;
 
     #[test]
+    #[ignore = "requires a checkout on a direct local Windows volume"]
     fn decodes_carmine_from_the_checked_out_repository() {
         let path = Path::new(env!("CARGO_MANIFEST_DIR"))
             .parent()
@@ -208,7 +214,6 @@ mod tests {
             .parent()
             .unwrap()
             .join("tests/native_ui/fixtures/mac-bundles/Carmine.app");
-        eprintln!("Checking Carmine using {path:?}");
         let bytes = super::super::snapshot(&path, &|| true).expect("Carmine ICNS snapshot");
         assert!(bytes == include_bytes!("../../../tests/native_ui/fixtures/mac-bundles/Carmine.app/Contents/Resources/TestIcon.icns"));
         let pixels = crate::EmbeddedIcon::AppBundle
