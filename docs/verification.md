@@ -18,7 +18,7 @@ Kani runs on pull requests that change the proof workspace, its imported modules
 To check the packaged AppImage icon locally, build the Linux package or set `DRILL_PACKAGED_APPIMAGE` to a built AppImage. Run the check with its reference decoder enabled.
 
 ```sh
-cargo test --locked --bin drill --features verify-packaged-appimage appimage_icon::tests::packaged_appimage_contains_drill_icon -- --ignored --exact
+cargo test --locked --bin drill --features verify-packaged-appimage egui_app::appimage_icon::tests::packaged_appimage_contains_drill_icon -- --ignored --exact
 ```
 
 This check uses the original artwork and an independent PNG decoder as its reference.

@@ -1774,11 +1774,12 @@ mod ui_tests {
         let opener = bin.path().join("xdg-open");
         std::fs::write(&opener, "#!/bin/sh\nexit 4\n").unwrap();
         std::fs::set_permissions(&opener, std::fs::Permissions::from_mode(0o700)).unwrap();
+        let test = concat!(
+            module_path!(),
+            "::unsuccessful_linux_opener_reports_target_and_exit_status"
+        );
         let output = std::process::Command::new(std::env::current_exe().unwrap())
-            .args([
-                "--exact",
-                "ui_tests::unsuccessful_linux_opener_reports_target_and_exit_status",
-            ])
+            .args(["--exact", test.split_once("::").unwrap().1])
             .env("PATH", bin.path())
             .env(CHILD, "1")
             .output()
