@@ -126,7 +126,21 @@ pub fn default_roots_with_cancel(cancel: &AtomicBool) -> Vec<PathBuf> {
     }
     roots.sort();
     roots.dedup();
+    #[cfg(target_os = "macos")]
+    roots.retain(|root| !cancel.load(Ordering::Relaxed) && is_implicit_search_root(root));
     roots
+}
+
+fn is_photos_library(path: &Path) -> bool {
+    path.extension()
+        .is_some_and(|extension| extension.eq_ignore_ascii_case("photoslibrary"))
+}
+
+#[cfg(target_os = "macos")]
+fn is_implicit_search_root(path: &Path) -> bool {
+    // Expanded defaults can include a package or an alias that resolves inside it.
+    let in_library = |path: &Path| path.ancestors().any(is_photos_library);
+    !in_library(path) && fs::canonicalize(path).is_ok_and(|canonical| !in_library(&canonical))
 }
 
 #[cfg(target_os = "linux")]
@@ -455,7 +469,8 @@ impl Search {
                         let accepted = launchable || filter.accepts(&path, kind);
                         if kind.is_dir()
                             && !kind.is_symlink()
-                            && !(filter == FileFilter::MacBundles && accepted)
+                            && !(filter == FileFilter::MacBundles && accepted
+                                || cfg!(target_os = "macos") && is_photos_library(&path))
                         {
                             let canonical =
                                 fs::canonicalize(&path).unwrap_or_else(|_| path.clone());
@@ -664,6 +679,40 @@ mod tests {
                     Err(mpsc::RecvTimeoutError::Disconnected)
                 ));
             }
+        }
+    }
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn implicit_roots_exclude_photos_libraries_and_their_contents() {
+        use std::os::unix::fs::symlink;
+
+        let fixture = private_temp_dir();
+        let pictures = fixture.path().join("Pictures");
+        let library = pictures.join("Library.PhOtOsLiBrArY");
+        let originals = library.join("originals");
+        let ordinary = pictures.join("Library.photoslibrary.backup");
+        let alias = pictures.join("alias");
+        let originals_alias = pictures.join("originals-alias");
+        let package_named_alias = pictures.join("alias.photoslibrary");
+        fs::create_dir_all(&originals).unwrap();
+        fs::create_dir_all(&ordinary).unwrap();
+        symlink(&library, &alias).unwrap();
+        symlink(&originals, &originals_alias).unwrap();
+        symlink(&ordinary, &package_named_alias).unwrap();
+
+        for path in [pictures, ordinary] {
+            assert!(is_implicit_search_root(&path), "{}", path.display());
+        }
+        for path in [
+            library,
+            originals,
+            alias.join("originals"),
+            alias,
+            originals_alias,
+            package_named_alias,
+        ] {
+            assert!(!is_implicit_search_root(&path), "{}", path.display());
         }
     }
 

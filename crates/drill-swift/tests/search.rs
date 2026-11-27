@@ -234,6 +234,70 @@ fn apps_use_core_bundle_filter_stem_ranking_and_empty_query_behavior() {
     assert!(Handle::new("fuzzy:", true, root).drain(2).is_empty());
 }
 
+#[cfg(target_os = "macos")]
+#[test]
+fn photos_library_contents_are_hidden_from_parent_searches_in_both_scopes() {
+    let dir = private_temp_dir();
+    let root = dir.path();
+    let library = root.join("Sample.PHOTOSLIBRARY");
+    let originals = library.join("originals");
+    let loose = root.join("Sample.photoslibrary-backup");
+    let loose_photo = loose.join("Sample Loose.jpg");
+    let loose_app = loose.join("Sample Tools.app");
+    fs::create_dir_all(&originals).unwrap();
+    fs::create_dir_all(&loose_app).unwrap();
+    fs::write(originals.join("Sample Original.jpg"), []).unwrap();
+    fs::write(&loose_photo, []).unwrap();
+    fs::create_dir(originals.join("Sample Internal.app")).unwrap();
+
+    let mut files = Handle::new("sample", false, root);
+    let mut file_paths: Vec<_> = files.drain(1).into_iter().map(|hit| hit.path).collect();
+    file_paths.sort();
+    let mut apps = Handle::new("sample", true, root);
+    let app_paths: Vec<_> = apps.drain(1).into_iter().map(|hit| hit.path).collect();
+    assert_eq!(
+        (file_paths.as_slice(), app_paths.as_slice()),
+        (
+            [library, loose, loose_photo, loose_app.clone()].as_slice(),
+            [loose_app].as_slice(),
+        )
+    );
+}
+
+#[cfg(target_os = "macos")]
+#[test]
+fn explicit_photos_library_roots_search_contents_without_duplicate_hits() {
+    let dir = private_temp_dir();
+    let root = dir.path();
+    let library = root.join("Sample.photoslibrary");
+    let originals = library.join("originals");
+    let photo = originals.join("Sample Original.jpg");
+    let app = originals.join("Sample Internal.app");
+    fs::create_dir_all(&app).unwrap();
+    fs::write(&photo, []).unwrap();
+
+    for selected in [&library, &originals] {
+        let hits = Handle::new("sample", false, selected).drain(1);
+        assert!(hits.iter().any(|hit| hit.path == photo));
+        let apps = Handle::new("sample", true, selected).drain(1);
+        let paths: Vec<_> = apps.into_iter().map(|hit| hit.path).collect();
+        assert_eq!(paths.as_slice(), std::slice::from_ref(&app));
+    }
+
+    let mut additional = Vec::new();
+    for selected in [&originals, &library, &originals] {
+        additional.extend_from_slice(selected.as_os_str().as_bytes());
+        additional.push(0);
+    }
+    let mut files = Handle::with_additional("sample", false, root, &additional);
+    let mut paths: Vec<_> = files.drain(1).into_iter().map(|hit| hit.path).collect();
+    paths.sort();
+    assert_eq!(paths, [library, app.clone(), photo]);
+    let mut apps = Handle::with_additional("sample", true, root, &additional);
+    let paths: Vec<_> = apps.drain(1).into_iter().map(|hit| hit.path).collect();
+    assert_eq!(paths, [app]);
+}
+
 #[test]
 fn paused_search_resumes_and_drains_more_than_one_full_core_queue() {
     let dir = private_temp_dir();
