@@ -1,5 +1,6 @@
 use std::io::Cursor;
 
+mod icns;
 mod pe;
 mod resource;
 
@@ -13,6 +14,15 @@ pub extern "C" fn allocate(size: u32) -> *mut u8 {
 
 #[no_mangle]
 pub extern "C" fn decode(ptr: *const u8, len: u32) -> *mut u8 {
+    decode_with(ptr, len, extract)
+}
+
+#[no_mangle]
+pub extern "C" fn decode_icns(ptr: *const u8, len: u32) -> *mut u8 {
+    decode_with(ptr, len, icns::extract)
+}
+
+fn decode_with(ptr: *const u8, len: u32, extract: fn(&[u8]) -> Option<Vec<u8>>) -> *mut u8 {
     // SAFETY: only the host calls this export, using the pointer returned by allocate
     // and the same bounded length. WebAssembly confines all accesses to guest memory.
     let input = unsafe { std::slice::from_raw_parts(ptr, len as usize) };
@@ -32,17 +42,26 @@ fn extract(input: &[u8]) -> Option<Vec<u8>> {
     ico.extend_from_slice(frame.directory_fields);
     ico.extend_from_slice(&22u32.to_le_bytes()); // Header and entry length.
     ico.extend_from_slice(frame.bytes);
-    let mut reader = image::ImageReader::with_format(Cursor::new(ico), image::ImageFormat::Ico);
+    decode_image(&ico, image::ImageFormat::Ico, 256, 4 << 20)
+}
+
+fn decode_image(
+    bytes: &[u8],
+    format: image::ImageFormat,
+    max_dimension: u32,
+    max_alloc: u64,
+) -> Option<Vec<u8>> {
+    let mut reader = image::ImageReader::with_format(Cursor::new(bytes), format);
     let mut limits = image::Limits::default();
-    limits.max_image_width = Some(256);
-    limits.max_image_height = Some(256);
-    limits.max_alloc = Some(4 * 1024 * 1024);
+    limits.max_image_width = Some(max_dimension);
+    limits.max_image_height = Some(max_dimension);
+    limits.max_alloc = Some(max_alloc);
     reader.limits(limits);
     let rgba = reader
         .decode()
         .ok()?
         .resize_exact(32, 32, image::imageops::FilterType::Triangle)
-        .to_rgba8();
+        .into_rgba8();
     Some(rgba.into_raw())
 }
 
